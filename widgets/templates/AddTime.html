@@ -1,0 +1,18 @@
+<form class="${baseClass}Form" data-dojo-attach-event="onSubmit:_onSubmit" data-dojo-attach-point="formNode">
+<span class="${baseClass}TimeType">
+<input type="radio" data-dojo-props="dijit/form/RadioButton" name="${baseClass}TimeType" value="time" id="${id}RadioTime" checked data-dojo-attach-point="radioTimeNode" data-dojo-attach-event="onChange:_radioChange" /><label for="${id}RadioTime">Horaire</label><br />
+<input type="radio" data-dojo-props="dijit/form/RadioButton" name="${baseClass}TimeType" value="morning" id="${id}RadioMorning"  data-dojo-attach-event="onChange:_radioChange" /><label for="${id}RadioMorning">Matin</label><br />
+<input type="radio" data-dojo-props="dijit/form/RadioButton" name="${baseClass}TimeType" value="evening" id="${id}RadioAfter"  data-dojo-attach-event="onChange:_radioChange" /><label for="${id}RadioAfter">Après-midi</label><br />
+<input type="radio" data-dojo-props="dijit/form/RadioButton" name="${baseClass}TimeType" value="wholeday" id="${id}RadioWhole"  data-dojo-attach-event="onChange:_radioChange" /><label for="${id}RadioWhole">Jour entier</label><br />
+</span>
+<span class="${baseClass}WorkTime">
+<input data-dojo-type="dijit/form/FilteringSelect" data-dojo-attach-point="reasonNode" name="${baseClass}Reason" /><br />
+<input data-dojo-type="dijit/form/DateTextBox" data-dojo-attach-point="dateNode" name="${baseClass}BeginDay" /><br />
+<input data-dojo-type="dijit/form/TimeTextBox" name="${baseClass}BeginHour" data-dojo-attach-point="beginNode" />
+<input data-dojo-type="dijit/form/TimeTextBox" name="${baseClass}EndHour" data-dojo-attach-point="endNode" /><br />
+</span>
+<span class="${baseClass}Remak">
+<label for="${baseClass}Remark">Remarque : </label><input data-dojo-type="dijit/form/TextBox" name="${baseClass}Remark" /><br />
+<button data-dojo-type="dijit/form/Button" type="submit">Enregistrer</button><br />
+</span>
+</form>
