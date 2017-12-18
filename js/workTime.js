@@ -34,6 +34,7 @@ entitystore: null,
 workedDay: {},
 lookingAt: [],
 lastValidated: null,
+beginDate: null,
 
 constructor: function(id, entitystore, timestore, conditionstore, validationstore, options) {
 	this.Id = id;
@@ -52,6 +53,7 @@ constructor: function(id, entitystore, timestore, conditionstore, validationstor
 	this.HolidayCost = 0;
 
 
+	this.beginDate = null;
 	this.WorkTime = options.WorkTime;
 	this.HolidayCount = options.HolidayCount ? options.HolidayCount : this.HolidayCount;
 	this.ClosedDay = options.ClosedDay ? options.ClosedDay : this.ClosedDay;
@@ -117,15 +119,18 @@ loadValidation: function() {
 	var def = new djDeferred();
 	this.lastValidated = null;
 
-	this.validationstore.filter({ target: this.Id }).forEach( djLang.hitch(this, function (entry) {
-		this.setValidatedValues(entry.year, entry.month, entry.worktime, entry.vacations, entry.todo, entry.overtime);
+	this.validationstore.filter({ target: '=' + this.Id }).forEach( djLang.hitch(this, function (entry) {
+		if(entry.target == this.Id) {
+			console.log(entry);
+			this.setValidatedValues(entry.year, entry.month, entry.worktime, entry.vacations, entry.todo, entry.overtime);
 
-		if(this.lastValidated == null) {
-			this.lastValidated = [ new Date(Date.UTC(entry.year, entry.month)), entry ];
-		} else {
-			if(djDate.compare(this.lastValidated[0], new Date(Date.UTC(entry.year, entry.month))) < 0) {
-				this.lastValidated = [ new Date(Date.UTC(entry.year, entry.month)), entry ];	
-			}	
+			if(this.lastValidated == null) {
+				this.lastValidated = [ new Date(Date.UTC(entry.year, entry.month)), entry ];
+			} else {
+				if(djDate.compare(this.lastValidated[0], new Date(Date.UTC(entry.year, entry.month))) < 0) {
+					this.lastValidated = [ new Date(Date.UTC(entry.year, entry.month)), entry ];	
+				}	
+			}
 		}
 	})).then(djLang.hitch(this, function () {
 		if(this.lastValidated != null) { this.lookingAt[0] = djDate.add(this.lastValidated[0], "month", 1).toISOString(); }
@@ -167,6 +172,7 @@ loadCondition: function() {
 		
 			if(iam.vacations != null) { this.HolidayCount = iam.vacations; }
 			if(iam.workTime != null) { this.WorkPercent = iam.workTime; }
+			if(iam.beginDate) { this.beginDate = djStamp.fromISOString(iam.beginDate); }
 			def.resolve();		
 		}));		
 	}));
@@ -251,6 +257,9 @@ MinutesToDo: function(options) {
 	var todo = 0;
 	var to = options.To ? options.To : new Date(); /* Today if not set */
 	var from = options.From ? options.From : new Date(to.getFullYear(), 0, 1);
+	if(this.beginDate) {
+		from = this.beginDate;	
+	}
 
 	if(djDate.compare(from, to, "date") > 0) { console.log("Date in future"); return 0; }
 	for(	var current = from;
