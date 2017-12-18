@@ -53,7 +53,8 @@ _htmlElement: function(person) {
 		firstname: firstname,
 		lastname: lastname,
 		worktime: person.workTime,
-		vacation: person.vacations
+		vacation: person.vacations,
+		begin: person.beginDate
 	});
 
 	return personWidget;
