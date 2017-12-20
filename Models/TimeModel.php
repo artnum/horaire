@@ -54,7 +54,7 @@ class TimeModel extends SQLModel
             );
    
       if($create) {
-         
+        $this->create($data); 
       } else {
          unset($data['atTemp_id']);
          $this->update($id, $data);
