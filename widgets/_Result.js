@@ -46,7 +46,15 @@ return djDeclare(null, {
 			this._success = false;			
 		}
 	},
+  empty: function() {
+    if(this.success()) {
+      if(this.count() == 0) {
+        return true;
+      }
+    }
 
+    return false;
+  },
 	_parseArray: function (raw) {
 		if(raw.length > 0) {
 			this._success = true;	
