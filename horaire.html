@@ -1,0 +1,35 @@
+<html>
+<head>
+<title>Horaire</title>
+<link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.12.1/dojo/resources/dojo.css" />
+<link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.12.1/dijit/themes/claro/claro.css" />
+<link rel="stylesheet" type="text/css" href="css/font-awesome.min.css" />
+<link rel="stylesheet" type="text/css" href="css/horaire.css" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Passion+One" rel="stylesheet">
+</head>
+<body class="claro">
+
+<script>
+dojoConfig = {
+	locale: 'fr-ch',
+	async: true,
+	requestProvider: "dojo/request/xhr",
+	packages: [
+		{ name: "horaire", location: location.href + "/../widgets/" }
+	]
+}
+</script>
+<script src="//ajax.googleapis.com/ajax/libs/dojo/1.12.1/dojo/dojo.js"></script>
+<script>
+require([
+	"horaire/People"	
+], function(
+	People
+) {
+	var body = document.getElementsByTagName('BODY');
+	var people = new People();
+	body[0].appendChild(people.domNode);
+});
+</script>
+</body>
+</html>

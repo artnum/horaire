@@ -1,6 +1,6 @@
 <?PHP
 
-class HolidayModel extends SQLModel
+class HolidayModel extends artnum\SQL
 {
    function __construct($db, $config) {
       parent::__construct($db, 'atHoliday', 'atHoliday_id', $config);
