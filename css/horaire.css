@@ -53,6 +53,7 @@ body.waiting .waiting {
 }
 
 .button {
+	font-family: "Open Sans";
 	border-radius: 6px;
 	border: solid 2px black;
 	margin: 2px;
@@ -70,6 +71,25 @@ body.waiting .waiting {
 	border: solid 2px #888;
 	color: black !important;
 	background-color: white !important;	
+}
+
+.button.white {
+	color: black !important;
+}
+
+.button.project span:before {
+	font-family: "FontAwesome";
+	content: "\f006\0020";
+}
+
+.button.folder span:before {
+	font-family: "FontAwesome";
+	content: "\f114\0020";
+}
+
+.button.user span:before {
+	font-family: "FontAwesome";
+	content: "\f2c0\0020";
 }
 
 .entity {

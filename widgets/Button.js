@@ -1,0 +1,26 @@
+define([
+	"dojo/_base/declare",
+	"dijit/_WidgetBase",
+	"dijit/_TemplatedMixin",
+	"dijit/_WidgetsInTemplateMixin",
+	"dojo/_base/lang",
+	"dojo/text!./templates/Button.html"
+], function (
+	djDeclare,
+	_dtWidgetBase,
+	_dtTemplatedMixin,
+	_dtWidgetsInTemplateMixin,
+	djLang,
+	template
+){
+	return djDeclare('horaire.Button', [
+		_dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin
+	],{
+		templateString: template,
+		baseClass: "button",
+
+		type: "",
+		_setTypeAttr: { node: "nRoot", type: "class" },
+		
+	});
+});
