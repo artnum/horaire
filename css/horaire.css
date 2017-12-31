@@ -1,0 +1,103 @@
+div.waiting {
+	display: none;
+	position: fixed;
+	z-index: 1000;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	color: black;
+	background: rgba( 255, 255, 255, .4 );	
+}
+
+div.waiting i {
+	display: block;
+	margin: auto;	
+}
+
+body.waiting {
+	overflow: hidden;	
+}
+
+body.waiting .waiting {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	text-align: center;
+}
+
+
+
+.people {
+	font-family: "Open Sans";
+}
+.people > div:first-child {
+	display: flex;	
+	justify-content: center;
+	flex-wrap: wrap;
+	width: 100%;
+	margin-bottom: 60px;
+}
+
+.people .tools {
+	width: 100%;
+	min-height: 40px;
+	max-height: 40px;
+	margin: 0;
+	padding: 5px;
+	background-color: black;
+	position: fixed;
+	bottom: 0px;
+	left: 0px;	
+	display: flex;
+}
+
+.button {
+	border-radius: 6px;
+	border: solid 2px black;
+	margin: 2px;
+	padding: 4px;
+	font-size: 1.2em;
+	min-height: 20px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	color: white;
+	cursor: pointer;
+}
+
+.button:hover {
+	border: solid 2px #888;
+	color: black !important;
+	background-color: white !important;	
+}
+
+.entity {
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	max-width: 180px;
+	max-height: 120px;	
+	min-width: 180px;
+	min-height: 100px;
+	margin: 5px;
+	background-color: rgba( 130, 180, 240,1);
+	color: rgba( 0, 40, 80, 1);
+	cursor: pointer;
+}
+
+.entity:hover {
+	color: rgba( 130, 180, 240,1);
+	background-color: rgba( 0, 40, 80, 1);
+	
+}
+
+.entity div:first-child {
+	font-family: "Passion One";
+	font-size: 1.8em;
+}
+.inputbox input {
+	font-size: 10px;
+	padding: 0;	
+}
