@@ -9,6 +9,7 @@ define([
 	"dojo/on",
 	"dojo/parser",
 	"dojo/dom-construct",
+	"dojo/dom-class",
 
 	"dijit/layout/StackContainer",
 	"dijit/layout/ContentPane",
@@ -29,6 +30,7 @@ define([
 	djOn,
 	djParser,
 	djDomConstruct,
+	djDomClass,
 
 	dtStackContainer,
 	dtContentPane,
@@ -61,22 +63,44 @@ define([
 				}
 			});	
 		
-			djOn(this.nNewProject, "click", djLang.hitch(this, this.newProject));
+			djOn(this.nNewProject, "click", djLang.hitch(this, this.newProjectEvt));
+			djOn(this.nNewPerson, "click", djLang.hitch(this, this.newPersonEvt));
 		},
 
-		newProject: function () {
+		popForm: function (url, title, evts) {
 			var that = this;
-			djXhr.get('/horaire/html/newProject.html', {handleAs: "text" }).then( function (html) {
+			var body = document.getElementsByTagName('BODY')[0];
+			
+			djDomClass.add(body, "waiting");
+			djXhr.get(url, { handleAs: "text"}).then (function (html) {
 				var html = djDomConstruct.toDom(html);
-				djParser.parse(html, { noStart: true }).then( function (dom) {
-					var dialog = new dtDialog({title: "Nouveau projet"});
+				djParser.parse(html, { noStart: true}).then(function (dom) {
+					var dialog = new dtDialog({title: title});
 					dialog.addChild(dom[0]);
 					dialog.show();
 					
-					djOn(dialog.domNode.getElementsByTagName('FORM')[0], 'submit', djLang.hitch(that, that.newProjectEx));
-					
-				}); 		
+					for(var k in evts) {
+						var hitch = that;
+						if(evts[k].hitch)	 {
+							hitch = evts[k].hitch;	
+						}
+						
+						djOn(dialog.domNode.getElementsByTagName('FORM')[0], k, djLang.hitch(hitch, evts.func));
+						djDomClass.remove(body, "waiting");
+					}
+				});			
 			});
+		},
+
+		newPersonEvt: function() {
+			
+		},
+
+		newProjectEvt: function () {
+			var that = this;
+			this.popForm('/horaire/html/newProject.html', 'Nouveau Projet', {
+					"submit" : { "func" : this.newProjectEx }
+				});
 		},
 		newProjectEx: function(event) {
 			event.preventDefault();
