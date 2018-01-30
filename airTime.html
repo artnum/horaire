@@ -9,6 +9,7 @@
 </head>
 <body class="claro">
 <div id="menu">
+Année : 
 </div>
 <section id="mainContent">
 <div id="entityContainer"><div id="entity"></div></div>
@@ -20,14 +21,15 @@
 <script>dojoConfig={ requestProvider: "dojo/request/xhr", packages: [
 { name: "dgrid", location: "//cdn.rawgit.com/SitePen/dgrid/v1.1.0"  },
 { name: "dstore", location: "//cdn.rawgit.com/SitePen/dstore/v1.1.1"},
-{ name: "workTime", location: "/airTime/js/" },
-{ name: "atPerson", location: "/airTime/js/" },
-{ name: "airTime", location: "/airTime/widgets/"}] }</script>
+{ name: "workTime", location: "/horaire/js/" },
+{ name: "atPerson", location: "/horaire/js/" },
+{ name: "airTime", location: "/horaire/widgets/"}] }</script>
 <script src="//cdn.rawgit.com/alexei/sprintf.js/master/src/sprintf.js"></script>
 <script src="//ajax.googleapis.com/ajax/libs/dojo/1.12.1/dojo/dojo.js" data-dojo-config="locale: 'fr-ch', async: true"></script>
 <script type="text/javascript">
 
 var HStore = null;
+var CurrentYear = new Date(Date.now()).getFullYear();
 
 
 function Round10(val) {
@@ -44,8 +46,24 @@ function printWidgetDate(date) {
 	return sprintf("%d-%02d-%02d", date.getFullYear(), date.getMonth() + 1, date.getDate());
 }
 
-require([
 
+
+var FragId = {
+	set: function(id) {
+		document.location = String(document.location).split('#')[0] + '#' + id;
+	},
+	get: function() {
+		var x = String(document.location).split('#');
+		if(x.length>0) {
+			return x[x.length - 1];
+		}
+
+		return null; 
+	}
+};
+
+
+require([
 	/* dojo */
 	"dojo/parser",
 	"dojo/_base/declare",
@@ -85,6 +103,7 @@ require([
 	"dijit/form/TimeTextBox",
 	"dijit/form/FilteringSelect",
 	"dijit/form/Textarea",
+	"dijit/form/Select",
 	"dijit/Tooltip",
 	"dijit/Dialog",
 	"dijit/InlineEditBox",
@@ -137,6 +156,7 @@ require([
 	dtTimeTextBox,
 	dtFilteringSelect,
 	dtTextarea,
+	dtSelect,
 	dtTooltip,
 	dtDialog,
 	dtInlineEditBox,
@@ -152,11 +172,11 @@ require([
 
 var dayBoxes = {}, lastAddedDay = new Object, worktimes = {};
 var cachedRestStore = djDeclare([dsRest, dsTrackable]);
-var timeStore = new cachedRestStore({target: '/airTime/Time'});
-var conditionStore = new cachedRestStore({target: '/airTime/Condition'});
-var entityStore = new cachedRestStore({target: '/airTime/Entity'});
-var holidayStore = new cachedRestStore({target: '/airTime/Holiday'});
-var validationStore = new cachedRestStore({target: '/airTime/Validation'});
+var timeStore = new cachedRestStore({target: '/horaire/Time'});
+var conditionStore = new cachedRestStore({target: '/horaire/Condition'});
+var entityStore = new cachedRestStore({target: '/horaire/Entity'});
+var holidayStore = new cachedRestStore({target: '/horaire/Holiday'});
+var validationStore = new cachedRestStore({target: '/horaire/Validation'});
 var PERSON = new atPerson(entityStore);
 HStore = holidayStore;
 var reasonStore = new djMemory({data: [
@@ -189,8 +209,8 @@ var monthStore = new djMemory({data: [
 			{ name: 'Décembre', id: 11}
 		]});
 
-var yearStart = new Date(Date.UTC(new Date().getFullYear(), 0, 1));
-var yearStop = new Date(Date.UTC(new Date().getFullYear(), 11, 31));
+var yearStart = new Date(Date.UTC(CurrentYear, 0, 1));
+var yearStop = new Date(Date.UTC(CurrentYear, 11, 31));
 var Conditions = null;
 var _first = null;
 conditionStore.forEach(function(e){
@@ -205,14 +225,18 @@ if(Conditions == null) {
 var Entities = {};
 /*** Start */
 
+
 /* Functions */
 var CDate = function (stamp) {
 		var d = djDateStamp.fromISOString(stamp);
 		return d;
 }
 
-var fullAddFormEx = function(targetId) {
+var fullAddFormEx = function() {
 	console.log('fullAddFormEx');
+	targetId = FragId.get();
+	if(targetId == null) { return; }
+	console.log(targetId);
 	dtRegistry.byId('formStackContainer').selectChild(dtRegistry.byId("wait"));
 
 	var oTimeSheet = dtRegistry.byId("TimeSheetXX");
@@ -437,8 +461,8 @@ var displayTimeSheetEx = function(targetId) {
 			djDomConstruct.place(daysSheet, originDom, "last");
 		}
 
-		var startDay = new Date(new Date().getFullYear(), parseInt(timeSheet.get('month')), 1, 12);
-		var stopDay = new Date(startDay.getFullYear(), parseInt(timeSheet.get('month')) + 1 , 0, 12);
+		var startDay = new Date(CurrentYear, parseInt(timeSheet.get('month')), 1, 12);
+		var stopDay = new Date(CurrentYear, parseInt(timeSheet.get('month')) + 1 , 0, 12);
 		
 		for(var day = startDay; djDate.compare(day, stopDay, "date") <= 0; day = djDate.add(day, "day", 1)) {
 
@@ -479,7 +503,7 @@ var displayTargetTimeEx = function(targetId) {
 	var lastDay = null;
 	var timeSheet = dtRegistry.byId("TimeSheetXX");
 	
-			var until = new Date(new Date().getFullYear(), parseInt(timeSheet.get('month')) + 1, 0);
+			var until = new Date(CurrentYear, parseInt(timeSheet.get('month')) + 1, 0);
 
 			timeStore.filter({from: yearStart.toISOString(), until: until.toISOString(), target: targetId}).forEach(function(entry) {
 
@@ -618,7 +642,8 @@ var displayTargetTimeEx = function(targetId) {
 
 var onPersonSelect = function(event) {
 	var targetId = dtRegistry.getEnclosingWidget(event.target).id;
-	fullAddFormEx(targetId);
+	FragId.set(targetId);
+	fullAddFormEx();
 }
 
 var onAddPerson = function(event) {
@@ -921,6 +946,25 @@ var onCondition = function(event) {
 
 djParser.parse().then(function(){
 
+	var select = document.createElement('SELECT');
+	for(var i = 2017; i <= new Date(Date.now()).getFullYear(); i++) {
+		var option = document.createElement('OPTION');
+		option.setAttribute('value', i);
+		if(i == new Date(Date.now()).getFullYear()) {
+			option.setAttribute('selected', 'selected');	
+		}
+		option.appendChild(document.createTextNode(i));
+		select.appendChild(option);
+	}
+	document.getElementById('menu').appendChild(select);
+	djOn(select, 'change', function (event) {
+		CurrentYear = event.target.value;
+		yearStart = new Date(Date.UTC(CurrentYear, 0, 1));
+		yearStop = new Date(Date.UTC(CurrentYear, 11, 31));
+		fullAddFormEx();
+	});
+
+
 	/* Containers */
 	var FormContainer = new dtStackContainer({ id: "formStackContainer"	}, 'addFormDiv');
 	var wait = new dtContentPane({id:'wait', content: '<i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i>'});
@@ -944,7 +988,9 @@ djParser.parse().then(function(){
 			Entities[person.id] = person;
 			Personnes.addChild(new dtMenuItem({label: person.commonName, id: person.id,
 			  onClick: onPersonSelect }));
-		}).then(function() {  FormContainer.startup(); Menu.startup(); });
+		}).then(function() {  FormContainer.startup(); Menu.startup();  fullAddFormEx(); });
+
+
 });
 });
 </script>
