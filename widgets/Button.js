@@ -4,14 +4,18 @@ define([
 	"dijit/_TemplatedMixin",
 	"dijit/_WidgetsInTemplateMixin",
 	"dojo/_base/lang",
-	"dojo/text!./templates/Button.html"
+	"dojo/text!./templates/Button.html",
+
+	"dojo/dom-class"
 ], function (
 	djDeclare,
 	_dtWidgetBase,
 	_dtTemplatedMixin,
 	_dtWidgetsInTemplateMixin,
 	djLang,
-	template
+	template,
+
+	djDomClass
 ){
 	return djDeclare('horaire.Button', [
 		_dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin
@@ -21,6 +25,15 @@ define([
 
 		type: "",
 		_setTypeAttr: { node: "nRoot", type: "class" },
-		
+
+		selected: false,
+		_setSelectedAttr: function(selected) {
+			this.selected = selected;
+			if(selected) {
+				djDomClass.add(this.domNode, "selected");
+			} else {
+				djDomClass.remove(this.domNode, "selected");
+			}
+		}
 	});
 });

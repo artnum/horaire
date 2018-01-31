@@ -9,7 +9,8 @@ define([
 	"dojo/on",
 	"dojo/dom-construct",
 	"dijit/Dialog",
-	"horaire/_Result"
+	"horaire/_Result",
+	"horaire/Projects"
 ], function (
 	djDeclare,
 	_dtWidgetBase,
@@ -21,7 +22,8 @@ define([
 	djOn,
 	djDomConstruct,
 	dtDialog,
-	_Result
+	_Result,
+	hProjects
 ){
 	return djDeclare('horaire.Entity', [
 		_dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin
@@ -29,17 +31,23 @@ define([
 		templateString: template,
 		baseClass: "entity",
 		security: false,
+		pane: null,
+		link: null,
+		entry: null,
 		_passwordBoxHtml: '<div class="inputbox"><input type="password" placeholder="Mot de passe" /></div>',
 
-		postCreate: function () {
-			if( ! this.get('commonName')) {
-				this.destroy();	
-			}
+		constructor: function (entry, options) {
+			this.entry = entry;
+			this.link = options.link;
+			this.pane = options.pane;
+		},
 
+		postCreate: function () {
 			var cn = document.createTextNode(this.get('commonName'));
 			this.nCommonName.appendChild(cn);
 
-			djOn(this.nRoot, "click", djLang.hitch(this, this.open));
+			this.open();
+			djOn(this.nRoot, "click", djLang.hitch(this, function () { window.location.hash = this.link; }));
 		},
 
 		open: function() {
@@ -49,9 +57,10 @@ define([
 				}
 			}
 
-			var dialog = new dtDialog({ title: this.get('commonName'), style: "width: 100%; height: 100%;"});
-			dialog.show();
+			var prj = new hProjects();
+			this.pane.domNode.appendChild(prj.domNode);
 
+			djOn(prj, "change", function (e) { console.log(e); });
 		},
 
 		closeLogin: function() {

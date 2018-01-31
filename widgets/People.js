@@ -50,29 +50,40 @@ define([
 		postCreate: function () {
 			var that = this;
 
-			var cp = new dtContentPane({ name: 'home', title: 'Accueil', id: "home" });
+			var cp = new dtContentPane({  title: 'Accueil', id: "home" });
 			djXhr.get('/horaire/Entity', {handleAs: 'json'}).then( function ( results ) {
 				results = new _Result(results);
 				if(results.success()) {
 					var frag = document.createDocumentFragment();
 					results.whole().forEach( function ( entry ) {
-						var entity = new hEntity(entry);
+						var ecp = new dtContentPane({ id: 'P_' + entry.id, title: entry.commonName });
+						var entity = new hEntity(entry, { pane: ecp, link: 'P_' + entry.id} );
 						that.own(entity);
+						that.nContent.addChild(ecp);
+						
 						frag.appendChild(entity.domNode);
 					});
 					
-					window.requestAnimationFrame(function () { that.nContent.addChild(cp); cp.set('content', frag); that.nContent.selectChild('home'); });
-
+					window.requestAnimationFrame(function () {
+						that.nContent.addChild(cp); 
+						cp.set('content', frag); 
+						if(window.location.hash) {
+							that.nContent.selectChild(window.location.hash.substr(1));
+						} else {
+							that.nContent.selectChild('home'); 
+						}
+						that.nContent.startup(); 
+					});
 				}
 			});	
 		
 			djOn(this.nNewProject, "click", djLang.hitch(this, this.newProjectEvt));
 			djOn(this.nNewPerson, "click", djLang.hitch(this, this.newPersonEvt));
-			djOn(this.nHome, "click", djLang.hitch(this, function() { this.urlFragment('home'); }));
+			djOn(this.nHome, "click", djLang.hitch(this, function() { window.location.hash = '#home'; }));
 
 			djOn(window, "hashchange", djLang.hitch(this, function(e) { 
 				try {
-					this.nContent.selectChild(this.urlFragment());
+					this.nContent.selectChild(window.location.hash.substr(1));
 				} catch (e) {
 					this.error('Destination inconnue');
 				}
@@ -81,14 +92,6 @@ define([
 
 		error: function (msg) {
 			console.log(msg);
-		},
-
-		urlFragment: function () {
-			if(arguments[0]) {
-				window.location.hash = '#' + arguments[0];
-			}
-
-			return window.location.hash.substr(1);
 		},
 
 		popForm: function (url, title, evts) {

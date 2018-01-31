@@ -30,6 +30,11 @@ body.waiting .waiting {
 
 .people {
 	font-family: "Open Sans";
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	bottom: 50px;
 }
 
 #home {
@@ -74,8 +79,20 @@ body.waiting .waiting {
 	background-color: white !important;	
 }
 
-.button.white {
+.button.white, .light .button {
 	color: black !important;
+}
+
+.button.white:hover, .light .button:hover {
+	border: solid 2px #eee;
+	color: white !important;
+	background-color: black !important;	
+}
+
+.light .button.selected {
+	border: solid 2px #eee;
+	color: white !important;
+	background-color: #333 !important;	
 }
 
 .button.project span:before {
