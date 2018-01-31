@@ -31,7 +31,8 @@ body.waiting .waiting {
 .people {
 	font-family: "Open Sans";
 }
-.people > div:first-child {
+
+#home {
 	display: flex;	
 	justify-content: center;
 	flex-wrap: wrap;
@@ -90,6 +91,11 @@ body.waiting .waiting {
 .button.user span:before {
 	font-family: "FontAwesome";
 	content: "\f2c0\0020";
+}
+
+.button.home span:before {
+	font-family: "FontAwesome";
+	content: "\f015\0020";
 }
 
 .entity {

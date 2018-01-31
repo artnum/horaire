@@ -16,7 +16,7 @@ define([
 	"dijit/Dialog",
 	"dijit/registry",
 
-
+	"horaire/Button",
 	"horaire/Entity",
 	"horaire/_Result"
 ], function (
@@ -37,6 +37,7 @@ define([
 	dtDialog,
 	dtRegistry,
 
+	hButton,
 	hEntity,
 	_Result
 ){
@@ -48,6 +49,8 @@ define([
 		baseClass: "people",
 		postCreate: function () {
 			var that = this;
+
+			var cp = new dtContentPane({ name: 'home', title: 'Accueil', id: "home" });
 			djXhr.get('/horaire/Entity', {handleAs: 'json'}).then( function ( results ) {
 				results = new _Result(results);
 				if(results.success()) {
@@ -58,13 +61,34 @@ define([
 						frag.appendChild(entity.domNode);
 					});
 					
-					window.requestAnimationFrame(function () { that.nContent.appendChild(frag); });
+					window.requestAnimationFrame(function () { that.nContent.addChild(cp); cp.set('content', frag); that.nContent.selectChild('home'); });
 
 				}
 			});	
 		
 			djOn(this.nNewProject, "click", djLang.hitch(this, this.newProjectEvt));
 			djOn(this.nNewPerson, "click", djLang.hitch(this, this.newPersonEvt));
+			djOn(this.nHome, "click", djLang.hitch(this, function() { this.urlFragment('home'); }));
+
+			djOn(window, "hashchange", djLang.hitch(this, function(e) { 
+				try {
+					this.nContent.selectChild(this.urlFragment());
+				} catch (e) {
+					this.error('Destination inconnue');
+				}
+			}));
+		},
+
+		error: function (msg) {
+			console.log(msg);
+		},
+
+		urlFragment: function () {
+			if(arguments[0]) {
+				window.location.hash = '#' + arguments[0];
+			}
+
+			return window.location.hash.substr(1);
 		},
 
 		popForm: function (url, title, evts) {
