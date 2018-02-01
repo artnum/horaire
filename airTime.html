@@ -23,7 +23,8 @@ Année :
 { name: "dstore", location: "//cdn.rawgit.com/SitePen/dstore/v1.1.1"},
 { name: "workTime", location: "/horaire/js/" },
 { name: "atPerson", location: "/horaire/js/" },
-{ name: "airTime", location: "/horaire/widgets/"}] }</script>
+{ name: "airTime", location: "/horaire/widgets/"},
+{ name: "artnum", location: "//artnum.ch/code/js/dojo/" } ] }</script>
 <script src="//cdn.rawgit.com/alexei/sprintf.js/master/src/sprintf.js"></script>
 <script src="//ajax.googleapis.com/ajax/libs/dojo/1.12.1/dojo/dojo.js" data-dojo-config="locale: 'fr-ch', async: true"></script>
 <script type="text/javascript">
@@ -117,6 +118,7 @@ require([
 	"airTime/DayBox",
 	"airTime/TimeSheet",
 
+
 	"dojo/domReady!"
  ],
  function(
@@ -167,7 +169,7 @@ require([
 	airTimeAddTime,
 	TimeEntry,
 	DayBox,
-	TimeSheet
+	TimeSheet,
  ){
 
 var dayBoxes = {}, lastAddedDay = new Object, worktimes = {};
