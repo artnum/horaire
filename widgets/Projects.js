@@ -14,7 +14,8 @@ define([
 	"dijit/registry",
 
 
-	"horaire/Button"
+	"artnum/Button",
+	"artnum/ButtonGroup"
 ], function (
 	djDeclare,
 	djEvented,
@@ -30,7 +31,8 @@ define([
 	dtContentPane,
 	dtRegistry,
 
-	hButton
+	Button,
+	ButtonGroup
 ){
 	
 	return djDeclare('horaire.Projects', [
@@ -38,37 +40,18 @@ define([
 	],{
 		templateString: template,
 		baseClass: "project",
-		current: null,
-
-		_getValueAttr: function () {
-			if(! this.current) { return ''; }
-
-			return this.current.get('value');
-		},
 
 		postCreate: function () {
 			var that = this;
+			var group = new ButtonGroup(); this.own(group);
+			
 			djXhr.get('/horaire/Project', {handleAs: 'json', query: { 'search.closed': '-', 'sort.opened' : 'desc' } }).then( function ( results ) {
-				var frag = document.createDocumentFragment();
 				results.data.forEach( function ( entry ) {
-					var btn = new hButton({ name: entry.name, class: 'project', value: entry.id});
-					djOn(btn, 'click', djLang.hitch(that, that.selectBtn));
-					that.own(btn);
-					frag.appendChild(btn.domNode);
+					group.addValue(entry.id, { type: 'project', label: entry.name});
 				});
-				
-				window.requestAnimationFrame(function () { that.domNode.appendChild(frag); });
-
+						
+				window.requestAnimationFrame(function () { that.domNode.appendChild(group.domNode); });
 			});	
-		},
-
-		selectBtn: function (event) {
-			var w = dtRegistry.getEnclosingWidget(event.target);
-			if(this.current) { this.current.set('selected', false); }
-			this.current = w;
-			w.set('selected', true);
-
-			this.emit('change', w.get('value'));
 		}
 	});
 });

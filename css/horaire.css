@@ -26,7 +26,13 @@ body.waiting .waiting {
 	text-align: center;
 }
 
+.people .desktop {
+	display: flex !important;
+}
 
+.timeBox .days .artnumButtonGroup {
+	display: flex !important;
+}
 
 .people {
 	font-family: "Open Sans";

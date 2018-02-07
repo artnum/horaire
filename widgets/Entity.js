@@ -8,9 +8,11 @@ define([
 	"dojo/request/xhr",
 	"dojo/on",
 	"dojo/dom-construct",
+	"dojo/dom-class",
 	"dijit/Dialog",
 	"horaire/_Result",
-	"horaire/Projects"
+	"horaire/Projects",
+	"horaire/TimeBox"
 ], function (
 	djDeclare,
 	_dtWidgetBase,
@@ -21,9 +23,11 @@ define([
 	djXhr,
 	djOn,
 	djDomConstruct,
+	djDomClass,
 	dtDialog,
 	_Result,
-	hProjects
+	hProjects,
+	hTimeBox
 ){
 	return djDeclare('horaire.Entity', [
 		_dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin
@@ -46,6 +50,8 @@ define([
 			var cn = document.createTextNode(this.get('commonName'));
 			this.nCommonName.appendChild(cn);
 
+			djDomClass.add(this.pane.domNode, 'desktop');
+			
 			this.open();
 			djOn(this.nRoot, "click", djLang.hitch(this, function () { window.location.hash = this.link; }));
 		},
@@ -57,10 +63,11 @@ define([
 				}
 			}
 
-			var prj = new hProjects();
+			var prj = new hProjects({ class: 'section' });
 			this.pane.domNode.appendChild(prj.domNode);
 
-			djOn(prj, "change", function (e) { console.log(e); });
+			var tbx = new hTimeBox({ class: 'section' });
+			this.pane.domNode.appendChild(tbx.domNode);
 		},
 
 		closeLogin: function() {
