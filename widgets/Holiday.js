@@ -39,8 +39,6 @@ return djDeclare("artnum.Holiday", [
 		request.get(this.store).then( function ( result ) {
 			
 		});
-
-		
 	},
 
 	parseList: function(list) {
@@ -58,11 +56,27 @@ return djDeclare("artnum.Holiday", [
 		var that = this;
 
 		var form = document.createElement('FORM');
-		djOn(form, 'submit', function (event) {
+		djOn(form, 'submit', djLang.hitch(this, function (event) {
 			event.preventDefault();
-			console.log(djDomForm.toObject(event.target));
 			
-		});
+			var values = djDomForm.toObject(event.target);
+			var dates = this.parseList(values.list);
+			if(!values.name && !values.year) {
+				return;
+			}
+
+			var valid = true;
+			for(var i = 0; i < dates.length; i++) {
+				if(! new Date(dates[i] + values.year + 'T00:00:00.0000Z')) {
+					valid = false;
+				}
+			}
+			
+			if(valid) {
+				request.post(this.store, { data: { name: values.name, year: values.year, list: values.list} });	
+			}
+
+		}));
 
 		var e = document.createElement('TEMPLATE'); e.innerHTML = _tform;
 		form.appendChild(e.content);
