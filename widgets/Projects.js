@@ -43,7 +43,7 @@ define([
 
     postCreate: function () {
       var that = this
-      var group = new ButtonGroup(); this.own(group)
+      var group = new ButtonGroup({moveNode: true}); this.own(group)
 
       djXhr.get('/horaire/Project', {handleAs: 'json', query: {'search.closed': '-', 'sort.opened': 'desc'}}).then(function (results) {
         for (var i = 0; i < results.data.length; i++) {
