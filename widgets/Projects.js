@@ -1,57 +1,58 @@
 define([
-	"dojo/_base/declare",
-	"dojo/Evented",
-	"dijit/_WidgetBase",
-	"dijit/_TemplatedMixin",
-	"dijit/_WidgetsInTemplateMixin",
-	"dojo/_base/lang",
-	"dojo/text!./templates/Projects.html",
-	"dojo/request/xhr",
-	"dojo/on",
+  'dojo/_base/declare',
+  'dojo/Evented',
+  'dijit/_WidgetBase',
+  'dijit/_TemplatedMixin',
+  'dijit/_WidgetsInTemplateMixin',
+  'dojo/_base/lang',
+  'dojo/text!./templates/Projects.html',
+  'dojo/request/xhr',
+  'dojo/on',
+  'dojo/date',
 
-	"dijit/layout/StackContainer",
-	"dijit/layout/ContentPane",
-	"dijit/registry",
+  'dijit/layout/StackContainer',
+  'dijit/layout/ContentPane',
+  'dijit/registry',
 
-
-	"artnum/Button",
-	"artnum/ButtonGroup"
+  'artnum/Button',
+  'artnum/ButtonGroup'
 ], function (
-	djDeclare,
-	djEvented,
-	_dtWidgetBase,
-	_dtTemplatedMixin,
-	_dtWidgetsInTemplateMixin,
-	djLang,
-	template,
-	djXhr, 
-	djOn,
+  djDeclare,
+  djEvented,
+  _dtWidgetBase,
+  _dtTemplatedMixin,
+  _dtWidgetsInTemplateMixin,
+  djLang,
+  template,
+  djXhr,
+  djOn,
+  djDate,
 
-	dtStackContainer,
-	dtContentPane,
-	dtRegistry,
+  dtStackContainer,
+  dtContentPane,
+  dtRegistry,
 
-	Button,
-	ButtonGroup
-){
-	
-	return djDeclare('horaire.Projects', [
-		_dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin, djEvented
-	],{
-		templateString: template,
-		baseClass: "project",
+  Button,
+  ButtonGroup
+) {
+  return djDeclare('horaire.Projects', [
+    _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin, djEvented
+  ], {
+    templateString: template,
+    baseClass: 'project',
 
-		postCreate: function () {
-			var that = this;
-			var group = new ButtonGroup(); this.own(group);
-			
-			djXhr.get('/horaire/Project', {handleAs: 'json', query: { 'search.closed': '-', 'sort.opened' : 'desc' } }).then( function ( results ) {
-				results.data.forEach( function ( entry ) {
-					group.addValue(entry.id, { type: 'project', label: entry.name});
-				});
-						
-				window.requestAnimationFrame(function () { that.domNode.appendChild(group.domNode); });
-			});	
-		}
-	});
-});
+    postCreate: function () {
+      var that = this
+      var group = new ButtonGroup(); this.own(group)
+
+      djXhr.get('/horaire/Project', {handleAs: 'json', query: {'search.closed': '-', 'sort.opened': 'desc'}}).then(function (results) {
+        for (var i = 0; i < results.data.length; i++) {
+          var entry = results.data[i]
+          group.addValue(entry.id, {type: 'project', label: entry.name})
+        }
+
+        window.requestAnimationFrame(function () { that.domNode.appendChild(group.domNode) })
+      })
+    }
+  })
+})
