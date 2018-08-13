@@ -44,6 +44,7 @@ define([
     postCreate: function () {
       var that = this
       var group = new ButtonGroup({moveNode: true}); this.own(group)
+      this.Group = group
 
       djXhr.get('/horaire/Project', {handleAs: 'json', query: {'search.closed': '-', 'sort.opened': 'desc'}}).then(function (results) {
         for (var i = 0; i < results.data.length; i++) {
@@ -53,6 +54,13 @@ define([
 
         window.requestAnimationFrame(function () { that.domNode.appendChild(group.domNode) })
       })
+    },
+
+    _getValueAttr: function () {
+      return this.Group.get('value')
+    },
+    _getNameAttr: function () {
+      return this.Group.get('label')
     }
   })
 })
