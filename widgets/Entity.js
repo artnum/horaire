@@ -1,5 +1,4 @@
 /* eslint-env browser,amd */
-/* global Hour */
 define([
   'dojo/_base/declare',
   'dijit/_WidgetBase',
@@ -69,40 +68,56 @@ define([
         }
       }
 
-      var prj = new HProjects({ class: 'section' })
-      this.Project = prj
-      this.pane.domNode.appendChild(prj.domNode)
-      djOn(prj, 'change', function (event) {
+      var entity = document.createElement('DIV')
+      entity.setAttribute('class', 'EntityPanel')
+      var section1 = document.createElement('SECTION')
+      var section2 = document.createElement('SECTION')
+      var section3 = document.createElement('SECTION')
+      entity.appendChild(section1)
+      entity.appendChild(section2)
+      entity.appendChild(section3)
+
+      this.Project = new HProjects()
+      this.own(this.Project)
+      section1.appendChild(this.Project.domNode)
+
+      this.TimeBox = new HTimeBox()
+      this.own(this.TimeBox)
+      section2.appendChild(this.TimeBox.domNode)
+
+      var url = new URL(window.location.origin + '/horaire/Htime')
+      url.searchParams.append('sort.created', 'DESC')
+      url.searchParams.append('search.entity', this.entry.id)
+
+      this.TimeList = new HTimeList({url: url})
+      this.own(this.TimeList)
+      section2.appendChild(this.TimeList.domNode)
+
+      /* Attach events */
+      djOn(this.Project, 'change', function (event) {
         var url = this.TimeList.get('url')
         url.searchParams.set('search.project', event)
         this.TimeList.set('url', url)
         this.TimeList.refresh()
       }.bind(this))
 
-      var tbx = new HTimeBox({ class: 'section' })
-      this.pane.domNode.appendChild(tbx.domNode)
-
-      var url = new URL(window.location.origin + '/horaire/Htime')
-      url.searchParams.append('sort.created', 'DESC')
-      url.searchParams.append('search.entity', this.entry.id)
-
-      var list = new HTimeList({url: url})
-      this.TimeList = list
-      this.pane.domNode.appendChild(list.domNode)
-
-      djOn(tbx, 'submit', function (event) {
-        if (!event.date || !event.second || !prj.get('value')) {
+      djOn(this.TimeBox, 'submit', function (event) {
+        if (!event.date || !event.second || !this.Project.get('value')) {
           new Log({message: 'Entrée incomplète', timeout: 2}).show()
           return
         }
-        var query = {entity: this.entry.id, project: prj.get('value'), value: event.second, day: event.date.toISOString()}
+        var query = {entity: this.entry.id, project: this.Project.get('value'), value: event.second, day: event.date.toISOString()}
 
         fetch('/horaire/Htime', {method: 'post', body: JSON.stringify(query)}).then(function () {
-          list.refresh()
-        })
+          this.TimeList.refresh()
+        }.bind(this))
       }.bind(this))
 
-      list.refresh()
+      this.TimeList.refresh()
+
+      window.requestAnimationFrame(function () {
+        this.pane.domNode.appendChild(entity)
+      }.bind(this))
     },
 
     closeLogin: function () {

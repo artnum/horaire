@@ -163,3 +163,27 @@ body.waiting .waiting {
 	padding: 2;
 	border: 0;
 }
+
+.EntityPanel {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+}
+
+.EntityPanel section .entries {
+  font-size: 1.2em;
+}
+
+.EntityPanel section .head {
+  font-weight: bold;
+}
+
+.EntityPanel section .entries span {
+  display: inline-block;
+  min-width: 8ch;
+}
+
+.EntityPanel section .entries span:after {
+
+  content: '\0020';
+}

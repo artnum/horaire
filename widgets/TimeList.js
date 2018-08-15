@@ -1,4 +1,5 @@
 /* eslint-env amd, browser */
+/* eslint no-template-curly-in-string: "off" */
 /* global Hour */
 define([
   'dojo/_base/declare',
@@ -31,7 +32,7 @@ define([
     _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin
   ], {
     baseClass: 'HTimeList',
-    templateString: '<div class="{$baseClass}"></div>',
+    templateString: '<div class="${baseClass}"></div>',
 
     constructor: function () {
       this.loaded = { data: false }
@@ -73,9 +74,14 @@ define([
         this.clear()
         var data = this.get('data')
         var frag = document.createDocumentFragment()
-        for (var i = 0; i < data.length; i++) {
-          var node = document.createElement('DIV')
 
+        var node = document.createElement('DIV')
+        node.setAttribute('class', 'entries head')
+        node.innerHTML = '<span class="day">Jour</span><span class="time">Durée</span><span class="project">Projet</span>'
+        frag.appendChild(node)
+        for (var i = 0; i < data.length; i++) {
+          node = document.createElement('DIV')
+          node.setAttribute('class', 'entries')
           var txt = '<span class="day">' + (new Date(data[i].day)).shortDate() + '</span>'
           txt += '<span class="time">' + (new Hour(data[i].value).toMinStr()) + '</span>'
           txt += '<span class="project">' + data[i].hProject.name + '</span>'

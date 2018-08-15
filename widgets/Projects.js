@@ -43,7 +43,7 @@ define([
 
     postCreate: function () {
       var that = this
-      var group = new ButtonGroup({moveNode: true}); this.own(group)
+      var group = new ButtonGroup({moveNode: false}); this.own(group)
       this.Group = group
 
       djOn(group, 'change', function (event) {
