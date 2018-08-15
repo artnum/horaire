@@ -1,4 +1,5 @@
 /* eslint-env browser,amd */
+/* global Hour */
 define([
   'dojo/_base/declare',
   'dijit/_WidgetBase',
@@ -13,7 +14,9 @@ define([
   'dijit/Dialog',
   'horaire/_Result',
   'horaire/Projects',
-  'horaire/TimeBox'
+  'horaire/TimeBox',
+  'horaire/TimeList',
+  'artnum/Log'
 ], function (
   djDeclare,
   _dtWidgetBase,
@@ -28,7 +31,9 @@ define([
   dtDialog,
   _Result,
   HProjects,
-  HTimeBox
+  HTimeBox,
+  HTimeList,
+  Log
 ) {
   return djDeclare('horaire.Entity', [
     _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin
@@ -65,10 +70,39 @@ define([
       }
 
       var prj = new HProjects({ class: 'section' })
+      this.Project = prj
       this.pane.domNode.appendChild(prj.domNode)
+      djOn(prj, 'change', function (event) {
+        var url = this.TimeList.get('url')
+        url.searchParams.set('search.project', event)
+        this.TimeList.set('url', url)
+        this.TimeList.refresh()
+      }.bind(this))
 
       var tbx = new HTimeBox({ class: 'section' })
       this.pane.domNode.appendChild(tbx.domNode)
+
+      var url = new URL(window.location.origin + '/horaire/Htime')
+      url.searchParams.append('sort.created', 'DESC')
+      url.searchParams.append('search.entity', this.entry.id)
+
+      var list = new HTimeList({url: url})
+      this.TimeList = list
+      this.pane.domNode.appendChild(list.domNode)
+
+      djOn(tbx, 'submit', function (event) {
+        if (!event.date || !event.second || !prj.get('value')) {
+          new Log({message: 'Entrée incomplète', timeout: 2}).show()
+          return
+        }
+        var query = {entity: this.entry.id, project: prj.get('value'), value: event.second, day: event.date.toISOString()}
+
+        fetch('/horaire/Htime', {method: 'post', body: JSON.stringify(query)}).then(function () {
+          list.refresh()
+        })
+      }.bind(this))
+
+      list.refresh()
     },
 
     closeLogin: function () {

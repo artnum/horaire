@@ -46,6 +46,10 @@ define([
       var group = new ButtonGroup({moveNode: true}); this.own(group)
       this.Group = group
 
+      djOn(group, 'change', function (event) {
+        this.emit('change', event)
+      }.bind(this))
+
       djXhr.get('/horaire/Project', {handleAs: 'json', query: {'search.closed': '-', 'sort.opened': 'desc'}}).then(function (results) {
         for (var i = 0; i < results.data.length; i++) {
           var entry = results.data[i]

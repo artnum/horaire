@@ -19,7 +19,8 @@ define([
 
   'horaire/Button',
   'horaire/Entity',
-  'horaire/_Result'
+  'horaire/_Result',
+  'artnum/Log'
 ], function (
   djDeclare,
   _dtWidgetBase,
@@ -40,7 +41,8 @@ define([
 
   hButton,
   HEntity,
-  _Result
+  _Result,
+  Log
 ) {
   return djDeclare('horaire.People', [
     _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin
@@ -91,7 +93,7 @@ define([
     },
 
     error: function (msg) {
-      console.log(msg)
+      new Log({message: msg, timeout: 2}).show()
     },
 
     popForm: function (url, title, evts) {
@@ -142,7 +144,6 @@ define([
           if (results.empty()) {
             proceed = true
           } else {
-            console.log(results)
             if (confirm('Un projet portant ce nom existe déjà. Créer quand même ?')) {
               proceed = true
             }

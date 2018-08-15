@@ -51,8 +51,7 @@ define([
     },
 
     eSubmit: function (event) {
-      console.log(this.nHour.get('value'))
-      console.log(this.selectDay.get('value'))
+      this.emit('submit', {second: this.nHour.get('value'), date: this.selectDay.get('value')})
     }
   })
 })
