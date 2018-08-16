@@ -52,7 +52,7 @@ define([
     },
 
     postCreate: function () {
-      var cn = document.createTextNode(this.get('commonName'))
+      var cn = document.createTextNode(this.get('name'))
       this.nCommonName.appendChild(cn)
 
       djDomClass.add(this.pane.domNode, 'desktop')
@@ -87,7 +87,7 @@ define([
 
       var url = new URL(window.location.origin + '/horaire/Htime')
       url.searchParams.append('sort.created', 'DESC')
-      url.searchParams.append('search.entity', this.entry.id)
+      url.searchParams.append('search.person', this.entry.id)
 
       this.TimeList = new HTimeList({url: url})
       this.own(this.TimeList)

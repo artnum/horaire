@@ -53,12 +53,12 @@ define([
       var that = this
 
       var cp = new DtContentPane({ title: 'Accueil', id: 'home' })
-      djXhr.get('/horaire/Entity', {handleAs: 'json'}).then(function (results) {
+      djXhr.get('/horaire/Person', {handleAs: 'json'}).then(function (results) {
         results = new _Result(results)
         if (results.success()) {
           var frag = document.createDocumentFragment()
           results.whole().forEach(function (entry) {
-            var ecp = new DtContentPane({ id: 'P_' + entry.id, title: entry.commonName })
+            var ecp = new DtContentPane({ id: 'P_' + entry.id, title: entry.name })
             var entity = new HEntity(entry, {pane: ecp, link: 'P_' + entry.id})
             that.own(entity)
             that.nContent.addChild(ecp)
@@ -165,11 +165,11 @@ define([
     },
 
     newPersonEvt: function () {
-
+      this.popForm('/horaire/html/newPerson.html', 'Nouvelle personne', {submit: {func: this.newItemEx.bind(this)}})
     },
 
     newProjectEvt: function () {
-      this.popForm('/horaire/html/newProject.html', 'Nouveau Projet', {submit: {func: this.newProjectEx.bind(this)}})
+      this.popForm('/horaire/html/newProject.html', 'Nouveau projet', {submit: {func: this.newProjectEx.bind(this)}})
     },
     newProjectEx: function (event) {
       event.preventDefault()
