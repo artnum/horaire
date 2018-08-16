@@ -1,0 +1,13 @@
+<div data-dojo-type="dijit/layout/ContentPane">
+  <form data-dojo-type="dijit/form/Form">
+    <fieldset>
+      <label for="name">Nom de fourniture</label><input name="name" required="true" type="text" data-dojo-type="dijit/form/TextBox" /><br />
+      <label for="description">Description</label><input name="description" type="text" data-dojo-type="dijit/form/TextBox" /><br />
+      <label for="unit">Unité</label><input name="unit" type="text" data-dojo-type="dijit/form/TextBox" /><br />
+      <label for="price">Prix à l'unité</label><input name="price" type="text" data-dojo-type="dijit/form/NumberTextBox" data-dojo-props="constraints: {pattern: '#.##', min:0}" /><br />
+    </fieldset>
+    <fieldset>
+      <button type="submit" data-dojo-type="dijit/form/Button">Créer</button>
+    </fieldset>
+  </form>
+</div>

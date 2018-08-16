@@ -81,6 +81,7 @@ define([
 
       djOn(this.nNewProject, 'click', djLang.hitch(this, this.newProjectEvt))
       djOn(this.nNewPerson, 'click', djLang.hitch(this, this.newPersonEvt))
+      djOn(this.nNewItem, 'click', djLang.hitch(this, this.newItemEvt))
       djOn(this.nHome, 'click', djLang.hitch(this, function () { window.location.hash = '#home' }))
 
       djOn(window, 'hashchange', djLang.hitch(this, function (e) {
@@ -113,12 +114,54 @@ define([
             if (evts[k].hitch) {
               hitch = evts[k].hitch
             }
-
-            djOn(dialog.domNode.getElementsByTagName('FORM')[0], k, djLang.hitch(hitch, evts.func))
+            djOn(dialog.domNode.getElementsByTagName('FORM')[0], k, djLang.hitch(hitch, evts[k].func))
             djDomClass.remove(body, 'waiting')
           }
         })
       })
+    },
+
+    newItemEvt: function () {
+      this.popForm('/horaire/html/newItem.html', 'Nouvelle fourniture', {submit: {func: this.newItemEx.bind(this)}})
+    },
+
+    newItemEx: function (event) {
+      event.preventDefault()
+      var form = dtRegistry.byId(event.target.getAttribute('widgetid'))
+      if (!form) {
+        new Log({message: 'Erreur de traitement du formulaire', timeout: 2}).show()
+        return
+      }
+
+      if (form.isValid()) {
+        var value = form.getValues()
+
+        var url = new URL(window.location.origin + '/horaire/Items')
+        url.searchParams.set('search.deleted', '-')
+        url.searchParams.set('search.name', value.name)
+        fetch(url).then(function (response) { return response.json() }).then(function (json) {
+          var proceed = false
+          if (json.type === 'results' && json.data && json.data.length === 0) {
+            proceed = true
+          } else {
+            if (confirm('Une fourniture portant ce nom existe déjà. Créer quand même ?')) {
+              proceed = true
+            }
+          }
+
+          if (proceed) {
+            url.searchParams.delete('search.deleted')
+            url.searchParams.delete('search.name')
+            fetch(url, {method: 'POST', body: JSON.stringify(value)}).then(function (response) { return response.json() }).then(function (json) {
+              if (json.type === 'results') {
+                if (json.data && json.data.success) {
+                  new Log({message: 'Nouvelle fourniture créée', timeout: 2, type: 'info'}).show()
+                }
+              }
+            })
+          }
+        })
+      }
     },
 
     newPersonEvt: function () {
@@ -126,14 +169,15 @@ define([
     },
 
     newProjectEvt: function () {
-      this.popForm('/horaire/html/newProject.html', 'Nouveau Projet', {
-        'submit': { 'func': this.newProjectEx }
-      })
+      this.popForm('/horaire/html/newProject.html', 'Nouveau Projet', {submit: {func: this.newProjectEx.bind(this)}})
     },
     newProjectEx: function (event) {
       event.preventDefault()
       var form = dtRegistry.byId(event.target.getAttribute('widgetid'))
-      if (!form) { return } /* not a widget ignore */
+      if (!form) {
+        new Log({message: 'Erreur de traitement du formulaire', timeout: 2}).show()
+        return
+      }
 
       if (form.isValid()) {
         var values = form.getValues()

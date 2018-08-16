@@ -101,6 +101,10 @@ body.waiting .waiting {
 	background-color: #333 !important;	
 }
 
+.button.tool span:before {
+	font-family: "FontAwesome";
+	content: "\f0ad\0020";
+}
 .button.project span:before {
 	font-family: "FontAwesome";
 	content: "\f006\0020";
@@ -152,16 +156,25 @@ body.waiting .waiting {
 }
 
 .artnumLog {
+	color: black;
 	position: fixed;
 	top: 0;
 	left: 0;
 	width: 100%;
 	height: 1.2em;
 	font-size: 0.8em;
-	background-color: rgba(255, 0, 0, 0.5);
+	background-color: #F33D3D
 	margin: 0;
 	padding: 2;
 	border: 0;
+}
+
+.artnumLog.info {
+	background-color: #3D3Df3;
+}
+
+.artnumLog.warn {
+	background-color: #FF861E;
 }
 
 .EntityPanel {
