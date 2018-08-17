@@ -15,6 +15,7 @@ define([
   'horaire/Projects',
   'horaire/TimeBox',
   'horaire/TimeList',
+  'horaire/Items',
   'artnum/Log'
 ], function (
   djDeclare,
@@ -32,6 +33,7 @@ define([
   HProjects,
   HTimeBox,
   HTimeList,
+  HItems,
   Log
 ) {
   return djDeclare('horaire.Entity', [
@@ -58,7 +60,11 @@ define([
       djDomClass.add(this.pane.domNode, 'desktop')
 
       this.open()
-      djOn(this.nRoot, 'click', djLang.hitch(this, function () { window.location.hash = this.link }))
+      djOn(this.nRoot, 'click', djLang.hitch(this, function () {
+        window.location.hash = this.link
+        this.TimeList.refresh()
+        this.Items.refresh()
+      }))
     },
 
     open: function () {
@@ -77,26 +83,37 @@ define([
       entity.appendChild(section2)
       entity.appendChild(section3)
 
-      this.Project = new HProjects()
+      this.Project = new HProjects({user: this.entry})
       this.own(this.Project)
       section1.appendChild(this.Project.domNode)
 
-      this.TimeBox = new HTimeBox()
+      this.TimeBox = new HTimeBox({user: this.entry})
       this.own(this.TimeBox)
       section2.appendChild(this.TimeBox.domNode)
 
       var url = new URL(window.location.origin + '/horaire/Htime')
       url.searchParams.append('sort.created', 'DESC')
-      url.searchParams.append('search.person', this.entry.id)
+      if (Number(this.entry.level) < 127) {
+        url.searchParams.append('search.person', this.entry.id)
+      }
+      url.searchParams.set('search.deleted', '-')
 
-      this.TimeList = new HTimeList({url: url})
+      this.TimeList = new HTimeList({url: url, user: this.entry})
       this.own(this.TimeList)
       section2.appendChild(this.TimeList.domNode)
+
+      url = new URL(window.location.origin + '/horaire/Items')
+      url.searchParams.set('search.deleted', '-')
+      this.Items = new HItems({url: url, user: this.entry})
+      this.own(this.Items)
+      section3.appendChild(this.Items.domNode)
 
       /* Attach events */
       djOn(this.Project, 'change', function (event) {
         var url = this.TimeList.get('url')
         url.searchParams.set('search.project', event)
+        this.TimeList.set('project', event)
+        this.TimeBox.set('project', event)
         this.TimeList.set('url', url)
         this.TimeList.refresh()
       }.bind(this))
@@ -106,7 +123,7 @@ define([
           new Log({message: 'Entrée incomplète', timeout: 2}).show()
           return
         }
-        var query = {entity: this.entry.id, project: this.Project.get('value'), value: event.second, day: event.date.toISOString()}
+        var query = {person: this.entry.id, project: this.Project.get('value'), value: event.second, day: event.date.toISOString()}
 
         fetch('/horaire/Htime', {method: 'post', body: JSON.stringify(query)}).then(function () {
           this.TimeList.refresh()
@@ -114,6 +131,7 @@ define([
       }.bind(this))
 
       this.TimeList.refresh()
+      this.Items.refresh()
 
       window.requestAnimationFrame(function () {
         this.pane.domNode.appendChild(entity)

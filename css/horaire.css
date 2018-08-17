@@ -197,6 +197,60 @@ body.waiting .waiting {
 }
 
 .EntityPanel section .entries span:after {
-
   content: '\0020';
+}
+
+.ItemsList th {
+	font-weight: bold;
+}
+
+.ItemsList .unit, .ItemsList .price {
+	width: 20%;
+}
+
+.timeBox {
+  min-width: 280px;
+}
+
+.timeBox .title {
+	font-size: 1.2em;
+	font-weight: bold;
+}
+
+.timeBox label {
+  display: inline-block;
+  width: 10ch;
+  margin: 12px 0 12px 0;
+}
+
+.timeBox .hourBox, .timeBox .days {
+  display: inline;
+}
+
+.timeBox button {
+  width: 100%;
+  margin: 0 0 24px 0;
+}
+
+.HTimeList thead th {
+  font-weight: bold;
+}
+
+.HTimeList tr.foreign {
+  font-style: italic;
+}
+
+.HTimeList td {
+  padding: 0 1ch 0 1ch;
+}
+
+.HTimeList td span.person {
+	font-size: 0.8em;
+}
+.HTimeList td span.person:before {
+	padding: 0 0 0 1ch;
+	content: '(';
+}
+.HTimeList td span.person:after {
+	content: ')';
 }

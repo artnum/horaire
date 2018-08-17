@@ -37,6 +37,17 @@ define([
     baseClass: 'timeBox',
     lateDay: 5,
 
+    _setProjectAttr: function (value) {
+      this._set('project', value)
+      var url = new URL(window.location.origin + '/horaire/Project/' + value)
+      fetch(url).then(function (response) { return response.json() }).then(function (json) {
+        if (json.type === 'results' && json.data) {
+          this.nTitle.innerHTML = json.data.name
+          this._set('_project', json.data)
+        }
+      }.bind(this))
+    },
+
     postCreate: function () {
       var now = new Date(Date.now())
       var group = new ButtonGroup({name: 'day'})
@@ -48,10 +59,18 @@ define([
 
       this.nDays.appendChild(group.domNode)
       this.selectDay = group
+      djOn(this.selectDay, 'change', function () { this.nHour.focus() }.bind(this))
+      djOn(this.nHour, 'keypress', function (event) {
+        if (event.key === 'Enter') {
+          this.eSubmit()
+          this.nHour.set('value', '')
+        }
+      }.bind(this))
     },
 
     eSubmit: function (event) {
       this.emit('submit', {second: this.nHour.get('value'), date: this.selectDay.get('value')})
+      this.nHour.focus()
     }
   })
 })

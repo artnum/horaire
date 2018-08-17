@@ -1,5 +1,7 @@
 <div class="${baseClass}" data-dojo-attach-point="nRoot">
-<div data-dojo-attach-point="nDays" class="days"></div>
-<div data-dojo-type="artnum/Hour" data-dojo-attach-point="nHour"></div>
-<button type="button" data-dojo-attach-event="click:eSubmit">Enregistrer</button>
+  <div class="title" data-dojo-attach-point="nTitle"></div>
+  <label for="nDays">Jour :</label><div name="nDays" data-dojo-attach-point="nDays" class="days"></div>
+  <label for="nHour">Temps : </label><div data-dojo-type="artnum/Hour" name="nHour" data-dojo-attach-point="nHour" class="hourBox"></div><br />
+<!--<label for="nRemark">Remarque : </label><input type="text" data-dojo-attach-point="nRemark" /><br />-->
+  <button type="button" data-dojo-attach-event="click:eSubmit">Enregistrer</button>
 </div>

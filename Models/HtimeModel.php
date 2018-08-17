@@ -6,9 +6,7 @@
          $this->conf('datetime', array('day', 'created', 'deleted', 'modification'));
          $this->conf('mtime', 'htime_modification');
          $this->conf('mtime.ts', true);
-         $this->conf('delete', 'htime_deleted');
-         $this->conf('delete.ts', true);
-         $this->set_req('get', 'SELECT * FROM "\\Table" LEFT JOIN "projects" ON "\\Table"."htime_projects" = "projects"."projects_id" WHERE "\\IDName" = :id');
+         $this->set_req('get', 'SELECT * FROM "\\Table" LEFT JOIN "projects" ON "\\Table"."htime_project" = "projects"."projects_id" LEFT JOIN "person" ON "\\Table"."htime_person" = "person"."person_id" WHERE "\\IDName" = :id');
       }
    }
 ?>

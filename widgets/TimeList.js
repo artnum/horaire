@@ -13,6 +13,7 @@ define([
   'dojo/dom-class',
   'dijit/Dialog',
   'horaire/_Result',
+  'horaire/LoaderWidget',
   'artnum/Log'
 ], function (
   djDeclare,
@@ -26,48 +27,14 @@ define([
   djDomClass,
   dtDialog,
   _Result,
+  LoaderWidget,
   Log
 ) {
   return djDeclare('horaire.TimeList', [
-    _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin
+    _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin, LoaderWidget
   ], {
     baseClass: 'HTimeList',
     templateString: '<div class="${baseClass}"></div>',
-
-    constructor: function () {
-      this.loaded = { data: false }
-      this.inherited(arguments)
-    },
-
-    _setUrlAttr: function (value) {
-      this.clear()
-      this._set('url', value)
-    },
-
-    load: function () {
-      return new Promise(function (resolve, reject) {
-        this.loaded.data = false
-        if (this.get('url')) {
-          fetch(this.get('url')).then(function (response) {
-            response.json().then(function (json) {
-              if (json.type === 'results' && json.data.length > 0) {
-                this.set('data', json.data)
-                this.loaded.data = true
-                resolve(this.get('data'))
-              }
-            }.bind(this))
-          }.bind(this))
-        }
-      }.bind(this))
-    },
-
-    clear: function () {
-      window.requestAnimationFrame(function () {
-        if (this.domNode) {
-          this.domNode.innerHTML = ''
-        }
-      }.bind(this))
-    },
 
     draw: function () {
       if (this.loaded.data) {
@@ -75,35 +42,64 @@ define([
         var data = this.get('data')
         var frag = document.createDocumentFragment()
 
-        var node = document.createElement('DIV')
-        node.setAttribute('class', 'entries head')
-        node.innerHTML = '<span class="day">Jour</span><span class="time">Durée</span><span class="project">Projet</span>'
-        frag.appendChild(node)
+        if (this.user.level > 127 && this.get('project')) {
+          var a = document.createElement('A')
+          var url = new URL(window.location.origin + '/horaire/exec/export/project.php')
+          url.searchParams.set('pid', this.get('project'))
+          a.setAttribute('href', url)
+          a.appendChild(document.createTextNode('Export .xlsx'))
+          frag.appendChild(a)
+        }
+
+        var table = document.createElement('TABLE')
+        var thead = document.createElement('THEAD')
+        thead.setAttribute('class', 'entries head')
+        thead.innerHTML = '<tr><th class="day">Jour</th><th class="time">Durée</th><th class="project">Projet</th><th></th>'
+        var totalTime = 0
+        var tbody = document.createElement('TBODY')
         for (var i = 0; i < data.length; i++) {
-          if (data[i].hProject.closed) {
+          if (data[i]._projects.closed) {
             continue
           }
-          node = document.createElement('DIV')
-          node.setAttribute('class', 'entries')
-          var txt = '<span class="day">' + (new Date(data[i].day)).shortDate() + '</span>'
-          txt += '<span class="time">' + (new Hour(data[i].value).toMinStr()) + '</span>'
-          txt += '<span class="project">' + data[i].hProject.name + '</span>'
+          var tr = document.createElement('TR')
+          tr.setAttribute('class', 'entries')
+          var project = data[i]._projects.name
+          if (this.user.id !== data[i].person) {
+            tr.setAttribute('class', 'entries foreign')
+            project += '<span class="person">' + data[i]._person.name + '</span>'
+          } else {
+            tr.setAttribute('class', 'entries')
+          }
+          totalTime += Number(data[i].value)
+          tr.innerHTML = '<td class="day">' + (new Date(data[i].day)).shortDate() + '</td><td class="time">' + (new Hour(data[i].value).toMinStr()) + '</td><td class="project">' + project + '</td>'
 
-          node.innerHTML = txt
-          frag.appendChild(node)
+          var td = document.createElement('TD')
+          td.innerHTML = '<i class="fas fa-eraser" data-time-id="' + data[i].id + '" />'
+          djOn(td, 'click', function (event) {
+            var url = new URL(window.location.origin + '/horaire/Htime/' + event.target.getAttribute('data-time-id'))
+            fetch(url, {method: 'DELETE', body: JSON.stringify({id: event.target.getAttribute('data-time-id')})}).then(function (response) {
+              console.log(url, response)
+              this.refresh()
+            }.bind(this))
+          }.bind(this))
+          tr.appendChild(td)
+          tbody.appendChild(tr)
         }
+
+        this.set('total', new Hour(totalTime))
+
+        var tfoot = document.createElement('TFOOT')
+        tfoot.innerHTML = '<tr><td>Total</td><td class="time">' + (new Hour(totalTime).toMinStr()) + '</td><td></td><td></tr>'
+
+        table.appendChild(thead)
+        table.appendChild(tbody)
+        table.appendChild(tfoot)
+        frag.appendChild(table)
 
         window.requestAnimationFrame(function () {
           this.domNode.appendChild(frag)
         }.bind(this))
       }
-    },
-
-    refresh: function () {
-      this.load().then(function () {
-        this.draw()
-      }.bind(this))
     }
-
   })
 })

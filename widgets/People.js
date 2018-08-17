@@ -156,6 +156,7 @@ define([
               if (json.type === 'results') {
                 if (json.data && json.data.success) {
                   new Log({message: 'Nouvelle fourniture créée', timeout: 2, type: 'info'}).show()
+                  window.location.reload(true)
                 }
               }
             })
@@ -165,7 +166,50 @@ define([
     },
 
     newPersonEvt: function () {
-      this.popForm('/horaire/html/newPerson.html', 'Nouvelle personne', {submit: {func: this.newItemEx.bind(this)}})
+      this.popForm('/horaire/html/newPerson.html', 'Nouvelle personne', {submit: {func: this.newPersonEx.bind(this)}})
+    },
+
+    newPersonEx: function (event) {
+      event.preventDefault()
+      var form = dtRegistry.byId(event.target.getAttribute('widgetid'))
+      if (!form) {
+        new Log({message: 'Erreur de traitement du formulaire', timeout: 2}).show()
+        return
+      }
+
+      if (form.isValid()) {
+        var values = form.getValues()
+
+        if (values.admin && values.admin.length > 0 && values.admin[0]) {
+          values.admin = 255
+        } else {
+          values.admin = 1
+        }
+        var url = new URL(window.location.origin + '/horaire/Person')
+        url.searchParams.set('search.deleted', '-')
+        url.searchParams.set('search.name', values.name)
+        fetch(url).then(function (response) { return response.json() }).then(function (json) {
+          var proceed = false
+          if (json.type === 'results' && json.data && json.data.length === 0) {
+            proceed = true
+          } else {
+            if (confirm('Une personne du même nom existe déjà. Créer quand même ?')) {
+              proceed = true
+            }
+          }
+
+          if (proceed) {
+            url.searchParams.delete('search.deleted')
+            url.searchParams.delete('search.name')
+            fetch(url, {method: 'POST', body: JSON.stringify({name: values.name, level: values.admin})}).then(function (response) { return response.json() }).then(function (json) {
+              if (json.type === 'results' && json.data && json.data.success) {
+                new Log({message: 'Nouvelle personne ajoutée', timeout: 2, type: 'info'}).show()
+                window.location.reload(true)
+              }
+            })
+          }
+        })
+      }
     },
 
     newProjectEvt: function () {
@@ -203,7 +247,8 @@ define([
                 targetEnd: eDate
               }}).then(function (results) {
               results = new _Result(results)
-              console.log(results)
+              new Log({message: 'Nouveau projet créé', timeout: 2, type: 'info'}).show()
+              window.location.reload(true)
             })
           }
         })
