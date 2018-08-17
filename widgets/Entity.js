@@ -114,6 +114,7 @@ define([
         url.searchParams.set('search.project', event)
         this.TimeList.set('project', event)
         this.TimeBox.set('project', event)
+        this.Items.set('project', event)
         this.TimeList.set('url', url)
         this.TimeList.refresh()
       }.bind(this))
@@ -127,6 +128,31 @@ define([
 
         fetch('/horaire/Htime', {method: 'post', body: JSON.stringify(query)}).then(function () {
           this.TimeList.refresh()
+        }.bind(this))
+      }.bind(this))
+
+      djOn(this.Items, 'submit', function (event) {
+        if (!event.project || !event.item) {
+          new Log({message: 'Entrée incomplète', timeout: 2}).show()
+          return
+        }
+        var url = new URL(window.location.origin + '/horaire/Quantity')
+        url.searchParams.set('search.project', event.project)
+        url.searchParams.set('search.item', event.item)
+        fetch(url).then(function (response) { return response.json() }).then(function (json) {
+          url.searchParams.delete('search.project')
+          url.searchParams.delete('search.item')
+          if (json.type === 'results' && json.data && json.data.length > 0) {
+            var addTo = json.data[0]
+            addTo.quantity += event.quantity
+            fetch(url, {method: 'PUT', body: JSON.stringify(addTo)}).then(function (response) {
+              this.Items.refresh()
+            })
+          } else {
+            fetch(url, {method: 'POST', body: JSON.stringify({value: event.quantity, project: event.project, item: event.item, person: this.entry.id})}).then(function (response) {
+              this.Items.refresh()
+            })
+          }
         }.bind(this))
       }.bind(this))
 

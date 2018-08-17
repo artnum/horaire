@@ -1,3 +1,10 @@
+.appname {
+	position: absolute;
+	right: 12px;
+	bottom: 5;
+	font-size: 0.8em;
+	color: white;
+}
 div.waiting {
 	display: none;
 	position: fixed;
@@ -183,10 +190,6 @@ body.waiting .waiting {
   width: 100%;
 }
 
-.EntityPanel section .entries {
-  font-size: 1.2em;
-}
-
 .EntityPanel section .head {
   font-weight: bold;
 }
@@ -200,12 +203,34 @@ body.waiting .waiting {
   content: '\0020';
 }
 
+.ItemsList {
+	max-width: 360px;
+}
+
+.ItemsList tr {
+	height: 2.4em;
+	border: 0;
+	cursor: pointer;
+}
+
+.ItemsList tr:nth-child(even) {
+  background-color: #DDD;
+}
+
+.ItemsList th, .ItemsList td {
+  padding: 0 1ch 0 1ch;
+}
 .ItemsList th {
 	font-weight: bold;
 }
 
-.ItemsList .unit, .ItemsList .price {
-	width: 20%;
+.ItemsList table {
+  font-size: 1.4em;
+	border-collapse: collapse;
+}
+
+.ItemsList .description {
+  font-size: 0.6em;
 }
 
 .timeBox {
@@ -236,6 +261,10 @@ body.waiting .waiting {
   font-weight: bold;
 }
 
+.HTimeList tr {
+  height: 1.8em;
+  font-size: 1.4em;
+}
 .HTimeList tr.foreign {
   font-style: italic;
 }
@@ -253,4 +282,16 @@ body.waiting .waiting {
 }
 .HTimeList td span.person:after {
 	content: ')';
+}
+
+.HTimeList td.delete {
+  cursor: pointer;
+  color: white;
+  background-color: black;
+  border: 2px solid gray;
+}
+
+.HTimeList td.delete:hover {
+  background-color: gray;
+  border: 2px solid black;
 }

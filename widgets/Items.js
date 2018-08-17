@@ -6,6 +6,7 @@ define([
   'dijit/_TemplatedMixin',
   'dijit/_WidgetsInTemplateMixin',
   'dojo/_base/lang',
+  'dojo/Evented',
   'dojo/request/xhr',
   'dojo/on',
   'dojo/parser',
@@ -20,6 +21,7 @@ define([
   _dtTemplatedMixin,
   _dtWidgetsInTemplateMixin,
   djLang,
+  djEvented,
   djXhr,
   djOn,
   djParser,
@@ -30,7 +32,7 @@ define([
   Log
 ) {
   return djDeclare('horaire.Items', [
-    _dtWidgetBase, _dtTemplatedMixin, LoaderWidget
+    _dtWidgetBase, _dtTemplatedMixin, LoaderWidget, djEvented
   ], {
     baseClass: 'ItemsList',
     templateString: '<div class="${baseClass}"></div>',
@@ -52,15 +54,9 @@ define([
       var tr = document.createElement('TR')
       tr.setAttribute('data-item-id', item.id)
       tr.setAttribute('class', 'item entry')
-      tr.innerHTML = '<td class="name">' + item.name + '</td><td class="unit">' + unit + '</td><td class="price">' + price + '</td>'
+      tr.innerHTML = '<td class="name">' + item.name + '</td><td class="unit">' + unit + '</td><td class="price">' + price + '</td><td class="description">' + description + '</td>'
       target.appendChild(tr)
-      djOn(tr, 'click', this.selectItem.bind(this))
-
-      tr = document.createElement('TR')
-      tr.setAttribute('class', 'item description')
-      tr.innerHTML = '<td colspan="3" class="description">' + description + '</td>'
-      target.appendChild(tr)
-      djOn(tr, 'click', this.selectItem.bind(this))
+      return tr
     },
 
     selectItem: function (event) {
@@ -73,15 +69,7 @@ define([
         node = node.previousSibling
       }
 
-      var data = this.get('data')
-      for (var i = 0; i < data.length; i++) {
-        if (String(data[i].id) === node.getAttribute('data-item-id')) {
-          this.selectedItem = data[i]
-          break
-        }
-      }
-
-      this.draw()
+      this.emit('submit', {item: node.getAttribute('data-item-id'), quantity: 1, project: this.get('project')})
     },
 
     draw: function () {
@@ -90,21 +78,14 @@ define([
         var data = this.get('data')
         var frag = document.createDocumentFragment()
 
-        if (this.selectedItem) {
-          var txt = '<span class="name">' + this.selectedItem.name + '</span><br />' +
-            '<label for="quantity">Quantité </label> <input type="text" name="quantity" />'
-          var form = document.createElement('FORM')
-          form.innerHTML = txt
-          frag.appendChild(form)
-        }
-
         var node = document.createElement('TABLE')
-        node.innerHTML = '<thead><tr><th class="name">Fourniture</th><th class="unit">Unité</th><th class="price">Prix</th></tr></thead>'
+        node.innerHTML = '<thead><tr><th class="name">Fourniture</th><th class="unit">Unité</th><th class="price">Prix</th><th>Description</th></tr></thead>'
         frag.appendChild(node)
         var tbody = document.createElement('TBODY')
 
         for (var i = 0; i < data.length; i++) {
-          this.itemHtml(data[i], tbody)
+          var tr = this.itemHtml(data[i], tbody)
+          djOn(tr, 'click', this.selectItem.bind(this))
         }
         node.appendChild(tbody)
 

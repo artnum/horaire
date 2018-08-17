@@ -74,6 +74,7 @@ define([
           tr.innerHTML = '<td class="day">' + (new Date(data[i].day)).shortDate() + '</td><td class="time">' + (new Hour(data[i].value).toMinStr()) + '</td><td class="project">' + project + '</td>'
 
           var td = document.createElement('TD')
+          td.setAttribute('class', 'delete')
           td.innerHTML = '<i class="fas fa-eraser" data-time-id="' + data[i].id + '" />'
           djOn(td, 'click', function (event) {
             var url = new URL(window.location.origin + '/horaire/Htime/' + event.target.getAttribute('data-time-id'))
