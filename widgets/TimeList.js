@@ -14,7 +14,7 @@ define([
   'dijit/Dialog',
   'horaire/_Result',
   'horaire/LoaderWidget',
-  'artnum/Log'
+  'artnum/dojo/Log'
 ], function (
   djDeclare,
   _dtWidgetBase,

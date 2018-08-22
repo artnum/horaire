@@ -12,8 +12,8 @@ define([
   'dojo/date',
   'dojo/on',
   'dojo/dom-form',
-  'artnum/ButtonGroup',
-  'artnum/Hour'
+  'artnum/dojo/ButtonGroup',
+  'artnum/dojo/Hour'
 ], function (
   djDeclare,
   djEvented,

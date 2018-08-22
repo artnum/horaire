@@ -20,7 +20,8 @@ define([
   'horaire/Button',
   'horaire/Entity',
   'horaire/_Result',
-  'artnum/Log'
+  'artnum/dojo/Log',
+  'artnum/Path'
 ], function (
   djDeclare,
   _dtWidgetBase,
@@ -42,7 +43,8 @@ define([
   hButton,
   HEntity,
   _Result,
-  Log
+  Log,
+  Path
 ) {
   return djDeclare('horaire.People', [
     _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin
@@ -53,7 +55,7 @@ define([
       var that = this
 
       var cp = new DtContentPane({ title: 'Accueil', id: 'home' })
-      djXhr.get('/horaire/Person', {handleAs: 'json'}).then(function (results) {
+      djXhr.get(Path.url('Person'), {handleAs: 'json'}).then(function (results) {
         results = new _Result(results)
         if (results.success()) {
           var frag = document.createDocumentFragment()
@@ -122,7 +124,7 @@ define([
     },
 
     newItemEvt: function () {
-      this.popForm('/horaire/html/newItem.html', 'Nouvelle fourniture', {submit: {func: this.newItemEx.bind(this)}})
+      this.popForm(Path.url('html/newItem.html'), 'Nouvelle fourniture', {submit: {func: this.newItemEx.bind(this)}})
     },
 
     newItemEx: function (event) {
@@ -166,7 +168,7 @@ define([
     },
 
     newPersonEvt: function () {
-      this.popForm('/horaire/html/newPerson.html', 'Nouvelle personne', {submit: {func: this.newPersonEx.bind(this)}})
+      this.popForm(Path.url('html/newPerson.html'), 'Nouvelle personne', {submit: {func: this.newPersonEx.bind(this)}})
     },
 
     newPersonEx: function (event) {
@@ -213,7 +215,7 @@ define([
     },
 
     newProjectEvt: function () {
-      this.popForm('/horaire/html/newProject.html', 'Nouveau projet', {submit: {func: this.newProjectEx.bind(this)}})
+      this.popForm(Path.url('html/newProject.html'), 'Nouveau projet', {submit: {func: this.newProjectEx.bind(this)}})
     },
     newProjectEx: function (event) {
       event.preventDefault()
@@ -226,7 +228,7 @@ define([
       if (form.isValid()) {
         var values = form.getValues()
 
-        djXhr.get('/horaire/Project', {handleAs: 'json', query: { 'search.name': values.pName }}).then(function (results) {
+        djXhr.get(Path.url('Project'), {handleAs: 'json', query: { 'search.name': values.pName }}).then(function (results) {
           results = new _Result(results)
           var proceed = false
           if (results.empty()) {
@@ -241,7 +243,7 @@ define([
             if (values.pEndDate) {
               eDate = values.pEndDate.toISOString()
             }
-            djXhr.post('/horaire/Project', { handleAs: 'json',
+            djXhr.post(Path.url('Project'), { handleAs: 'json',
               data: {
                 name: values.pName,
                 targetEnd: eDate

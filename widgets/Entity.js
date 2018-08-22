@@ -16,7 +16,8 @@ define([
   'horaire/TimeBox',
   'horaire/TimeList',
   'horaire/Items',
-  'artnum/Log'
+  'artnum/dojo/Log',
+  'artnum/Path'
 ], function (
   djDeclare,
   _dtWidgetBase,
@@ -34,9 +35,10 @@ define([
   HTimeBox,
   HTimeList,
   HItems,
-  Log
+  Log,
+  Path
 ) {
-  return djDeclare('horaire.Entity', [
+  return djDeclare('horaire/Entity', [
     _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin
   ], {
     templateString: template,
@@ -91,7 +93,7 @@ define([
       this.own(this.TimeBox)
       section2.appendChild(this.TimeBox.domNode)
 
-      var url = new URL(window.location.origin + '/horaire/Htime')
+      var url = Path.url('Htime')
       url.searchParams.append('sort.created', 'DESC')
       if (Number(this.entry.level) < 127) {
         url.searchParams.append('search.person', this.entry.id)
@@ -102,7 +104,7 @@ define([
       this.own(this.TimeList)
       section2.appendChild(this.TimeList.domNode)
 
-      url = new URL(window.location.origin + '/horaire/Items')
+      url = Path.url('Items')
       url.searchParams.set('search.deleted', '-')
       this.Items = new HItems({url: url, user: this.entry})
       this.own(this.Items)
@@ -126,7 +128,7 @@ define([
         }
         var query = {person: this.entry.id, project: this.Project.get('value'), value: event.second, day: event.date.toISOString()}
 
-        fetch('/horaire/Htime', {method: 'post', body: JSON.stringify(query)}).then(function () {
+        fetch(Path.url('Htime'), {method: 'post', body: JSON.stringify(query)}).then(function () {
           this.TimeList.refresh()
         }.bind(this))
       }.bind(this))
@@ -136,7 +138,7 @@ define([
           new Log({message: 'Entrée incomplète', timeout: 2}).show()
           return
         }
-        var url = new URL(window.location.origin + '/horaire/Quantity')
+        var url = Path.url('Quantity')
         url.searchParams.set('search.project', event.project)
         url.searchParams.set('search.item', event.item)
         fetch(url).then(function (response) { return response.json() }).then(function (json) {

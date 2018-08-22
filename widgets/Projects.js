@@ -14,8 +14,8 @@ define([
   'dijit/layout/ContentPane',
   'dijit/registry',
 
-  'artnum/Button',
-  'artnum/ButtonGroup'
+  'artnum/dojo/Button',
+  'artnum/dojo/ButtonGroup'
 ], function (
   djDeclare,
   djEvented,
