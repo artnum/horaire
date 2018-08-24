@@ -21,7 +21,7 @@ define([
         if (this.get('url')) {
           fetch(this.get('url')).then(function (response) {
             response.json().then(function (json) {
-              if (json.type === 'results' && json.data.length > 0) {
+              if (json.type === 'results' && json.data) {
                 this.set('data', json.data)
                 this.loaded.data = true
                 resolve(this.get('data'))

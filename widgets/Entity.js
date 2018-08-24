@@ -119,6 +119,17 @@ define([
         this.Items.set('project', event)
         this.TimeList.set('url', url)
         this.TimeList.refresh()
+
+        if (this.Quantity) {
+          this.Quantity.destroy()
+        }
+
+        url = Path.url('Quantity')
+        url.searchParams.set('search.project', event)
+        this.Quantity = new HItems({url: url, user: this.entry})
+        this.own(this.Quantity)
+        section3.insertBefore(this.Quantity.domNode, this.Items.domNode)
+        this.Quantity.refresh()
       }.bind(this))
 
       djOn(this.TimeBox, 'submit', function (event) {
@@ -146,14 +157,20 @@ define([
           url.searchParams.delete('search.item')
           if (json.type === 'results' && json.data && json.data.length > 0) {
             var addTo = json.data[0]
-            addTo.quantity += event.quantity
-            fetch(url, {method: 'PUT', body: JSON.stringify(addTo)}).then(function (response) {
+            var body = {id: addTo.id, value: Number(addTo.value) + Number(event.quantity)}
+            fetch(url + '/' + addTo.id, {method: 'PUT', body: JSON.stringify(body)}).then(function (response) {
               this.Items.refresh()
-            })
+              if (this.Quantity) {
+                this.Quantity.refresh()
+              }
+            }.bind(this))
           } else {
             fetch(url, {method: 'POST', body: JSON.stringify({value: event.quantity, project: event.project, item: event.item, person: this.entry.id})}).then(function (response) {
               this.Items.refresh()
-            })
+              if (this.Quantity) {
+                this.Quantity.refresh()
+              }
+            }.bind(this))
           }
         }.bind(this))
       }.bind(this))

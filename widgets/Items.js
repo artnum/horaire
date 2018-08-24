@@ -14,7 +14,8 @@ define([
   'dojo/dom-class',
   'dijit/Dialog',
   'horaire/LoaderWidget',
-  'artnum/Log'
+  'artnum/dojo/Log',
+  'artnum/Path'
 ], function (
   djDeclare,
   _dtWidgetBase,
@@ -29,7 +30,8 @@ define([
   djDomClass,
   dtDialog,
   LoaderWidget,
-  Log
+  Log,
+  Path
 ) {
   return djDeclare('horaire.Items', [
     _dtWidgetBase, _dtTemplatedMixin, LoaderWidget, djEvented
@@ -59,6 +61,50 @@ define([
       return tr
     },
 
+    quantityHtml: function (quantity, target) {
+      var unit = ''
+      var name = ''
+      if (quantity._items) {
+        unit = quantity._items.unit
+        if (!unit) {
+          unit = ''
+        }
+        name = quantity._items.name
+        if (!name) {
+          name = ''
+        }
+      }
+
+      var tr = document.createElement('TR')
+      tr.setAttribute('data-quantity-id', quantity.id)
+      tr.setAttribute('class', 'quantity entry')
+      tr.innerHTML = '<td class="name">' + name + '</td><td class="quantity"><input class="no-spinners" type="number" inputmode="decimal" min="0" step="any" value="' + quantity.value + '" /></td><td class="unit">' + unit + '</td>'
+
+      djOn(tr.getElementsByTagName('INPUT')[0], 'change', function (event) {
+        var pNode = event.target
+        while (pNode && !pNode.getAttribute('data-quantity-id')) {
+          pNode = pNode.parentNode
+        }
+        if (pNode) {
+          var id = pNode.getAttribute('data-quantity-id')
+          var value = Number(event.target.value)
+          if (id) {
+            if (value === 0) {
+              fetch(Path.url('Quantity/' + id), { method: 'DELETE' }).then(function (response) {
+                this.refresh()
+              }.bind(this))
+            } else {
+              fetch(Path.url('Quantity/' + id), {method: 'PUT', body: JSON.stringify({id: id, value: value})}).then(function (response) {
+                this.refresh()
+              }.bind(this))
+            }
+          }
+        }
+      }.bind(this))
+
+      target.appendChild(tr)
+    },
+
     selectItem: function (event) {
       var node = event.target
 
@@ -76,17 +122,30 @@ define([
       if (this.loaded.data) {
         this.clear()
         var data = this.get('data')
-        var frag = document.createDocumentFragment()
+        if (data.length === 0) {
+          return
+        }
+        var tbody = document.createElement('TBODY')
+        var itemHeader = true
+        for (var i = 0; i < data.length; i++) {
+          if (data[i]._projects) {
+            var tr = this.quantityHtml(data[i], tbody)
+            itemHeader = false
+          } else {
+            tr = this.itemHtml(data[i], tbody)
+            djOn(tr, 'click', this.selectItem.bind(this))
+          }
+        }
 
         var node = document.createElement('TABLE')
-        node.innerHTML = '<thead><tr><th class="name">Fourniture</th><th class="unit">Unité</th><th class="price">Prix</th><th>Description</th></tr></thead>'
-        frag.appendChild(node)
-        var tbody = document.createElement('TBODY')
-
-        for (var i = 0; i < data.length; i++) {
-          var tr = this.itemHtml(data[i], tbody)
-          djOn(tr, 'click', this.selectItem.bind(this))
+        if (itemHeader) {
+          node.innerHTML = '<thead><tr><th class="name">Fourniture</th><th class="unit">Unité</th><th class="price">Prix</th><th>Description</th></tr></thead>'
+        } else {
+          node.innerHTML = '<thead><tr><th class="name">Fourniture</th><th class="quantity">Quantité</th><th class="unit">Unité</th></tr></thead>'
         }
+
+        var frag = document.createDocumentFragment()
+        frag.appendChild(node)
         node.appendChild(tbody)
 
         window.requestAnimationFrame(function () {
