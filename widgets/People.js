@@ -228,10 +228,11 @@ define([
       if (form.isValid()) {
         var values = form.getValues()
 
-        djXhr.get(Path.url('Project'), {handleAs: 'json', query: { 'search.name': values.pName }}).then(function (results) {
-          results = new _Result(results)
+        var url = new URL(Path.url('Project'))
+        url.searchParams.set('search.name', values.pName)
+        fetch(url).then(function (response) { return response.json() }).then(function (json) {
           var proceed = false
-          if (results.empty()) {
+          if (json.type === 'results' && json.data && json.data.length <= 0) {
             proceed = true
           } else {
             if (confirm('Un projet portant ce nom existe déjà. Créer quand même ?')) {
