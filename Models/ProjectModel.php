@@ -3,12 +3,14 @@
 
 class ProjectModel extends artnum\SQL {
    function __construct($db, $config) {
-      parent::__construct($db, 'projects', 'projects_id', $config);
+      parent::__construct($db, 'project', 'project_id', $config);
       $this->conf('auto-increment', true);
-      $this->conf('datetime', array('created', 'deleted', 'modification'));
-      $this->conf('mtime', 'projects_modification');
+      $this->conf('datetime', array('project_closed', 'project_opened', 'project_targetEnd'));
+      $this->conf('create', 'project_created');
+      $this->conf('create.ts', true);
+      $this->conf('mtime', 'project_modified');
       $this->conf('mtime.ts', true);
-      $this->conf('delete', 'projects_deleted');
+      $this->conf('delete', 'project_deleted');
       $this->conf('delete.ts', true);
    }
 }

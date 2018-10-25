@@ -1,3 +1,4 @@
+/* eslint-env browser, amd */
 define([
   'dojo/_base/declare',
   'dojo/Evented',
@@ -6,7 +7,6 @@ define([
   'dijit/_WidgetsInTemplateMixin',
   'dojo/_base/lang',
   'dojo/text!./templates/Projects.html',
-  'dojo/request/xhr',
   'dojo/on',
   'dojo/date',
 
@@ -15,7 +15,9 @@ define([
   'dijit/registry',
 
   'artnum/dojo/Button',
-  'artnum/dojo/ButtonGroup'
+  'artnum/dojo/ButtonGroup',
+  'artnum/Path',
+  'artnum/Query'
 ], function (
   djDeclare,
   djEvented,
@@ -24,7 +26,6 @@ define([
   _dtWidgetsInTemplateMixin,
   djLang,
   template,
-  djXhr,
   djOn,
   djDate,
 
@@ -33,7 +34,10 @@ define([
   dtRegistry,
 
   Button,
-  ButtonGroup
+  ButtonGroup,
+  Path,
+  Query
+
 ) {
   return djDeclare('horaire.Projects', [
     _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin, djEvented
@@ -50,7 +54,8 @@ define([
         this.emit('change', event)
       }.bind(this))
 
-      djXhr.get('/horaire/Project', {handleAs: 'json', query: {'search.closed': '-', 'sort.opened': 'desc'}}).then(function (results) {
+      var url = Path.url('Project', {params: {'search.closed': '-', 'sort.opened': 'desc'}})
+      Query.exec(url).then(function (results) {
         for (var i = 0; i < results.data.length; i++) {
           var entry = results.data[i]
           group.addValue(entry.id, {type: 'project', label: entry.name})

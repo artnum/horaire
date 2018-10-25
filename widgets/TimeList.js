@@ -7,28 +7,30 @@ define([
   'dijit/_TemplatedMixin',
   'dijit/_WidgetsInTemplateMixin',
   'dojo/_base/lang',
-  'dojo/request/xhr',
   'dojo/on',
   'dojo/dom-construct',
   'dojo/dom-class',
   'dijit/Dialog',
   'horaire/_Result',
   'horaire/LoaderWidget',
-  'artnum/dojo/Log'
+  'artnum/dojo/Log',
+  'artnum/Path',
+  'artnum/Query'
 ], function (
   djDeclare,
   _dtWidgetBase,
   _dtTemplatedMixin,
   _dtWidgetsInTemplateMixin,
   djLang,
-  djXhr,
   djOn,
   djDomConstruct,
   djDomClass,
   dtDialog,
   _Result,
   LoaderWidget,
-  Log
+  Log,
+  Path,
+  Query
 ) {
   return djDeclare('horaire.TimeList', [
     _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin, LoaderWidget
@@ -44,8 +46,7 @@ define([
 
         if (this.user.level > 127 && this.get('project')) {
           var a = document.createElement('A')
-          var url = new URL(window.location.origin + '/horaire/exec/export/project.php')
-          url.searchParams.set('pid', this.get('project'))
+          var url = Path.url('exec/export/project.php', {params: {pid: this.get('project')}})
           a.setAttribute('href', url)
           a.appendChild(document.createTextNode('Export .xlsx'))
           frag.appendChild(a)
@@ -58,12 +59,12 @@ define([
         var totalTime = 0
         var tbody = document.createElement('TBODY')
         for (var i = 0; i < data.length; i++) {
-          if (data[i]._projects.closed) {
+          if (data[i]._project.closed) {
             continue
           }
           var tr = document.createElement('TR')
           tr.setAttribute('class', 'entries')
-          var project = data[i]._projects.name
+          var project = data[i]._project.name
           if (this.user.id !== data[i].person) {
             tr.setAttribute('class', 'entries foreign')
             project += '<span class="person">' + data[i]._person.name + '</span>'
@@ -77,8 +78,8 @@ define([
           td.setAttribute('class', 'delete')
           td.innerHTML = '<i class="fas fa-eraser" data-time-id="' + data[i].id + '" />'
           djOn(td, 'click', function (event) {
-            var url = new URL(window.location.origin + '/horaire/Htime/' + event.target.getAttribute('data-time-id'))
-            fetch(url, {method: 'DELETE', body: JSON.stringify({id: event.target.getAttribute('data-time-id')})}).then(function (response) {
+            var url = Path.url('Htime/' + event.target.getAttribute('data-time-id'))
+            Query.exec(url, {method: 'DELETE', body: {id: event.target.getAttribute('data-time-id')}}).then(function (response) {
               console.log(url, response)
               this.refresh()
             }.bind(this))

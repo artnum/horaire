@@ -1,6 +1,81 @@
-CREATE TABLE htime (htime_id INTEGER PRIMARY KEY AUTOINCREMENT, htime_day DATETIME, htime_value INTEGER, htime_project INTEGER, htime_person INTEGER, htime_comment TEXT, htime_process INTEGER, htime_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP, htime_deleted TIMESTAMP dEFAULT NULL, htime_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE items (items_id INTEGER PRIMARY KEY AUTOINCREMENT, items_name TEXT, items_description TEXT, items_unit TEXT, items_price FLOAT, items_category INTEGER, items_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP, items_deleted TIMESTAMP DEFAULT NULL, items_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE categories (categories_id INTEGER PRIMARY KEY AUTOINCREMENT, categories_name TEXT, categories_description TEXT, categories_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP, categories_deleted TIMESTAMP DEFAULT NULL, categories_modifications TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE projects (projects_id INTEGER PRIMARY KEY AUTOINCREMENT, projects_name TEXT, projects_closed DATETIME NULL, projects_opened DATETIME NULL, projects_targetEnd DATETIME NULL, projects_deleted TIMESTAMP DEFAULT NULL, projects_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP, projects_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE person (person_id INTEGER PRIMARY KEY AUTOINCREMENT, person_name TEXT, person_level INTEGER DEFAULT 1, person_deleted TIMESTAMP DEFAULT NULL, person_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP, person_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE quantity ( quantity_id INTEGER PRIMARY KEY AUTOINCREMENT, quantity_value FLOAT DEFAULT 1.0, quantity_item INTEGER, quantity_project INTEGER, quantity_person INTEGER);
+PRAGMA "foreign_keys" = ON;
+
+CREATE TABLE IF NOT EXISTS "category" (
+	"category_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"category_name" TEXT DEFAULT NULL,
+	"category_description" TEXT DEFAULT NULL,
+	"category_created" INTEGER DEFAULT NULL,
+	"category_deleted" INTEGER DEFAULT NULL,
+	"category_modified" INTEGER DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "quantity" (
+	"quantity_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"quantity_value" FLOAT DEFAULT 1.0,
+	"quantity_item" INTEGER DEFAULT NULL,
+	"quantity_project" INTEGER DEFAULT NULL,
+	"quantity_person" INTEGER DEFAULT NULL,
+	FOREIGN KEY("quantity_item") REFERENCES "item"("item_id") ON UPDATE CASCADE ON DELETE SET NULL,
+	FOREIGN KEY("quantity_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE CASCADE,
+	FOREIGN KEY("quantity_person") REFERENCES "person"("person_id") ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS "item" (
+	"item_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"item_name" TEXT DEFAULT NULL,
+	"item_description" TEXT DEFAULT NULL,
+	"item_unit" TEXT DEFAULT NULL,
+	"item_price" FLOAT DEFAULT 0.0,
+	"item_category" INTEGER DEFAULT NULL,
+	"item_created" INTEGER DEFAULT NULL,
+	"item_deleted" INTEGER DEFAULT NULL,
+	"item_modified" INTEGER DEFAULT NULL,
+	FOREIGN KEY("item_category") REFERENCES "category"("category_id") ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS "person" (
+	"person_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"person_name" TEXT DEFAULT NULL,
+	"person_level" INTEGER DEFAULT 1,
+	"person_key" TEXT DEFAULT NULL,
+	"person_keyopt" TEXT DEFAULT '{salt: "09F911029D74E35B", iteration: 1000}', -- json data containing iteration, salt and more if apply
+	"person_deleted" INTEGER DEFAULT NULL,
+	"person_created" INTEGER DEFAULT NULL,
+	"person_modified" INTEGER DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "project" (
+	"project_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"project_name" TEXT DEFAULT NULL,
+	"project_closed" DATETIME DEFAULT NULL,
+	"project_opened" DATETIME DEFAULT NULL,
+	"project_targetEnd" DATETIME DEFAULT NULL,
+	"project_deleted" INTEGER DEFAULT NULL,
+	"project_created" INTEGER DEFAULT NULL,
+	"project_modified" INTEGER DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "process" (
+	"process_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"process_name" TEXT DEFAULT NULL,
+	"process_deleted" INTEGER DEFAULT NULL,
+	"process_created" INTEGER DEFAULT NULL,
+	"process_modified" INTEGER DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "htime" (
+	"htime_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"htime_day" DATETIME DEFAULT NULL,
+	"htime_value" INTEGER DEFAULT 0,
+	"htime_project" INTEGER DEFAULT NULL,
+	"htime_person" INTEGER DEFAULT NULL,
+	"htime_process" INTEGER DEFAULT NULL,
+	"htime_comment" TEXT DEFAULT NULL,
+	"htime_other" TEXT DEFAULT NULL,  -- json data to handle useful information (like a date range if that apply)
+	"htime_created" INTEGER DEFAULT NULL,
+	"htime_deleted" INTEGER DEFAULT NULL,
+	"htime_modified" INTEGER DEFAULT NULL,
+	FOREIGN KEY("htime_person") REFERENCES "person"("person_id") ON UPDATE CASCADE ON DELETE SET NULL,
+	FOREIGN KEY("htime_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE SET NULL,
+	FOREIGN KEY("htime_process") REFERENCES "process"("process_id") ON UPDATE CASCADE ON DELETE SET NULL
+);

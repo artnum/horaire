@@ -2,10 +2,10 @@
 require('PHP_XLSXWriter/xlsxwriter.class.php');
 
 if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
-   $query = 'SELECT * FROM projects
-         LEFT JOIN htime ON htime.htime_project = projects.projects_id 
+   $query = 'SELECT * FROM project
+         LEFT JOIN htime ON htime.htime_project = project.project_id
          LEFT JOIN person ON htime.htime_person = person.person_id
-      WHERE projects_id=:pid';
+      WHERE project_id=:pid';
 
 
    try {
@@ -26,7 +26,7 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
 
    foreach ($values as $row) {
       $date = (new DateTime($row['htime_day']))->format('Y-m-d H:i:s');
-      $writer->writeSheetRow('Projet', array($row['projects_name'], $date, $row['htime_value'] / 3600, $row['person_name']));
+      $writer->writeSheetRow('Projet', array($row['project_name'], $date, $row['htime_value'] / 3600, $row['person_name']));
    }
 
    $writer->writeSheetRow('Projet', array('', '', ''));

@@ -6,7 +6,6 @@ define([
   'dijit/_WidgetsInTemplateMixin',
   'dojo/_base/lang',
   'dojo/text!./templates/Entity.html',
-  'dojo/request/xhr',
   'dojo/on',
   'dojo/dom-construct',
   'dojo/dom-class',
@@ -17,7 +16,8 @@ define([
   'horaire/TimeList',
   'horaire/Items',
   'artnum/dojo/Log',
-  'artnum/Path'
+  'artnum/Path',
+  'artnum/Query'
 ], function (
   djDeclare,
   _dtWidgetBase,
@@ -25,7 +25,6 @@ define([
   _dtWidgetsInTemplateMixin,
   djLang,
   template,
-  djXhr,
   djOn,
   djDomConstruct,
   djDomClass,
@@ -36,7 +35,8 @@ define([
   HTimeList,
   HItems,
   Log,
-  Path
+  Path,
+  Query
 ) {
   return djDeclare('horaire/Entity', [
     _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin
@@ -104,7 +104,7 @@ define([
       this.own(this.TimeList)
       section2.appendChild(this.TimeList.domNode)
 
-      url = Path.url('Items')
+      url = Path.url('Item')
       url.searchParams.set('search.deleted', '-')
       this.Items = new HItems({url: url, user: this.entry})
       this.own(this.Items)
@@ -124,8 +124,7 @@ define([
           this.Quantity.destroy()
         }
 
-        url = Path.url('Quantity')
-        url.searchParams.set('search.project', event)
+        url = Path.url('Quantity', {params: {'search.project': event}})
         this.Quantity = new HItems({url: url, user: this.entry})
         this.own(this.Quantity)
         section3.insertBefore(this.Quantity.domNode, this.Items.domNode)
@@ -139,7 +138,7 @@ define([
         }
         var query = {person: this.entry.id, project: this.Project.get('value'), value: event.second, day: event.date.toISOString()}
 
-        fetch(Path.url('Htime'), {method: 'post', body: JSON.stringify(query)}).then(function () {
+        Query.exec(Path.url('Htime'), {method: 'post', body: query}).then(function () {
           this.TimeList.refresh()
         }.bind(this))
       }.bind(this))
@@ -149,23 +148,20 @@ define([
           new Log({message: 'Entrée incomplète', timeout: 2}).show()
           return
         }
-        var url = Path.url('Quantity')
-        url.searchParams.set('search.project', event.project)
-        url.searchParams.set('search.item', event.item)
-        fetch(url).then(function (response) { return response.json() }).then(function (json) {
-          url.searchParams.delete('search.project')
-          url.searchParams.delete('search.item')
-          if (json.type === 'results' && json.data && json.data.length > 0) {
+        var url = Path.url('Quantity', {params: {'search.project': event.project, 'search.item': event.item}})
+        Query.exec(url).then(function (json) {
+          console.log(json)
+          if (json.success && json.length > 0) {
             var addTo = json.data[0]
             var body = {id: addTo.id, value: Number(addTo.value) + Number(event.quantity)}
-            fetch(url + '/' + addTo.id, {method: 'PUT', body: JSON.stringify(body)}).then(function (response) {
+            Query.exec(Path.url('Quantity/' + addTo.id), {method: 'PUT', body: body}).then(function (response) {
               this.Items.refresh()
               if (this.Quantity) {
                 this.Quantity.refresh()
               }
             }.bind(this))
           } else {
-            fetch(url, {method: 'POST', body: JSON.stringify({value: event.quantity, project: event.project, item: event.item, person: this.entry.id})}).then(function (response) {
+            Query.exec(Path.url('Quantity'), {method: 'POST', body: {value: event.quantity, project: event.project, item: event.item, person: this.entry.id}}).then(function (response) {
               this.Items.refresh()
               if (this.Quantity) {
                 this.Quantity.refresh()

@@ -7,7 +7,6 @@ define([
   'dijit/_WidgetsInTemplateMixin',
   'dojo/_base/lang',
   'dojo/Evented',
-  'dojo/request/xhr',
   'dojo/on',
   'dojo/parser',
   'dojo/dom-construct',
@@ -15,7 +14,8 @@ define([
   'dijit/Dialog',
   'horaire/LoaderWidget',
   'artnum/dojo/Log',
-  'artnum/Path'
+  'artnum/Path',
+  'artnum/Query'
 ], function (
   djDeclare,
   _dtWidgetBase,
@@ -23,7 +23,6 @@ define([
   _dtWidgetsInTemplateMixin,
   djLang,
   djEvented,
-  djXhr,
   djOn,
   djParser,
   djDomConstruct,
@@ -31,7 +30,8 @@ define([
   dtDialog,
   LoaderWidget,
   Log,
-  Path
+  Path,
+  Query
 ) {
   return djDeclare('horaire.Items', [
     _dtWidgetBase, _dtTemplatedMixin, LoaderWidget, djEvented
@@ -64,12 +64,12 @@ define([
     quantityHtml: function (quantity, target) {
       var unit = ''
       var name = ''
-      if (quantity._items) {
-        unit = quantity._items.unit
+      if (quantity._item) {
+        unit = quantity._item.unit
         if (!unit) {
           unit = ''
         }
-        name = quantity._items.name
+        name = quantity._item.name
         if (!name) {
           name = ''
         }
@@ -90,11 +90,11 @@ define([
           var value = Number(event.target.value)
           if (id) {
             if (value === 0) {
-              fetch(Path.url('Quantity/' + id), { method: 'DELETE' }).then(function (response) {
+              Query.exec(Path.url('Quantity/' + id), { method: 'DELETE' }).then(function (response) {
                 this.refresh()
               }.bind(this))
             } else {
-              fetch(Path.url('Quantity/' + id), {method: 'PUT', body: JSON.stringify({id: id, value: value})}).then(function (response) {
+              Query.exec(Path.url('Quantity/' + id), {method: 'PUT', body: {id: id, value: value}}).then(function (response) {
                 this.refresh()
               }.bind(this))
             }
@@ -128,7 +128,7 @@ define([
         var tbody = document.createElement('TBODY')
         var itemHeader = true
         for (var i = 0; i < data.length; i++) {
-          if (data[i]._projects) {
+          if (data[i]._project) {
             var tr = this.quantityHtml(data[i], tbody)
             itemHeader = false
           } else {

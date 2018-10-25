@@ -6,7 +6,6 @@ define([
   'dijit/_WidgetsInTemplateMixin',
   'dojo/_base/lang',
   'dojo/text!./templates/People.html',
-  'dojo/request/xhr',
   'dojo/on',
   'dojo/parser',
   'dojo/dom-construct',
@@ -21,7 +20,8 @@ define([
   'horaire/Entity',
   'horaire/_Result',
   'artnum/dojo/Log',
-  'artnum/Path'
+  'artnum/Path',
+  'artnum/Query'
 ], function (
   djDeclare,
   _dtWidgetBase,
@@ -29,7 +29,6 @@ define([
   _dtWidgetsInTemplateMixin,
   djLang,
   template,
-  djXhr,
   djOn,
   djParser,
   djDomConstruct,
@@ -44,7 +43,8 @@ define([
   HEntity,
   _Result,
   Log,
-  Path
+  Path,
+  Query
 ) {
   return djDeclare('horaire.People', [
     _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin
@@ -55,18 +55,18 @@ define([
       var that = this
 
       var cp = new DtContentPane({ title: 'Accueil', id: 'home' })
-      djXhr.get(Path.url('Person'), {handleAs: 'json'}).then(function (results) {
-        results = new _Result(results)
-        if (results.success()) {
+      Query.exec(Path.url('Person')).then(function (body) {
+        if (body.success && body.length > 0) {
           var frag = document.createDocumentFragment()
-          results.whole().forEach(function (entry) {
+          for (var i = 0; i < body.length; i++) {
+            var entry = body.data[i]
             var ecp = new DtContentPane({ id: 'P_' + entry.id, title: entry.name })
             var entity = new HEntity(entry, {pane: ecp, link: 'P_' + entry.id})
             that.own(entity)
             that.nContent.addChild(ecp)
 
             frag.appendChild(entity.domNode)
-          })
+          }
 
           window.requestAnimationFrame(function () {
             that.nContent.addChild(cp)
@@ -104,7 +104,7 @@ define([
       var body = document.getElementsByTagName('BODY')[0]
 
       djDomClass.add(body, 'waiting')
-      djXhr.get(url, {handleAs: 'text'}).then(function (html) {
+      fetch(url).then(function (result) { return result.text() }).then(function (html) {
         html = djDomConstruct.toDom(html)
         djParser.parse(html, {noStart: true}).then(function (dom) {
           var dialog = new DtDialog({title: title})
@@ -138,12 +138,10 @@ define([
       if (form.isValid()) {
         var value = form.getValues()
 
-        var url = new URL(window.location.origin + '/horaire/Items')
-        url.searchParams.set('search.deleted', '-')
-        url.searchParams.set('search.name', value.name)
-        fetch(url).then(function (response) { return response.json() }).then(function (json) {
+        var url = Path.url('Item', {params: {'search.deleted': '-', 'search.name': value.name}})
+        Query.exec(url).then(function (json) {
           var proceed = false
-          if (json.type === 'results' && json.data && json.data.length === 0) {
+          if (json.success && json.length === 0) {
             proceed = true
           } else {
             if (confirm('Une fourniture portant ce nom existe déjà. Créer quand même ?')) {
@@ -152,14 +150,11 @@ define([
           }
 
           if (proceed) {
-            url.searchParams.delete('search.deleted')
-            url.searchParams.delete('search.name')
-            fetch(url, {method: 'POST', body: JSON.stringify(value)}).then(function (response) { return response.json() }).then(function (json) {
-              if (json.type === 'results') {
-                if (json.data && json.data.success) {
-                  new Log({message: 'Nouvelle fourniture créée', timeout: 2, type: 'info'}).show()
-                  window.location.reload(true)
-                }
+            url = Path.url('Item')
+            Query.exec(url, {method: 'POST', body: value}).then(function (json) {
+              if (json.success) {
+                new Log({message: 'Nouvelle fourniture créée', timeout: 2, type: 'info'}).show()
+                window.location.reload(true)
               }
             })
           }
@@ -187,10 +182,8 @@ define([
         } else {
           values.admin = 1
         }
-        var url = new URL(window.location.origin + '/horaire/Person')
-        url.searchParams.set('search.deleted', '-')
-        url.searchParams.set('search.name', values.name)
-        fetch(url).then(function (response) { return response.json() }).then(function (json) {
+        var url = Path.url('Person', {params: {'search.deleted': '-', 'search.name': values.name}})
+        Query.exec(url).then(function (json) {
           var proceed = false
           if (json.type === 'results' && json.data && json.data.length === 0) {
             proceed = true
@@ -201,10 +194,9 @@ define([
           }
 
           if (proceed) {
-            url.searchParams.delete('search.deleted')
-            url.searchParams.delete('search.name')
-            fetch(url, {method: 'POST', body: JSON.stringify({name: values.name, level: values.admin})}).then(function (response) { return response.json() }).then(function (json) {
-              if (json.type === 'results' && json.data && json.data.success) {
+            url = Path.url('Person')
+            Query.exec(url, {method: 'POST', body: {name: values.name, level: values.admin}}).then(function (json) {
+              if (json.success) {
                 new Log({message: 'Nouvelle personne ajoutée', timeout: 2, type: 'info'}).show()
                 window.location.reload(true)
               }
@@ -228,9 +220,8 @@ define([
       if (form.isValid()) {
         var values = form.getValues()
 
-        var url = new URL(Path.url('Project'))
-        url.searchParams.set('search.name', values.pName)
-        fetch(url).then(function (response) { return response.json() }).then(function (json) {
+        var url = Path.url('Project', {params: {'search.name': values.pName}})
+        Query.exec(url).then(function (json) {
           var proceed = false
           if (json.type === 'results' && json.data && json.data.length <= 0) {
             proceed = true
@@ -244,12 +235,8 @@ define([
             if (values.pEndDate) {
               eDate = values.pEndDate.toISOString()
             }
-            djXhr.post(Path.url('Project'), { handleAs: 'json',
-              data: {
-                name: values.pName,
-                targetEnd: eDate
-              }}).then(function (results) {
-              results = new _Result(results)
+            Query.exec(Path.url('Project'), {method: 'POST', body: {name: values.pName, targetEnd: eDate}}).then(function (results) {
+              console.log(results)
               new Log({message: 'Nouveau projet créé', timeout: 2, type: 'info'}).show()
               window.location.reload(true)
             })

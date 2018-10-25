@@ -13,7 +13,9 @@ define([
   'dojo/on',
   'dojo/dom-form',
   'artnum/dojo/ButtonGroup',
-  'artnum/dojo/Hour'
+  'artnum/dojo/Hour',
+  'artnum/Path',
+  'artnum/Query'
 ], function (
   djDeclare,
   djEvented,
@@ -28,7 +30,9 @@ define([
   djOn,
   djDomForm,
   ButtonGroup,
-  Hour
+  Hour,
+  Path,
+  Query
 ) {
   return djDeclare('horaire.TimeBox', [
     _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin, djEvented
@@ -39,9 +43,9 @@ define([
 
     _setProjectAttr: function (value) {
       this._set('project', value)
-      var url = new URL(window.location.origin + '/horaire/Project/' + value)
-      fetch(url).then(function (response) { return response.json() }).then(function (json) {
-        if (json.type === 'results' && json.data) {
+      var url = Path.url('Project/' + value)
+      Query.exec(url).then(function (json) {
+        if (json.success) {
           this.nTitle.innerHTML = json.data.name
           this._set('_project', json.data)
         }
