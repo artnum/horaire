@@ -115,7 +115,7 @@ define([
         node = node.previousSibling
       }
 
-      this.emit('submit', {item: node.getAttribute('data-item-id'), quantity: 1, project: this.get('project')})
+      this.emit('submit', {item: node.getAttribute('data-item-id'), quantity: 1, project: this.get('project'), process: this.get('process')})
     },
 
     draw: function () {

@@ -113,10 +113,11 @@ define([
       /* Attach events */
       djOn(this.Project, 'change', function (event) {
         var url = this.TimeList.get('url')
-        url.searchParams.set('search.project', event)
-        this.TimeList.set('project', event)
-        this.TimeBox.set('project', event)
-        this.Items.set('project', event)
+        console.log(event)
+        url.searchParams.set('search.project', event.project)
+        this.TimeList.set('project', event.project)
+        this.TimeBox.set('project', event.project)
+        this.Items.set('project', event.project)
         this.TimeList.set('url', url)
         this.TimeList.refresh()
 
@@ -124,7 +125,7 @@ define([
           this.Quantity.destroy()
         }
 
-        url = Path.url('Quantity', {params: {'search.project': event}})
+        url = Path.url('Quantity', {params: {'search.project': event.project}})
         this.Quantity = new HItems({url: url, user: this.entry})
         this.own(this.Quantity)
         section3.insertBefore(this.Quantity.domNode, this.Items.domNode)
@@ -132,11 +133,12 @@ define([
       }.bind(this))
 
       djOn(this.TimeBox, 'submit', function (event) {
-        if (!event.date || !event.second || !this.Project.get('value')) {
+        var project = this.Project.get('value')
+        if (!event.date || !event.second || !project.project || !project.process) {
           new Log({message: 'Entrée incomplète', timeout: 2}).show()
           return
         }
-        var query = {person: this.entry.id, project: this.Project.get('value'), value: event.second, day: event.date.toISOString()}
+        var query = {person: this.entry.id, project: project.project, value: event.second, day: event.date.toISOString(), process: project.process}
 
         Query.exec(Path.url('Htime'), {method: 'post', body: query}).then(function () {
           this.TimeList.refresh()
@@ -161,7 +163,7 @@ define([
               }
             }.bind(this))
           } else {
-            Query.exec(Path.url('Quantity'), {method: 'POST', body: {value: event.quantity, project: event.project, item: event.item, person: this.entry.id}}).then(function (response) {
+            Query.exec(Path.url('Quantity'), {method: 'POST', body: {value: event.quantity, project: event.project, process: event.process, item: event.item, person: this.entry.id}}).then(function (response) {
               this.Items.refresh()
               if (this.Quantity) {
                 this.Quantity.refresh()

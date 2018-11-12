@@ -14,9 +14,11 @@ CREATE TABLE IF NOT EXISTS "quantity" (
 	"quantity_value" FLOAT DEFAULT 1.0,
 	"quantity_item" INTEGER DEFAULT NULL,
 	"quantity_project" INTEGER DEFAULT NULL,
+	"quantity_process" INTEGER DEFAULT NULL,
 	"quantity_person" INTEGER DEFAULT NULL,
 	FOREIGN KEY("quantity_item") REFERENCES "item"("item_id") ON UPDATE CASCADE ON DELETE SET NULL,
 	FOREIGN KEY("quantity_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE CASCADE,
+	FOREIGN KEY("quantity_process") REFERENCES "process"("process_id") ON UPDATE CASCADE ON DELETE CASCADE,
 	FOREIGN KEY("quantity_person") REFERENCES "person"("person_id") ON UPDATE CASCADE ON DELETE SET NULL
 );
 

@@ -5,6 +5,7 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
    $query = 'SELECT * FROM project
          LEFT JOIN htime ON htime.htime_project = project.project_id
          LEFT JOIN person ON htime.htime_person = person.person_id
+         LEFT JOIN process ON htime.htime_process = process.process_id
       WHERE project_id=:pid';
 
 
@@ -22,16 +23,16 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
 
    $writer = new XLSXWriter();
 
-   $writer->writeSheetHeader('Projet', array('Projet'=> 'string', 'Jour' => 'datetime', 'Temps [h]' => '0.00', 'Personne' => 'string'), array('widths'=>[25, 25, 10, 25]));
+   $writer->writeSheetHeader('Projet', array('Projet'=> 'string', 'Process' => 'string', 'Jour' => 'datetime', 'Temps [h]' => '0.00', 'Personne' => 'string'), array('widths'=>[25, 25, 10, 25]));
 
    foreach ($values as $row) {
       $date = (new DateTime($row['htime_day']))->format('Y-m-d H:i:s');
-      $writer->writeSheetRow('Projet', array($row['project_name'], $date, $row['htime_value'] / 3600, $row['person_name']));
+      $writer->writeSheetRow('Projet', array($row['project_name'], $row['process_name'], $date, $row['htime_value'] / 3600, $row['person_name']));
    }
 
    $writer->writeSheetRow('Projet', array('', '', ''));
    $rc = $writer->countSheetRows('Projet');
-   $writer->writeSheetRow('Projet', array('Total', '', '=SUM(C2:C' . ($rc - 1) . ')', ''));
+   $writer->writeSheetRow('Projet', array('Total', '','', '=SUM(D2:D' . ($rc - 1) . ')', ''));
 
    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
    $writer->writeToStdOut();
