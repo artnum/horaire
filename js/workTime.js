@@ -149,7 +149,7 @@ loadValidation: function() {
 loadCondition: async function() {
 	var def = new djDeferred();
 
-   var rates = await Query.exec(Path('store/Rate', {params: {'search.target': this.Id}}))
+   var rates = await Query.exec(Path.url('store/Rate', {params: {'search.target': this.Id}}))
    if (rates.success && rates.length > 0) {
       this.Rates = []
       rates.data.forEach(function (rate) {
