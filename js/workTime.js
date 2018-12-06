@@ -493,9 +493,22 @@ getTimeForAwayDay: function(day) {
 getWorkTime: function (current) {
    var worktime = this.WorkTime
    var rate = 100
+   var oldest = null
    
    this.Rates.forEach(function (r) {
-      if (r.from) {
+      var skip = false
+      if (!oldest) {
+         oldest = r.from
+      } else {
+         if (djDate.compare(oldest, r.from) < 0) {
+            oldest = r.from
+         } else {
+            skipt = true
+         }
+      }
+
+
+      if (!skip && r.from) {
          if(djDate.compare(current, r.from) >= 0) {
             if (r.to) {
                if (djDate.compare(current, r.to) <= 0) {
