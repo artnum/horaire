@@ -149,7 +149,7 @@ loadValidation: function() {
 loadCondition: async function() {
 	var def = new djDeferred();
 
-   var rates = await Query.exec(Path('store/Rate', {target: this.Id}))
+   var rates = await Query.exec(Path('store/Rate', {params: {'search.target': this.Id}}))
    if (rates.success && rates.length > 0) {
       this.Rates = []
       rates.data.forEach(function (rate) {
@@ -287,8 +287,6 @@ MinutesToDo: function(options) {
 	for(	var current = from;
 				djDate.compare(current, to, "date") < 1;
 				current = djDate.add(current, "day", 1)) {
-	
-
 		if( this.OfficialHolidays.every(function(e){ return djDate.compare(current, e, "date"); })) {
 			if( this.ClosedDay.every(function(e){ return current.getDay() != e})) {
 				if( this.Holidays.every(function(e) { return djDate.compare(e.start, current, "date"); })) { 
@@ -298,8 +296,7 @@ MinutesToDo: function(options) {
 		}
 	}
 
-	var toWork = todo * this.WorkPercent / 100;
-	var x = toWork - (this.AbsenceDone(options) * this.WorkPercent / 100);
+	var x = todo - this.AbsenceDone(options)
 	return x;
 
 },
@@ -496,7 +493,7 @@ getTimeForAwayDay: function(day) {
 getWorkTime: function (current) {
    var worktime = this.WorkTime
    var rate = 100
-   console.log(current)
+   
    this.Rates.forEach(function (r) {
       if (r.from) {
          if(djDate.compare(current, r.from) >= 0) {
@@ -510,7 +507,6 @@ getWorkTime: function (current) {
          }
       }
    })
-
    return worktime * rate / 100
 },
 isHoliday: function(day) {
