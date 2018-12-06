@@ -5,7 +5,9 @@ define([
 	"dojo/promise/all",
 	"dojo/Deferred",
 	"dojo/_base/lang",
-	"dojo/when"
+	"dojo/when",
+   'artnum/Path',
+   'artnum/Query'
 	], function(
 	djDeclare,
 	djDate,
@@ -13,7 +15,9 @@ define([
 	djAll,
 	djDeferred,
 	djLang,
-	djWhen
+	djWhen,
+   Path,
+   Query
 	) { return djDeclare(null, {
 /* *** workTime */
 WorkTime: 504, /* Default swiss work time 42h/weeks -> 504 minutes a day, 5 days a week */
@@ -33,6 +37,7 @@ conditionstore: null,
 entitystore: null,
 workedDay: {},
 lookingAt: [],
+Rates: [],
 lastValidated: null,
 beginDate: null,
 
@@ -51,6 +56,7 @@ constructor: function(id, entitystore, timestore, conditionstore, validationstor
 	this.lastValidated = null;
 	this.lastRegistredDay = null;
 	this.HolidayCost = 0;
+   this.Rates = []
 
 
 	this.beginDate = null;
@@ -88,6 +94,7 @@ destroy: function () {
 	this.timestore = null;
 	this.conditionstore = null;
 	this.validationstore = null;
+   this.Rates = null
 },
 round: function(number, precision) {
 	var f = Math.pow(10, precision);
@@ -139,9 +146,22 @@ loadValidation: function() {
 
 	return def;
 },
-loadCondition: function() {
+loadCondition: async function() {
 	var def = new djDeferred();
 
+   var rates = await Query.exec(Path('store/Rate', {target: this.Id}))
+   if (rates.success && rates.length > 0) {
+      this.Rates = []
+      rates.data.forEach(function (rate) {
+         if (rate.from) {
+            rate.from = djStamp.fromISOString(rate.from)
+         }
+         if (rate.to) {
+            rate.to = djStamp.fromISOString(rate.to)
+         }
+         this.Rates.push(rate)
+      }.bind(this))
+   }
 	this.entitystore.get(this.Id).then(djLang.hitch(this, function(iam){
 		var condition = '__default';
 		iam = iam[0];
@@ -192,10 +212,10 @@ update: function(from, until) {
 						end =  djStamp.fromISOString(entry.end);
 						break;
 					case 'halfday':
-						end = djDate.add(begin, "minute", this.GetHalfDay());
+						end = djDate.add(begin, "minute", this.GetHalfDay(entry.begin));
 						break;
 					case 'wholeday':
-						end = djDate.add(begin, "minute", this.GetWholeDay());
+						end = djDate.add(begin, "minute", this.GetWholeDay(entry.begin));
 						break;
 				}
 
@@ -241,11 +261,11 @@ add: function(type, id, start, end) {
 	}
 
 },
-GetHalfDay: function() {
-	return (this.WorkTime * this.WorkPercent / 100) / 2;
+GetHalfDay: function(current) {
+	return this.getWorkTime(current) / 2;
 },
-GetWholeDay: function() {
-	return this.WorkTime;
+GetWholeDay: function(current) {
+	return this.getWorkTime(current);
 },
 setValidatedValues: function(year, month, workedtime, vacations, todo, overtime) {
 	this.byMonth[year + '.' + month ] = {
@@ -272,7 +292,7 @@ MinutesToDo: function(options) {
 		if( this.OfficialHolidays.every(function(e){ return djDate.compare(current, e, "date"); })) {
 			if( this.ClosedDay.every(function(e){ return current.getDay() != e})) {
 				if( this.Holidays.every(function(e) { return djDate.compare(e.start, current, "date"); })) { 
-						todo += this.WorkTime;
+						todo += this.getWorkTime(current);
 				}
 			}
 		}
@@ -472,6 +492,26 @@ getTimeForAwayDay: function(day) {
 	time += this._MinutesDone({ From: day, To: day}, this.Absences);
 	
 	return time;	
+},
+getWorkTime: function (current) {
+   var worktime = this.WorkTime
+   var rate = 100
+   console.log(current)
+   this.Rates.forEach(function (r) {
+      if (r.from) {
+         if(djDate.compare(current, r.from) >= 0) {
+            if (r.to) {
+               if (djDate.compare(current, r.to) <= 0) {
+                  rate = parseInt(r.value)
+               }
+            } else {
+               rate = parseInt(r.value)
+            }
+         }
+      }
+   })
+
+   return worktime * rate / 100
 },
 isHoliday: function(day) {
 	if(this.OfficialHolidays.find( function (hday) {

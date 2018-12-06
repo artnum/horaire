@@ -11,7 +11,7 @@ define([
 	"dojo/on", "dojo/dom-form",
 	"dijit/form/Button", "dijit/Dialog",
 
-	"artnum/Request"
+	"artnum/dojo/Request"
 ], function( 
 	djDeclare, djLang, djEvented, djDeferred, 
 	dtWidgetBase, dtTemplatedMixin, dtWidgetsInTemplateMixin,
