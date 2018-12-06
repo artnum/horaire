@@ -109,12 +109,12 @@ clean: function() {
 	this.byMonth = {};
 	this.lastValidated = null;
 },
-load: function() {
+load: async function() {
 	var def = new djDeferred();
 
 	this.clean();
 
-	this.loadCondition().then(djLang.hitch(this, function(){
+	await this.loadCondition().then(djLang.hitch(this, function(){
 		this.loadValidation().then(djLang.hitch(this, function() {
 			djLang.hitch(this, this.update)(this.lookingAt[0], this.lookingAt[1]).then(function() { def.resolve(); });
 		}));
@@ -212,10 +212,10 @@ update: function(from, until) {
 						end =  djStamp.fromISOString(entry.end);
 						break;
 					case 'halfday':
-						end = djDate.add(begin, "minute", this.GetHalfDay(entry.begin));
+						end = djDate.add(begin, "minute", this.GetHalfDay(begin));
 						break;
 					case 'wholeday':
-						end = djDate.add(begin, "minute", this.GetWholeDay(entry.begin));
+						end = djDate.add(begin, "minute", this.GetWholeDay(begin));
 						break;
 				}
 
@@ -494,33 +494,23 @@ getWorkTime: function (current) {
    var worktime = this.WorkTime
    var rate = this.WorkPercent
    var oldest = null
-   
-   this.Rates.forEach(function (r) {
-      var skip = false
-      if (!oldest) {
-         oldest = r.from
-      } else {
-         if (djDate.compare(oldest, r.from) < 0) {
-            oldest = r.from
+
+   if (current) {
+      for (var i = 0; i < this.Rates.length; i++) {
+         if (! this.Rates[i].from) { continue }
+         if (djDate.compare(this.Rates[i].from, current, 'date') > 0) { continue }
+         if (oldest === null) {
+            oldest = this.Rates[i].from
+            rate = parseInt(this.Rates[i].value)
          } else {
-            skip = true
-         }
-      }
-
-
-      if (!skip && r.from) {
-         if(djDate.compare(current, r.from) >= 0) {
-            if (r.to) {
-               if (djDate.compare(current, r.to) <= 0) {
-                  rate = parseInt(r.value)
-               }
-            } else {
-               rate = parseInt(r.value)
+            if (djDate.compare(this.Rates[i].from, oldest, 'date') != 1) { continue }
+            else {
+               oldest = this.Rates[i].from
+               rate = parseInt(this.Rates[i].value)
             }
          }
       }
-   })
-
+   }
    return worktime * rate / 100
 },
 isHoliday: function(day) {

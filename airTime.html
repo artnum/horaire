@@ -511,22 +511,22 @@ var displayTargetTimeEx = function(targetId) {
 			var until = new Date(CurrentYear, parseInt(timeSheet.get('month')) + 1, 0);
 
 			timeStore.filter({from: yearStart.toISOString(), until: until.toISOString(), target: targetId}).forEach(function(entry) {
+				var start = CDate(entry.begin);
+				var end = CDate(entry.end);
 
-				var currentTimeEntry = new TimeEntry({jsonEntry: entry, reasonStore: reasonStore, dayDuration: timeSheet.workTime.GetWholeDay(), timeStore: timeStore});
+				var currentTimeEntry = new TimeEntry({jsonEntry: entry, reasonStore: reasonStore, dayDuration: timeSheet.workTime.GetWholeDay(start), timeStore: timeStore});
 
 				currentTimeEntry.on("removed", function(event) {
 					displayTimeSheetEx(event.target);
 				});
 
-				var start = CDate(entry.begin);
-				var end = CDate(entry.end);
 				
 				switch(entry.type) {
 					case 'halfday':
-						end = djDate.add(start, "minute", timeSheet.workTime.GetHalfDay());
+						end = djDate.add(start, "minute", timeSheet.workTime.GetHalfDay(start));
 						break;
 					case 'wholeday':
-						end = djDate.add(start, "minute", timeSheet.workTime.GetWholeDay());
+						end = djDate.add(start, "minute", timeSheet.workTime.GetWholeDay(start));
 						break;	
 				}
 
@@ -614,7 +614,7 @@ var displayTargetTimeEx = function(targetId) {
 				} else {
 					if(timeSheet.workTime.lastRegistredDay != null) {
 						if(timeSheet.workTime.getTimeForWorkedDay(timeSheet.workTime.lastRegistredDay[0]) + 
-							+ timeSheet.workTime.getTimeForAwayDay(timeSheet.workTime.lastRegistredDay[0]) >= (timeSheet.workTime.GetWholeDay() - 5)) {
+							+ timeSheet.workTime.getTimeForAwayDay(timeSheet.workTime.lastRegistredDay[0]) >= (timeSheet.workTime.GetWholeDay(timeSheet.workTime.lastRegistredDay[0]) - 5)) {
 							day = djDate.add(timeSheet.workTime.lastRegistredDay[0], "day", 1);
 						} else {
 							day = timeSheet.workTime.lastRegistredDay[1]>1 ? 
