@@ -492,7 +492,7 @@ getTimeForAwayDay: function(day) {
 },
 getWorkTime: function (current) {
    var worktime = this.WorkTime
-   var rate = 100
+   var rate = this.WorkPercent
    var oldest = null
    
    this.Rates.forEach(function (r) {
@@ -503,7 +503,7 @@ getWorkTime: function (current) {
          if (djDate.compare(oldest, r.from) < 0) {
             oldest = r.from
          } else {
-            skipt = true
+            skip = true
          }
       }
 
@@ -520,6 +520,7 @@ getWorkTime: function (current) {
          }
       }
    })
+
    return worktime * rate / 100
 },
 isHoliday: function(day) {
