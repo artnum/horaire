@@ -172,7 +172,9 @@ loadCondition: function() {
 		
 			if(iam.vacations != null) { this.HolidayCount = iam.vacations; }
 			if(iam.workTime != null) { this.WorkPercent = iam.workTime; }
-			if(iam.beginDate) { this.beginDate = djStamp.fromISOString(iam.beginDate); }
+			if(iam.beginDate) {
+            this.beginDate = djStamp.fromISOString(iam.beginDate); 
+         }
 			def.resolve();		
 		}));		
 	}));
@@ -257,7 +259,7 @@ MinutesToDo: function(options) {
 	var todo = 0;
 	var to = options.To ? options.To : new Date(); /* Today if not set */
 	var from = options.From ? options.From : new Date(to.getFullYear(), 0, 1);
-	if(this.beginDate) {
+	if(this.beginDate && this.beginDate.getFullYear() == from.getFullYear()) {
 		from = this.beginDate;	
 	}
 

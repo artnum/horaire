@@ -254,8 +254,11 @@ var fullAddFormEx = function() {
 	var pp = dtRegistry.byId("PersonPane");
 	if(pp) {
 		pp.destroy();	
-	}	
-	var timeSheet =  new TimeSheet({ id: "TimeSheetXX", target: targetId }), Now = new Date(), PersonName = dtRegistry.byId(targetId).label, Holidays = [];
+	}
+	var timeSheet =  new TimeSheet({ id: "TimeSheetXX", target: targetId })
+   var Now = new Date()
+   var PersonName = dtRegistry.byId(targetId) ? dtRegistry.byId(targetId).label : ''
+   var Holidays = []
 	holidayStore.forEach(function(e){
 		Holidays.push(new Date(e.day + 'T12:00:00Z'));
 	}).then(function() {
