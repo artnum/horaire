@@ -113,10 +113,10 @@ define([
       /* Attach events */
       djOn(this.Project, 'change', function (event) {
         var url = this.TimeList.get('url')
-        console.log(event)
         url.searchParams.set('search.project', event.project)
         this.TimeList.set('project', event.project)
         this.TimeBox.set('project', event.project)
+        this.TimeBox.set('process', event.process)
         this.Items.set('project', event.project)
         this.TimeList.set('url', url)
         this.TimeList.refresh()
@@ -138,7 +138,7 @@ define([
           new Log({message: 'Entrée incomplète', timeout: 2}).show()
           return
         }
-        var query = {person: this.entry.id, project: project.project, value: event.second, day: event.date.toISOString(), process: project.process}
+        var query = {person: this.entry.id, project: project.project, value: event.second, day: event.date.toISOString(), process: project.process, comment: event.comment}
 
         Query.exec(Path.url('Htime'), {method: 'post', body: query}).then(function () {
           this.TimeList.refresh()

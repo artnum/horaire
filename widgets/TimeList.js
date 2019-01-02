@@ -55,7 +55,7 @@ define([
         var table = document.createElement('TABLE')
         var thead = document.createElement('THEAD')
         thead.setAttribute('class', 'entries head')
-        thead.innerHTML = '<tr><th class="day">Jour</th><th class="time">Durée</th><th class="project">Projet</th><th></th>'
+        thead.innerHTML = '<tr><th class="day">Jour</th><th class="time">Durée</th><th class="project">Projet</th><th></th></tr>'
         var totalTime = 0
         var tbody = document.createElement('TBODY')
         for (var i = 0; i < data.length; i++) {
@@ -76,16 +76,26 @@ define([
 
           var td = document.createElement('TD')
           td.setAttribute('class', 'delete')
-          td.innerHTML = '<i class="fas fa-eraser" data-time-id="' + data[i].id + '" />'
+          td.setAttribute('data-time-id', data[i].id)
+          td.innerHTML = '<i class="fas fa-eraser" />'
           djOn(td, 'click', function (event) {
-            var url = Path.url('Htime/' + event.target.getAttribute('data-time-id'))
+            var node = event.target
+            while (node.nodeName !== 'TD') { node = node.parentNode }
+            console.log(node)
+            var url = Path.url('Htime/' + node.getAttribute('data-time-id'))
             Query.exec(url, {method: 'DELETE', body: {id: event.target.getAttribute('data-time-id')}}).then(function (response) {
-              console.log(url, response)
               this.refresh()
             }.bind(this))
           }.bind(this))
           tr.appendChild(td)
           tbody.appendChild(tr)
+
+          if (data[i].comment) {
+            tr = document.createElement('TR')
+            tr.setAttribute('class', 'comment')
+            tr.innerHTML = '<td colspan="4">' + data[i].comment + '</td>'
+            tbody.appendChild(tr)
+          }
         }
 
         this.set('total', new Hour(totalTime))

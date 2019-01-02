@@ -106,6 +106,25 @@ define([
       djDomClass.add(body, 'waiting')
       fetch(url).then(function (result) { return result.text() }).then(function (html) {
         html = djDomConstruct.toDom(html)
+        var elements = html.querySelectorAll('*[data-source]')
+        console.log(elements)
+        for (var i = 0; i < elements.length; i++) {
+          if (elements[i].getAttribute('data-source')) {
+            var node = elements[i]
+            Query.exec(Path.url(elements[i].getAttribute('data-source'))).then(function (results) {
+              var attrs = {id: 'id', label: 'name'}
+              for (var j = 0; j < results.length; j++) {
+                if (results.data[j][attrs.id]) {
+                  var content = results.data[j][attrs.label] ? results.data[j][attrs.label] : ' '
+                  var option = document.createElement('OPTION')
+                  option.setAttribute('value', results.data[j][attrs.id])
+                  option.appendChild(document.createTextNode(content))
+                  node.appendChild(option)
+                }
+              }
+            })
+          }
+        }
         djParser.parse(html, {noStart: true}).then(function (dom) {
           var dialog = new DtDialog({title: title})
           dialog.addChild(dom[0])
@@ -235,8 +254,7 @@ define([
             if (values.pEndDate) {
               eDate = values.pEndDate.toISOString()
             }
-            Query.exec(Path.url('Project'), {method: 'POST', body: {name: values.pName, targetEnd: eDate}}).then(function (results) {
-              console.log(results)
+            Query.exec(Path.url('Project'), {method: 'POST', body: {name: values.pName, targetEnd: eDate, reference: values.pReference ? values.pReference : null}}).then(function (results) {
               new Log({message: 'Nouveau projet créé', timeout: 2, type: 'info'}).show()
               window.location.reload(true)
             })

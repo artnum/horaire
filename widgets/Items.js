@@ -44,10 +44,7 @@ define([
       if (!item.unit) {
         unit = ''
       }
-      var price = item.price
-      if (!item.price) {
-        price = ''
-      }
+      var reference = item.reference ? item.reference : ''
       var description = item.description
       if (!item.description) {
         description = ''
@@ -55,13 +52,16 @@ define([
 
       var tr = document.createElement('TR')
       tr.setAttribute('data-item-id', item.id)
+      tr.setAttribute('data-item-reference', reference)
       tr.setAttribute('class', 'item entry')
-      tr.innerHTML = '<td class="name">' + item.name + '</td><td class="unit">' + unit + '</td><td class="price">' + price + '</td><td class="description">' + description + '</td>'
+      tr.innerHTML = '<td>' + reference + '</td><td class="name">' + item.name + '</td><td class="unit">' + unit + '</td>' +
+        '<td class="description">' + description + '</td>'
       target.appendChild(tr)
       return tr
     },
 
     quantityHtml: function (quantity, target) {
+      var reference = quantity._item ? (quantity._item.reference ? quantity._item.reference : '') : ''
       var unit = ''
       var name = ''
       if (quantity._item) {
@@ -78,7 +78,7 @@ define([
       var tr = document.createElement('TR')
       tr.setAttribute('data-quantity-id', quantity.id)
       tr.setAttribute('class', 'quantity entry')
-      tr.innerHTML = '<td class="name">' + name + '</td><td class="quantity"><input class="no-spinners" type="number" inputmode="decimal" min="0" step="any" value="' + quantity.value + '" /></td><td class="unit">' + unit + '</td>'
+      tr.innerHTML = '<td>' + reference + '</td><td class="name">' + name + '</td><td class="quantity"><input class="no-spinners" type="number" inputmode="decimal" min="0" step="any" value="' + quantity.value + '" /></td><td class="unit">' + unit + '</td>'
 
       djOn(tr.getElementsByTagName('INPUT')[0], 'change', function (event) {
         var pNode = event.target
@@ -139,9 +139,36 @@ define([
 
         var node = document.createElement('TABLE')
         if (itemHeader) {
-          node.innerHTML = '<thead><tr><th class="name">Fourniture</th><th class="unit">Unité</th><th class="price">Prix</th><th>Description</th></tr></thead>'
+          node.innerHTML = '<thead><tr><th>Référence</th><th class="name">Fourniture</th><th class="unit">Unité</th><th>Description</th></tr>' +
+            '<tr class="search"><th>Recherche</th><th colspan="2"><input type="text" name="refSearch" placeholder="Référence" /></thead>'
+          node.addEventListener('keyup', function (event) {
+            console.log(event)
+            if (event.target.name !== 'refSearch') { return }
+            var table = event.target
+            var value = event.target.value
+            console.log(value)
+            while (table.nodeName !== 'TABLE') { table = table.parentNode }
+            table = table.getElementsByTagName('TBODY')[0]
+            for (var tr = table.firstChild; tr; tr = tr.nextSibling) {
+              if (value === '') {
+                window.requestAnimationFrame(function () {
+                  this.removeAttribute('style')
+                }.bind(tr))
+              } else {
+                if (tr.getAttribute('data-item-reference').toLowerCase().indexOf(value.toLowerCase()) !== 0) {
+                  window.requestAnimationFrame(function () {
+                    this.setAttribute('style', 'display: none')
+                  }.bind(tr))
+                } else {
+                  window.requestAnimationFrame(function () {
+                    this.removeAttribute('style')
+                  }.bind(tr))
+                }
+              }
+            }
+          })
         } else {
-          node.innerHTML = '<thead><tr><th class="name">Fourniture</th><th class="quantity">Quantité</th><th class="unit">Unité</th></tr></thead>'
+          node.innerHTML = '<thead><tr><th>Référence</th><th class="name">Fourniture</th><th class="quantity">Quantité</th><th class="unit">Unité</th></tr></thead>'
         }
 
         var frag = document.createDocumentFragment()

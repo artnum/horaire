@@ -39,19 +39,54 @@ define([
   ], {
     templateString: template,
     baseClass: 'timeBox',
-    lateDay: 5,
+    lateDay: 2,
 
     _setProjectAttr: function (value) {
       this._set('project', value)
-      var url = Path.url('Project/' + value)
-      Query.exec(url).then(function (json) {
-        if (json.success) {
-          this.nTitle.innerHTML = json.data.name
-          this._set('_project', json.data)
+      if (value) {
+        var url = Path.url('Project/' + value)
+        Query.exec(url).then(function (json) {
+          if (json.success) {
+            this._set('_project', json.data)
+            this.printTitle()
+          }
+        }.bind(this))
+      } else {
+        this._set('_process', null)
+        this.printTitle()
+      }
+    },
+    _setProcessAttr: function (value) {
+      this._set('process', value)
+      if (value) {
+        var url = Path.url('Process/' + value)
+        Query.exec(url).then(function (json) {
+          if (json.success) {
+            this._set('_process', json.data)
+            this.printTitle()
+          }
+        }.bind(this))
+      } else {
+        this._set('_process', null)
+        this.printTitle()
+      }
+    },
+    printTitle: function () {
+      var str = ''
+      if (this.get('_project')) {
+        str = '<span class="name project">' + this.get('_project').name + '</span>'
+        if (this.get('_process')) {
+          str += '::'
         }
+      }
+
+      if (this.get('_process')) {
+        str += '<span class="name process">' + this.get('_process').name + '</span>'
+      }
+      window.requestAnimationFrame(function () {
+        this.nTitle.innerHTML = str
       }.bind(this))
     },
-
     postCreate: function () {
       var now = new Date(Date.now())
       var group = new ButtonGroup({name: 'day'})
@@ -73,7 +108,9 @@ define([
     },
 
     eSubmit: function (event) {
-      this.emit('submit', {second: this.nHour.get('value'), date: this.selectDay.get('value')})
+      this.emit('submit', {second: this.nHour.get('value'), date: this.selectDay.get('value'), comment: this.nRemark.value})
+      this.nRemark.value = ''
+      this.nHour.set('value', '')
       this.nHour.focus()
     }
   })

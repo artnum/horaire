@@ -24,10 +24,12 @@ CREATE TABLE IF NOT EXISTS "quantity" (
 
 CREATE TABLE IF NOT EXISTS "item" (
 	"item_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"item_reference" TEXT DEFAULT NULL, -- reference useable by the company
 	"item_name" TEXT DEFAULT NULL,
 	"item_description" TEXT DEFAULT NULL,
 	"item_unit" TEXT DEFAULT NULL,
 	"item_price" FLOAT DEFAULT 0.0,
+	"item_details" TEXT DEFAULT NULL, -- other details json formatted
 	"item_category" INTEGER DEFAULT NULL,
 	"item_created" INTEGER DEFAULT NULL,
 	"item_deleted" INTEGER DEFAULT NULL,
@@ -48,6 +50,7 @@ CREATE TABLE IF NOT EXISTS "person" (
 
 CREATE TABLE IF NOT EXISTS "project" (
 	"project_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"project_reference" TEXT DEFAULT NULL,
 	"project_name" TEXT DEFAULT NULL,
 	"project_closed" DATETIME DEFAULT NULL,
 	"project_opened" DATETIME DEFAULT NULL,
