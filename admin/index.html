@@ -1,0 +1,45 @@
+<html>
+<head>
+<title>Horaire</title>
+<link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.13.0/dojo/resources/dojo.css" />
+<link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.13.0/dijit/themes/claro/claro.css" />
+<link rel="stylesheet" type="text/css" href="css/horaire.css" />
+<link rel="stylesheet" type="text/css" href="/js/dojo/templates/themes/default/default.css" />
+<link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
+</head>
+<body class="claro">
+  <div id="menu">
+    <span name="project">Projets</span>
+  </div>
+  <div id="content">
+  </div>
+</body>
+<script>
+dojoConfig = {
+	locale: 'fr-ch',
+	async: true,
+	requestProvider: "dojo/request/xhr",
+	packages: [
+		{ name: "horaire", location: location.href + "/../widgets/" },
+		{ name: "artnum", location: "/js/" }
+	]
+}
+</script>
+<script src="/js/Date.js"></script>
+<script src="https://bitwiseshiftleft.github.io/sjcl/sjcl.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/dojo/1.13.0/dojo/dojo.js"></script>
+<script>
+require([
+    'dojo/domReady!'
+    ], function () {
+    var elements = document.getElementById('menu').getElementsByTagName('span')
+    for(var i = 0; i < elements.length; i++) {
+      if (elements[i].getAttribute('name')) {
+        elements[i].addEventListener('click', function (event) {
+          console.log(event)
+        })
+      }
+    }
+  })
+</script>
+</html>

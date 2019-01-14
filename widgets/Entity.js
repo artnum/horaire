@@ -1,4 +1,5 @@
 /* eslint-env browser,amd */
+/* global sjcl */
 define([
   'dojo/_base/declare',
   'dijit/_WidgetBase',
@@ -43,11 +44,11 @@ define([
   ], {
     templateString: template,
     baseClass: 'entity',
-    security: false,
+    security: true,
     pane: null,
     link: null,
     entry: null,
-    _passwordBoxHtml: '<div class="inputbox"><input type="password" placeholder="Mot de passe" /></div>',
+    _passwordBoxHtml: '<div class="inputbox"><input type="password" placeholder="Mot de passe" name="password" /><input type="submit" value="Ok"/></div>',
 
     constructor: function (entry, options) {
       this.entry = entry
@@ -61,20 +62,19 @@ define([
 
       djDomClass.add(this.pane.domNode, 'desktop')
 
-      this.open()
       djOn(this.nRoot, 'click', djLang.hitch(this, function () {
-        window.location.hash = this.link
-        this.TimeList.refresh()
-        this.Items.refresh()
+        if (this.security) {
+          if (!this.login()) {
+            return
+          }
+        } else {
+          this.open()
+        }
       }))
     },
 
     open: function () {
-      if (this.security) {
-        if (!this.login()) {
-          return
-        }
-      }
+      window.location.hash = this.link
 
       var entity = document.createElement('DIV')
       entity.setAttribute('class', 'EntityPanel')
@@ -152,7 +152,6 @@ define([
         }
         var url = Path.url('Quantity', {params: {'search.project': event.project, 'search.item': event.item}})
         Query.exec(url).then(function (json) {
-          console.log(json)
           if (json.success && json.length > 0) {
             var addTo = json.data[0]
             var body = {id: addTo.id, value: Number(addTo.value) + Number(event.quantity)}
@@ -191,16 +190,39 @@ define([
     },
 
     login: function () {
-      if (this.loginOpened) { return }
+      if (this.loginOpened) {
+        return
+      } else {
+        this.loginOpened = true
+      }
       var that = this
       var frag = document.createDocumentFragment()
       var form = document.createElement('FORM')
 
-      djOn(form, 'submit', alert('ok'))
-
       form.appendChild(djDomConstruct.toDom(this._passwordBoxHtml))
       frag.appendChild(form)
-      this.loginOpened = form
+      form.addEventListener('submit', function (event) {
+        console.log(event)
+        event.preventDefault()
+        var nodeForm = event.target
+        for (; nodeForm.nodeName !== 'FORM'; nodeForm = nodeForm.parentNode);
+        var inputs = nodeForm.getElementsByTagName('INPUT')
+        var password = null
+        for (var i = 0; i < inputs.length; i++) {
+          if (inputs[i].getAttribute('name') === 'password') {
+            password = inputs[i].value
+            break
+          }
+        }
+        if (password) {
+          var keyopt = this.entry.keyopt.split(' ', 2)
+          console.log(sjcl.codec.base64.fromBits(sjcl.misc.pbkdf2(password, sjcl.codec.base64.toBits(keyopt[1]), keyopt[0])))
+          console.log(keyopt)
+          if (sjcl.codec.base64.fromBits(sjcl.misc.pbkdf2(password, sjcl.codec.base64.toBits(keyopt[1]), parseInt(keyopt[0]))) === this.entry.key) {
+            this.open()
+          }
+        }
+      }.bind(this))
       window.requestAnimationFrame(function () { that.nRoot.appendChild(frag) })
     }
 

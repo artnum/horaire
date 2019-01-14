@@ -1,6 +1,7 @@
 <?PHP
 require('PHP_XLSXWriter/xlsxwriter.class.php');
 
+$project = 'tous';
 if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
    $query = 'SELECT * FROM project
          LEFT JOIN htime ON htime.htime_project = project.project_id
@@ -16,6 +17,7 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
    } catch (Exception $e) {
       die($e->getMessage());
    }
+   $project = '';
 } else {
    $query = 'SELECT * FROM project
          LEFT JOIN htime ON htime.htime_project = project.project_id
@@ -40,9 +42,12 @@ try {
    $per_process = array();
    $per_person = array();
    /* Entrées */
-   $writer->writeSheetHeader('Entrées', array('Projet'=> 'string', 'Process' => 'string', 'Jour' => 'datetime', 'Temps [h]' => '0.00', 'Personne' => 'string', 'Terminé' => 'datetime'), array('widths'=>[25, 25, 25, 10, 25, 25]));
+   $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process' => 'string', 'Jour' => 'datetime', 'Temps [h]' => '0.00', 'Personne' => 'string', 'Terminé' => 'datetime'), array('widths'=>[25, 25, 25, 10, 25, 25]));
 
    foreach ($values as $row) {
+      if ($project === '') {
+         $project = $row['project_reference'] . ' - ' . $row['project_name'];
+      }
       if (!isset($per_process[$row['process_name']])) {
          $per_process[$row['process_name']] = 0;
       }
@@ -50,7 +55,7 @@ try {
          $per_person[$row['person_name']] = 0;
       }
       $date = (new DateTime($row['htime_day']))->format('Y-m-d H:i:s');
-      $writer->writeSheetRow('Entrées', array($row['project_name'], $row['process_name'], $date, $row['htime_value'] / 3600, $row['person_name'], is_null($row['project_closed']) ? '' : $row['project_closed']));
+      $writer->writeSheetRow('Entrées', array($row['project_reference'], $row['project_name'], $row['process_name'], $date, $row['htime_value'] / 3600, $row['person_name'], is_null($row['project_closed']) ? '' : $row['project_closed']));
 
       $per_process[$row['process_name']] += $row['htime_value'];
       $per_person[$row['person_name']] += $row['htime_value'];
@@ -58,7 +63,7 @@ try {
 
    $writer->writeSheetRow('Entrées', array('', '', ''));
    $rc = $writer->countSheetRows('Entrées');
-   $writer->writeSheetRow('Entrées', array('Total', '','', '=SUM(D2:D' . ($rc - 1) . ')', ''));
+   $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', ''));
 
    /* Par processus */
    $writer->writeSheetHeader('Par processus', array('Process' => 'string', 'Temps [h]' => '0.00'), array('widths'=>[25,10]));
@@ -79,6 +84,7 @@ try {
    $writer->writeSheetRow('Par personne', array('Total', '=SUM(B2:B' . ($rc - 1) . ')'));
 
 
+   header('Content-Disposition: inline; filename=' . $project . '.xlsx');
    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
    $writer->writeToStdOut();
 } catch(Exception $e) {

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Horaire</title>
+<link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
+</head>
+<body>
+  <h1>Utilisateurs</h1>
+  <h2>Nouvel utilisateur</h2>
+  <form>
+    <label for="name">Nom : </label><input name="name" type="text" /><br>
+    <label for="password">Mot de passe : </label><input name="password" type="password" /><br>
+    <label for="admin"><input name="admin" type="checkbox" /> Administrateur</label>
+    <label for="time"><input name="time" type="checkbox" />Utilisateur</label><br>
+    <input type="submit" value="Ajouter" />
+</form>
+  <h2>Utilisateurs existants</h2>
+  <table id="users" data-source="Person">
+    <thead><tr><th>Nom</th><th>Admin</th><th>Action</th></tr></thead>
+    <tbody>
+    </tbody>
+  </table>
+</body>
+<script src="https://bitwiseshiftleft.github.io/sjcl/sjcl.js"></script>
+<script src="https://artnum.ch/code/js/Date.js"></script>
+<script src="https://artnum.ch/code/js/Path.js"></script>
+<script src="https://artnum.ch/code/js/Query.js"></script>
+<script>
+  function makeKey (password) {
+    var iteration = Math.floor(Math.random() * 1000) + 2000 // between 2000 and 2999 iteration
+    var salt = sjcl.random.randomWords(4, 2)
+    var outpass = sjcl.misc.pbkdf2(password, salt, iteration)
+    return {key: sjcl.codec.base64.fromBits(outpass), keyopt: String(iteration) + ' ' + sjcl.codec.base64.fromBits(salt)}
+  }
+
+  function newEntry (entry, edit = false) {
+    var tr = null
+    if (entry.id) {
+      tr = document.createElement('TR')
+      tr.setAttribute('data-id', entry.id)
+      tr.setAttribute('data-admin', entry.admin ? 'yes' : 'no')
+      tr.innerHTML = '<td>' + entry.name + '</td><td>' + (entry.admin ? 'oui' : 'non') + '</td>'
+      console.log(entry)
+    }
+    return tr
+  }
+
+  function getTable (source) {
+    var tables = document.getElementsByTagName('TABLE')
+    for (var i = 0; i < tables.length; i++) {
+      if (tables[i].getAttribute('data-source') === source) {
+        return tables[i]
+      }
+    }
+    return null
+  }
+
+  function replaceAddEntry (tr) {
+    var table = getTable('Person')
+    var tbody = table.firstChild
+    for (; tbody.nodeName != 'TBODY'; tbody = tbody.nextSibling);
+    var id = tr.getAttribute('data-id')
+    if (id) {
+      var replace = false
+      var node = tbody.firstChild
+      console.log(node)
+      for (; node; node = node.nextSibling) {
+        if (node.nodeName === 'TR' && node.getAttribute('data-id') === id) {
+          replace = true
+          break
+        }
+      }
+      if (replace) {
+        tbody.replaceChild(tr, node)
+      } else {
+        tbody.appendChild(tr)
+      }
+    }
+  }
+
+  window.onload = async function () {
+    var forms = document.getElementsByTagName('FORM')
+    forms[0].addEventListener('submit', function (event) {
+      event.preventDefault()
+      var user = { name: null, key: null, keyopt: null, password: null, admin: false, user: false}
+      var inputs = event.target.getElementsByTagName('INPUT')
+      for (var i = 0; i < inputs.length; i++) {
+        switch (inputs[i].getAttribute('name')) {
+          case 'name':
+            user.name = inputs[i].value
+            break
+          case 'password':
+            user.password = inputs[i].value
+            var key = makeKey(user.password)
+            user.key = key.key
+            user.keyopt = key.keyopt
+            break
+          case 'admin':
+            if (inputs[i].checked) {
+              user.admin = true
+            }
+            break
+          case 'time':
+            if (inputs[i].checked) {
+              user.user = true
+            }
+            break
+        }
+      }
+      if (user.key && user.name && user.keyopt) {
+        if (user.user) {
+          Artnum.Query.exec(Artnum.Path.url('Person'), {method: 'POST', body: {name: user.name, key: user.key, keyopt: user.keyopt}}).then(function (result) {
+            if (!result.success && result.length !== 1) {
+              alert('Erreur de création des utilisateur')
+            } else {
+              Artnum.Query.exec(Artnum.Path.url('Person/' + result.data[0].id)).then(function (result) {
+                loadUsers()
+              })
+            }
+          })
+        }
+        if (user.admin) {
+          var admin = encodeURIComponent(JSON.stringify({op: 'edit', user: user.name, password: user.password}))
+          Artnum.Query.exec(Artnum.Path.url('admin/htpasswd.php?json=' + admin))
+        }
+      }
+    })
+    loadUsers()
+  } 
+
+  async function loadUsers () {
+    var admin = await Artnum.Query.exec(Artnum.Path.url('admin/htpasswd.php'))
+    Artnum.Query.exec(Artnum.Path.url('Person')).then(function (person) {
+      if (person.success && person.length > 0) {
+        for (var i = 0; i < person.length; i++) {
+          var entry = person.data[i]
+          if (admin.indexOf(entry.name) !== -1) {
+            entry.admin = true
+          } else {
+            entry.admin = false
+          }
+          var html = newEntry(entry)
+          if (html) {
+            replaceAddEntry(html)
+          }
+        }
+      } 
+    })
+
+  }
+
+</script>
+</html>

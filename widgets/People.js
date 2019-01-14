@@ -81,14 +81,15 @@ define([
         }
       })
 
-      djOn(this.nNewProject, 'click', djLang.hitch(this, this.newProjectEvt))
+      /* djOn(this.nNewProject, 'click', djLang.hitch(this, this.newProjectEvt))
       djOn(this.nNewPerson, 'click', djLang.hitch(this, this.newPersonEvt))
-      djOn(this.nNewItem, 'click', djLang.hitch(this, this.newItemEvt))
+      djOn(this.nNewItem, 'click', djLang.hitch(this, this.newItemEvt)) */
       djOn(this.nHome, 'click', djLang.hitch(this, function () { window.location.hash = '#home' }))
 
       djOn(window, 'hashchange', djLang.hitch(this, function (e) {
+        var nurl = new URL(e.newURL)
         try {
-          this.nContent.selectChild(window.location.hash.substr(1))
+          this.nContent.selectChild(nurl.hash.substr(1))
         } catch (e) {
           this.error('Destination inconnue')
         }

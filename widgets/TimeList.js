@@ -44,14 +44,6 @@ define([
         var data = this.get('data')
         var frag = document.createDocumentFragment()
 
-        if (this.user.level > 127 && this.get('project')) {
-          var a = document.createElement('A')
-          var url = Path.url('exec/export/project.php', {params: {pid: this.get('project')}})
-          a.setAttribute('href', url)
-          a.appendChild(document.createTextNode('Export .xlsx'))
-          frag.appendChild(a)
-        }
-
         var table = document.createElement('TABLE')
         var thead = document.createElement('THEAD')
         thead.setAttribute('class', 'entries head')
