@@ -244,7 +244,7 @@ async function load () {
     addProject(event)
   })
   var res = await Artnum.Query.exec(Artnum.Path.url('Project', {params: searchParams}))
-  if (res.success && res.length > 0) {
+  if (res.success) {
     var frag = document.createDocumentFragment()
     res.data.forEach(function (entry) {
       var tr = newEntry(entry)
