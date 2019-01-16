@@ -18,7 +18,7 @@
 </form>
   <h2>Utilisateurs existants</h2>
   <table id="users" data-source="Person">
-    <thead><tr><th>Nom</th><th>Admin</th><th>Action</th></tr></thead>
+    <thead><tr><th>Nom</th><th>Utilisateur</th><th>Admin</th><th>Action</th></tr></thead>
     <tbody>
     </tbody>
   </table>
@@ -41,7 +41,7 @@
       tr = document.createElement('TR')
       tr.setAttribute('data-id', entry.id)
       tr.setAttribute('data-admin', entry.admin ? 'yes' : 'no')
-      tr.innerHTML = '<td>' + entry.name + '</td><td>' + (entry.admin ? 'oui' : 'non') + '</td>'
+      tr.innerHTML = '<td>' + entry.name + '</td><td>' + entry.username + '</td><td>' + (entry.admin ? 'oui' : 'non') + '</td>'
     }
     return tr
   }
