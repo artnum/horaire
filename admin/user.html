@@ -9,6 +9,7 @@
   <h2>Nouvel utilisateur</h2>
   <form>
     <label for="name">Nom : </label><input name="name" type="text" /><br>
+    <label for="username">Utilisateur : </label><input name="username" type="text" /><br>
     <label for="password">Mot de passe : </label><input name="password" type="password" /><br>
     <label for="admin"><input name="admin" type="checkbox" /> Administrateur</label>
     <label for="time"><input name="time" type="checkbox" />Utilisateur</label><br>
@@ -40,7 +41,6 @@
       tr.setAttribute('data-id', entry.id)
       tr.setAttribute('data-admin', entry.admin ? 'yes' : 'no')
       tr.innerHTML = '<td>' + entry.name + '</td><td>' + (entry.admin ? 'oui' : 'non') + '</td>'
-      console.log(entry)
     }
     return tr
   }
@@ -80,14 +80,15 @@
 
   window.onload = async function () {
     var forms = document.getElementsByTagName('FORM')
-    forms[0].addEventListener('submit', function (event) {
+    forms[0].addEventListener('submit', async function (event) {
       event.preventDefault()
-      var user = { name: null, key: null, keyopt: null, password: null, admin: false, user: false}
+      var user = { name: null, key: null, keyopt: null, password: null, admin: false, user: false, username: null}
       var inputs = event.target.getElementsByTagName('INPUT')
       for (var i = 0; i < inputs.length; i++) {
         switch (inputs[i].getAttribute('name')) {
           case 'name':
-            user.name = inputs[i].value
+          case 'username':
+            user[inputs[i].getAttribute('name')] = inputs[i].value
             break
           case 'password':
             user.password = inputs[i].value
@@ -107,9 +108,16 @@
             break
         }
       }
-      if (user.key && user.name && user.keyopt) {
+
+      var exists = await Artnum.Query.exec(Artnum.Path.url('Person', {params: {'search.username': user.username}}))
+      if (exists.success && exists.length > 0) {
+        alert('Nom d\'utilisateur est déjà pris')
+        return
+      }
+
+      if (user.key && user.name && user.keyopt && user.username) {
         if (user.user) {
-          Artnum.Query.exec(Artnum.Path.url('Person'), {method: 'POST', body: {name: user.name, key: user.key, keyopt: user.keyopt}}).then(function (result) {
+          Artnum.Query.exec(Artnum.Path.url('Person'), {method: 'POST', body: {name: user.name, key: user.key, keyopt: user.keyopt, username: user.username}}).then(function (result) {
             if (!result.success && result.length !== 1) {
               alert('Erreur de création des utilisateur')
             } else {
@@ -120,7 +128,7 @@
           })
         }
         if (user.admin) {
-          var admin = encodeURIComponent(JSON.stringify({op: 'edit', user: user.name, password: user.password}))
+          var admin = encodeURIComponent(JSON.stringify({op: 'edit', user: user.username, password: user.password}))
           Artnum.Query.exec(Artnum.Path.url('admin/htpasswd.php?json=' + admin))
         }
       }

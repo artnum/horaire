@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS "item" (
 CREATE TABLE IF NOT EXISTS "person" (
 	"person_id" INTEGER PRIMARY KEY AUTOINCREMENT,
 	"person_name" TEXT DEFAULT NULL,
+	"person_username" TEXT NOT NULL UNIQUE,
 	"person_level" INTEGER DEFAULT 1,
 	"person_key" TEXT DEFAULT NULL,
 	"person_keyopt" TEXT DEFAULT '{salt: "09F911029D74E35B", iteration: 1000}', -- json data containing iteration, salt and more if apply
