@@ -128,7 +128,7 @@ try {
             $line++;
          }
          $writer->writeSheetRow('Matériel', array('','','','','','',''));
-         $writer->writeSheetRow('Matériel', array('', '', '', '', '', '', '=SUM(H2:H' . $line .  ')')); 
+         $writer->writeSheetRow('Matériel', array('', '', '', '', '', '', '=SUM(G2:G' . $line .  ')')); 
       }
    } 
 

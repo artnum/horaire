@@ -45,17 +45,11 @@ define([
         unit = ''
       }
       var reference = item.reference ? item.reference : ''
-      var description = item.description
-      if (!item.description) {
-        description = ''
-      }
-
       var tr = document.createElement('TR')
       tr.setAttribute('data-item-id', item.id)
       tr.setAttribute('data-item-reference', reference)
       tr.setAttribute('class', 'item entry')
-      tr.innerHTML = '<td>' + reference + '</td><td class="name">' + item.name + '</td><td class="unit">' + unit + '</td>' +
-        '<td class="description">' + description + '</td>'
+      tr.innerHTML = '<td>' + reference + '</td><td class="name">' + item.name + '</td><td class="unit">' + unit + '</td>'
       target.appendChild(tr)
       return tr
     },
@@ -139,14 +133,12 @@ define([
 
         var node = document.createElement('TABLE')
         if (itemHeader) {
-          node.innerHTML = '<thead><tr><th>Référence</th><th class="name">Fourniture</th><th class="unit">Unité</th><th>Description</th></tr>' +
+          node.innerHTML = '<thead><tr><th>Référence</th><th class="name">Fourniture</th><th class="unit">Unité</th></tr>' +
             '<tr class="search"><th>Recherche</th><th colspan="2"><input type="text" name="refSearch" placeholder="Référence" /></thead>'
           node.addEventListener('keyup', function (event) {
-            console.log(event)
             if (event.target.name !== 'refSearch') { return }
             var table = event.target
             var value = event.target.value
-            console.log(value)
             while (table.nodeName !== 'TABLE') { table = table.parentNode }
             table = table.getElementsByTagName('TBODY')[0]
             for (var tr = table.firstChild; tr; tr = tr.nextSibling) {
