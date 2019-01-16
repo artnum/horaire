@@ -136,7 +136,7 @@ define([
           new Log({message: 'Entrée incomplète', timeout: 2}).show()
           return
         }
-        var query = {person: this.entry.id, project: project.project, value: event.second, day: event.date.toISOString(), process: project.process, comment: event.comment}
+        var query = {person: this.entry.id, project: project.project, value: event.second, day: event.date.toISOString().split('T')[0], process: project.process, comment: event.comment}
 
         Query.exec(Path.url('Htime'), {method: 'post', body: query}).then(function () {
           this.TimeList.refresh()
