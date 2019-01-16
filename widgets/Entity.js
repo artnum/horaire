@@ -217,7 +217,11 @@ define([
           var keyopt = this.entry.keyopt.split(' ', 2)
           if (sjcl.codec.base64.fromBits(sjcl.misc.pbkdf2(password, sjcl.codec.base64.toBits(keyopt[1]), parseInt(keyopt[0]))) === this.entry.key) {
             this.open()
+          } else {
+            (new Log({message: 'Erreur d\'autentification', type: 'warn', timeout: 2})).show()
           }
+        } else {
+            (new Log({message: 'Erreur d\'autentification', type: 'warn', timeout: 2})).show()
         }
       }.bind(this))
       window.requestAnimationFrame(function () { that.nRoot.appendChild(frag) })

@@ -167,25 +167,29 @@ body.waiting .waiting {
 }
 
 .artnumLog {
-	color: black;
+	font-weight: bold;
+	text-align: center;
+	color: white;
 	position: fixed;
 	top: 0;
 	left: 0;
 	width: 100%;
-	height: 1.2em;
-	font-size: 0.8em;
-	background-color: #F33D3D
-	margin: 0;
-	padding: 2;
+	height: 18px;
+	font-size: 14px;
+	padding: 4px;
 	border: 0;
 }
 
+.artnumLog.error {
+	background-color: maroon;
+}
+
 .artnumLog.info {
-	background-color: #3D3Df3;
+	background-color: cornflowerblue;
 }
 
 .artnumLog.warn {
-	background-color: #FF861E;
+	background-color: chocolate;
 }
 
 .EntityPanel {
