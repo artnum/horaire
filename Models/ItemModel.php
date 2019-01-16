@@ -9,6 +9,7 @@
          $this->conf('mtime.ts', true);
          $this->conf('delete', 'item_deleted');
          $this->conf('delete.ts', true);
+         $this->set_req('get', 'SELECT * FROM "\\Table" LEFT JOIN "category" ON "\\Table"."item_category" = "category"."category_id" WHERE "\\IDName" = :id');
       }
    }
 ?>

@@ -48,6 +48,7 @@ define([
       var tr = document.createElement('TR')
       tr.setAttribute('data-item-id', item.id)
       tr.setAttribute('data-item-reference', reference)
+      tr.setAttribute('data-item-name', item.name)
       tr.setAttribute('class', 'item entry')
       tr.innerHTML = '<td>' + reference + '</td><td class="name">' + item.name + '</td><td class="unit">' + unit + '</td>'
       target.appendChild(tr)
@@ -119,53 +120,92 @@ define([
         if (data.length === 0) {
           return
         }
-        var tbody = document.createElement('TBODY')
+        var tbody = {}
         var itemHeader = true
         for (var i = 0; i < data.length; i++) {
+          var catid = 'none'
+          if (data[i]._category && data[i]._category.id) {
+            catid = data[i]._category.id
+          }
+          if (!tbody[catid]) {
+            tbody[catid] = document.createElement('TBODY')
+            if (catid !== 'none') {
+              var tr = document.createElement('TR')
+              tr.setAttribute('data-header', '1')
+              tr.innerHTML = '<th colspan="2">' + data[i]._category.name + '</th>'
+              tbody[catid].appendChild(tr)
+              tr.addEventListener('click', function (event) {
+                var tr = event.target
+                for (; tr && tr.nodeName !== 'TR'; tr = tr.parentNode);
+                if (!tr) { return }
+                for (var node = tr.nextSibling; node; node = node.nextSibling) {
+                  if (node.getAttribute('style')) {
+                    node.removeAttribute('style')
+                  } else {
+                    node.setAttribute('style', 'display: none')
+                  }
+                }
+              })
+            }
+          }
           if (data[i]._project) {
-            var tr = this.quantityHtml(data[i], tbody)
+            tr = this.quantityHtml(data[i], tbody[catid])
             itemHeader = false
           } else {
-            tr = this.itemHtml(data[i], tbody)
+            tr = this.itemHtml(data[i], tbody[catid])
+            tr.setAttribute('style', 'display: none')
             djOn(tr, 'click', this.selectItem.bind(this))
           }
         }
 
         var node = document.createElement('TABLE')
         if (itemHeader) {
-          node.innerHTML = '<thead><tr><th>Référence</th><th class="name">Fourniture</th><th class="unit">Unité</th></tr>' +
-            '<tr class="search"><th>Recherche</th><th colspan="2"><input type="text" name="refSearch" placeholder="Référence" /></thead>'
+          node.innerHTML = '<thead><tr><th>Ref</th><th class="name">Fourniture</th><th class="unit">Unité</th></tr>' +
+            '<tr class="search"><th colspan="3"><input type="text" name="refSearch" placeholder="Référence ou nom" /></thead>'
           node.addEventListener('keyup', function (event) {
             if (event.target.name !== 'refSearch') { return }
             var table = event.target
             var value = event.target.value
             while (table.nodeName !== 'TABLE') { table = table.parentNode }
-            table = table.getElementsByTagName('TBODY')[0]
-            for (var tr = table.firstChild; tr; tr = tr.nextSibling) {
-              if (value === '') {
-                window.requestAnimationFrame(function () {
-                  this.removeAttribute('style')
-                }.bind(tr))
-              } else {
-                if (tr.getAttribute('data-item-reference').toLowerCase().indexOf(value.toLowerCase()) !== 0) {
+            var tbody = table.getElementsByTagName('TBODY')
+            for (var i = 0; i < tbody.length; i++) {
+              for (var tr = tbody[i].firstChild; tr; tr = tr.nextSibling) {
+                if (tr.getAttribute('data-header')) { continue }
+                if (value === '') {
                   window.requestAnimationFrame(function () {
                     this.setAttribute('style', 'display: none')
                   }.bind(tr))
                 } else {
-                  window.requestAnimationFrame(function () {
-                    this.removeAttribute('style')
-                  }.bind(tr))
+                  var regexp = new RegExp('.*' + value + '.*', 'i')
+                  var name = tr.getAttribute('data-item-name') ? tr.getAttribute('data-item-name') : ''
+                  var reference = tr.getAttribute('data-item-reference') ? tr.getAttribute('data-item-reference') : ''
+                  if (reference.toLowerCase().indexOf(value.toLowerCase()) !== 0 && !regexp.test(name)) {
+                    window.requestAnimationFrame(function () {
+                      this.setAttribute('style', 'display: none')
+                    }.bind(tr))
+                  } else {
+                    window.requestAnimationFrame(function () {
+                      this.removeAttribute('style')
+                    }.bind(tr))
+                  }
                 }
               }
             }
           })
         } else {
-          node.innerHTML = '<thead><tr><th>Référence</th><th class="name">Fourniture</th><th class="quantity">Quantité</th><th class="unit">Unité</th></tr></thead>'
+          node.innerHTML = '<thead><tr><th>Ref</th><th class="name">Fourniture</th><th class="quantity">Qté</th><th class="unit">Unité</th></tr></thead>'
         }
 
         var frag = document.createDocumentFragment()
         frag.appendChild(node)
-        node.appendChild(tbody)
+        if (tbody['none']) {
+          node.appendChild(tbody['none'])
+        }
+        for (var k in tbody) {
+          if (k !== 'none') {
+            node.appendChild(tbody[k])
+          }
+        }
 
         window.requestAnimationFrame(function () {
           this.domNode.appendChild(frag)
