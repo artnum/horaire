@@ -10,7 +10,8 @@
   <form>
     <label for="reference">Référence : </label><input name="reference" type="text" /><br>
     <label for="name">Nom : </label><input name="name" type="text" /><br>
-    <label for="end">Date de fin : </label><input name="name" type="date" /><br>
+    <!-- <label for="end">Date de fin : </label><input name="name" type="date" /><br> //-->
+    <input type="submit" value="Ajouter"/><br>
   </form>
   <h2>Projets existants</h2>
   <table id="projects" data-source="Project">
@@ -24,6 +25,46 @@
 <script src="https://artnum.ch/code/js/Path.js"></script>
 <script src="https://artnum.ch/code/js/Query.js"></script>
 <script>
+
+function addProject (event) {
+  var form = event.target
+  for (; form.nodeName !== 'FORM'; form = form.parentNode);
+  var inputs = form.getElementsByTagName('INPUT')
+  var oform = {}
+  for (var i = 0; i < inputs.length; i++) {
+    if (!inputs[i].getAttribute('name')) { continue }
+    var value = null
+    switch(inputs[i].getAttribute('type')) {
+      default:
+      case 'text':
+        value = inputs[i].value
+        break
+    }
+    if (oform[inputs[i].getAttribute('name')]) {
+      if (Array.isArray(oform[inputs[i].getAttribute('name')])) {
+        oform[inputs[i].getAttribute('name')].push(value)
+      } else {
+        oform[inputs[i].getAttribute('name')] = [oform[inputs[i].getAttribute('name')]]
+        oform[inputs[i].getAttribute('name')].push(value)
+      }
+    } else {
+      oform[inputs[i].getAttribute('name')] = value
+    }
+  }
+
+  if (oform.name) {
+    Artnum.Query.exec(Artnum.Path.url('Project'), {method: 'POST', body: {name: oform.name, reference: (oform.reference ? oform.reference : null)}}).then(function (result) {
+      if (result.success && result.length === 1) {
+        Artnum.Query.exec(Artnum.Path.url('Project/' + result.data[0].id)).then(function (result) {
+          if (result.success && result.length === 1) {
+            replaceAddEntry(newEntry(result.data))
+          }
+        })
+      }
+    })
+ 
+  }
+}
 
 async function evCloseProject (event) {
   if (event && event.target) {
@@ -186,6 +227,11 @@ function replaceAddEntry (tr) {
 }
 
 async function load () {
+  var forms = document.getElementsByTagName('FORM')
+  forms[0].addEventListener('submit', function (event) {
+    event.preventDefault()
+    addProject(event)
+  })
   var res = await Artnum.Query.exec(Artnum.Path.url('Project'))
   if (res.success && res.length > 0) {
     var frag = document.createDocumentFragment()
