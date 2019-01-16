@@ -28,6 +28,7 @@
 <script src="https://artnum.ch/code/js/Date.js"></script>
 <script src="https://artnum.ch/code/js/Path.js"></script>
 <script src="https://artnum.ch/code/js/Query.js"></script>
+<script src="js/admin.js"></script>
 <script>
 
 var searchParams = {'search.closed': '-'}
@@ -233,18 +234,7 @@ function newEntry (entry, edit = false) {
 
 function replaceAddEntry (tr) {
   var table = document.getElementById('projects')
-  for (var node = table.firstChild; node.nodeName !== 'TBODY'; node = node.nextSibling);
-  var replaced = false
-  for (var _tr = node.firstChild; _tr; _tr = _tr.nextSibling) {
-    if (_tr.getAttribute('data-id') === tr.getAttribute('data-id')) {
-      node.replaceChild(tr, _tr)
-      replaced = true
-      break
-    }
-  }
-  if (!replaced) {
-    node.appendChild(tr)
-  }
+  Admin.insertEntry(tr, table)
 }
 
 async function load () {

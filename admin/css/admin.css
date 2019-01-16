@@ -2,8 +2,7 @@ body {
   font-family: sans-serif;
 }
 
-td {
-	background-color: transparent;
+td, th {
   min-width: 240px;
 }
 
@@ -12,6 +11,11 @@ tr {
 }
 tr:nth-child(even) {
   background-color: lightgray;
+}
+
+tr[data-state=deleted] {
+  font-style: italic;
+  color: darkgray;
 }
 
 thead {

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" type="text/css" href="css/admin.css" />
+<title>Horaire</title>
+<link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
+</head>
+<body>
+  <h1>Heure</h1>
+  <h2>Rerchercher</h2>
+  <form onsubmit="submitForm(event)" data-source="Htime">
+    <label for="person">Personne : </label><select data-source="Person" data-source-label="name" data-source-id="id" name="person"></select><br />
+    <label for="from">Du </label><input onchange="syncToFrom(event)" name="from" type="date" /><label for="to"> au </label><input name="to" type="date" data-sync-with="from" /><br />
+    <input type="checkbox" name="deleted" /><label for="deleted"> Inclure valeurs supprimées</label><br />
+    <input type="submit" value="Chercher" />
+  </form>
+  <table id="results">
+    <thead>
+      <tr><th>Date</th><th>Valeur</th><th>Remarque</th><th>Projet</th><th>Processus</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+
+    </tbody>
+  </table>
+</body>
+<script src="https://bitwiseshiftleft.github.io/sjcl/sjcl.js"></script>
+<script src="https://artnum.ch/code/js/Date.js"></script>
+<script src="/js/Path.js"></script>
+<script src="/js/Hour.js"></script>
+<script src="https://artnum.ch/code/js/Query.js"></script>
+<script src="js/admin.js"></script>
+<script>
+function submitForm (event) {
+  event.preventDefault()
+
+  obj = Admin.getForm(event.target)
+  var params = {'search.deleted': '-'}
+  if (obj.from) {
+    params['search.day'] = obj.from
+    if (obj.to) {
+      if (obj.from !== obj.to) {
+        params['search.day'] = ['>=' + obj.from,'<=' + obj.to]
+      }
+    }
+  }
+  if (obj.person) {
+    params['search.person'] = obj.person
+  }
+  if (obj.deleted) {
+    delete params['search.deleted']
+  }
+  Artnum.Query.exec(Artnum.Path.url(event.target.getAttribute('data-source'), {params: params})).then(function (result) {
+    var table = document.getElementById('results')
+    var tbody = table;
+    for (tbody = table.firstChild; tbody.nodeName !== 'TBODY'; tbody = tbody.nextSibling);
+    tbody.innerHTML = ''
+    if (result.success && result.length > 0) {
+      for (var i = 0; i < result.length; i++) {
+        tbody.appendChild(makeEntry(result.data[i]))
+      }
+    }
+  })
+}
+
+function makeEntry (entry) {
+  var tr = document.createElement('TR')
+  tr.setAttribute('data-id', entry.id)
+  if (entry.deleted) {
+    tr.setAttribute('data-state', 'deleted')
+  }
+  var hour = new Hour(parseInt(entry.value))
+  var innerhtml = '<td data-value="' + entry.day + '">' + entry.day + 
+    '</td><td data-value="' + hour.format() + '">' + hour.format() + 
+    '</td><td data-value="' + entry.comment + '">' + entry.comment + 
+    '</td><td data-source="Projects" data-id="' + entry.project + '">'  + entry._project.name + 
+    '</td><td data-source="Process" data-id="' + entry.process + '">' + entry._process.name + 
+    '</td>'
+  if (entry.deleted) {
+    innerhtml += '<td><input type="button" name="undelete" value="Rétablir" onclick="undeleteEntry(event)"/></td>'
+  } else {
+    innerhtml += '<td><input type="button" name="edit" value="Modifier" onclick="editEntry(event)"/>' +
+      '<input type="button" name="delete" value="Supprimer" onclick="deleteEntry(event)" />' +
+      '</td>'
+  }
+  tr.innerHTML = innerhtml
+  return tr
+}
+
+function editEntry (event) {
+  var line = event.target
+  for (; line.nodeName !== 'TR'; line = line.parentNode);
+  if (line.getAttribute('data-edit')) {
+    line.removeAttribute('data-edit')
+  } else {
+    line.setAttribute('data-edit', '1')
+  } 
+}
+function deleteEntry (event) {
+  var line = event.target
+  for (; line.nodeName !== 'TR'; line = line.parentNode);
+  var id = line.getAttribute('data-id')
+  if (id) {
+    Admin.deleteEntry('Htime', id).then(function (data) {
+      var entry = makeEntry(data)
+      var table = line
+      for (; table && table.nodeName !== 'TABLE'; table = table.parentNode);
+      Admin.insertEntry(entry, table)
+    })
+  }
+}
+
+
+function undeleteEntry (event) {
+  var line = event.target
+  for (; line.nodeName !== 'TR'; line = line.parentNode);
+  var id = line.getAttribute('data-id')
+  if (id) {
+    Admin.deleteEntry('Htime', id, true).then(function (data) {
+      var entry = makeEntry(data)
+      var table = line
+      for (; table && table.nodeName !== 'TABLE'; table = table.parentNode);
+      Admin.insertEntry(entry, table)
+    })
+  }
+}
+
+function syncToFrom (event) {
+  var node = event.target
+  var name = event.target.getAttribute('name')
+  var found = false
+  do {
+    for (; node.previousSibling; node = node.previousSibling); 
+    for (var n = node; n; n = n.nextSibling) {
+      if (n.nodeType !== Node.ELEMENT_NODE) { continue }
+      if (n.getAttribute('data-sync-with') === name) {
+        node = n
+        found = true
+        break
+      }
+    }
+    if (found) { break }
+    node = node.parentNode
+     
+  } while(node)
+
+  if (found) {
+    node.value = event.target.value
+    if (!node.getAttribute('data-onchange')) {
+      node.setAttribute('data-onchange', 'true')
+      node.addEventListener('change', function (event) {
+        event.target.removeAttribute('data-sync-with')
+      })
+    }
+  }
+  return true
+}
+window.onload = function (event) {
+  var forms = document.getElementsByTagName('form')
+    for (var i = 0; i < forms.length; i++) {
+      Admin.loadForm(forms[i])
+    }
+}
+</script>
+</html>
