@@ -5,7 +5,7 @@ class ProcessModel extends artnum\SQL {
       $this->conf('auto-increment', true);
       $this->conf('create', 'process_created');
       $this->conf('create.ts', true);
-      $this->conf('mtime', 'processs_modified');
+      $this->conf('mtime', 'process_modified');
       $this->conf('mtime.ts', true);
       $this->conf('delete', 'process_deleted');
       $this->conf('delete.ts', true);
