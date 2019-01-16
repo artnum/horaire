@@ -64,9 +64,7 @@ define([
 
       djOn(this.nRoot, 'click', djLang.hitch(this, function () {
         if (this.security) {
-          if (!this.login()) {
-            return
-          }
+          this.login()
         } else {
           this.open()
         }
@@ -176,6 +174,7 @@ define([
       this.Items.refresh()
 
       window.requestAnimationFrame(function () {
+        this.pane.domNode.innerHTML = ''
         this.pane.domNode.appendChild(entity)
       }.bind(this))
     },
@@ -202,7 +201,6 @@ define([
       form.appendChild(djDomConstruct.toDom(this._passwordBoxHtml))
       frag.appendChild(form)
       form.addEventListener('submit', function (event) {
-        console.log(event)
         event.preventDefault()
         var nodeForm = event.target
         for (; nodeForm.nodeName !== 'FORM'; nodeForm = nodeForm.parentNode);
@@ -211,13 +209,12 @@ define([
         for (var i = 0; i < inputs.length; i++) {
           if (inputs[i].getAttribute('name') === 'password') {
             password = inputs[i].value
+            inputs[i].value = ''
             break
           }
         }
         if (password) {
           var keyopt = this.entry.keyopt.split(' ', 2)
-          console.log(sjcl.codec.base64.fromBits(sjcl.misc.pbkdf2(password, sjcl.codec.base64.toBits(keyopt[1]), keyopt[0])))
-          console.log(keyopt)
           if (sjcl.codec.base64.fromBits(sjcl.misc.pbkdf2(password, sjcl.codec.base64.toBits(keyopt[1]), parseInt(keyopt[0]))) === this.entry.key) {
             this.open()
           }

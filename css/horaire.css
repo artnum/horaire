@@ -225,8 +225,13 @@ body.waiting .waiting {
 }
 
 .ItemsList table {
+  width: 100%;
   font-size: 1.4em;
 	border-collapse: collapse;
+}
+
+.ItemsList .search th {
+	font-weight: normal;
 }
 
 .ItemsList .description {
