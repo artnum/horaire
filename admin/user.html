@@ -143,7 +143,7 @@
       if (person.success && person.length > 0) {
         for (var i = 0; i < person.length; i++) {
           var entry = person.data[i]
-          if (admin.indexOf(entry.name) !== -1) {
+          if (admin.indexOf(entry.username) !== -1) {
             entry.admin = true
           } else {
             entry.admin = false
