@@ -8,6 +8,11 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
          LEFT JOIN person ON htime.htime_person = person.person_id
          LEFT JOIN process ON htime.htime_process = process.process_id
       WHERE project_id=:pid';
+   $query_items = 'SELECT * FROM quantity
+         LEFT JOIN item ON item.item_id = quantity.quantity_item
+         LEFT JOIN process ON process.process_id = quantity.quantity_process
+         LEFT JOIN person ON person.person_id = quantity.quantity_person
+      WHERE quantity_project = :pid';
 
    try {
       $db = new PDO('sqlite:../../db/horaire.sqlite3');
@@ -24,6 +29,7 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
          LEFT JOIN person ON htime.htime_person = person.person_id
          LEFT JOIN process ON htime.htime_process = process.process_id';
 
+   $query_items = null;
    try {
       $db = new PDO('sqlite:../../db/horaire.sqlite3');
       $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -36,6 +42,18 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
 try {
    $st->execute();
    $values = $st->fetchAll(PDO::FETCH_ASSOC);
+   
+   $ist = null;
+   if (count($values) > 0 && $query_items) {
+      try {
+         $ist = $db->prepare($query_items);
+         $ist->bindValue(':pid', $_GET['pid'], PDO::PARAM_INT);
+         $ist->execute();
+      } catch (Exception $e) {
+         $ist = null;
+      }
+
+   }
 
    $writer = new XLSXWriter();
 
@@ -83,6 +101,36 @@ try {
    $rc = $writer->countSheetRows('Par personne');
    $writer->writeSheetRow('Par personne', array('Total', '=SUM(B2:B' . ($rc - 1) . ')'));
 
+   if ($ist) {
+      $items = $ist->fetchAll(PDO::FETCH_ASSOC);
+      if (count($items) > 0) {
+         $writer->writeSheetHeader('Matériel', 
+            array(
+               'Référence' => 'string', 
+               'Nom' => 'string', 
+               'Prix unitaire' => '0.00',
+               'Quantité' => '0.00',
+               'Personne' => 'string',
+               '' => 'string',
+               'Total' => '0.00'
+            ));
+         $line = 1;
+         foreach ($items as $item) {
+            $writer->writeSheetRow('Matériel', array(
+               $item['item_reference'],
+               $item['item_name'],
+               $item['item_price'],
+               $item['quantity_value'],
+               $item['person_name'],
+               '',
+               '=' . $writer->xlsCell($line, 2) . '+' . $writer->xlsCell($line, 3)
+            ));
+            $line++;
+         }
+         $writer->writeSheetRow('Matériel', array('','','','','','',''));
+         $writer->writeSheetRow('Matériel', array('', '', '', '', '', '', '=SUM(H2:H' . $line .  ')')); 
+      }
+   } 
 
    header('Content-Disposition: inline; filename=' . $project . '.xlsx');
    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
