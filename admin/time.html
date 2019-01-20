@@ -7,9 +7,25 @@
 </head>
 <body>
   <h1>Heure</h1>
+  <h2>Ajouter</h2>
+  <form onsubmit="addTime(event)" data-source="Htime">
+    <label for="person">Personne : </label><select data-source="Person" data-options="{parameters: {'search.deleted': '-'}}" name="person"></select><br />
+    <label for="day">Jour :</label><input type="date" name="day" /> <label for="hour">Temps :</label><input type="text" name="hour" /><br />
+    <label for="comment">Commentaire :</label><input type="text" name="comment" /><br />
+    <label for="project">Projet : </label><select data-source="Project" data-options='{label: "name", id: "id", parameters: {"search.closed": "-", "search.deleted": "-"}}' name="project"></select>
+    <label for="process">Processus : </label><select data-source="Process" data-options="{label: 'name', id: 'id', parameters: {'search.deleted': '-'}}" name="process"></select><br />
+    <input type="submit" value="Ajouter" />
+  </form>
+  <table id="addResults" style="display: none">
+    <thead>
+      <tr><th>Date</th><th>Valeur</th><th>Remarque</th><th>Utilisateur</th><th>Projet</th><th>Processus</th></tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
   <h2>Rerchercher</h2>
   <form onsubmit="submitForm(event)" data-source="Htime">
-    <label for="person">Personne : </label><select data-source="Person" data-source-label="name" data-source-id="id" name="person"></select><br />
+    <label for="person">Personne : </label><select data-source="Person" name="person" data-options="{parameters: {'search.deleted': '-'}}"></select><br />
     <label for="from">Du </label><input onchange="syncToFrom(event)" name="from" type="date" /><label for="to"> au </label><input name="to" type="date" data-sync-with="from" /><br />
     <input type="checkbox" name="deleted" /><label for="deleted"> Inclure valeurs supprimées</label><br />
     <input type="submit" value="Chercher" />
@@ -19,7 +35,6 @@
       <tr><th>Date</th><th>Valeur</th><th>Remarque</th><th>Projet</th><th>Processus</th><th>Action</th></tr>
     </thead>
     <tbody>
-
     </tbody>
   </table>
 </body>
@@ -62,6 +77,24 @@ function submitForm (event) {
   })
 }
 
+function makeEntry2 (entry) {
+  var tr = document.createElement('TR')
+  tr.setAttribute('data-id', entry.id)
+  if (entry.deleted) {
+    tr.setAttribute('data-state', 'deleted')
+  }
+  var hour = new Hour(parseInt(entry.value))
+  var innerhtml = '<td data-value="' + entry.day + '">' + entry.day + 
+    '</td><td data-value="' + hour.format() + '">' + hour.format() + 
+    '</td><td data-value="' + (entry.comment ? entry.comment : '') + '">' + (entry.comment ? entry.comment : '') + 
+    '</td><td data-source="Person" data-id="' + entry.person + '">'  + entry._person.name + 
+    '</td><td data-source="Projects" data-id="' + entry.project + '">'  + entry._project.name + 
+    '</td><td data-source="Process" data-id="' + entry.process + '">' + entry._process.name + 
+    '</td>'
+  tr.innerHTML = innerhtml
+  return tr
+}
+
 function makeEntry (entry) {
   var tr = document.createElement('TR')
   tr.setAttribute('data-id', entry.id)
@@ -71,7 +104,7 @@ function makeEntry (entry) {
   var hour = new Hour(parseInt(entry.value))
   var innerhtml = '<td data-value="' + entry.day + '">' + entry.day + 
     '</td><td data-value="' + hour.format() + '">' + hour.format() + 
-    '</td><td data-value="' + entry.comment + '">' + entry.comment + 
+    '</td><td data-value="' + (entry.comment ? entry.comment : '') + '">' + (entry.comment ? entry.comment : '') + 
     '</td><td data-source="Projects" data-id="' + entry.project + '">'  + entry._project.name + 
     '</td><td data-source="Process" data-id="' + entry.process + '">' + entry._process.name + 
     '</td>'
@@ -154,6 +187,34 @@ function syncToFrom (event) {
   }
   return true
 }
+
+function addTime (event) {
+  event.preventDefault()
+  var dataSource = event.target.getAttribute('data-source')
+  var form = Admin.getForm(event.target)
+  var hour = new Hour(form.hour)
+  if (hour.value !== 0) {
+    Artnum.Query.exec(Artnum.Path.url(dataSource), {method: 'POST',
+      body: {day: (new Date(form.day)).toISOString().split('T')[0], value: hour.value, person: form.person, project: form.project, process: form.process, comment: form.comment}}).then(function (result) {
+      if (result.success && result.length === 1) {
+        Artnum.Query.exec(Artnum.Path.url(dataSource + '/' + result.data[0].id)).then(function (result) {
+          if (result.success && result.length === 1) {
+            var table = document.getElementById('addResults')
+            if (table.getAttribute('style')) {
+              table.removeAttribute('style')
+            }
+            var tbody = table;
+            for (tbody = table.firstChild; tbody.nodeName !== 'TBODY'; tbody = tbody.nextSibling);
+            tbody.appendChild(makeEntry2(result.data))
+          }
+        })
+      }
+    }) 
+  } else {
+    
+  }
+}
+
 window.onload = function (event) {
   var forms = document.getElementsByTagName('form')
     for (var i = 0; i < forms.length; i++) {

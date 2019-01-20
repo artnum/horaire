@@ -4,13 +4,22 @@
   var global = Function('return this')() // eslint-disable-line
   var admin = {
     loadForm: function (form) {
-      ['SELECT', 'TEXTAREA', 'INPUT'].forEach(function (elements) {
+      var opts = {label: 'name', id: 'id', parameters: {}}
+      ;['SELECT', 'TEXTAREA', 'INPUT'].forEach(function (elements) {
         var inputs = form.getElementsByTagName(elements)
         for (var i = 0; i < inputs.length; i++) {
+          if (inputs[i].getAttribute('data-options')) {
+            var _json = inputs[i].getAttribute('data-options').replace(/(['"])?([a-zA-Z0-9_\.]+)(['"])?:/g, '"$2": ') // eslint-disable-line
+            _json = _json.replace(/'/g, '"')
+            console.log(_json)
+            var _opts = JSON.parse(_json)
+            for (var k in _opts) {
+              opts[k] = _opts[k]
+            }
+          }
           if (inputs[i].getAttribute('data-source') && elements === 'SELECT') {
-            Artnum.Query.exec(Artnum.Path.url(inputs[i].getAttribute('data-source'))).then(function (result) {
+            Artnum.Query.exec(Artnum.Path.url(inputs[i].getAttribute('data-source'), {params: opts.parameters})).then(function (result) {
               if (!result.success || result.length <= 0) { return }
-              var opts = {label: 'name', id: 'id'}
               for (var k in opts) {
                 if (this.getAttribute('data-source-' + k)) {
                   opts[k] = this.getAttribute('data-source-' + k)
