@@ -41,8 +41,22 @@ body.waiting .waiting {
 	display: flex !important;
 }
 
+@media (min-width: 979px) {
+	.artnumButton, .itemList {
+		max-width: 98%;
+	}
+	
+}
+
+@media (min-width: 1201px) {
+	.artnumButton, .itemList {
+		max-width: 65%;
+	}
+}
+
 .artnumButton {
 	min-height: 26px !important;
+	margin: auto;
 }
 
 .people {
@@ -198,6 +212,10 @@ body.waiting .waiting {
   width: 100%;
 }
 
+.EntityPanel section {
+	max-width: calc(100vw / 3);
+	width: calc(100vw / 2.7);
+}
 .EntityPanel section .head {
   font-weight: bold;
 }
@@ -209,10 +227,6 @@ body.waiting .waiting {
 
 .EntityPanel section .entries span:after {
   content: '\0020';
-}
-
-.ItemsList {
-	max-width: 360px;
 }
 
 .ItemsList tr {
