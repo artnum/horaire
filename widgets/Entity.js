@@ -93,9 +93,8 @@ define([
 
       var url = Path.url('Htime')
       url.searchParams.append('sort.created', 'DESC')
-      if (Number(this.entry.level) < 127) {
-        url.searchParams.append('search.person', this.entry.id)
-      }
+      url.searchParams.append('search.person', this.entry.id)
+      url.searchParams.append('search.day', (new Date()).toISOString().split('T')[0])
       url.searchParams.set('search.deleted', '-')
 
       this.TimeList = new HTimeList({url: url, user: this.entry})
