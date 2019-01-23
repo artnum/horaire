@@ -132,7 +132,7 @@ try {
       }
    } 
 
-   header('Content-Disposition: inline; filename=' . $project . '.xlsx');
+   header('Content-Disposition: inline; filename="' . $project . '.xlsx"');
    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
    $writer->writeToStdOut();
 } catch(Exception $e) {
