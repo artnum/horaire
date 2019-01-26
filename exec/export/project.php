@@ -123,7 +123,7 @@ try {
                $item['quantity_value'],
                $item['person_name'],
                '',
-               '=' . $writer->xlsCell($line, 2) . '+' . $writer->xlsCell($line, 3)
+               '=' . $writer->xlsCell($line, 2) . '*' . $writer->xlsCell($line, 3)
             ));
             $line++;
          }
