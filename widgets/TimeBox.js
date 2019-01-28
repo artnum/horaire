@@ -98,7 +98,10 @@ define([
 
       this.nDays.appendChild(group.domNode)
       this.selectDay = group
-      djOn(this.selectDay, 'change', function () { this.nHour.focus() }.bind(this))
+      djOn(this.selectDay, 'change', function () {
+        this.emit('changeday', this.selectDay.get('value'))
+        this.nHour.focus()
+      }.bind(this))
       djOn(this.nHour, 'keypress', function (event) {
         if (event.key === 'Enter') {
           this.eSubmit()

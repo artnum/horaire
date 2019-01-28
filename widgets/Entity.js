@@ -101,6 +101,16 @@ define([
       this.own(this.TimeList)
       section2.appendChild(this.TimeList.domNode)
 
+      djOn(this.TimeBox, 'changeday', function (day) {
+        var url = Path.url('Htime')
+        url.searchParams.append('sort.created', 'DESC')
+        url.searchParams.append('search.person', this.entry.id)
+        url.searchParams.append('search.day', day.toISOString().split('T')[0])
+        url.searchParams.set('search.deleted', '-')
+        this.TimeList.url = url
+        this.TimeList.refresh()
+      }.bind(this))
+
       url = Path.url('Item')
       url.searchParams.set('search.deleted', '-')
       this.Items = new HItems({url: url, user: this.entry})

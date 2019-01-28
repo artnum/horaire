@@ -81,9 +81,6 @@ define([
         }
       })
 
-      /* djOn(this.nNewProject, 'click', djLang.hitch(this, this.newProjectEvt))
-      djOn(this.nNewPerson, 'click', djLang.hitch(this, this.newPersonEvt))
-      djOn(this.nNewItem, 'click', djLang.hitch(this, this.newItemEvt)) */
       djOn(this.nHome, 'click', djLang.hitch(this, function () { window.location.hash = '#home' }))
 
       djOn(window, 'hashchange', djLang.hitch(this, function (e) {
