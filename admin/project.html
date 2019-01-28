@@ -39,7 +39,7 @@
 <script src="js/admin.js"></script>
 <script>
 
-var searchParams = {'search.closed': '-'}
+var searchParams = {'search.closed': '-', 'search.deleted': '-'}
 
 function changeState (event) {
   switch(event.target.id) {
@@ -93,6 +93,19 @@ function addProject (event) {
       }
     })
  
+  }
+}
+
+async function delProject (event) {
+  if (!event || !event.target) { return }
+  var node = event.target
+  if (node.getAttribute('data-id')) {
+    var res = await Artnum.Query.exec(Artnum.Path.url('Project/' + node.getAttribute('data-id')), {method: 'DELETE', body: {id: node.getAttribute('data-id')}})
+    if (res.success) {
+      var tr = node
+      for (; tr.nodeName !== 'TR'; tr = tr.parentNode);
+      tr.parentNode.removeChild(tr)
+    }
   }
 }
 
@@ -225,6 +238,12 @@ function newEntry (entry, edit = false) {
     editButton.innerHTML = 'Éditer'
     editButton.addEventListener('click', evEditLine)
 
+    var delButton = document.createElement('BUTTON')
+    delButton.setAttribute('type', 'button')
+    delButton.setAttribute('data-id', entry.id)
+    delButton.innerHTML = 'Supprimer'
+    delButton.addEventListener('click', delProject)
+
     tr = document.createElement('TR')
     tr.setAttribute('data-id', entry.id)
     tr.innerHTML = '<td data-name="reference" data-type="text">' + (entry.reference ? entry.reference : '') + '</td>' +
@@ -234,6 +253,7 @@ function newEntry (entry, edit = false) {
     td.appendChild(editButton)
     td.appendChild(exportButton)
     td.appendChild(closeButton)
+    td.appendChild(delButton)
     tr.appendChild(td)
   }
 
