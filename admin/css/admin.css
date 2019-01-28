@@ -44,7 +44,7 @@ input[type=submit], input[type=button], button {
   font-weight: bold;
 }
 
-main {
+main.flex {
   display: flex;
 	justify-content: center;
 }
@@ -67,4 +67,36 @@ div.button a {
 	font-weight: bold;
 	font-family: sans-serif;
 
+}
+
+body {
+	margin: 0;
+	padding: 0;
+}
+
+main {
+	margin: 12px;
+}
+
+nav {
+	background-color: black;
+	width: 100%;
+	padding: 12px;
+	margin: 0;
+}
+nav ul {
+	padding: 0;
+	margin: 0;
+	list-style-type: none;
+}
+
+nav li {
+	display: inline-block;
+	width: 16ch;
+	padding: 4px;
+}
+
+nav li a {
+	font-weight: bold;
+	color: white;
 }
