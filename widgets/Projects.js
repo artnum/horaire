@@ -87,7 +87,7 @@ define([
         this.emit('change', this.get('value'))
       }.bind(this))
 
-      var url = Path.url('Project', {params: {'search.closed': '-', 'sort.opened': 'desc'}})
+      var url = Path.url('Project', {params: {'search.closed': '-', 'sort.opened': 'desc', 'search.deleted': '-'}})
       Query.exec(url).then(function (results) {
         for (var i = 0; i < results.data.length; i++) {
           var entry = results.data[i]
