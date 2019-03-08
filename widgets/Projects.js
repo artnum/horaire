@@ -87,7 +87,7 @@ define([
         this.emit('change', this.get('value'))
       }.bind(this))
 
-      var url = Path.url('Project', {params: {'search.closed': '-', 'sort.opened': 'desc', 'search.deleted': '-'}})
+      var url = Path.url('Project', {params: {'search.closed': '-', 'sort.opened': 'desc', 'search.deleted': '-', 'sort.reference': 'asc'}})
       Query.exec(url).then(function (results) {
         for (var i = 0; i < results.data.length; i++) {
           var entry = results.data[i]
@@ -98,7 +98,7 @@ define([
         window.requestAnimationFrame(function () { that.content.appendChild(group.domNode) })
       })
 
-      url = Path.url('Process', {params: {'search.deleted': '-'}})
+      url = Path.url('Process', {params: {'search.deleted': '-', 'sort.reference': 'asc'}})
       Query.exec(url).then(function (results) {
         if (results.success) {
           for (var i = 0; i < results.length; i++) {
