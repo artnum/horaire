@@ -7,7 +7,7 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
          LEFT JOIN htime ON htime.htime_project = project.project_id
          LEFT JOIN person ON htime.htime_person = person.person_id
          LEFT JOIN process ON htime.htime_process = process.process_id
-      WHERE project_id=:pid';
+      WHERE project_id=:pid AND htime.htime_deleted IS NULL';
    $query_items = 'SELECT * FROM quantity
          LEFT JOIN item ON item.item_id = quantity.quantity_item
          LEFT JOIN process ON process.process_id = quantity.quantity_process
@@ -27,7 +27,8 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
    $query = 'SELECT * FROM project
          LEFT JOIN htime ON htime.htime_project = project.project_id
          LEFT JOIN person ON htime.htime_person = person.person_id
-         LEFT JOIN process ON htime.htime_process = process.process_id';
+         LEFT JOIN process ON htime.htime_process = process.process_id
+         WHERE htime.htime_deleted IS NULL';
 
    $query_items = null;
    try {
