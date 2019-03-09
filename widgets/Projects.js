@@ -98,7 +98,7 @@ define([
         window.requestAnimationFrame(function () { that.content.appendChild(group.domNode) })
       })
 
-      url = Path.url('Process', {params: {'search.deleted': '-', 'sort.reference': 'asc'}})
+      url = Path.url('Process', {params: {'search.deleted': '-'}})
       Query.exec(url).then(function (results) {
         if (results.success) {
           for (var i = 0; i < results.length; i++) {
