@@ -36,6 +36,7 @@
     <label for="from">Du </label><input onchange="syncToFrom(event)" name="from" type="date" /><label for="to"> au </label><input name="to" type="date" data-sync-with="from" /><br />
     <input type="checkbox" name="deleted" /><label for="deleted"> Inclure valeurs supprimées</label><br />
     <input type="submit" value="Chercher" />
+    <input type="button" value="Exporter" onclick="submitForm(event, true)" />
   </form>
   <table id="results">
     <thead>
@@ -53,36 +54,55 @@
 <script src="https://artnum.ch/code/js/Query.js"></script>
 <script src="js/admin.js"></script>
 <script>
-function submitForm (event) {
-  event.preventDefault()
+function submitForm (event, doExport = false) {
+   event.preventDefault()
 
-  obj = Admin.getForm(event.target)
-  var params = {'search.deleted': '-'}
-  if (obj.from) {
-    params['search.day'] = obj.from
-    if (obj.to) {
-      if (obj.from !== obj.to) {
-        params['search.day'] = ['>=' + obj.from,'<=' + obj.to]
-      }
-    }
-  }
-  if (obj.person) {
-    params['search.person'] = obj.person
-  }
-  if (obj.deleted) {
-    delete params['search.deleted']
-  }
-  Artnum.Query.exec(Artnum.Path.url(event.target.getAttribute('data-source'), {params: params})).then(function (result) {
-    var table = document.getElementById('results')
-    var tbody = table;
-    for (tbody = table.firstChild; tbody.nodeName !== 'TBODY'; tbody = tbody.nextSibling);
-    tbody.innerHTML = ''
-    if (result.success && result.length > 0) {
-      for (var i = 0; i < result.length; i++) {
-        tbody.appendChild(makeEntry(result.data[i]))
-      }
-    }
-  })
+   var form = event.target
+   for(; form && form.nodeName !== 'FORM';  form = form.parentNode) ;
+
+   obj = Admin.getForm(form)
+   var params = {'search.deleted': '-'}
+   if (obj.from) {
+     params['search.day'] = obj.from
+     if (obj.to) {
+       if (obj.from !== obj.to) {
+         params['search.day'] = ['>=' + obj.from,'<=' + obj.to]
+       }
+     }
+   }
+   if (obj.person) {
+     params['search.person'] = obj.person
+   }
+   if (obj.deleted) {
+     delete params['search.deleted']
+   }
+   Artnum.Query.exec(Artnum.Path.url(form.getAttribute('data-source'), {params: params})).then(function (result) {
+     var table = document.getElementById('results')
+     var tbody = table;
+     for (tbody = table.firstChild; tbody.nodeName !== 'TBODY'; tbody = tbody.nextSibling);
+     tbody.innerHTML = ''
+     if (result.success && result.length > 0) {
+       for (var i = 0; i < result.length; i++) {
+         tbody.appendChild(makeEntry(result.data[i]))
+       }
+     }
+   })
+   if (doExport) {
+     var root = String(window.location.href).split('/')
+     root.pop()
+     root = root.join('/')
+     var url = new URL(`${root}/exec/export/user.php`)
+     if (obj.person) {
+       url.searchParams.set('pid', obj.person)
+     }
+     if (obj.to) {
+       url.searchParams.set('to', obj.to)
+     }
+     if (obj.from) {
+       url.searchParams.set('from', obj.from)
+     }
+     window.open(url)
+   }
 }
 
 function makeEntry2 (entry) {
@@ -201,7 +221,7 @@ function addTime (event) {
   var dataSource = event.target.getAttribute('data-source')
   var form = Admin.getForm(event.target)
   var hour = new Hour(form.hour)
-  if (hour.value !== 0) {
+   if (hour.value !== 0) {
     Artnum.Query.exec(Artnum.Path.url(dataSource), {method: 'POST',
       body: {day: (new Date(form.day)).toISOString().split('T')[0], value: hour.value, person: form.person, project: form.project, process: form.process, comment: form.comment}}).then(function (result) {
       if (result.success && result.length === 1) {

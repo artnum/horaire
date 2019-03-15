@@ -11,7 +11,6 @@
           if (inputs[i].getAttribute('data-options')) {
             var _json = inputs[i].getAttribute('data-options').replace(/(['"])?([a-zA-Z0-9_\.]+)(['"])?:/g, '"$2": ') // eslint-disable-line
             _json = _json.replace(/'/g, '"')
-            console.log(_json)
             var _opts = JSON.parse(_json)
             for (var k in _opts) {
               opts[k] = _opts[k]

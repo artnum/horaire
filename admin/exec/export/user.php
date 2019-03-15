@@ -38,7 +38,7 @@ foreach (array('from', 'to') as $t) {
 $query .= ' ORDER BY htime.htime_day ASC';
 
 try {
-  $db = new PDO('sqlite:../../db/horaire.sqlite3');
+  $db = new PDO('sqlite:../../../db/horaire.sqlite3');
   $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
   $st = $db->prepare($query);
   foreach($params as $p) {
