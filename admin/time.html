@@ -2,6 +2,7 @@
 <html>
 <head>
   <link rel="stylesheet" type="text/css" href="css/admin.css" />
+  <link rel="stylesheet" type="text/css" href="css/dtable.css" />
 <title>Horaire</title>
 <link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
 </head>
@@ -40,7 +41,7 @@
   </form>
   <table id="results">
     <thead>
-      <tr><th>Date</th><th>Valeur</th><th>Remarque</th><th>Projet</th><th>Processus</th><th>Action</th></tr>
+      <tr><th data-sort-type="date">Date</th><th data-sort-type="time">Valeur</th><th>Remarque</th><th>Projet</th><th>Processus</th><th data-sort-type="no">Action</th></tr>
     </thead>
     <tbody>
     </tbody>
@@ -52,6 +53,7 @@
 <script src="/js/Path.js"></script>
 <script src="/js/Hour.js"></script>
 <script src="https://artnum.ch/code/js/Query.js"></script>
+<script src="https://artnum.ch/code/js/DTable.js"></script>
 <script src="js/admin.js"></script>
 <script>
 function submitForm (event, doExport = false) {
@@ -112,13 +114,13 @@ function makeEntry2 (entry) {
     tr.setAttribute('data-state', 'deleted')
   }
   var hour = new Hour(parseInt(entry.value))
-  var innerhtml = '<td data-value="' + entry.day + '">' + entry.day + 
-    '</td><td data-value="' + hour.format() + '">' + hour.format() + 
-    '</td><td data-value="' + (entry.comment ? entry.comment : '') + '">' + (entry.comment ? entry.comment : '') + 
-    '</td><td data-source="Person" data-id="' + entry.person + '">'  + entry._person.name + 
-    '</td><td data-source="Projects" data-id="' + entry.project + '">'  + entry._project.name + 
-    '</td><td data-source="Process" data-id="' + entry.process + '">' + entry._process.name + 
-    '</td>'
+  var innerhtml = `<td data-value="${entry.day}" data-sort-value="${entry.day}">${entry.day}
+    </td><td data-value="${hour.format()}">${hour.format()}
+    </td><td data-value="${(entry.comment ? entry.comment : '')}">${(entry.comment ? entry.comment : '')}
+    </td><td data-source="Person" data-id="${entry.person}">${entry._person.name}
+    </td><td data-source="Projects" data-id="${entry.project}">${entry._project.name}
+    </td><td data-source="Process" data-id="${entry.process}">${entry._process.name}
+    </td>`
   tr.innerHTML = innerhtml
   return tr
 }
@@ -130,12 +132,14 @@ function makeEntry (entry) {
     tr.setAttribute('data-state', 'deleted')
   }
   var hour = new Hour(parseInt(entry.value))
-  var innerhtml = '<td data-value="' + entry.day + '">' + (new Date(entry.day)).fullDate() +
-    '</td><td data-value="' + hour.format() + '">' + hour.format() + 
-    '</td><td data-value="' + (entry.comment ? entry.comment : '') + '">' + (entry.comment ? entry.comment : '') + 
-    '</td><td data-source="Projects" data-id="' + entry.project + '">'  + entry._project.name + 
-    '</td><td data-source="Process" data-id="' + entry.process + '">' + entry._process.name + 
-    '</td>'
+  var innerhtml = `<td data-value="${entry.day}" data-sort-value="${entry.day}">${(new Date(entry.day)).fullDate()}
+    </td><td data-value="${hour.format()}">${hour.format()}
+    </td><td data-value="${(entry.comment ? entry.comment : '')}">
+   ${(entry.comment ? entry.comment : '')}
+    </td><td data-source="Projects" data-id="${entry.project}">${entry._project.name}
+    </td><td data-source="Process" data-id="${entry.process}">${entry._process.name}
+    </td>`
+
   if (entry.deleted) {
     innerhtml += '<td><input type="button" name="undelete" value="Rétablir" onclick="undeleteEntry(event)"/></td>'
   } else {
@@ -248,6 +252,7 @@ window.onload = function (event) {
     for (var i = 0; i < forms.length; i++) {
       Admin.loadForm(forms[i])
     }
+  var t = new Artnum.DTable({table: 'results', sortOnly: true})
 }
 </script>
 </html>
