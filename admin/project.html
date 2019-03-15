@@ -2,8 +2,9 @@
 <html>
 <head>
   <link rel="stylesheet" type="text/css" href="css/admin.css" />
-<title>Horaire</title>
-<link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="css/dtable.css" />
+  <title>Horaire</title>
+  <link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
 </head>
 <body>
   <nav><ul><li><a href="index.html">Home</a></li>
@@ -26,7 +27,7 @@
   <input type="radio" onchange="changeState(event)" id="stateClosed" name="state"><label for="stateClosed">Fermé</label>
   <input type="radio" onchange="changeState(event)" id="stateAny" name="state"><label for="stateAny">Tous</label>
   <table id="projects" data-source="Project">
-    <thead><tr><th>Référence</th><th>Nom</th><th>Action</th></tr></thead>
+    <thead><tr><th data-sort-type="interger">Référence</th><th>Nom</th><th data-sort-type="no">Action</th></tr></thead>
     <tbody>
     </tbody>
   </table>
@@ -36,6 +37,7 @@
 <script src="https://artnum.ch/code/js/Date.js"></script>
 <script src="https://artnum.ch/code/js/Path.js"></script>
 <script src="https://artnum.ch/code/js/Query.js"></script>
+<script src="https://artnum.ch/code/js/DTable.js"></script>
 <script src="js/admin.js"></script>
 <script>
 
@@ -288,6 +290,8 @@ async function load () {
       node.appendChild(frag)
     })
   }
+
+   var t = new Artnum.DTable({table: 'projects'})
 }
 
 window.addEventListener('load', load)
