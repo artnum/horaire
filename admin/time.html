@@ -130,7 +130,7 @@ function makeEntry (entry) {
     tr.setAttribute('data-state', 'deleted')
   }
   var hour = new Hour(parseInt(entry.value))
-  var innerhtml = '<td data-value="' + entry.day + '">' + entry.day + 
+  var innerhtml = '<td data-value="' + entry.day + '">' + (new Date(entry.day)).fullDate() +
     '</td><td data-value="' + hour.format() + '">' + hour.format() + 
     '</td><td data-value="' + (entry.comment ? entry.comment : '') + '">' + (entry.comment ? entry.comment : '') + 
     '</td><td data-source="Projects" data-id="' + entry.project + '">'  + entry._project.name + 
