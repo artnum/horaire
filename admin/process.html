@@ -2,6 +2,7 @@
 <html>
 <head>
   <link rel="stylesheet" type="text/css" href="css/admin.css" />
+  <link rel="stylesheet" type="text/css" href="css/dtable.css" />
 <title>Horaire</title>
 <link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
 </head>
@@ -20,12 +21,12 @@
     <!-- <label for="end">Date de fin : </label><input name="name" type="date" /><br> //-->
     <input type="submit" value="Ajouter" onclick="addProject(event)" /><br>
   </form>
-  <h2>Projets existants</h2>
+  <h2>Processus existants</h2>
   <input type="radio" onchange="changeState(event)" checked="checked" id="stateOpen" name="state"><label for="stateOpen">Actif</label>
   <input type="radio" onchange="changeState(event)" id="stateClosed" name="state"><label for="stateClosed">Supprimé</label>
   <input type="radio" onchange="changeState(event)" id="stateAny" name="state"><label for="stateAny">Tous</label>
   <table id="projects" data-source="Process">
-    <thead><tr><th>Nom</th><th>Action</th></tr></thead>
+    <thead><tr><th>Nom</th><th data-sort-type="no">Action</th></tr></thead>
     <tbody>
     </tbody>
   </table>
@@ -35,6 +36,7 @@
 <script src="https://artnum.ch/code/js/Date.js"></script>
 <script src="https://artnum.ch/code/js/Path.js"></script>
 <script src="https://artnum.ch/code/js/Query.js"></script>
+<script src="https://artnum.ch/code/js/DTable.js"></script>
 <script src="js/admin.js"></script>
 <script>
 
@@ -262,6 +264,9 @@ async function load () {
   }
 }
 
-window.addEventListener('load', load)
+ window.addEventListener('load', () => {
+   var t = new Artnum.DTable({table: 'projects'})
+   load()
+ })
 </script>
 </html>
