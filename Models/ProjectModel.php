@@ -12,6 +12,32 @@ class ProjectModel extends artnum\SQL {
       $this->conf('mtime.ts', true);
       $this->conf('delete', 'project_deleted');
       $this->conf('delete.ts', true);
+      $this->conf('hook-path', 'exec/hooks');
    }
+   function _write($arg) {
+      $hook_succeed = false;
+      if (!$this->conf('hook-path')) {
+         $hook_succeed = true;
+      } else {
+         if(is_executable($this->conf('hook-path') . '/project-write')) {
+            $cmd = $this->conf('hook-path') . '/project-write ';
+            foreach ($arg as $k => $v) {
+               $k = preg_replace('/[^A-Za-z0-9]+/', '', $k);
+               $cmd .= ' -' . $k . ' ' . escapeshellarg($v);
+            }
+            exec($cmd, $out, $ret);
+            if ($ret == 0) {
+               $hook_succeed = true;
+            }
+         }
+      }
+
+      $ret = null;
+      if ($hook_succeed) {
+         $ret = parent::_write($arg);
+      }
+      return $ret;
+   }
+
 }
 ?>

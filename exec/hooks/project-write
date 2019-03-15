@@ -1,0 +1,40 @@
+#!/bin/bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+if [ ! -f "$DIR/vars.sh" ]
+then
+	exit 1
+fi
+
+. $DIR/vars.sh
+echo $DIR
+echo $PROJECT_DIR
+while [[ $# -gt 0 ]]
+do
+	key="$1"
+	case $key in
+		-name)
+			NAME=$2
+			shift
+			shift
+			;;
+		-reference)
+			REFERENCE=$2
+			shift
+			shift
+			;;
+	esac
+done
+
+if [ ! -z "$REFERENCE" ] && [ ! -z "$NAME" ]
+then
+	echo $REFERENCE
+	echo $NAME
+	echo "$PROJECT_DIR/$REFERENCE $NAME" 
+	if [ ! -d "$PROJECT_DIR/$REFERENCE $NAME" ]
+	then
+		mkdir -p "$PROJECT_DIR/$REFERENCE $NAME"
+	fi
+fi
+exit 0
