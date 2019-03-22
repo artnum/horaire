@@ -59,7 +59,7 @@ try {
   $per_process = array();
   $per_person = array();
   /* Entrées */
-  $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process' => 'string', 'Jour' => 'datetime', 'Temps [h]' => '0.00', 'Personne' => 'string'), array('widths'=>[25, 25, 25, 25, 25, 25]));
+  $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process' => 'string', 'Jour' => 'datetime', 'Temps [h]' => '0.00', 'Temps noté [h]' => '0.00', 'Personne' => 'string'), array('widths'=>[25, 25, 25, 25, 25, 25]));
 
   foreach ($values as $row) {
     if (is_null($person)) {
@@ -73,10 +73,15 @@ try {
       $per_person[$row['person_name']] = 0;
     }
     $date = (new DateTime($row['htime_day']))->format('Y-m-d H:i:s');
-    $writer->writeSheetRow('Entrées', array($row['project_reference'], $row['project_name'], $row['process_name'], $date, $row['htime_value'] / 3600, $row['person_name']));
+    if (intval($row['project_uncount']) !== 0) {
+      $value = 0;
+    } else {
+      $value = $row['htime_value'];
+    }
+    $writer->writeSheetRow('Entrées', array($row['project_reference'], $row['project_name'], $row['process_name'], $date, $value / 3600, $row['htime_value'] / 3600, $row['person_name']));
     
-    $per_process[$row['process_name']] += $row['htime_value'];
-      $per_person[$row['person_name']] += $row['htime_value'];
+    $per_process[$row['process_name']] += $value;
+    $per_person[$row['person_name']] += $value;
   }
   
   $writer->writeSheetRow('Entrées', array('', '', ''));
