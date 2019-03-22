@@ -94,7 +94,7 @@
         }
       }
       if (!replaced) {
-        node.appendChild(entry)
+        node.insertBefore(entry, node.firstChild)
       }
     },
     deleteEntry: function (store, id, undelete = false) {
