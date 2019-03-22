@@ -68,6 +68,8 @@ define([
         window.requestAnimationFrame(function () {
           this.content.replaceChild(this.Process.domNode, this.Group.domNode)
           var back = document.createElement('DIV')
+          back.setAttribute('class', 'artnumButton')
+          back.setAttribute('style', 'margin-bottom: 14px')
           back.innerHTML = '← Retour'
           this.content.insertBefore(back, this.Process.domNode)
 
