@@ -92,9 +92,13 @@ define([
       section2.appendChild(this.TimeBox.domNode)
 
       var url = Path.url('Htime')
+
+      var today = new Date()
+      var lastMonth = new Date()
+      lastMonth.setMonth(today.getMonth() - 1)
       url.searchParams.append('sort.created', 'DESC')
       url.searchParams.append('search.person', this.entry.id)
-      url.searchParams.append('search.day', (new Date()).toISOString().split('T')[0])
+      url.searchParams.append('search.day', `${lastMonth.toISOString().split('T')[0]}`)
       url.searchParams.set('search.deleted', '-')
 
       this.TimeList = new HTimeList({url: url, user: this.entry})

@@ -39,6 +39,35 @@ define([
     templateString: '<div class="${baseClass}"></div>',
 
     draw: function () {
+      var today = new Date()
+      var lastMonth = new Date()
+      lastMonth.setMonth(today.getMonth() - 1)
+      var url = Path.url('Htime')
+      url.searchParams.append('sort.day', 'DESC')
+      url.searchParams.append('search.person', this.user.id)
+      url.searchParams.append('search.day', `>${lastMonth.toISOString().split('T')[0]}`)
+      url.searchParams.append('search.day', `<=${today.toISOString().split('T')[0]}`)
+      Query.exec(url).then(function (result) {
+        if (result.success && result.length > 0) {
+          var table = `<h2>Dernières entrées (du ${lastMonth.shortDate()} au  ${today.shortDate()})</h2><table>
+               <thead><tr><th>Jour</th><th>Durée</th><th>Projet</th><th>Processus</th></tr></thead><tbody>`
+          for (var i = 0; i < result.length; i++) {
+            var e = result.data[i]
+            var tr = `<tr><td>${new Date(e.day).shortDate()}</td><td>${(new Hour(e.value)).toMinStr()}</td><td>${e._project.reference} - ${e._project.name}</td><td>${e._process.name}</td></tr>`
+            table += tr
+          }
+          table += '</tbody>'
+        }
+        window.requestAnimationFrame(function () {
+          if (this.domNode.lastChild && this.domNode.lastChild.nodeNamei === 'DIV') {
+            this.domNode.lastChild.innerHTML = table
+          } else {
+            this.domNode.appendChild(document.createElement('DIV'))
+            this.domNode.lastChild.setAttribute('class', 'lastentry')
+            this.domNode.lastChild.innerHTML = table
+          }
+        }.bind(this))
+      }.bind(this))
       if (this.loaded.data) {
         this.clear()
         var data = this.get('data')
@@ -101,7 +130,7 @@ define([
         frag.appendChild(table)
 
         window.requestAnimationFrame(function () {
-          this.domNode.appendChild(frag)
+          this.domNode.insertBefore(frag, this.domNode.lastChild)
         }.bind(this))
       }
     }

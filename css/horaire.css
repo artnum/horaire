@@ -368,3 +368,13 @@ input[type=submit], input[type=button], button {
   max-width: 140px;
   font-weight: bold;
 }
+
+
+.lastentry table {
+    width: 100%;
+    font-size: 0.8em;
+}
+
+.lastentry h2 {
+    font-size: 1.2em;
+}
