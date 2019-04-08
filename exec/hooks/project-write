@@ -8,8 +8,6 @@ then
 fi
 
 . $DIR/vars.sh
-echo $DIR
-echo $PROJECT_DIR
 while [[ $# -gt 0 ]]
 do
 	key="$1"
@@ -41,12 +39,9 @@ done
 
 if [ ! -z "$REFERENCE" ] && [ ! -z "$NAME" ]
 then
-	echo $REFERENCE
-	echo $NAME
-	echo "$PROJECT_DIR/$REFERENCE $NAME" 
-	if [ ! -d "$PROJECT_DIR/$REFERENCE $NAME" ]
+	if [ ! -d "$PROJECT_DIR" ]
 	then
-		mkdir -p "$PROJECT_DIR/$REFERENCE $NAME"
+		mkdir -p "$PROJECT_DIR"
 	fi
 fi
 exit 0
