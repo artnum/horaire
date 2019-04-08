@@ -261,6 +261,16 @@ function newEntry (entry, edit = false) {
     })
     exportButton.innerHTML = 'Exporter'
 
+    var printButton = document.createElement('BUTTON')
+    printButton.setAttribute('type', 'button')
+    printButton.addEventListener('click', function (event) {
+      if (event && event.target) {
+        for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
+        window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: node.getAttribute('data-id')}}))
+      }
+    })
+    printButton.innerHTML = 'Imprimer'
+
     var closeButton = document.createElement('BUTTON')
     closeButton.setAttribute('type', 'button')
     closeButton.setAttribute('data-id', entry.id)
@@ -293,6 +303,7 @@ function newEntry (entry, edit = false) {
     var td = document.createElement('TD')
     td.appendChild(editButton)
     td.appendChild(exportButton)
+    td.appendChild(printButton)
     td.appendChild(closeButton)
     td.appendChild(delButton)
     tr.appendChild(td)
