@@ -13,6 +13,7 @@ class ProjectModel extends artnum\SQL {
       $this->conf('delete', 'project_deleted');
       $this->conf('delete.ts', true);
       $this->conf('hook-path', 'exec/hooks');
+      $this->conf('ignored', array('year'));
    }
    function _write($arg) {
       $hook_succeed = false;
