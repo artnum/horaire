@@ -19,6 +19,7 @@
   <form>
     <label for="reference">Référence : </label><input name="reference" type="text" /><br>
     <label for="name">Nom : </label><input name="name" type="text" /><br>
+    <label for="year">Année : </label><input id="inYear" name="year" type="text" /><br>
     <label for="name">Heures non-comptabilisées : </label><input name="uncount" type="checkbox" /><br>
     <!-- <label for="end">Date de fin : </label><input name="name" type="date" /><br> //-->
     <input type="submit" value="Ajouter"/><br>
@@ -97,7 +98,15 @@ async function addProject (event) {
          }
        }
      }
-    Artnum.Query.exec(Artnum.Path.url('Project'), {method: 'POST', body: {name: oform.name, reference: (oform.reference ? oform.reference : null), uncount: oform.uncount? 1 : 0}}).then(function (result) {
+     if (!oform.year) {
+       oform.year = String((new Date()).getFullYear())
+     } else {
+       if (String(parseInt(oform.year)) !== String(oform.year)) {
+         alert('Année invalide')
+         return
+       }
+     }
+     Artnum.Query.exec(Artnum.Path.url('Project'), {method: 'POST', body: {name: oform.name, reference: (oform.reference ? oform.reference : null), uncount: oform.uncount? 1 : 0, year: oform.year}}).then(function (result) {
       if (result.success && result.length === 1) {
         Artnum.Query.exec(Artnum.Path.url('Project/' + result.data[0].id)).then(function (result) {
           if (result.success && result.length === 1) {
@@ -280,6 +289,7 @@ function replaceAddEntry (tr) {
 }
 
 async function load () {
+  document.getElementById('inYear').value = String((new Date()).getFullYear())
   var forms = document.getElementsByTagName('FORM')
   forms[0].addEventListener('submit', function (event) {
     event.preventDefault()
