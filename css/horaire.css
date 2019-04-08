@@ -1,380 +1,392 @@
 .appname {
-	position: absolute;
-	right: 12px;
-	bottom: 5;
-	font-size: 0.8em;
-	color: white;
+    position: absolute;
+    right: 12px;
+    bottom: 5;
+    font-size: 0.8em;
+    color: white;
 }
 div.waiting {
-	display: none;
-	position: fixed;
-	z-index: 1000;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	color: black;
-	background: rgba( 255, 255, 255, .4 );	
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    color: black;
+    background: rgba( 255, 255, 255, .4 );
 }
 
 div.waiting i {
-	display: block;
-	margin: auto;	
+    display: block;
+    margin: auto;
 }
 
 body.waiting {
-	overflow: hidden;	
+    overflow: hidden;
 }
 
 body.waiting .waiting {
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
 }
 
 .people .desktop {
-	display: flex !important;
+    display: flex !important;
 }
 
 .timeBox .days .artnumButtonGroup {
-	display: flex !important;
+    display: flex !important;
 }
 
 @media (min-width: 979px) {
-	.artnumButton, .itemList {
-		max-width: 98%;
-	}
-	
+    .artnumButton, .itemList {
+	max-width: 98%;
+    }
 }
 
 @media (min-width: 1201px) {
-	.artnumButton, .itemList {
-		max-width: 65%;
-	}
+    .artnumButton, .itemList {
+	max-width: 65%;
+    }
 }
 
 .artnumButton {
-	min-height: 26px !important;
-	margin: auto;
+    min-height: 26px !important;
+    margin: auto;
 }
 
 .people {
-	font-family: "Open Sans";
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	bottom: 50px;
+    font-family: "Open Sans";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    bottom: 50px;
 }
 
 #home {
-	display: flex;	
-	justify-content: center;
-	flex-wrap: wrap;
-	width: 100%;
-	margin-bottom: 60px;
+    display: flex;	
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-bottom: 60px;
 }
 
 .people .tools {
-	width: 100%;
-	min-height: 40px;
-	max-height: 40px;
-	margin: 0;
-	padding: 5px;
-	background-color: black;
-	position: fixed;
-	bottom: 0px;
-	left: 0px;	
-	display: flex;
+    width: 100%;
+    min-height: 40px;
+    max-height: 40px;
+    margin: 0;
+    padding: 5px;
+    background-color: black;
+    position: fixed;
+    bottom: 0px;
+    left: 0px;	
+    display: flex;
 }
 
 .button {
-	font-family: "Open Sans";
-	border-radius: 6px;
-	border: solid 2px black;
-	margin: 2px;
-	padding: 4px;
-	font-size: 1.2em;
-	min-height: 20px;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	color: white;
-	cursor: pointer;
+    font-family: "Open Sans";
+    border-radius: 6px;
+    border: solid 2px black;
+    margin: 2px;
+    padding: 4px;
+    font-size: 1.2em;
+    min-height: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
 }
 
 .button:hover {
-	border: solid 2px #888;
-	color: black !important;
-	background-color: white !important;	
+    border: solid 2px #888;
+    color: black !important;
+    background-color: white !important;
 }
 
 .button.white, .light .button {
-	color: black !important;
+    color: black !important;
 }
 
 .button.white:hover, .light .button:hover {
-	border: solid 2px #eee;
-	color: white !important;
-	background-color: black !important;	
+    border: solid 2px #eee;
+    color: white !important;
+    background-color: black !important;
 }
 
 .light .button.selected {
-	border: solid 2px #eee;
-	color: white !important;
-	background-color: #333 !important;	
+    border: solid 2px #eee;
+    color: white !important;
+    background-color: #333 !important;	
 }
 
 .button.tool span:before {
-	font-family: "FontAwesome";
-	content: "\f0ad\0020";
+    font-family: "Font Awesome 5 Free";
+    content: "\f0ad\0020";
 }
 .button.project span:before {
-	font-family: "FontAwesome";
-	content: "\f006\0020";
+    font-family: "Font Awesome 5 Free";
+    content: "\f006\0020";
 }
 
 .button.folder span:before {
-	font-family: "FontAwesome";
-	content: "\f114\0020";
+    font-family: "Font Awesome 5 Free";
+    content: "\f114\0020";
 }
 
 .button.user span:before {
-	font-family: "FontAwesome";
-	content: "\f2c0\0020";
+    font-family: "Font Awesome 5 Free";
+    content: "\f2c0\0020";
 }
 
 .button.home span:before {
-	font-family: "FontAwesome";
-	content: "\f015\0020";
+    font-family: "Font Awesome 5 Free";
+    content: "\f015\0020";
 }
 
 .entity {
-	text-align: center;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	max-width: 240px;
-	max-height: 140px;
-	min-width: 240px;
-	min-height: 140px;
-	margin: 5px;
-	background-color: rgba( 130, 180, 240,1);
-	color: rgba( 0, 40, 80, 1);
-	cursor: pointer;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 240px;
+    max-height: 140px;
+    min-width: 240px;
+    min-height: 140px;
+    margin: 5px;
+    background-color: rgba( 130, 180, 240,1);
+    color: rgba( 0, 40, 80, 1);
+    cursor: pointer;
 }
 
 .entity:hover {
-	color: rgba( 130, 180, 240,1);
-	background-color: rgba( 0, 40, 80, 1);
-	
+    color: rgba( 130, 180, 240,1);
+    background-color: rgba( 0, 40, 80, 1);
+    
 }
 
 .entity div:first-child {
-	font-family: "Passion One";
-	font-size: 1.8em;
+    font-family: "Passion One";
+    font-size: 1.8em;
 }
 .inputbox input {
-	font-size: 10px;
-	padding: 0;	
+    font-size: 10px;
+    padding: 0;	
 }
 
 .artnumLog {
-	font-weight: bold;
-	text-align: center;
-	color: white;
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 18px;
-	font-size: 14px;
-	padding: 4px;
-	border: 0;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 18px;
+    font-size: 14px;
+    padding: 4px;
+    border: 0;
 }
 
 .artnumLog.error {
-	background-color: maroon;
+    background-color: maroon;
 }
 
 .artnumLog.info {
-	background-color: cornflowerblue;
+    background-color: cornflowerblue;
 }
 
 .artnumLog.warn {
-	background-color: chocolate;
+    background-color: chocolate;
 }
 
 .EntityPanel {
-  display: flex;
-  justify-content: space-around;
-  width: 100%;
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
 }
 
 .EntityPanel section {
-	max-width: calc(100vw / 3);
-	width: calc(100vw / 2.7);
+    max-width: calc(100vw / 3);
+    width: calc(100vw / 2.7);
 }
 .EntityPanel section .head {
-  font-weight: bold;
+    font-weight: bold;
 }
 
 .EntityPanel section .entries span {
-  display: inline-block;
-  min-width: 8ch;
+    display: inline-block;
+    min-width: 8ch;
 }
 
 .EntityPanel section .entries span:after {
-  content: '\0020';
+    content: '\0020';
 }
 
 .ItemsList tr {
-	height: 2.4em;
-	border: 0;
-	cursor: pointer;
+    height: 2.4em;
+    border: 0;
+    cursor: pointer;
 }
 
 .ItemsList tr:nth-child(even) {
-  background-color: #DDD;
+    background-color: #DDD;
 }
 
 .ItemsList th, .ItemsList td {
-  padding: 0 1ch 0 1ch;
+    padding: 0 1ch 0 1ch;
 }
 .ItemsList th {
-	font-weight: bold;
+    font-weight: bold;
 }
 
 .ItemsList table {
-  width: 100%;
-  font-size: 1.4em;
-	border-collapse: collapse;
+    width: 100%;
+    font-size: 1.4em;
+    border-collapse: collapse;
 }
 
 .ItemsList .search th {
-	font-weight: normal;
+    font-weight: normal;
 }
 
 .ItemsList .description {
-  font-size: 0.6em;
+    font-size: 0.6em;
 }
 
 .timeBox {
-  min-width: 280px;
+    min-width: 280px;
 }
 
 .timeBox .title {
-	font-size: 1.2em;
-	font-weight: bold;
+    font-size: 1.2em;
+    font-weight: bold;
 }
 
 .timeBox label {
-  display: inline-block;
-  width: 10ch;
-  margin: 12px 0 12px 0;
+    display: inline-block;
+    width: 10ch;
+    margin: 12px 0 12px 0;
 }
 
 .timeBox .hourBox, .timeBox .days {
-  display: inline;
+    display: inline;
 }
 
 .timeBox button {
-  width: 100%;
-  margin: 0 0 24px 0;
+    width: 100%;
+    margin: 0 0 24px 0;
 }
 
 .HTimeList thead th {
-  font-weight: bold;
+    font-weight: bold;
 }
 
 .HTimeList tr {
-  height: 1.8em;
-  font-size: 1.4em;
+    height: 1.8em;
+    font-size: 1.4em;
 }
 .HTimeList tr.foreign {
-  font-style: italic;
+    font-style: italic;
 }
 
 .HTimeList td {
-  padding: 0 1ch 0 1ch;
+    padding: 0 1ch 0 1ch;
 }
 
 .HTimeList td span.person {
-	font-size: 0.8em;
+    font-size: 0.8em;
 }
 .HTimeList td span.person:before {
-	padding: 0 0 0 1ch;
-	content: '(';
+    padding: 0 0 0 1ch;
+    content: '(';
 }
 .HTimeList td span.person:after {
-	content: ')';
+    content: ')';
 }
 
 .HTimeList td.delete {
-  cursor: pointer;
-  color: white;
-  background-color: black;
-  border: 2px solid gray;
+    cursor: pointer;
+    color: white;
+    background-color: black;
+    border: 2px solid gray;
 }
 
 .HTimeList td.delete:hover {
-  background-color: gray;
-  border: 2px solid black;
+    background-color: gray;
+    border: 2px solid black;
 }
 
 /* https://www.tilcode.com/css-hide-spinners-updown-arrows-on-inputs-with-typenumber-using-a-class/ */
 .no-spinners {
-  -moz-appearance:textfield;
+    -moz-appearance:textfield;
 }
 
 .no-spinners::-webkit-outer-spin-button,
 .no-spinners::-webkit-inner-spin-button {
-	-webkit-appearance: none;
-	margin: 0;
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .quantity input {
-	padding: 2px !important;
-  max-width: 8ch !important;
-	min-width: 8ch !important;
-	width: 8ch !important;
-	font-size: 12px;
+    padding: 2px !important;
+    max-width: 8ch !important;
+    min-width: 8ch !important;
+    width: 8ch !important;
+    font-size: 12px;
 }
 
 .quantity td, .item td {
-  font-size: 0.8em;
+    font-size: 0.8em;
 }
 
 
 input, select, textarea {
-	min-height: 32px;
-	min-width: 140px;
-	font-size: 18px;
-  border: 2px solid gray;
-  margin: 5px;
-  background-color: #FFFACD;
-  padding: 5px;
+    min-height: 32px;
+    min-width: 140px;
+    font-size: 18px;
+    border: 2px solid gray;
+    margin: 5px;
+    background-color: #FFFACD;
+    padding: 5px;
 }
 
 input[type=submit], input[type=button], button {
-	min-height: 32px;
-  cursor: pointer;
-  background-color: white;
-  color: black;
-  border: 2px solid gray;
-  margin: 5px;
-  min-width: 140px;
-  max-width: 140px;
-  font-weight: bold;
+    min-height: 32px;
+    cursor: pointer;
+    background-color: white;
+    color: black;
+    border: 2px solid gray;
+    margin: 5px;
+    min-width: 140px;
+    max-width: 140px;
+    font-weight: bold;
 }
 
 
 .lastentry table {
+    table-layout: fixed;  
+    border-collapse: collapse;
     width: 100%;
     font-size: 0.8em;
 }
 
 .lastentry h2 {
     font-size: 1.2em;
+}
+
+.lastentry td, lastentry th {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.lastentry tbody th {
+    padding: 0 1ch 0 1ch;
+    background-color: lightgray;
 }

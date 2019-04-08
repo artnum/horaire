@@ -48,14 +48,28 @@ define([
       url.searchParams.append('search.day', `>${lastMonth.toISOString().split('T')[0]}`)
       url.searchParams.append('search.day', `<=${today.toISOString().split('T')[0]}`)
       Query.exec(url).then(function (result) {
+        let prevDay = null
+        let acc = 0
         if (result.success && result.length > 0) {
           var table = `<h2>Dernières entrées (du ${lastMonth.shortDate()} au  ${today.shortDate()})</h2><table>
-               <thead><tr><th>Jour</th><th>Durée</th><th>Projet</th><th>Processus</th></tr></thead><tbody>`
+               <thead><tr><th>Jour</th><th>Projet</th><th>Processus</th><th>Durée</th></tr></thead><tbody>`
           for (var i = 0; i < result.length; i++) {
             var e = result.data[i]
-            var tr = `<tr><td>${new Date(e.day).shortDate()}</td><td>${(new Hour(e.value)).toMinStr()}</td><td>${e._project.reference} - ${e._project.name}</td><td>${e._process.name}</td></tr>`
+            if (prevDay !== (new Date(e.day)).shortDate()) {
+              if (prevDay !== null) {
+                table += `<tr><th colspan="3">Total pour le ${prevDay}</th><th>${new Hour(acc).toMinStr()}</th></tr>`
+              }
+              acc = 0
+              prevDay = (new Date(e.day)).shortDate()
+            }
+            var tr = `<tr><td>${new Date(e.day).shortDate()}</td><td>${e._project.reference} - ${e._project.name}</td><td>${e._process.name}</td><td>${(new Hour(e.value)).toMinStr()}</tr>`
+            acc += parseInt(e.value)
             table += tr
           }
+          if (prevDay !== null) {
+            table += `<tr><th colspan="3">Total pour le ${prevDay}</th><th>${new Hour(acc).toMinStr()}</th></tr>`
+          }
+
           table += '</tbody>'
         }
         window.requestAnimationFrame(function () {
