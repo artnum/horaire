@@ -81,6 +81,16 @@
       })
       return oform
     },
+    findInput: function (form, inputName) {
+      let elements = ['INPUT', 'TEXTAREA', 'SELECT']
+      for (let i = 0; i < elements.length; i++) {
+        let e = form.getElementsByTagName(elements[i])
+        for (let j = 0; j < e.length; j++) {
+          if (inputName === e[j].getAttribute('name')) { return e[j] }
+        }
+      }
+      return null
+    },
     insertEntry: function (entry, table) {
       var node = table
       for (node = node.firstChild; node && node.nodeName !== 'TBODY'; node = node.nextSibling);

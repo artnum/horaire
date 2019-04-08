@@ -17,10 +17,19 @@
   <h1>Projets</h1>
   <h2>Nouveau projet</h2>
   <form>
-    <label for="reference">Référence : </label><input name="reference" type="text" /><br>
-    <label for="name">Nom : </label><input name="name" type="text" /><br>
-    <label for="year">Année : </label><input id="inYear" name="year" type="text" /><br>
-    <label for="name">Heures non-comptabilisées : </label><input name="uncount" type="checkbox" /><br>
+    <fieldset name="general">
+      <legend>Général</legend>
+      <label for="reference">Numéro de chantier : </label><input name="reference" type="text" /> <label for="year">Année : </label><input id="inYear" name="year" type="text" /><br>
+      <label for="name">Nom : </label><input name="name" type="text" /><br>
+      <label for="uncount">Heures non-comptabilisées : </label><input name="uncount" type="checkbox" /><br>
+    </fieldset>
+    <fieldset name="details">
+      <legend>Détails</legend>
+      <label for="subref">Référence : </label><input name="subref" type="text" /> <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" /><br>
+      <label for="contact">Personne de contact : </label><input name="contact" type="text" /> <label for="cphone">Téléphone : </label><input name="cphone" type="text" /><br>
+      <label for="description>">Description du travail</label><br>
+      <textarea name="description"></textarea>
+    </fieldset>
     <!-- <label for="end">Date de fin : </label><input name="name" type="date" /><br> //-->
     <input type="submit" value="Ajouter"/><br>
   </form>
@@ -60,34 +69,14 @@ function changeState (event) {
   load()
 }
 
-async function addProject (event) {
-  var form = event.target
-  for (; form.nodeName !== 'FORM'; form = form.parentNode);
-  var inputs = form.getElementsByTagName('INPUT')
-  var oform = {}
-  for (var i = 0; i < inputs.length; i++) {
-    if (!inputs[i].getAttribute('name')) { continue }
-    var value = null
-    switch(inputs[i].getAttribute('type')) {
-      default:
-      case 'checkbox':
-        value = inputs[i].checked
-        break
-      case 'text':
-        value = inputs[i].value
-        break
-    }
-    if (oform[inputs[i].getAttribute('name')]) {
-      if (Array.isArray(oform[inputs[i].getAttribute('name')])) {
-        oform[inputs[i].getAttribute('name')].push(value)
-      } else {
-        oform[inputs[i].getAttribute('name')] = [oform[inputs[i].getAttribute('name')]]
-        oform[inputs[i].getAttribute('name')].push(value)
-      }
-    } else {
-      oform[inputs[i].getAttribute('name')] = value
-    }
-  }
+ async function addProject (event) {
+   var form = event.target
+   let el = form.getElementsByClassName('error')
+   for (let i = 0; i < el.length; i++) {
+     el[i].classList.remove('error')
+   }
+   for (; form.nodeName !== 'FORM'; form = form.parentNode);
+   var oform = Admin.getForm(form)
 
    if (oform.name) {
      if (oform.reference) {
@@ -98,6 +87,7 @@ async function addProject (event) {
          }
        }
      }
+
      if (!oform.year) {
        oform.year = String((new Date()).getFullYear())
      } else {
@@ -106,19 +96,47 @@ async function addProject (event) {
          return
        }
      }
-     Artnum.Query.exec(Artnum.Path.url('Project'), {method: 'POST', body: {name: oform.name, reference: (oform.reference ? oform.reference : null), uncount: oform.uncount? 1 : 0, year: oform.year}}).then(function (result) {
-      if (result.success && result.length === 1) {
-        Artnum.Query.exec(Artnum.Path.url('Project/' + result.data[0].id)).then(function (result) {
-          if (result.success && result.length === 1) {
-            replaceAddEntry(newEntry(result.data))
-          }
-        })
-      }
-    })
- 
-  }
-}
+     let map = { subref: 'reference', cphone: 'phone'}
+     let travail = {}
+     let error = false
+     ;['subref', 'meeting', 'contact', 'cphone'].forEach(function (i) {
+       if (String(oform[i]).length > 160) {
+         Admin.findInput(form, i).classList.add('error')
+         error = true
+       } else {
+         if (map[i]) {
+           travail[map[i]] = String(oform[i])
+         } else {
+           travail[i] = String(oform[i])
+         }
+       }
+     })
+     travail.description = oform.description
+     if (error) {
+       alert('Les entrées sont limitées à 160 caractères')
+       return
+     }
 
+     Artnum.Query.exec(Artnum.Path.url('Project'), {method: 'POST', body: {name: oform.name, reference: (oform.reference ? oform.reference : null), uncount: oform.uncount? 1 : 0, year: oform.year}}).then(function (result) {
+       if (result.success && result.length === 1) {
+         let pId = result.data[0].id
+         Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`)).then(function (result) {
+           if (result.success && result.length === 1) {
+             travail.project = pId
+             Artnum.Query.exec(Artnum.Path.url('Travail'), {method: 'POST', body: travail}).then(function (subresult) {
+               if (subresult.success && subresult.length > 0) {
+                 replaceAddEntry(newEntry(result.data))
+               } else {
+                 alert('Toutes les donnnées n\'ont pas pu être enregistrées')
+               }
+             })
+           }
+         })
+       }
+     })
+   }
+ }
+ 
 async function delProject (event) {
   if (!event || !event.target) { return }
   var node = event.target

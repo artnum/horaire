@@ -85,3 +85,16 @@ CREATE TABLE IF NOT EXISTS "htime" (
 	FOREIGN KEY("htime_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE SET NULL,
 	FOREIGN KEY("htime_process") REFERENCES "process"("process_id") ON UPDATE CASCADE ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS "travail" ( -- table containing specific work to be done
+	"travail_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"travail_reference" VARCHAR(160) DEFAULT '',
+	"travail_meeting" VARCHAR(160) DEFAULT '',
+	"travail_contact" VARCHAR(160) DEFAULT '',
+	"travail_phone" VARCHAR(160) DEFAULT '',
+	"travail_description" TEXT DEFAULT '',
+	"travail_project" INTEGER NOT NULL,
+	"travail_created" INTEGER DEFAULT 0,
+	"travail_modified" INTEGER DEFAULT 0,
+	FOREIGN KEY("travail_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE CASCADE
+);

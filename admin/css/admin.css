@@ -1,102 +1,116 @@
+:root {
+    --input-background-color: hsla(50, 100%, 90%, 1);
+    --input-background-color-error: hsla(340, 100%, 90%, 1);
+}
+
 body {
-  font-family: sans-serif;
+    font-family: sans-serif;
 }
 
 td, th {
-  min-width: 240px;
+    min-width: 240px;
 }
 
 tr {
-  height: 40px;
+    height: 40px;
 }
 tr:nth-child(even) {
-  background-color: lightgray;
+    background-color: lightgray;
 }
 
 tr[data-state=deleted] {
-  font-style: italic;
-  color: darkgray;
+    font-style: italic;
+    color: darkgray;
 }
 
 thead {
-  background-color: black;
-  color: white;
-  height: 40px;
-  font-weight: bolder;
-  text-align: center;
+    background-color: black;
+    color: white;
+    height: 40px;
+    font-weight: bolder;
+    text-align: center;
 }
 
 input, select, textarea {
-  border: 2px solid gray;
-  margin: 5px;
-  background-color: #FFFACD;
-  padding: 5px;
+    border: 2px solid gray;
+    margin: 5px;
+    background-color: var(--input-background-color);
+    padding: 5px;
+}
+
+textarea {
+    min-width: 80ch;
+    min-height: 12ex;
+}
+
+input.error, select.error, textarea.error {
+    border: 2px solid red;
+    background-color: var(--input-background-color-error)
 }
 
 input[type=submit], input[type=button], button {
-  cursor: pointer;
-  background-color: white;
-  color: black;
-  border: 2px solid gray;
-  margin: 5px;
-  min-width: 120px;
-  max-width: 120px;
-  font-weight: bold;
+    cursor: pointer;
+    background-color: white;
+    color: black;
+    border: 2px solid gray;
+    margin: 5px;
+    min-width: 120px;
+    max-width: 120px;
+    font-weight: bold;
 }
 
 main.flex {
-  display: flex;
-	justify-content: center;
+    display: flex;
+    justify-content: center;
 }
 div.button {
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	text-align: center;
-	text-decoration: none;
-	width: 180px;
-	min-height: 120px;
-	max-height: 120px;
-	background-color: black;
-  margin: 5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    text-decoration: none;
+    width: 180px;
+    min-height: 120px;
+    max-height: 120px;
+    background-color: black;
+    margin: 5px;
 }
 
 div.button a {
-	display: inline-block;
-	color: white;
-	font-weight: bold;
-	font-family: sans-serif;
-
+    display: inline-block;
+    color: white;
+    font-weight: bold;
+    font-family: sans-serif;
 }
 
 body {
-	margin: 0;
-	padding: 0;
+    margin: 0;
+    padding: 0;
 }
 
 main {
-	margin: 12px;
+    margin: 12px;
 }
 
 nav {
-	background-color: black;
-	width: 100%;
-	padding: 12px;
-	margin: 0;
+    background-color: black;
+    width: 100%;
+    padding: 12px;
+    margin: 0;
 }
 nav ul {
-	padding: 0;
-	margin: 0;
-	list-style-type: none;
+    padding: 0;
+    margin: 0;
+    list-style-type: none;
 }
 
 nav li {
-	display: inline-block;
-	width: 16ch;
-	padding: 4px;
+    display: inline-block;
+    width: 16ch;
+    padding: 4px;
 }
 
 nav li a {
-	font-weight: bold;
-	color: white;
+    font-weight: bold;
+    color: white;
 }
