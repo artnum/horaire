@@ -40,6 +40,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->printLn($label);
     $PDF->tab(1);
     $PDF->SetFont('helvetica', 'B', 10);
+    if ($data[$item] === 'null') { $data[$item] = null; }
     $PDF->printLn($data[$item] ? $data[$item] : ' ');
   }
   $PDF->reset();
