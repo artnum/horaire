@@ -14,19 +14,19 @@ do
 	case $key in
 		-name)
 		    NAME=$2
-		    PROJECT_DIR=`echo -n $PROJECT_DIR | sed s/@NAME/$NAME/`
+		    PROJECT_DIR=`echo -n $PROJECT_DIR | sed s/@NAME/"$NAME"/`
 		    shift
 		    shift
 		    ;;
 		-reference)
 		    REFERENCE=$2
-		    PROJECT_DIR=`echo -n $PROJECT_DIR | sed s/@REFERENCE/$REFERENCE/`
+		    PROJECT_DIR=`echo -n $PROJECT_DIR | sed s/@REFERENCE/"$REFERENCE"/`
 		    shift
 		    shift
 		    ;;
 		-year)
 		    YEAR=$2
-		    PROJECT_DIR=`echo -n $PROJECT_DIR | sed s/@YEAR/$YEAR/`
+		    PROJECT_DIR=`echo -n $PROJECT_DIR | sed s/@YEAR/"$YEAR"/`
 		    shift
 		    shift
 		    ;;
