@@ -11,7 +11,7 @@ class HorairePDF extends artnum\PDF {
   function Header() {
     $this->SetXY(15, 15);
     $this->SetFont('helvetica', 'B', 16);
-    $this->Cell(0, 0, 'Bon de Travail');
+    $this->Cell(0, 0, 'Bon de Travail / Régie');
   }
   function Footer() {
     $this->SetXY(15, $this->h - 10);
