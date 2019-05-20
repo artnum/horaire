@@ -1,4 +1,8 @@
 :root {
+    --background-color: white;
+    --title-background-color: black;
+    --text-color: black;
+    --title-text-color: white;
     --input-background-color: hsla(50, 100%, 90%, 1);
     --input-background-color-error: hsla(340, 100%, 90%, 1);
 }
@@ -13,9 +17,6 @@ td, th {
 
 tr {
     height: 40px;
-}
-tr:nth-child(even) {
-    background-color: lightgray;
 }
 
 tr[data-state=deleted] {
@@ -54,8 +55,9 @@ input[type=submit], input[type=button], button {
     color: black;
     border: 2px solid gray;
     margin: 5px;
-    min-width: 120px;
-    max-width: 120px;
+    min-width: 100px;
+    min-height: 1.8em;
+    white-space: nowrap;
     font-weight: bold;
 }
 
@@ -113,4 +115,79 @@ nav li {
 nav li a {
     font-weight: bold;
     color: white;
+}
+
+table td {
+    max-width: initial !important;
+}
+
+table.sub {
+    border-left: 1px solid black;
+    margin-left: 32px;
+    margin-bottom: 16px;
+    border-collapse: collapse;
+}
+
+tr.sub {
+    font-size: 0.8em;
+    background-color: transparent !important;
+    display: none;
+}
+
+tr.sub[data-open="1"] {
+    display: table-row;
+}
+
+.sub table td {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    border-collapse: collapse;
+}
+
+.sub table tr:nth-child(even) {
+    background-color: hsla(246, 40%, 40%, 0.2);
+}
+
+.even {
+    background-color: hsla(200, 60%, 60%, 0.2) !important;
+}
+.odd {
+    background-color: hsla(133, 60%, 60%, 0.2) !important;
+}
+.sub table td.overflowable {
+    text-overflow: initial;
+    overflow: initial;
+}
+
+.sub table td button {
+    display: inline;
+}
+
+.sub table {
+    box-shadow: 3px 3px 4px 0px var(--title-background-color);
+}
+
+.popup {
+    border: 2px var(--title-background-color) solid;
+    padding: 8px;
+    box-shadow: 4px 4px 8px 0px var(--title-background-color);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translateY(-50%) translateX(-50%);
+}
+.popup .title {
+    background-color: var(--title-background-color);
+    color: var(--title-text-color);
+    display: block;
+    width: calc(100% - 16px);
+    font-size: 1.2em;
+    padding: 8px;
+}
+
+button[type="reset"] {
+    float: right;
 }

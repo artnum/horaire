@@ -8,15 +8,15 @@
     border: 2px solid white;
 }
 
-.dtable th {
+.dtable thead th {
     color: white;
     background-color: black;
-	cursor: pointer;
-	white-space: nowrap;
-	padding: 4px 6px 4px 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    padding: 4px 6px 4px 6px;
 }
 
-.dtable tr:nth-child(even) {
+.dtable tr.even {
     background-color: #EEE;
 }
 
@@ -25,58 +25,58 @@
     padding: 2px 4px 2px 4px;
 }
 
-.dtable th[data-sort-type="no"]:before {
+.dtable thead th[data-sort-type="no"]:before {
     content : '' !important;
 }
 
-.dtable th[data-sort-type="no"] {
+.dtable thead th[data-sort-type="no"] {
     cursor: auto !important;
 }
 
-.dtable th:before {
-	content: '\00A0\2b65';
-	float: left;
-	opacity: 0.5;
-	font-weight: normal;
+.dtable thead th:before {
+    content: '\00A0\2b65';
+    float: left;
+    opacity: 0.5;
+    font-weight: normal;
 }
 
 .dtable .integer, .dtable .float, .dtable .money {
     text-align: right;
 }
 
-.dtable th[data-sort-include] {
+.dtable thead th[data-sort-include] {
     color: black;
-	background-color: hsl(75, 85%, 100%);
+    background-color: hsl(75, 85%, 100%);
 }
 
-.dtable th[data-sort-include="0"] {
-	background-color: hsl(75, 85%, 46%);
+.dtable thead th[data-sort-include="0"] {
+    background-color: hsl(75, 85%, 46%);
 }
 
-.dtable th[data-sort-include="1"] {
-	background-color: hsl(75, 85%, 54%);
+.dtable thead th[data-sort-include="1"] {
+    background-color: hsl(75, 85%, 54%);
 }
 
-.dtable th[data-sort-include="2"] {
-	background-color: hsl(75, 85%, 62%);
+.dtable thead th[data-sort-include="2"] {
+    background-color: hsl(75, 85%, 62%);
 }
 
-.dtable th[data-sort-include="3"] {
-	background-color: hsl(75, 85%, 76%);
+.dtable thead th[data-sort-include="3"] {
+    background-color: hsl(75, 85%, 76%);
 }
 
-.dtable th[data-sort-include="4"] {
-	background-color: hsl(75, 85%, 84%);
+.dtable thead th[data-sort-include="4"] {
+    background-color: hsl(75, 85%, 84%);
 }
 
-.dtable th[data-sort-include="5"] {
-	background-color: hsl(75, 85%, 92%);
+.dtable thead th[data-sort-include="5"] {
+    background-color: hsl(75, 85%, 92%);
 }
 
-.dtable th[data-sort-direction="ASC"]:before {
+.dtable thead th[data-sort-direction="ASC"]:before {
     content: '\00A0\2b61';
 }
-.dtable th[data-sort-direction="DESC"]:before {
+.dtable thead th[data-sort-direction="DESC"]:before {
     content: '\00A0\2b63';
 }
 

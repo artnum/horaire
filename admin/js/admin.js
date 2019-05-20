@@ -91,21 +91,24 @@
       }
       return null
     },
-    insertEntry: function (entry, table) {
-      var node = table
-      for (node = node.firstChild; node && node.nodeName !== 'TBODY'; node = node.nextSibling);
-      if (!node) { return }
-      var replaced = false
-      for (var _tr = node.firstChild; _tr; _tr = _tr.nextSibling) {
-        if (_tr.getAttribute('data-id') === entry.getAttribute('data-id')) {
-          node.replaceChild(entry, _tr)
-          replaced = true
-          break
+    insertEntry: function (entry, table, id = null) {
+      return new Promise((resolve, reject) => {
+        let entryId = id !== null ? id : entry.getAttribute('data-id')
+        let node = table
+        for (node = node.firstChild; node && node.nodeName !== 'TBODY'; node = node.nextSibling);
+        if (!node) { return }
+        var replaced = false
+        for (let _tr = node.firstElementChild; _tr; _tr = _tr.nextElementSibling) {
+          if (_tr.getAttribute('data-id') === entryId) {
+            window.requestAnimationFrame(() => { node.replaceChild(entry, _tr); resolve() })
+            replaced = true
+            break
+          }
         }
-      }
-      if (!replaced) {
-        node.insertBefore(entry, node.firstChild)
-      }
+        if (!replaced) {
+          window.requestAnimationFrame(() => { node.insertBefore(entry, node.firstChild); resolve() })
+        }
+      })
     },
     deleteEntry: function (store, id, undelete = false) {
       var body = {id: id}
@@ -129,6 +132,23 @@
           }
         })
       })
+    },
+    popup: function (html, title) {
+      let popup = document.createElement('DIV')
+      popup.innerHTML = html
+      let titleNode = document.createElement('SPAN')
+      titleNode.innerHTML = title
+
+      popup.classList.add('popup')
+      titleNode.classList.add('title')
+      popup.insertBefore(titleNode, popup.firstChild)
+      popup.addEventListener('close', function (event) {
+        window.requestAnimationFrame(() => this.parentNode.removeChild(this))
+      }.bind(popup))
+      window.requestAnimationFrame(() => {
+        document.body.appendChild(popup)
+      })
+      return popup
     }
   }
   global.Admin = admin

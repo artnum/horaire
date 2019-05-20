@@ -7,6 +7,7 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
          LEFT JOIN htime ON htime.htime_project = project.project_id
          LEFT JOIN person ON htime.htime_person = person.person_id
          LEFT JOIN process ON htime.htime_process = process.process_id
+         LEFT JOIN travail ON htime.htime_travail = travail.travail_id
       WHERE project_id=:pid AND htime.htime_deleted IS NULL';
    $query_items = 'SELECT * FROM quantity
          LEFT JOIN item ON item.item_id = quantity.quantity_item
@@ -28,6 +29,7 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
          LEFT JOIN htime ON htime.htime_project = project.project_id
          LEFT JOIN person ON htime.htime_person = person.person_id
          LEFT JOIN process ON htime.htime_process = process.process_id
+         LEFT JOIN travail ON htime.htime_travail = travail.travail_id
          WHERE htime.htime_deleted IS NULL';
 
    $query_items = null;
@@ -61,8 +63,7 @@ try {
    $per_process = array();
    $per_person = array();
    /* Entrées */
-   $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process' => 'string', 'Jour' => 'datetime', 'Temps [h]' => '0.00', 'Personne' => 'string', 'Terminé' => 'datetime'), array('widths'=>[25, 25, 25, 10, 25, 25]));
-
+   $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process/Bon' => 'string', 'Jour' => 'datetime', 'Temps [h]' => '0.00', 'Personne' => 'string', 'Terminé' => 'datetime'), array('widths'=>[25, 25, 25, 10, 25, 25]));
    foreach ($values as $row) {
       if ($project === '') {
          $project = $row['project_reference'] . ' - ' . $row['project_name'];
@@ -73,8 +74,21 @@ try {
       if (!isset($per_person[$row['person_name']])) {
          $per_person[$row['person_name']] = 0;
       }
+
+      $pb = '';
+     if (isset($row['process_name'])) {
+       $pb = $row['process_name'];
+     }
+     if (isset($row['travail_id'])) {
+       if ($pb === '') {
+         $pb = 'Bon ' . $row['project_reference'] . '.' . $row['travail_id'];
+       } else {
+         $pb .= '/' . $row['project_reference'] . '.' . $row['travail_id'];
+       }
+     }
+     
       $date = (new DateTime($row['htime_day']))->format('Y-m-d H:i:s');
-      $writer->writeSheetRow('Entrées', array($row['project_reference'], $row['project_name'], $row['process_name'], $date, $row['htime_value'] / 3600, $row['person_name'], is_null($row['project_closed']) ? '' : $row['project_closed']));
+      $writer->writeSheetRow('Entrées', array($row['project_reference'], $row['project_name'], $pb, $date, $row['htime_value'] / 3600, $row['person_name'], is_null($row['project_closed']) ? '' : $row['project_closed']));
 
       $per_process[$row['process_name']] += $row['htime_value'];
       $per_person[$row['person_name']] += $row['htime_value'];

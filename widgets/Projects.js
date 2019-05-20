@@ -52,6 +52,7 @@ define([
       this.On = 'group'
       this.Group = group
       this.Process = process
+      this.Travaux = null
 
       djOn(this.domNode, 'keyup', function (event) {
         if (event.target.name !== 'searchRef') { return }
@@ -65,6 +66,8 @@ define([
       djOn(group, 'change', function (event) {
         this.On = 'process'
         this.emit('change', this.get('value'))
+        console.log(this.get('value'))
+        let GTravaux = this.travail(this.get('value').project)
         window.requestAnimationFrame(function () {
           this.content.replaceChild(this.Process.domNode, this.Group.domNode)
           var back = document.createElement('DIV')
@@ -72,14 +75,32 @@ define([
           back.setAttribute('style', 'margin-bottom: 14px')
           back.innerHTML = '← Retour'
           this.content.insertBefore(back, this.Process.domNode)
+          let dNode = this.Process.domNode
+          GTravaux.then((n) => {
+            this.Travaux = n
+            let title = document.createElement('H2')
+            title.appendChild(document.createTextNode('Avec bon de travail'))
+            window.requestAnimationFrame(() => {
+              dNode.parentNode.insertBefore(n.domNode, dNode.nextElementSibling)
+              dNode.parentNode.insertBefore(title, dNode.nextElementSibling)
+            })
+          })
 
-          djOn(back, 'click', function () {
+          djOn(back, 'click', function (event) {
             this.On = 'group'
             this.Process.set('value', null)
             this.emit('change', this.get('value'))
+            let nodes = []
+            let n = event.target
+            while (n) {
+              nodes.push(n)
+              n = n.nextSibling
+            }
             window.requestAnimationFrame(function () {
-              this.content.removeChild(this.content.firstChild)
-              this.content.replaceChild(this.Group.domNode, this.Process.domNode)
+              nodes.forEach((n) => {
+                n.parentNode.removeChild(n)
+              })
+              this.content.appendChild(this.Group.domNode)
             }.bind(this))
           }.bind(this))
         }.bind(this))
@@ -110,11 +131,26 @@ define([
       })
     },
 
+    travail: function (pid) {
+      return new Promise(function (resolve, reject) {
+        Query.exec(Path.url(`Project/${pid}`)).then((projet) => {
+          Query.exec(Path.url('Travail', {params: {'search.project': pid, 'search.closed': 0}})).then(function (travaux) {
+            if (!travaux.success || travaux.length <= 0) { reject(new Error('Pas de travaux')); return }
+            let GTravaux = new ButtonGroup({moveNode: false})
+            travaux.data.forEach((travail) => {
+              GTravaux.addValue(travail.id, {type: 'travail', label: `Bon : "${projet.data.reference}.${travail.id}"`, filtervalue: travail.reference})
+            })
+            resolve(GTravaux)
+          })
+        })
+      })
+    },
+
     _getValueAttr: function () {
-      return {project: this.Group.get('value'), process: this.Process.get('value')}
+      return {project: this.Group.get('value'), process: this.Process.get('value'), travail: this.Travaux ? this.Travaux.get('value') : null}
     },
     _getNameAttr: function () {
-      return {project: this.Group.get('label'), process: this.Process.get('label')}
+      return {project: this.Group.get('label'), process: this.Process.get('label'), travail: this.Travaux ? this.Travaux.get('label') : null}
     }
   })
 })

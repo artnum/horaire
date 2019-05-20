@@ -23,14 +23,8 @@
       <label for="name">Nom : </label><input name="name" type="text" /><br>
       <label for="uncount">Heures non-comptabilisées : </label><input name="uncount" type="checkbox" /><br>
     </fieldset>
-    <fieldset name="details">
-      <legend>Détails</legend>
-      <label for="subref">Référence : </label><input name="subref" type="text" /> <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" /><br>
-      <label for="contact">Personne de contact : </label><input name="contact" type="text" /> <label for="cphone">Téléphone : </label><input name="cphone" type="text" /><br>
-      <label for="description>">Description du travail</label><br>
-      <textarea name="description"></textarea>
-    </fieldset>
-    <!-- <label for="end">Date de fin : </label><input name="name" type="date" /><br> //-->
+<!--    <label for="end">Date de fin : </label><input name="name" type="date" /><br>
+//-->
     <input type="submit" value="Ajouter"/><br>
   </form>
   <h2>Projets existants</h2>
@@ -69,6 +63,104 @@ function changeState (event) {
   load()
 }
 
+ async function newTravailEvent (event) {
+   let params = {}
+   if (event.target.dataset.travail) {
+     params.travail = event.target.dataset.travail
+   }
+   if (event.target.dataset.project) {
+     params.project = event.target.dataset.project
+   }
+   return newTravailPopup(params)
+ }
+ async function newTravailPopup (params) {
+   let query
+   if (params.travail) {
+     query = new Promise((resolve, reject) => {
+       Artnum.Query.exec(Artnum.Path.url(`Travail/${params.travail}`)).then((result) => {
+         if (!result.success || result.length !== 1) { reject(new Error('La mission est inexistante')); return }
+         let travail = result.data
+         Artnum.Query.exec(Artnum.Path.url(`Project/${params.project}`)).then((result) => {
+           if (!result.success || result.length !== 1) { reject(new Error('Le project est inexistant')); return }
+           resolve({project: result.data, travail: travail})
+         })
+       })
+     })
+   } else if(params.project) {
+     query = new Promise((resolve, reject) => {
+       Artnum.Query.exec(Artnum.Path.url(`Project/${params.project}`)).then((result) => {
+         if (!result.success || result.length !== 1) { reject(new Error('Le projet est inexistant')); return }
+         resolve({project: result.data, travail: {id: '', reference: '', meeting: '', contact: '', phone: '', description: ''}}) 
+       })
+     })
+   } else {
+     return;
+   }
+   query.then((result) => {
+     let project = result.project
+     let travail = result.travail
+/*     let popup = document.createElement('DIV')
+   popup.classList.add('popup') */
+     let popup = window.Admin.popup(`<form>
+      <input type="hidden" value="${project.id}" name="project" />
+      <label for="subref">Référence : </label><input name="subref" type="text" value="${travail.reference}" /> <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" value="${travail.meeting}" /><br>
+      <label for="contact">Personne de contact : </label><input name="contact" type="text" value="${travail.contact}" /> <label for="cphone">Téléphone : </label><input name="cphone" type="text" value="${travail.phone}"/><br>
+      <label for="description>">Description du travail</label><br>
+      <textarea name="description">${travail.description}</textarea><br>
+      <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
+     </form>`, `Travail pour ${project.reference} - ${project.name}`)
+
+     let form = popup.getElementsByTagName('form')[0]
+     form.addEventListener('reset', (event) => {
+       let p = event.target
+       while (!p.classList.contains('popup')) {
+         p = p.parentNode
+       }
+       p.dispatchEvent(new CustomEvent('close'))
+     })
+     
+     form.addEventListener('click', (event) => {
+       if (event.target.nodeName === 'BUTTON' && event.target.name === 'print') {
+         let node = event.target
+         while (node && node.nodeName !== 'FORM') { node = node.parentNode }
+         form.dispatchEvent(new CustomEvent('submit', {bubbles: true, cancelable: true, target: node, detail: {print: true}}))
+       }
+     })
+     form.addEventListener('submit', (event) => {
+       event.preventDefault()
+       let content = window.Admin.getForm(event.target)
+       let mapping = {project: 'project', description: 'description', subref: 'reference', meeting: 'meeting', contact: 'contact', cphone: 'phone'}
+       let data = travail.id !== '' ?  {id: travail.id} : {}
+       for (let i in mapping) {
+         if (content[i] && content[i] !== null) {
+           data[mapping[i]] = content[i]
+         } else {
+           data[mapping[i]] = ''
+         }
+       }
+       Artnum.Query.exec(Artnum.Path.url(`Travail/${travail.id}`), {method: travail.id !== '' ? 'PUT' : 'POST', body: data}).then((result) => {
+         if (result.success) {
+           let tid = result.data[0].id
+           let p = event.target
+           while (!p.classList.contains('popup')) {
+             p = p.parentNode
+           }
+           p.dispatchEvent(new CustomEvent('close'))
+           newEntry(project).then((result) => {
+             replaceAddEntry(result, project.id)
+             if (event.detail && event.detail.print) {
+               window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: project.id, travail: tid}}))                         
+             }
+           })
+         } else {
+           alert('Une erreur est survenue')
+         }
+       })
+     })
+     
+     window.requestAnimationFrame(() => document.body.appendChild(popup))
+   })
+ }
  async function addProject (event) {
    var form = event.target
    let el = form.getElementsByClassName('error')
@@ -80,7 +172,7 @@ function changeState (event) {
 
    if (oform.name) {
      if (oform.reference) {
-       var res = await Artnum.Query.exec(Artnum.Path.url('Project', {params: {'search.reference': oform.reference}}))
+       var res = await Artnum.Query.exec(Artnum.Path.url('Project', {params: {'search.reference': oform.reference, 'search.deleted': '-'}}))
        if (res.success && res.length > 0) {
          if (!confirm(`La référence ${oform.reference} est déjà utilisée, voulez-vous créer un doublon ?`)) {
            return
@@ -118,38 +210,64 @@ function changeState (event) {
      }
 
      Artnum.Query.exec(Artnum.Path.url('Project'), {method: 'POST', body: {name: oform.name, reference: (oform.reference ? oform.reference : null), uncount: oform.uncount? 1 : 0, year: oform.year}}).then(function (result) {
-       if (result.success && result.length === 1) {
+       if (!result.success && result.length < 1) {
+         alert('Erreur de création du projet')
+       } else {
          let pId = result.data[0].id
          Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`)).then(function (result) {
            if (result.success && result.length === 1) {
-             travail.project = pId
-             Artnum.Query.exec(Artnum.Path.url('Travail'), {method: 'POST', body: travail}).then(function (subresult) {
-               if (subresult.success && subresult.length > 0) {
-                 replaceAddEntry(newEntry(result.data))
-               } else {
-                 alert('Toutes les donnnées n\'ont pas pu être enregistrées')
-               }
-             })
+             newEntry(result.data).then((tr) => {
+               replaceAddEntry(tr, pId)
+               newTravailPopup({project: pId})
+             })  
+           } else {
+             alert('Erreur création du projet')
            }
          })
        }
      })
    }
  }
- 
-async function delProject (event) {
-  if (!event || !event.target) { return }
-  var node = event.target
-  if (node.getAttribute('data-id')) {
-    var res = await Artnum.Query.exec(Artnum.Path.url('Project/' + node.getAttribute('data-id')), {method: 'DELETE', body: {id: node.getAttribute('data-id')}})
-    if (res.success) {
-      var tr = node
-      for (; tr.nodeName !== 'TR'; tr = tr.parentNode);
-      tr.parentNode.removeChild(tr)
-    }
-  }
-}
 
+ async function handleTravailButton (event) {
+   let button = event.target
+
+   switch(button.dataset.action) {
+     case 'edit':
+       newTravailEvent(event)
+       break
+     case 'print':
+       window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: button.dataset.project, travail: button.dataset.travail}}))          
+       break;
+   }
+ }
+ 
+ async function delProject (event) {
+   if (!event || !event.target) { return }
+   var node = event.target
+   if (node.getAttribute('data-id')) {
+     var res = await Artnum.Query.exec(Artnum.Path.url('Project/' + node.getAttribute('data-id')), {method: 'DELETE', body: {id: node.getAttribute('data-id')}})
+     if (res.success) {
+       let tr = node
+       for (; tr.nodeName !== 'TR'; tr = tr.parentNode);
+
+       window.requestAnimationFrame(() => {
+         let sub = tr.nextElementSibling;
+         while (sub) {
+           let next = sub.nextElementSibling
+           if (sub.dataset.parentId && sub.dataset.parentId === tr.getAttribute('data-id')) {
+             sub.parentNode.removeChild(sub)
+             sub = next
+           } else {
+             sub = null
+           }
+         }
+         tr.parentNode.removeChild(tr)
+       })
+     }
+   }
+ }
+ 
 async function evCloseProject (event) {
   if (event && event.target) {
     var node = event.target
@@ -157,12 +275,12 @@ async function evCloseProject (event) {
       var close = (node.getAttribute('data-state') === 'open' ? (new Date()).toISOString() : null)
       var res = await Artnum.Query.exec(Artnum.Path.url('Project/' + node.getAttribute('data-id')), {method: 'PATCH', body: {id: node.getAttribute('data-id'), closed: close}})
       if (res.success && res.length === 1) {
+        let id = res.data[0].id
         res = await Artnum.Query.exec(Artnum.Path.url('Project/' + res.data[0].id))
         if (res.success && res.length === 1) {
-          var tr = newEntry(res.data)
-          if (tr) {
-            replaceAddEntry(tr)
-          }
+          newEntry(res.data).then((tr) => {
+            replaceAddEntry(tr, id)
+          })
         }
       }
     }  
@@ -186,165 +304,237 @@ async function evCancelEdit (event) {
   }
 }
 
-async function evEditLine (event) {
-  if (event && event.target) {
-    for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
-    var tr = node
-    if (!tr.getAttribute('data-edit') || tr.getAttribute('data-edit') === '0') {
-      tr.setAttribute('data-edit', '1')
-      for (var td = node.firstChild; td; td = td.nextSibling) {
-        if (td.getAttribute('data-type')) {
-          switch (td.getAttribute('data-type').toLowerCase()) {
-            default:
-            case 'text':
-              if (td.getAttribute('data-name')) {
-                var input = document.createElement('INPUT')
-                input.setAttribute('name', td.getAttribute('data-name'))
-                if (td.getAttribute('data-value')) {
-                  input.value = td.getAttribute('data-value')
-                } else {
-                  input.value = td.innerHTML
-                }
-                td.setAttribute('data-original-value', input.value)
-              }
-              break
-          }
-          td.innerHTML = ''
-          td.appendChild(input)
-        }
-      }
-      
-      var cancelButton = document.createElement('BUTTON')
-      cancelButton.setAttribute('type', 'button')
-      cancelButton.innerHTML = 'Annuler'
-      cancelButton.addEventListener('click', evCancelEdit)
-      event.target.parentNode.insertBefore(cancelButton, event.target.nextSibling)
-    } else {
-      var dataSource = null
-      for (var x = tr; x; x = x.parentNode) {
-        if (x.getAttribute('data-source')) {
-          dataSource = x.getAttribute('data-source')
-          break
-        }
-      }
-      if (dataSource) {
-        var inputs = tr.getElementsByTagName('INPUT')
-        tr.setAttribute('data-edit', '0')
-        var body = {id: tr.getAttribute('data-id')}
-        for (var i = 0; i < inputs.length; i++) {
-          body[inputs[i].getAttribute('name')] = inputs[i].value
-        }
+ function evEditProject (event) {
+   let pid = event.target.dataset.project
+   Artnum.Query.exec(Artnum.Path.url(`Project/${pid}`)).then((result) => {
+     if (!result.success || result.length !== 1) { alert('Projet inexistant'); console.log(result); return }
+     let project = result.data
+     let popup = window.Admin.popup(`<form>
+      <input type="hidden" value="${project.id}" name="project" />
+      <label for="subref">Numéro de chantier : </label><input name="reference" type="text" value="${project.reference}" />
+      <label for="cphone">Nom : </label><input name="name" type="text" value="${project.name}"/><br>
+      <button type="submit">Sauver</button><button type="reset">Annuler</button>
+     </form>`, `Projet ${project.reference} - ${project.name}`)
+     let form = popup.getElementsByTagName('FORM')[0]
+     form.addEventListener('reset', (event) => {
+       let p = event.target
+       while (p && !p.classList.contains('popup')) { p = p.parentNode }
+       p.dispatchEvent(new CustomEvent('close'))
+     })
+     form.addEventListener('submit', (event) => {
+       event.preventDefault()
+       let content = window.Admin.getForm(event.target)
+       Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`), {method: 'PUT', body: {id: content.project, name: content.name, reference: content.reference}}).then((result) => {
+         if (result.success) {
+           Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`)).then((result) => {
+             if (result.success) {
+               newEntry(result.data).then((tr) => {
+                 replaceAddEntry(tr, result.data.id)
+                 let p = event.target
+                 while (p && !p.classList.contains('popup')) { p = p.parentNode }
+                 p.dispatchEvent(new CustomEvent('close'))
+               })
+             }
+           })
+         }
+       })
+     })
+   })
+ }
 
-        var res = await Artnum.Query.exec(Artnum.Path.url(dataSource + '/' + body.id), {method: 'PATCH', body: body})
-        if (res.success && res.length === 1) {
-          res = await Artnum.Query.exec(Artnum.Path.url(dataSource + '/' + res.data[0].id))
-          if (res.success && res.length === 1) {
-            replaceAddEntry(newEntry(res.data))
-          }
-        }
-      }
-    }
-  }
+ function newEntry (entry) {
+   return new Promise(function (resolve, reject) {
+     if (entry.id) {
+       let qTravail = Artnum.Query.exec(Artnum.Path.url('Travail', {params: {'search.project': entry.id}}))
+       let exportButton = document.createElement('BUTTON')
+       exportButton.setAttribute('type', 'button')
+       exportButton.addEventListener('click', function (event) {
+         if (event && event.target) {
+           for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
+           window.open(Artnum.Path.url('exec/export/project.php', {params: {pid: node.getAttribute('data-id')}}))
+         }
+       })
+       exportButton.innerHTML = 'Exporter'
+
+       let printButton = document.createElement('BUTTON')
+       printButton.setAttribute('type', 'button')
+       printButton.addEventListener('click', function (event) {
+         if (event && event.target) {
+           for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
+           window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: node.getAttribute('data-id')}}))
+         }
+       })
+       printButton.innerHTML = 'Imprimer'
+
+       let closeButton = document.createElement('BUTTON')
+       closeButton.setAttribute('type', 'button')
+       closeButton.setAttribute('data-id', entry.id)
+
+       if (entry.closed === null) {
+         closeButton.innerHTML = 'Clore'
+         closeButton.setAttribute('data-state', 'open')
+       } else {
+         closeButton.innerHTML = 'Réouvrir'
+         closeButton.setAttribute('data-state', 'close')
+       }
+       closeButton.addEventListener('click', evCloseProject)
+       
+       let editButton = document.createElement('BUTTON')
+       editButton.setAttribute('type', 'button')
+       editButton.innerHTML = 'Éditer'
+       editButton.dataset.project = entry.id
+       editButton.addEventListener('click', evEditProject)
+
+       let delButton = document.createElement('BUTTON')
+       delButton.setAttribute('type', 'button')
+       delButton.setAttribute('data-id', entry.id)
+       delButton.innerHTML = 'Supprimer'
+       delButton.addEventListener('click', delProject)
+
+       let newTravail = document.createElement('BUTTON')
+       newTravail.setAttribute('type', 'button')
+       newTravail.setAttribute('data-project', entry.id)
+       newTravail.innerHTML = 'Ajout travail'
+       newTravail.addEventListener('click', newTravailEvent)
+       
+       qTravail.then((travaux) => {
+         let frag = document.createDocumentFragment()
+         let tr = document.createElement('TR')
+         frag.appendChild(tr)
+         
+         tr.setAttribute('data-id', entry.id)
+         tr.innerHTML = `<td data-name="reference" data-type="text">${travaux.length > 0 ? '<span>&#9205;</span> ' : ''}${(entry.reference ? entry.reference : '')}</td>
+                         <td data-name="name" data-type="text">${(entry.name ? entry.name : '')}</td>`
+         if (travaux.length > 0) {
+           let subTable = document.createElement('TABLE')
+           subTable.classList.add('sub')
+           let trHeader = document.createElement('TR')
+           trHeader.innerHTML = '<th>Référence</th><th>Rendez-vous</th><th>Personne contact</th><th>Téléphone</th><th>Description</th><th></th>'
+           subTable.appendChild(trHeader)
+           travaux.data.forEach((travail) => {
+             let tr = document.createElement('TR')
+             tr.innerHTML = `<td>${travail.reference}</td><td>${travail.meeting}</td><td>${travail.contact}</td><td>${travail.phone}</td><td>${travail.description}</td><td class="overflowable"><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="edit">Éditer</button><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="print">Imprimer</button></td>`
+             tr.addEventListener('click', (event) => {
+               if (event.target.nodeName === 'BUTTON') {
+                 handleTravailButton(event)
+               }
+             })
+             subTable.appendChild(tr)
+           })
+
+           let sub = document.createElement('TR')
+           sub.setAttribute('data-parent-id', entry.id)
+           sub.classList.add('sub')
+           sub.innerHTML = '<td colspan="3"></td>'
+           sub.firstElementChild.appendChild(subTable)
+           frag.appendChild(sub)
+         }
+         
+         let td = document.createElement('TD')
+         td.appendChild(newTravail)
+         td.appendChild(editButton)
+         td.appendChild(exportButton)
+         td.appendChild(printButton)
+         td.appendChild(closeButton)
+         td.appendChild(delButton)
+         
+         tr.appendChild(td)
+         tr.firstElementChild.addEventListener('click', (evt) => {
+           let node = evt.target
+           for (; node && node.nodeName !== 'TR'; node = node.parentNode) ;
+           if (node && node.dataset && node.dataset.id) {
+             let sub = node.nextElementSibling
+             let open = false
+             for(; sub && sub.dataset.parentId && sub.dataset.parentId === node.dataset.id; sub = sub.nextElementSibling) {
+               if (!sub.dataset.open) {
+                 sub.dataset.open = '1'
+                 open = true
+               } else {
+                 if (sub.dataset.open === '1') { sub.dataset.open = '0' } else { sub.dataset.open = '1'; open = true }
+               }
+
+               if (open) {
+                 node.firstElementChild.firstElementChild.innerHTML = '&#9207;'
+               } else {
+                 node.firstElementChild.firstElementChild.innerHTML = '&#9205;'
+               }
+             }
+           }
+         }, {capture: true})
+         
+         resolve(frag)
+       })
+     } else {
+       reject()
+     }
+   })
 }
 
-function newEntry (entry, edit = false) {
-  var tr = null
+ function replaceAddEntry (tr, id) {
+   let table = document.getElementById('projects')
+   let tbody = table.firstElementChild
 
-  if (entry.id) {
-    var exportButton = document.createElement('BUTTON')
-    exportButton.setAttribute('type', 'button')
-    exportButton.addEventListener('click', function (event) {
-      if (event && event.target) {
-        for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
-        window.open(Artnum.Path.url('exec/export/project.php', {params: {pid: node.getAttribute('data-id')}}))
-      }
-    })
-    exportButton.innerHTML = 'Exporter'
+   while (tbody && tbody.nodeName !== 'TBODY') { tbody = tbody.nextElementSibling }
+   for (let n = tbody.firstElementChild; n; n = n.nextSibling) {
+     if (n.dataset && n.dataset.parentId && String(n.dataset.parentId) === String(id)) {
+       for (let i = 0; i < tr.children.length; i++) {
+         if (tr.children[i] && tr.children[i].dataset && String(tr.children[i].dataset.parentId) === String(id)) {
+           tr.children[i].dataset.open = n.dataset.open ? n.dataset.open : '0'
+         }
+       }
+       n.parentNode.removeChild(n)
+       break
+     }
+   }
+   Admin.insertEntry(tr, table, id).then(() => {
+     let odd = true
+     for (let i = tbody.firstChild; i; i = i.nextSibling) {
+       if (i.dataset.id) {
+         let v = odd ? 'odd' : 'even'
+         window.requestAnimationFrame(() => { i.classList.remove('odd', 'even'); i.classList.add(v) })
+         odd = !odd
+       }
+     }
+   })
+ }
 
-    var printButton = document.createElement('BUTTON')
-    printButton.setAttribute('type', 'button')
-    printButton.addEventListener('click', function (event) {
-      if (event && event.target) {
-        for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
-        window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: node.getAttribute('data-id')}}))
-      }
-    })
-    printButton.innerHTML = 'Imprimer'
+ function cleanTbody(table) {
+   return new Promise(function (resolve, reject) {
+     let tbody = table.firstElementChild
+     while (tbody && tbody.nodeName !== 'TBODY') { tbody = tbody.nextElementSibling }
+     if (tbody) {
+       window.requestAnimationFrame(function () {
+         tbody.innerHTML = ''
+         resolve();
+       })
+     }
+   })
+ }
+ 
+ async function load () {
+   document.getElementById('inYear').value = String((new Date()).getFullYear())
+   var forms = document.getElementsByTagName('FORM')
+   forms[0].addEventListener('submit', function (event) {
+     event.preventDefault()
+     addProject(event)
+   })
+   let qPrj = Artnum.Query.exec(Artnum.Path.url('Project', {params: searchParams}))
 
-    var closeButton = document.createElement('BUTTON')
-    closeButton.setAttribute('type', 'button')
-    closeButton.setAttribute('data-id', entry.id)
-
-    if (entry.closed === null) {
-      closeButton.innerHTML = 'Clore'
-      closeButton.setAttribute('data-state', 'open')
-    } else {
-      closeButton.innerHTML = 'Réouvrir'
-      closeButton.setAttribute('data-state', 'close')
-    }
-    closeButton.addEventListener('click', evCloseProject)
-    
-    var editButton = document.createElement('BUTTON')
-    editButton.setAttribute('type', 'button')
-    editButton.innerHTML = 'Éditer'
-    editButton.addEventListener('click', evEditLine)
-
-    var delButton = document.createElement('BUTTON')
-    delButton.setAttribute('type', 'button')
-    delButton.setAttribute('data-id', entry.id)
-    delButton.innerHTML = 'Supprimer'
-    delButton.addEventListener('click', delProject)
-
-    tr = document.createElement('TR')
-    tr.setAttribute('data-id', entry.id)
-    tr.innerHTML = '<td data-name="reference" data-type="text">' + (entry.reference ? entry.reference : '') + '</td>' +
-    '<td data-name="name" data-type="text">' + (entry.name ? entry.name : '') + '</td>' 
-    
-    var td = document.createElement('TD')
-    td.appendChild(editButton)
-    td.appendChild(exportButton)
-    td.appendChild(printButton)
-    td.appendChild(closeButton)
-    td.appendChild(delButton)
-    tr.appendChild(td)
-  }
-
-  return tr
-}
-
-function replaceAddEntry (tr) {
-  var table = document.getElementById('projects')
-  Admin.insertEntry(tr, table)
-}
-
-async function load () {
-  document.getElementById('inYear').value = String((new Date()).getFullYear())
-  var forms = document.getElementsByTagName('FORM')
-  forms[0].addEventListener('submit', function (event) {
-    event.preventDefault()
-    addProject(event)
-  })
-  var res = await Artnum.Query.exec(Artnum.Path.url('Project', {params: searchParams}))
-  if (res.success) {
-    var frag = document.createDocumentFragment()
-    res.data.forEach(function (entry) {
-      var tr = newEntry(entry)
-      if (tr) {        
-        frag.appendChild(tr)
-      }
-    })
-    var table = document.getElementById('projects')
-    var node = null
-    for (node = table.firstChild; node.nodeName !== 'TBODY'; node = node.nextSibling);
-    window.requestAnimationFrame(function () {
-      node.innerHTML = ''
-      node.appendChild(frag)
-    })
-  }
+   await cleanTbody(document.getElementById('projects'))
+   qPrj.then((res) => {
+     if (res.success) {
+       for (node = document.getElementById('projects').firstChild; node.nodeName !== 'TBODY'; node = node.nextSibling);
+       res.data.forEach(function (entry) {
+         newEntry(entry).then((tr) => {
+           replaceAddEntry(tr, entry.id)
+         })
+       })
+     }
+   })
 
    var t = new Artnum.DTable({table: 'projects'})
-}
-
-window.addEventListener('load', load)
+ }
+ 
+ window.addEventListener('load', load)
 </script>
 </html>

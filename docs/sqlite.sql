@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS "htime" (
 	"htime_value" INTEGER DEFAULT 0,
 	"htime_project" INTEGER DEFAULT NULL,
 	"htime_person" INTEGER DEFAULT NULL,
+	"htime_travail" INTEGER DEFAULT NULL,
 	"htime_process" INTEGER DEFAULT NULL,
 	"htime_comment" TEXT DEFAULT NULL,
 	"htime_other" TEXT DEFAULT NULL,  -- json data to handle useful information (like a date range if that apply)
@@ -83,7 +84,8 @@ CREATE TABLE IF NOT EXISTS "htime" (
 	"htime_modified" INTEGER DEFAULT NULL,
 	FOREIGN KEY("htime_person") REFERENCES "person"("person_id") ON UPDATE CASCADE ON DELETE SET NULL,
 	FOREIGN KEY("htime_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE SET NULL,
-	FOREIGN KEY("htime_process") REFERENCES "process"("process_id") ON UPDATE CASCADE ON DELETE SET NULL
+	FOREIGN KEY("htime_process") REFERENCES "process"("process_id") ON UPDATE CASCADE ON DELETE SET NULL,
+	FOREIGN KEY("htime_travail") REFERENCES "travail"("travail_id") ON UPDATE CASCADE ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS "travail" ( -- table containing specific work to be done
@@ -96,5 +98,7 @@ CREATE TABLE IF NOT EXISTS "travail" ( -- table containing specific work to be d
 	"travail_project" INTEGER NOT NULL,
 	"travail_created" INTEGER DEFAULT 0,
 	"travail_modified" INTEGER DEFAULT 0,
+	"travail_closed" INTEGER DEFAULT 0,
+	"travail_progress" INTEGER DEFAULT 0,
 	FOREIGN KEY("travail_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE CASCADE
 );
