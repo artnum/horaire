@@ -96,7 +96,6 @@ define([
       let done = 0
       while (done < this.lateDay) {
         let d = djDate.add(now, 'day', -i)
-        console.log(d)
         group.addValue(d, { label: d.getDate() + '.' + (d.getMonth() + 1) })
         if (d.getDay() !== 0 && d.getDay() !== 6) {
           done++

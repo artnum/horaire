@@ -46,7 +46,14 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetY($y + 8);
     $PDF->squaredFrame(37, array('line-type' => 'dotted', 'square' => 9, 'lined' => true));
     $PDF->SetY($y);
-    foreach(array('project_reference' => 'N° de bon',
+
+    if (isset($data['travail_id'])) {
+      $data['bon_number'] = $data['project_reference'] . '.' . $data['travail_id'];
+    } else {
+      $data['bon_number'] = $data['project_reference'];
+    }
+    
+    foreach(array('bon_number' => 'N° de bon',
                   'travail_reference' => 'Référence',
                   'travail_meeting' => 'Rendez-vous',
                   'travail_contact' => 'Personne de contact',

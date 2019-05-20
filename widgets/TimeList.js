@@ -52,7 +52,7 @@ define([
         let acc = 0
         if (result.success && result.length > 0) {
           var table = `<h2>Dernières entrées (du ${lastMonth.shortDate()} au  ${today.shortDate()})</h2><table>
-               <thead><tr><th>Jour</th><th>Projet</th><th>Processus</th><th>Durée</th></tr></thead><tbody>`
+               <thead><tr><th>Jour</th><th>Projet</th><th>Processus/Bon</th><th>Durée</th></tr></thead><tbody>`
           for (var i = 0; i < result.length; i++) {
             var e = result.data[i]
             if (prevDay !== (new Date(e.day)).shortDate()) {
@@ -62,7 +62,19 @@ define([
               acc = 0
               prevDay = (new Date(e.day)).shortDate()
             }
-            var tr = `<tr><td>${new Date(e.day).shortDate()}</td><td>${e._project.reference} - ${e._project.name}</td><td>${e._process.name}</td><td>${(new Hour(e.value)).toMinStr()}</tr>`
+
+            let pb = ''
+            if (e._process) {
+              pb = e._process.name
+            }
+            if (e._travail) {
+              if (pb === '') {
+                pb = `Bon ${e._project.reference}.${e._travail.id}`
+              } else {
+                pb += `/${e._project.reference}.${e._travail.id}`
+              }
+            }
+            var tr = `<tr><td>${new Date(e.day).shortDate()}</td><td>${e._project.reference} - ${e._project.name}</td><td>${pb}</td><td>${(new Hour(e.value)).toMinStr()}</tr>`
             acc += parseInt(e.value)
             table += tr
           }
@@ -99,6 +111,7 @@ define([
           }
           var tr = document.createElement('TR')
           tr.setAttribute('class', 'entries')
+
           var project = data[i]._project.name
           if (this.user.id !== data[i].person) {
             tr.setAttribute('class', 'entries foreign')
