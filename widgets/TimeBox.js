@@ -91,9 +91,17 @@ define([
       var now = new Date(Date.now())
       var group = new ButtonGroup({name: 'day'})
       this.own(group)
-      for (var i = this.lateDay - 1; i >= 0; i--) {
-        var day = djDate.add(now, 'day', -i)
-        group.addValue(day, { label: day.getDate() + '.' + (day.getMonth() + 1) })
+      let days = []
+      let i = 1
+      let done = 0
+      while (done < this.lateDay) {
+        let d = djDate.add(now, 'day', -i)
+        console.log(d)
+        group.addValue(d, { label: d.getDate() + '.' + (d.getMonth() + 1) })
+        if (d.getDay() !== 0 && d.getDay() !== 6) {
+          done++
+        }
+        i++
       }
 
       this.nDays.appendChild(group.domNode)
