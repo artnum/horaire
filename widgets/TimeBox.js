@@ -89,18 +89,20 @@ define([
     },
     postCreate: function () {
       var now = new Date(Date.now())
+      now.setHours(12, 0, 0, 0)
       var group = new ButtonGroup({name: 'day'})
       this.own(group)
-      let days = []
-      let i = 1
-      let done = 0
-      while (done < this.lateDay) {
-        let d = djDate.add(now, 'day', -i)
-        group.addValue(d, { label: d.getDate() + '.' + (d.getMonth() + 1) })
-        if (d.getDay() !== 0 && d.getDay() !== 6) {
-          done++
-        }
-        i++
+
+      let start = djDate.add(now, 'day', -(this.lateDay - 1))
+      /* if on sunday or saturday, you can input up to the previous friday */
+      if (start.getDay() === 0) {
+        start = djDate.add(start, 'day', -2)
+      } else if (start.getDay() === 6) {
+        start = djDate.add(start, 'day', -1)
+      }
+      while (start.getTime() <= now.getTime()) {
+        group.addValue(start, {label: start.getDate() + '.' + (start.getMonth() + 1)})
+        start = djDate.add(start, 'day', 1)
       }
 
       this.nDays.appendChild(group.domNode)
