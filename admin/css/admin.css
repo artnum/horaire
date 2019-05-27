@@ -191,3 +191,8 @@ tr.sub[data-open="1"] {
 button[type="reset"] {
     float: right;
 }
+
+.notice {
+    font-style: italic;
+    font-size: 0.8em;
+}

@@ -24,9 +24,10 @@
     <label for="time"><input name="time" type="checkbox" />Utilisateur</label><br>
     <input type="submit" value="Ajouter" />
 </form>
-  <h2>Utilisateurs existants</h2>
-  <table id="users" data-source="Person">
-    <thead><tr><th>Nom</th><th>Utilisateur</th><th data-sort-type="bool">Admin</th><th data-sort-type="no">Action</th></tr></thead>
+<h2>Utilisateurs existants</h2>
+<form>
+   <table id="users" data-source="Person">
+    <thead><tr><th>Nom</th><th>Utilisateur</th><th data-sort-type="bool">Actif</th><th data-sort-type="bool">Admin</th><th data-sort-type="no">Action</th></tr></thead>
     <tbody>
     </tbody>
   </table>
@@ -37,6 +38,7 @@
 <script src="https://artnum.ch/code/js/Path.js"></script>
 <script src="https://artnum.ch/code/js/Query.js"></script>
 <script src="https://artnum.ch/code/js/DTable.js"></script>
+<script src="js/admin.js"></script>
 <script>
   function makeKey (password) {
     var iteration = Math.floor(Math.random() * 1000) + 2000 // between 2000 and 2999 iteration
@@ -45,26 +47,117 @@
     return {key: sjcl.codec.base64.fromBits(outpass), keyopt: String(iteration) + ' ' + sjcl.codec.base64.fromBits(salt)}
   }
 
-  function newEntry (entry, edit = false) {
-    var tr = null
-    if (entry.id) {
-      tr = document.createElement('TR')
-      tr.setAttribute('data-id', entry.id)
-      tr.setAttribute('data-admin', entry.admin ? 'yes' : 'no')
-      tr.innerHTML = '<td>' + entry.name + '</td><td>' + entry.username + '</td><td>' + (entry.admin ? 'oui' : 'non') + '</td>'
-    }
-    return tr
-  }
+ function editUser (userId) {
+   return new Promise((resolve, reject) => {
+     Artnum.Query.exec(Artnum.Path.url(`Person/${userId}`)).then((result) => {
+       if (!result.success || result.length !== 1) { reject(new Error('Pas d\'utilisateur')); return }
+       let user = result.data
+       let popup = window.Admin.popup(`<form>
+         <input type="hidden" value="${user.id}" name="user" />
+         <label for="username">Nom d'utilisateur : <input type="text" name="username" value="${user.username}" /></label><br>
+         <label for="name">Nom : <input type="text" name="name" value="${user.name}" /></label><br>
+         <label for="password">Mot de passe : <input type="password" name="password" value=""></label><br><span class="notice" data-name="password-modified">Le mot de passe ne sera pas modifié</span><br>
+         <label for="disabled"> Désactiver : <input type="checkbox" name="disabled" ${user.disabled === '0' ? '' : 'checked'} /></label><br>
+         <button type="submit">Sauver</button><button type="reset">Annuler</button>
+         </form>
+       `, `Modifier utilisateur ${user.name}`)
+       let form = popup.getElementsByTagName('form')[0]
+       form.addEventListener('reset', (event) => {
+         let p = event.target
+         while (p && !p.classList.contains('popup')) { p = p.parentNode }
+         p.dispatchEvent(new CustomEvent('close'))
+       })
+       form.addEventListener('keypress', (event) => {
+         if (event.target.nodeName === 'INPUT' && event.target.name === 'password') {
+           let node = event.target
+           while (node && node.nodeName !== 'FORM') { node = node.parentNode }
+           let nodes = node.getElementsByTagName('SPAN')
+           for (let n of nodes) {
+             if (n.dataset.name && n.dataset.name === 'password-modified') {
+               window.requestAnimationFrame(() => { n.parentNode.removeChild(n) })
+               break
+             }
+           }
+         }
+       })
+       form.addEventListener('submit', (event) => {
+         event.preventDefault()
+         let content = window.Admin.getForm(event.target)
+         Artnum.Query.exec(Artnum.Path.url('Person', {params: {'search.username': content.username}})).then((result) => {
+           if (!result.success || result.length > 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
+           if (result.length === 1) {
+             if (result.data[0].id !== content.user) {
+               alert('Nom d\'utilisateur déjà existant, veuillez choisir un autre')
+               return
+             }
+           }
+           let mapping = {username: 'username', name: 'name'}
+           let body = {disabled: content.disabled ? '1' : '0'}
+           for (let i in mapping) {
+             if (content[i] && content[i] !== null) {
+               body[mapping[i]] = content[i]
+             } else {
+               body[mapping[i]] = ''
+             }
+           }
+           if (content.password) {
+             if (content.password.length < 6) {
+               alert('Mot de passe trop court, veuillez entrer au moins 6 caractères')
+               return
+             }
+             Object.assign(body, makeKey(content.password))
+           }
+           if (content.user) { body.id = content.user }
+           Artnum.Query.exec(Artnum.Path.url(`Person/${content.user}`), {method: body.id ? 'PATCH' : 'POST', body: body}).then((result) => {
+             if (result.success) {
+               let uid = result.data[0].id
+               Artnum.Query.exec(Artnum.Path.url(`Person/${uid}`)).then((result) => {
+                 if (!result.success || result.length !== 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
+                 newEntry(result.data).then((html) => {
+                   replaceAddEntry(html)
+                   let p = event.target
+                   while (p && !p.classList.contains('popup')) { p = p.parentNode }
+                   p.dispatchEvent(new CustomEvent('close'))
+                   resolve()
+                 })
+               })
+             }
+           })
+         })
+       })
+     })
+   })
+ }
 
-  function getTable (source) {
-    var tables = document.getElementsByTagName('TABLE')
-    for (var i = 0; i < tables.length; i++) {
-      if (tables[i].getAttribute('data-source') === source) {
-        return tables[i]
+ function newEntry (entry, edit = false) {
+   return new Promise((resolve, reject) => {
+     let tr = null
+     if (entry.id) {
+       tr = document.createElement('TR')
+       tr.setAttribute('data-id', entry.id)
+       tr.setAttribute('data-admin', entry.admin ? 'yes' : 'no')
+       tr.innerHTML =  `
+         <td>${entry.name }</td>
+         <td>${entry.username}</td>
+         <td>${(entry.disabled === '0' ? 'oui' : 'non')}</td>
+         <td>${(entry.admin ? 'oui' : 'non')}</td><td>
+         <button data-user="${entry.id}" type="button" data-action="edit">Modifier</button>
+         <button data-user="${entry.id}" type="button" data-action="delete">Supprimer</button>
+`
+     }
+     resolve(tr)
+   })
+ }
+
+ function getTable (source) {
+   var tables = document.getElementsByTagName('TABLE')
+   for (var i = 0; i < tables.length; i++) {
+     if (tables[i].getAttribute('data-source') === source) {
+       return tables[i]
       }
-    }
-    return null
-  }
+   }
+   return null
+ }
 
   function replaceAddEntry (tr) {
     var table = getTable('Person')
@@ -74,7 +167,6 @@
     if (id) {
       var replace = false
       var node = tbody.firstChild
-      console.log(node)
       for (; node; node = node.nextSibling) {
         if (node.nodeName === 'TR' && node.getAttribute('data-id') === id) {
           replace = true
@@ -145,12 +237,41 @@
       }
     })
     var t = new Artnum.DTable({table: 'users'})
+    document.getElementById('users').addEventListener('click', (event) => {
+      if (event.target.nodeName !== 'BUTTON') { return }
+      let node = event.target
+      while (node && node.nodeName !== 'TR') { node = node.parentNode }
+      switch(event.target.dataset.action) {
+        case 'edit':
+          editUser(node.dataset.id)
+          break
+        case 'delete':
+          deleteUser(node.dataset.id).then(() => {
+            window.requestAnimationFrame(() => node.parentNode.removeChild(node))
+          })
+      }
+    })
     loadUsers()
   } 
 
+ function deleteUser(userId) {
+   return new Promise((resolve, reject) => {
+     Artnum.Query.exec(Artnum.Path.url(`Person/${userId}`)).then((result) => {
+       if (!result.success || result.length !== 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
+       let user = result.data
+       if (confirm(`Voulez-vous vraiment supprimer l'utilisateur ${user.name} ?`)) {
+         Artnum.Query.exec(Artnum.Path.url(`Person/${user.id}`), {method: 'DELETE', body: {id: user.id}}).then((result) => {
+           if (result.success) { resolve(); return}
+           reject()
+         })
+       }
+     })
+   })
+ }
+
   async function loadUsers () {
     var admin = await Artnum.Query.exec(Artnum.Path.url('admin/htpasswd.php'))
-    Artnum.Query.exec(Artnum.Path.url('Person')).then(function (person) {
+    Artnum.Query.exec(Artnum.Path.url('Person', {params: {'search.deleted': '-'}})).then(function (person) {
       if (person.success && person.length > 0) {
         for (var i = 0; i < person.length; i++) {
           var entry = person.data[i]
@@ -159,15 +280,12 @@
           } else {
             entry.admin = false
           }
-          var html = newEntry(entry)
-          if (html) {
+          newEntry(entry).then((html) => {
             replaceAddEntry(html)
-          }
+          })
         }
       } 
     })
-
   }
-
 </script>
 </html>
