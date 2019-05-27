@@ -73,16 +73,18 @@ define([
 		this.printTotalTime();
 	},
 	printTotalTime: function () {
-		if(this.drivedTime > 0) {
-			this.n_Total.innerHTML = this.printTime(this.drivedTime) + " / " + this.printTime(this.workedTime);
-		} else {
-			this.n_Total.innerHTML = this.printTime(this.workedTime);
-		}
-		if(this.drivedTime <= 0 && this.workedTim <= 0) {
-			djDomStyle.set(this.n_Total ,"display: none;");
-		} else {
-			djDomStyle.set(this.n_Total ,"display: block;");
-		}
+      if (this.n_Total) {
+		   if(this.drivedTime > 0) {
+			   this.n_Total.innerHTML = this.printTime(this.drivedTime) + " / " + this.printTime(this.workedTime);
+		   } else {
+			   this.n_Total.innerHTML = this.printTime(this.workedTime);
+		   }
+		   if(this.drivedTime <= 0 && this.workedTim <= 0) {
+			   djDomStyle.set(this.n_Total ,"display: none;");
+		   } else {
+			   djDomStyle.set(this.n_Total ,"display: block;");
+		   }
+      }
 	},
 	printTime: function (time) {
 			var h = Math.trunc(time / 60);

@@ -5,7 +5,9 @@ define([
 	"dojo/promise/all",
 	"dojo/Deferred",
 	"dojo/_base/lang",
-	"dojo/when"
+	"dojo/when",
+   'artnum/Path',
+   'artnum/Query'
 	], function(
 	djDeclare,
 	djDate,
@@ -13,7 +15,9 @@ define([
 	djAll,
 	djDeferred,
 	djLang,
-	djWhen
+	djWhen,
+   Path,
+   Query
 	) { return djDeclare(null, {
 /* *** workTime */
 WorkTime: 504, /* Default swiss work time 42h/weeks -> 504 minutes a day, 5 days a week */
@@ -33,6 +37,7 @@ conditionstore: null,
 entitystore: null,
 workedDay: {},
 lookingAt: [],
+Rates: [],
 lastValidated: null,
 beginDate: null,
 
@@ -51,6 +56,7 @@ constructor: function(id, entitystore, timestore, conditionstore, validationstor
 	this.lastValidated = null;
 	this.lastRegistredDay = null;
 	this.HolidayCost = 0;
+   this.Rates = []
 
 
 	this.beginDate = null;
@@ -88,6 +94,7 @@ destroy: function () {
 	this.timestore = null;
 	this.conditionstore = null;
 	this.validationstore = null;
+   this.Rates = null
 },
 round: function(number, precision) {
 	var f = Math.pow(10, precision);
@@ -102,12 +109,12 @@ clean: function() {
 	this.byMonth = {};
 	this.lastValidated = null;
 },
-load: function() {
+load: async function() {
 	var def = new djDeferred();
 
 	this.clean();
 
-	this.loadCondition().then(djLang.hitch(this, function(){
+	await this.loadCondition().then(djLang.hitch(this, function(){
 		this.loadValidation().then(djLang.hitch(this, function() {
 			djLang.hitch(this, this.update)(this.lookingAt[0], this.lookingAt[1]).then(function() { def.resolve(); });
 		}));
@@ -139,9 +146,22 @@ loadValidation: function() {
 
 	return def;
 },
-loadCondition: function() {
+loadCondition: async function() {
 	var def = new djDeferred();
 
+   var rates = await Query.exec(Path.url('store/Rate', {params: {'search.target': this.Id}}))
+   if (rates.success && rates.length > 0) {
+      this.Rates = []
+      rates.data.forEach(function (rate) {
+         if (rate.from) {
+            rate.from = djStamp.fromISOString(rate.from)
+         }
+         if (rate.to) {
+            rate.to = djStamp.fromISOString(rate.to)
+         }
+         this.Rates.push(rate)
+      }.bind(this))
+   }
 	this.entitystore.get(this.Id).then(djLang.hitch(this, function(iam){
 		var condition = '__default';
 		iam = iam[0];
@@ -172,7 +192,9 @@ loadCondition: function() {
 		
 			if(iam.vacations != null) { this.HolidayCount = iam.vacations; }
 			if(iam.workTime != null) { this.WorkPercent = iam.workTime; }
-			if(iam.beginDate) { this.beginDate = djStamp.fromISOString(iam.beginDate); }
+			if(iam.beginDate) {
+            this.beginDate = djStamp.fromISOString(iam.beginDate); 
+         }
 			def.resolve();		
 		}));		
 	}));
@@ -190,10 +212,10 @@ update: function(from, until) {
 						end =  djStamp.fromISOString(entry.end);
 						break;
 					case 'halfday':
-						end = djDate.add(begin, "minute", this.GetHalfDay());
+						end = djDate.add(begin, "minute", this.GetHalfDay(begin));
 						break;
 					case 'wholeday':
-						end = djDate.add(begin, "minute", this.GetWholeDay());
+						end = djDate.add(begin, "minute", this.GetWholeDay(begin));
 						break;
 				}
 
@@ -239,11 +261,11 @@ add: function(type, id, start, end) {
 	}
 
 },
-GetHalfDay: function() {
-	return (this.WorkTime * this.WorkPercent / 100) / 2;
+GetHalfDay: function(current) {
+	return this.getWorkTime(current) / 2;
 },
-GetWholeDay: function() {
-	return this.WorkTime;
+GetWholeDay: function(current) {
+	return this.getWorkTime(current);
 },
 setValidatedValues: function(year, month, workedtime, vacations, todo, overtime) {
 	this.byMonth[year + '.' + month ] = {
@@ -257,7 +279,7 @@ MinutesToDo: function(options) {
 	var todo = 0;
 	var to = options.To ? options.To : new Date(); /* Today if not set */
 	var from = options.From ? options.From : new Date(to.getFullYear(), 0, 1);
-	if(this.beginDate) {
+	if(this.beginDate && this.beginDate.getFullYear() == from.getFullYear()) {
 		from = this.beginDate;	
 	}
 
@@ -265,19 +287,16 @@ MinutesToDo: function(options) {
 	for(	var current = from;
 				djDate.compare(current, to, "date") < 1;
 				current = djDate.add(current, "day", 1)) {
-	
-
 		if( this.OfficialHolidays.every(function(e){ return djDate.compare(current, e, "date"); })) {
 			if( this.ClosedDay.every(function(e){ return current.getDay() != e})) {
 				if( this.Holidays.every(function(e) { return djDate.compare(e.start, current, "date"); })) { 
-						todo += this.WorkTime;
+						todo += this.getWorkTime(current);
 				}
 			}
 		}
 	}
 
-	var toWork = todo * this.WorkPercent / 100;
-	var x = toWork - (this.AbsenceDone(options) * this.WorkPercent / 100);
+	var x = todo - this.AbsenceDone(options)
 	return x;
 
 },
@@ -470,6 +489,29 @@ getTimeForAwayDay: function(day) {
 	time += this._MinutesDone({ From: day, To: day}, this.Absences);
 	
 	return time;	
+},
+getWorkTime: function (current) {
+   var worktime = this.WorkTime
+   var rate = this.WorkPercent
+   var oldest = null
+
+   if (current) {
+      for (var i = 0; i < this.Rates.length; i++) {
+         if (! this.Rates[i].from) { continue }
+         if (djDate.compare(this.Rates[i].from, current, 'date') > 0) { continue }
+         if (oldest === null) {
+            oldest = this.Rates[i].from
+            rate = parseInt(this.Rates[i].value)
+         } else {
+            if (djDate.compare(this.Rates[i].from, oldest, 'date') != 1) { continue }
+            else {
+               oldest = this.Rates[i].from
+               rate = parseInt(this.Rates[i].value)
+            }
+         }
+      }
+   }
+   return worktime * rate / 100
 },
 isHoliday: function(day) {
 	if(this.OfficialHolidays.find( function (hday) {
