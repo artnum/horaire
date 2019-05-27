@@ -212,9 +212,15 @@ body.waiting .waiting {
 }
 
 .EntityPanel section {
+    overflow: auto;
+    height: calc(100vh - 70px);
     max-width: calc(100vw / 3);
     width: calc(100vw / 2.7);
 }
+.EntityPanel section:first-child {
+    max-width: 20vw;
+}
+
 .EntityPanel section .head {
     font-weight: bold;
 }
@@ -368,6 +374,14 @@ input[type=submit], input[type=button], button {
     font-weight: bold;
 }
 
+.timeBox {
+    max-height: calc(50vh - 70px);s
+}
+.lastentry {
+    max-height: calc(50vh - 70px);
+    min-height: calc(50vh - 70px);
+    overflow: auto;
+}
 
 .lastentry table {
     table-layout: fixed;  

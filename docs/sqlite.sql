@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS "person" (
 	"person_level" INTEGER DEFAULT 1,
 	"person_key" TEXT DEFAULT NULL,
 	"person_keyopt" TEXT DEFAULT '{salt: "09F911029D74E35B", iteration: 1000}', -- json data containing iteration, salt and more if apply
+	"person_disabled" INTEGER DEFAULT 0,
 	"person_deleted" INTEGER DEFAULT NULL,
 	"person_created" INTEGER DEFAULT NULL,
 	"person_modified" INTEGER DEFAULT NULL
