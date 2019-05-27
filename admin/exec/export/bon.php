@@ -1,5 +1,6 @@
 <?PHP
 include('pdf.php');
+include('../../../lib/barcode/barcode.php');
 
 $pdo = new PDO('sqlite:../../../db/horaire.sqlite3');
 $pdo->exec('PRAGMA foreign_keys = YES;');
@@ -46,13 +47,19 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetY($y + 8);
     $PDF->squaredFrame(37, array('line-type' => 'dotted', 'square' => 9, 'lined' => true));
     $PDF->SetY($y);
-
     if (isset($data['travail_id'])) {
       $data['bon_number'] = $data['project_reference'] . '.' . $data['travail_id'];
+      $barcode_value = '#TR-' . sprintf('%07u', $data['travail_id']);
     } else {
       $data['bon_number'] = $data['project_reference'];
+      $barcode_value = '#PR-' . sprintf('%07u', $data['project_id']);
     }
     
+    $bcGen = new barcode_generator();
+    $img = $bcGen->render_image('code128', $barcode_value, ['h' => 60]);
+    imagepng($img, sys_get_temp_dir() . '/' . $barcode_value . '.png');
+    $PDF->Image(sys_get_temp_dir() . '/' . $barcode_value . '.png', 162, 12, 0, 0, 'PNG');
+
     foreach(array('bon_number' => 'N° de bon',
                   'travail_reference' => 'Référence',
                   'travail_meeting' => 'Rendez-vous',

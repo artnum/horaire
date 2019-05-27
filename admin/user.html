@@ -164,21 +164,7 @@
     var tbody = table.firstChild
     for (; tbody.nodeName != 'TBODY'; tbody = tbody.nextSibling);
     var id = tr.getAttribute('data-id')
-    if (id) {
-      var replace = false
-      var node = tbody.firstChild
-      for (; node; node = node.nextSibling) {
-        if (node.nodeName === 'TR' && node.getAttribute('data-id') === id) {
-          replace = true
-          break
-        }
-      }
-      if (replace) {
-        tbody.replaceChild(tr, node)
-      } else {
-        tbody.appendChild(tr)
-      }
-    }
+    Admin.insertEntry(tr, table, id)
   }
 
   window.onload = async function () {

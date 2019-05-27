@@ -486,16 +486,7 @@ async function evCancelEdit (event) {
        break
      }
    }
-   Admin.insertEntry(tr, table, id).then(() => {
-     let odd = true
-     for (let i = tbody.firstChild; i; i = i.nextSibling) {
-       if (i.dataset.id) {
-         let v = odd ? 'odd' : 'even'
-         window.requestAnimationFrame(() => { i.classList.remove('odd', 'even'); i.classList.add(v) })
-         odd = !odd
-       }
-     }
-   })
+   Admin.insertEntry(tr, table, id)
  }
 
  function cleanTbody(table) {
