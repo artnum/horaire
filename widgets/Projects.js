@@ -17,7 +17,8 @@ define([
   'artnum/dojo/Button',
   'artnum/dojo/ButtonGroup',
   'artnum/Path',
-  'artnum/Query'
+  'artnum/Query',
+  'artnum/dojo/Log'
 ], function (
   djDeclare,
   djEvented,
@@ -36,8 +37,8 @@ define([
   Button,
   ButtonGroup,
   Path,
-  Query
-
+  Query,
+  Log
 ) {
   return djDeclare('horaire.Projects', [
     _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin, djEvented
@@ -56,17 +57,66 @@ define([
 
       djOn(this.domNode, 'keyup', function (event) {
         if (event.target.name !== 'searchRef') { return }
-        if (this.On === 'process') {
-          this.Process.filterWith(event.target.value)
+        event.stopPropagation()
+        let value = event.target.value
+        if (value[0] === '#') {
+          /* from code bar */
+          if (value.length >= 5 & event.key === 'Enter') {
+            let type = value.substr(1, 3).toLowerCase()
+            let id = parseInt(value.substr(4))
+            let values
+            let failCodeBar = () => {
+              new Log({message: 'Code barre inconnu ou erroné', timeout: 2, type: 'warn'}).show()
+            }
+            switch (type) {
+              case 'tr-':
+                values = new Promise((resolve, reject) => {
+                  Query.exec(Path.url(`Travail/${id}`)).then((result) => {
+                    if (!result.success || result.length === 0) { failCodeBar(); return }
+                    let travail = result.data
+                    if (travail.closed !== '0') { failCodeBar(); return }
+                    Query.exec(Path.url(`Project/${travail.project}`)).then((result) => {
+                      if (!result.success || result.length === 0) { failCodeBar(); return }
+                      if (result.data.deleted || result.data.closed) { failCodeBar(); return }
+                      resolve({travail: travail.id, project: result.data.id})
+                    })
+                  })
+                })
+                break
+              case 'pr-':
+                values = new Promise((resolve, reject) => {
+                  Query.exec(Path.url(`Project/${id}`)).then((result) => {
+                    if (!result.success || result.length === 0) { failCodeBar(); return }
+                    let project = result.data
+                    if (project.deleted || project.closed) { failCodeBar(); return }
+                    resolve({travail: null, project: project.id})
+                  })
+                })
+                break
+            }
+            values.then(function (v) {
+              this.setValues(v)
+            }.bind(this))
+          }
         } else {
-          this.Group.filterWith(event.target.value)
+          if (this.On === 'process') {
+            if (!this.Process.get('value')) {
+              this.Process.filterWith(value)
+            }
+            if (this.Travaux) {
+              if (!this.Travaux.get('value')) {
+                this.Travaux.filterWith(value)
+              }
+            }
+          } else {
+            this.Group.filterWith(value)
+          }
         }
       }.bind(this))
 
       djOn(group, 'change', function (event) {
         this.On = 'process'
         this.emit('change', this.get('value'))
-        console.log(this.get('value'))
         let GTravaux = this.travail(this.get('value').project)
         window.requestAnimationFrame(function () {
           this.content.replaceChild(this.Process.domNode, this.Group.domNode)
@@ -138,7 +188,7 @@ define([
             if (!travaux.success || travaux.length <= 0) { reject(new Error('Pas de travaux')); return }
             let GTravaux = new ButtonGroup({moveNode: false})
             travaux.data.forEach((travail) => {
-              GTravaux.addValue(travail.id, {type: 'travail', label: `Bon : "${projet.data.reference}.${travail.id}"`, filtervalue: travail.reference})
+              GTravaux.addValue(travail.id, {type: 'travail', label: `Bon : "${projet.data.reference}.${travail.id}"`, filterValue: [travail.reference, travail.id, projet.data.reference]})
             })
             resolve(GTravaux)
           })
@@ -146,6 +196,62 @@ define([
       })
     },
 
+    setValues: function (values) {
+      this.On = 'process'
+      this.resetMenu()
+      if (values.project) { this.Group.set('value', values.project) }
+      let GTravaux = this.travail(this.Group.get('value'))
+      window.requestAnimationFrame(function () {
+        if (this.Group.domNode) {
+          this.content.replaceChild(this.Process.domNode, this.Group.domNode)
+        }
+        var back = document.createElement('DIV')
+        back.setAttribute('class', 'artnumButton')
+        back.setAttribute('style', 'margin-bottom: 14px')
+        back.innerHTML = '← Retour'
+        this.content.insertBefore(back, this.Process.domNode)
+        let dNode = this.Process.domNode
+        GTravaux.then((n) => {
+          this.Travaux = n
+          let title = document.createElement('H2')
+          title.appendChild(document.createTextNode('Avec bon de travail'))
+          window.requestAnimationFrame(() => {
+            dNode.parentNode.insertBefore(n.domNode, dNode.nextElementSibling)
+            dNode.parentNode.insertBefore(title, dNode.nextElementSibling)
+            if (values.travail) { this.Travaux.set('value', values.travail) }
+          })
+        })
+
+        djOn(back, 'click', function (event) {
+          this.resetMenu()
+        }.bind(this))
+      }.bind(this))
+    },
+
+    resetMenu: function () {
+      this.Process.filterWith('')
+      this.Group.filterWith('')
+      if (this.Travaux) { this.Travaux.filterWith('') }
+      this.Process.set('value', null)
+      this.Group.set('value', null)
+      if (this.Travaux) { this.Travaux.set('value', null) }
+      let nodes = []
+      let n = this.content.firsElementChild
+      while (n) {
+        nodes.push(n)
+        n = n.nextSibling
+      }
+      window.requestAnimationFrame(function () {
+        this.content.innerHTML = ''
+        this.content.appendChild(this.Group.domNode)
+      }.bind(this))
+    },
+    emptyBox: function (event) {
+      event.target.value = ''
+      this.Process.filterWith('')
+      this.Group.filterWith('')
+      if (this.Travaux) { this.Travaux.filterWith('') }
+    },
     _getValueAttr: function () {
       return {project: this.Group.get('value'), process: this.Process.get('value'), travail: this.Travaux ? this.Travaux.get('value') : null}
     },

@@ -100,13 +100,25 @@
         var replaced = false
         for (let _tr = node.firstElementChild; _tr; _tr = _tr.nextElementSibling) {
           if (_tr.getAttribute('data-id') === entryId) {
+            entry.setAttribute('class', _tr.getAttribute('class'))
             window.requestAnimationFrame(() => { node.replaceChild(entry, _tr); resolve() })
             replaced = true
             break
           }
         }
         if (!replaced) {
-          window.requestAnimationFrame(() => { node.insertBefore(entry, node.firstChild); resolve() })
+          window.requestAnimationFrame(() => {
+            node.insertBefore(entry, node.firstElementChild)
+            let x = false
+            for (let n = node.firstElementChild; n; n = n.nextElementSibling) {
+              n.classList.remove('odd'); n.classList.remove('even')
+              n.classList.add(x ? 'even' : 'odd')
+              if (n.dataset.id) {
+                x = !x
+              }
+            }
+            resolve()
+          })
         }
       })
     },
