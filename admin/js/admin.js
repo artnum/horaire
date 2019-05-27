@@ -4,28 +4,19 @@
   var global = Function('return this')() // eslint-disable-line
   var admin = {
     loadForm: function (form) {
-      var opts = {label: 'name', id: 'id', parameters: {}}
       ;['SELECT', 'TEXTAREA', 'INPUT'].forEach(function (elements) {
         var inputs = form.getElementsByTagName(elements)
         for (var i = 0; i < inputs.length; i++) {
+          let opts = {label: '$name', id: 'id', parameters: {}}
           if (inputs[i].getAttribute('data-options')) {
             var _json = inputs[i].getAttribute('data-options').replace(/(['"])?([a-zA-Z0-9_\.]+)(['"])?:/g, '"$2": ') // eslint-disable-line
             _json = _json.replace(/'/g, '"')
-            var _opts = JSON.parse(_json)
-            for (var k in _opts) {
-              opts[k] = _opts[k]
-            }
+            Object.assign(opts, JSON.parse(_json))
           }
           if (inputs[i].getAttribute('data-source') && elements === 'SELECT') {
             Artnum.Query.exec(Artnum.Path.url(inputs[i].getAttribute('data-source'), {params: opts.parameters})).then(function (result) {
               if (!result.success || result.length <= 0) { return }
-              for (var k in opts) {
-                if (this.getAttribute('data-source-' + k)) {
-                  opts[k] = this.getAttribute('data-source-' + k)
-                }
-              }
               result.data.forEach(function (options) {
-                if (!options[opts.label]) { return }
                 var o = document.createElement('OPTION')
                 if (options[opts.id]) {
                   if (this.value && String(options[opts.id]) === String(this.value)) {
@@ -33,7 +24,13 @@
                   }
                   o.setAttribute('value', options[opts.id])
                 }
-                o.appendChild(document.createTextNode(options[opts.label]))
+
+                let label = opts.label
+                for (let k in options) {
+                  label = label.replace('$' + k, options[k])
+                }
+
+                o.appendChild(document.createTextNode(label))
                 this.appendChild(o)
               }.bind(this))
             }.bind(inputs[i]))
