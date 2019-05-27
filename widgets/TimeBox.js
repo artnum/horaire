@@ -111,10 +111,16 @@ define([
         this.emit('changeday', this.selectDay.get('value'))
         this.nHour.focus()
       }.bind(this))
-      djOn(this.nHour, 'keypress', function (event) {
+      djOn(this.nHour, 'keyup', function (event) {
         if (event.key === 'Enter') {
           this.eSubmit()
           this.nHour.set('value', '')
+        } else {
+          let seconds = this.nHour.get('value')
+          let h = Math.trunc(seconds / 3600)
+          let m = Math.trunc(((seconds / 3600) - h) * 60)
+          let txt = `${h < 10 ? '0' + h : h} h ${m < 10 ? '0' + m : m} m`
+          this.nHour.domNode.nextElementSibling.innerHTML = txt
         }
       }.bind(this))
     },
