@@ -20,8 +20,8 @@
     <label for="person">Personne : </label><select data-source="Person" data-options="{parameters: {'search.deleted': '-'}}" name="person"></select><br />
     <label for="day">Jour :</label><input type="date" name="day" /> <label for="hour">Temps :</label><input type="text" name="hour" /><br />
     <label for="comment">Commentaire :</label><input type="text" name="comment" /><br />
-    <label for="project">Projet : </label><select data-source="Project" data-options='{label: "$id - $name", id: "id", parameters: {"search.closed": "-", "search.deleted": "-"}}' name="project"></select>
-    <label for="process">Processus : </label><select data-source="Process" data-options="{label: '$id - $name', id: 'id', parameters: {'search.deleted': '-'}}" name="process"></select><br />
+    <label for="project">Projet : </label><select data-source="Project" data-options='{label: "$reference - $name", id: "id", parameters: {"search.closed": "-", "search.deleted": "-"}}' name="project"></select>
+    <label for="process">Processus : </label><select data-source="Process" data-options="{label: '$name', id: 'id', parameters: {'search.deleted': '-'}}" name="process"></select><br />
     <input type="submit" value="Ajouter" />
   </form>
   <table id="addResults" style="display: none">
