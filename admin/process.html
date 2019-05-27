@@ -244,25 +244,18 @@ function replaceAddEntry (tr) {
   Admin.insertEntry(tr, table)
 }
 
-async function load () {
-  var res = await Artnum.Query.exec(Artnum.Path.url('Process', {params: searchParams}))
-  if (res.success) {
-    var frag = document.createDocumentFragment()
-    res.data.forEach(function (entry) {
-      var tr = newEntry(entry)
-      if (tr) {        
-        frag.appendChild(tr)
-      }
-    })
-    var table = document.getElementById('projects')
-    var node = null
-    for (node = table.firstChild; node.nodeName !== 'TBODY'; node = node.nextSibling);
-    window.requestAnimationFrame(function () {
-      node.innerHTML = ''
-      node.appendChild(frag)
-    })
-  }
-}
+ async function load () {
+   let res = await Artnum.Query.exec(Artnum.Path.url('Process', {params: searchParams}))
+   if (res.success) {
+     let  table = document.getElementById('projects')
+     res.data.forEach(function (entry) {
+       let tr = newEntry(entry)
+       if (tr) {
+         Admin.insertEntry(tr, table, entry.id)
+       }
+     })
+   }
+ }
 
  window.addEventListener('load', () => {
    var t = new Artnum.DTable({table: 'projects'})
