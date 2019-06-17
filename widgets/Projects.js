@@ -1,4 +1,5 @@
 /* eslint-env browser, amd */
+/* global mod10key */
 define([
   'dojo/_base/declare',
   'dojo/Evented',
@@ -59,59 +60,61 @@ define([
         if (event.target.name !== 'searchRef') { return }
         event.stopPropagation()
         let value = event.target.value
-        if (value[0] === '#') {
-          /* from code bar */
-          if (value.length >= 5 & event.key === 'Enter') {
-            let type = value.substr(1, 3).toLowerCase()
-            let id = parseInt(value.substr(4))
-            let values
-            let failCodeBar = () => {
-              new Log({message: 'Code barre inconnu ou erroné', timeout: 2, type: 'warn'}).show()
-            }
-            switch (type) {
-              case 'tr-':
-                values = new Promise((resolve, reject) => {
-                  Query.exec(Path.url(`Travail/${id}`)).then((result) => {
-                    if (!result.success || result.length === 0) { failCodeBar(); return }
-                    let travail = result.data
-                    if (travail.closed !== '0') { failCodeBar(); return }
-                    Query.exec(Path.url(`Project/${travail.project}`)).then((result) => {
-                      if (!result.success || result.length === 0) { failCodeBar(); return }
-                      if (result.data.deleted || result.data.closed) { failCodeBar(); return }
-                      resolve({travail: travail.id, project: result.data.id})
-                    })
-                  })
-                })
-                break
-              case 'pr-':
-                values = new Promise((resolve, reject) => {
-                  Query.exec(Path.url(`Project/${id}`)).then((result) => {
-                    if (!result.success || result.length === 0) { failCodeBar(); return }
-                    let project = result.data
-                    if (project.deleted || project.closed) { failCodeBar(); return }
-                    resolve({travail: null, project: project.id})
-                  })
-                })
-                break
-            }
-            values.then(function (v) {
-              this.setValues(v)
-            }.bind(this))
+        /* from code bar */
+        let values = new Promise((resolve, reject) => {
+          if (value.length !== 14) {
+            resolve(null)
+            return
           }
-        } else {
-          if (this.On === 'process') {
-            if (!this.Process.get('value')) {
-              this.Process.filterWith(value)
-            }
-            if (this.Travaux) {
-              if (!this.Travaux.get('value')) {
-                this.Travaux.filterWith(value)
+          let check = mod10key(value.substr(0, 13))
+          if (parseInt(value[13]) !== check) {
+            resolve(null)
+            return
+          }
+          let type = parseInt(value.substr(0, 4))
+          let id = parseInt(value.substr(4, 9))
+          switch (type) {
+            case 1:
+              Query.exec(Path.url(`Travail/${id}`)).then((result) => {
+                if (!result.success || result.length === 0) { resolve(null); return }
+                let travail = result.data
+                if (travail.closed !== '0') { resolve(null) }
+                Query.exec(Path.url(`Project/${travail.project}`)).then((result) => {
+                  if (!result.success || result.length === 0) { resolve(null); return }
+                  if (result.data.deleted || result.data.closed) { resolve(null); return }
+                  resolve({travail: travail.id, project: result.data.id})
+                })
+              })
+              break
+            case 2:
+              Query.exec(Path.url(`Project/${id}`)).then((result) => {
+                if (!result.success || result.length === 0) { resolve(null); return }
+                let project = result.data
+                if (project.deleted || project.closed) { resolve(null); return }
+                resolve({travail: null, project: project.id})
+              })
+              break
+            default: resolve(null)
+          }
+        })
+        values.then(function (v) {
+          if (!v) {
+            if (this.On === 'process') {
+              if (!this.Process.get('value')) {
+                this.Process.filterWith(value)
               }
+              if (this.Travaux) {
+                if (!this.Travaux.get('value')) {
+                  this.Travaux.filterWith(value)
+                }
+              }
+            } else {
+              this.Group.filterWith(value)
             }
           } else {
-            this.Group.filterWith(value)
+            this.setValues(v)
           }
-        }
+        }.bind(this))
       }.bind(this))
 
       djOn(group, 'change', function (event) {
