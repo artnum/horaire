@@ -31,6 +31,7 @@
   <input type="radio" onchange="changeState(event)" checked="checked" id="stateOpen" name="state"><label for="stateOpen">Ouvert</label>
   <input type="radio" onchange="changeState(event)" id="stateClosed" name="state"><label for="stateClosed">Fermé</label>
   <input type="radio" onchange="changeState(event)" id="stateAny" name="state"><label for="stateAny">Tous</label>
+  <input type="button" onclick="exportAll()" value="Tout exporter"></input>
   <table id="projects" data-source="Project">
     <thead><tr><th data-sort-type="integer">Référence</th><th>Nom</th><th data-sort-type="no">Action</th></tr></thead>
     <tbody>
@@ -48,6 +49,18 @@
 
 var searchParams = {'search.closed': '-', 'search.deleted': '-', 'sort.reference': 'asc'}
 
+function exportAll () {
+   if (!searchParams['search.closed']) {   
+     window.open(Artnum.Path.url('exec/export/project.php', {params: {state: 'alive'}}))
+   } else {
+     if (searchParams['search.closed'] === '-') {
+       window.open(Artnum.Path.url('exec/export/project.php', {params: {state: 'open'}}))
+     } else {
+       window.open(Artnum.Path.url('exec/export/project.php', {params: {state: 'closed'}}))
+     }
+   }
+}
+ 
 function changeState (event) {
   switch(event.target.id) {
     case 'stateOpen': 

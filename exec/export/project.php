@@ -32,6 +32,24 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
          LEFT JOIN travail ON htime.htime_travail = travail.travail_id
          WHERE htime.htime_deleted IS NULL';
 
+  if (isset($_GET['state'])) {
+    switch (strtolower($_GET['state'])) {
+      case 'all': break;
+      case 'open':
+        $query .= ' AND project.project_deleted IS NULL AND project.project_closed IS NULL';
+        break;
+      case 'closed':
+        $query .= ' AND project.project_deleted IS NULL AND project.project_closed IS NOT NULL';
+        break;
+      case 'alive':
+        $query .= ' AND project.project_deleted IS NULL';
+        break;
+      case 'deleted':
+        $query .= ' AND project.project_deleted IS NOT NULL';
+        break;
+    }
+  }
+  
    $query_items = null;
    try {
       $db = new PDO('sqlite:../../db/horaire.sqlite3');
@@ -63,7 +81,7 @@ try {
    $per_process = array();
    $per_person = array();
    /* Entrées */
-   $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process/Bon' => 'string', 'Jour' => 'datetime', 'Temps [h]' => '0.00', 'Personne' => 'string', 'Terminé' => 'datetime'), array('widths'=>[25, 25, 25, 10, 25, 25]));
+   $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process/Bon' => 'string', 'Jour' => 'datetime', 'Temps [h]' => '0.00', 'Personne' => 'string', 'Terminé' => 'datetime', 'Remarque' => 'string'), array('widths'=>[25, 25, 25, 25, 25, 25, 25, 100]));
    foreach ($values as $row) {
       if ($project === '') {
          $project = $row['project_reference'] . ' - ' . $row['project_name'];
@@ -88,7 +106,7 @@ try {
      }
      
       $date = (new DateTime($row['htime_day']))->format('Y-m-d H:i:s');
-      $writer->writeSheetRow('Entrées', array($row['project_reference'], $row['project_name'], $pb, $date, $row['htime_value'] / 3600, $row['person_name'], is_null($row['project_closed']) ? '' : $row['project_closed']));
+      $writer->writeSheetRow('Entrées', array($row['project_reference'], $row['project_name'], $pb, $date, $row['htime_value'] / 3600, $row['person_name'], is_null($row['project_closed']) ? '' : $row['project_closed'], $row['htime_comment']));
 
       $per_process[$row['process_name']] += $row['htime_value'];
       $per_person[$row['person_name']] += $row['htime_value'];
