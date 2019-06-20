@@ -4,22 +4,6 @@ function __Entry (baseUrl, data) {
   this.baseUrl = baseUrl
 }
 
-__Entry.prototype.update = function () {
-  return new Promise(function (resolve, reject) {
-    fetch(this.getUrl())
-      .then((response) => {
-        if (response.ok) {
-          response.json((json) => {
-            if (json.success && json.length === 1) {
-              this.data = json.data
-              resolve(this)
-            }
-          })
-        }
-      }, (error) => reject(error))
-  }.bind(this))
-}
-
 __Entry.prototype.getDisabled = function () {
   if (this.data.disabled === '0') {
     return false
@@ -40,8 +24,7 @@ __Entry.prototype.getId = function () {
 }
 
 __Entry.prototype.getUrl = function () {
-  let url = new URL(`${this.baseUrl}/${String(this.data.id)}`)
-  return url
+  return new URL(`${String(this.baseUrl)}/${this.getId()}`)
 }
 
 function Person (baseUrl, data) {
