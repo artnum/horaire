@@ -43,7 +43,7 @@
 <script src="https://artnum.ch/code/js/Date.js"></script>
 <script src="https://artnum.ch/code/js/Path.js"></script>
 <script src="https://artnum.ch/code/js/Query.js"></script>
-<script src="https://artnum.ch/code/js/DTable.js"></script>
+<script src="/js/DTable.js"></script>
 <script src="js/admin.js"></script>
 <script>
 
@@ -103,7 +103,7 @@ function changeState (event) {
      query = new Promise((resolve, reject) => {
        Artnum.Query.exec(Artnum.Path.url(`Project/${params.project}`)).then((result) => {
          if (!result.success || result.length !== 1) { reject(new Error('Le projet est inexistant')); return }
-         resolve({project: result.data, travail: {id: '', reference: '', meeting: '', contact: '', phone: '', description: ''}}) 
+         resolve({project: result.data, travail: {id: '', reference: params.first ? result.data.reference : '', meeting: '', contact: '', phone: '', description: '', time: 0}}) 
        })
      })
    } else {
@@ -118,6 +118,7 @@ function changeState (event) {
       <input type="hidden" value="${project.id}" name="project" />
       <label for="subref">Référence : </label><input name="subref" type="text" value="${travail.reference}" /> <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" value="${travail.meeting}" /><br>
       <label for="contact">Personne de contact : </label><input name="contact" type="text" value="${travail.contact}" /> <label for="cphone">Téléphone : </label><input name="cphone" type="text" value="${travail.phone}"/><br>
+      <label for="time">Temps du projet : <input name="time" type="text" value="${travail.time}"></label></br>
       <label for="description>">Description du travail</label><br>
       <textarea name="description">${travail.description}</textarea><br>
       <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
@@ -142,7 +143,7 @@ function changeState (event) {
      form.addEventListener('submit', (event) => {
        event.preventDefault()
        let content = window.Admin.getForm(event.target)
-       let mapping = {project: 'project', description: 'description', subref: 'reference', meeting: 'meeting', contact: 'contact', cphone: 'phone'}
+       let mapping = {project: 'project', description: 'description', subref: 'reference', meeting: 'meeting', contact: 'contact', cphone: 'phone', time: 'time'}
        let data = travail.id !== '' ?  {id: travail.id} : {}
        for (let i in mapping) {
          if (content[i] && content[i] !== null) {
@@ -231,7 +232,7 @@ function changeState (event) {
            if (result.success && result.length === 1) {
              newEntry(result.data).then((tr) => {
                replaceAddEntry(tr, pId)
-               newTravailPopup({project: pId})
+               newTravailPopup({project: pId, first: true})
              })  
            } else {
              alert('Erreur création du projet')
@@ -416,7 +417,7 @@ async function evCancelEdit (event) {
          frag.appendChild(tr)
          
          tr.setAttribute('data-id', entry.id)
-         tr.innerHTML = `<td data-name="reference" data-type="text">${travaux.length > 0 ? '<span>&#9205;</span> ' : ''}${(entry.reference ? entry.reference : '')}</td>
+         tr.innerHTML = `<td data-name="reference" data-sort-value="${entry.reference}" data-type="text">${travaux.length > 0 ? '<span>&#9205;</span> ' : ''}${(entry.reference ? entry.reference : '')}</td>
                          <td data-name="name" data-type="text">${(entry.name ? entry.name : '')}</td>`
          if (travaux.length > 0) {
            let subTable = document.createElement('TABLE')
@@ -426,7 +427,7 @@ async function evCancelEdit (event) {
            subTable.appendChild(trHeader)
            travaux.data.forEach((travail) => {
              let tr = document.createElement('TR')
-             tr.innerHTML = `<td>${travail.reference}</td><td>${travail.meeting}</td><td>${travail.contact}</td><td>${travail.phone}</td><td>${travail.description}</td><td class="overflowable"><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="edit">Éditer</button><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="print">Imprimer</button></td>`
+             tr.innerHTML = `<td data-sort-value="${travail.reference}">${travail.reference}</td><td>${travail.meeting}</td><td>${travail.contact}</td><td>${travail.phone}</td><td>${travail.description}</td><td class="overflowable"><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="edit">Éditer</button><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="print">Imprimer</button></td>`
              tr.addEventListener('click', (event) => {
                if (event.target.nodeName === 'BUTTON') {
                  handleTravailButton(event)
@@ -436,6 +437,7 @@ async function evCancelEdit (event) {
            })
 
            let sub = document.createElement('TR')
+           sub.dataset.sortIgnore = true
            sub.setAttribute('data-parent-id', entry.id)
            sub.classList.add('sub')
            sub.innerHTML = '<td colspan="3"></td>'
@@ -536,7 +538,18 @@ async function evCancelEdit (event) {
      }
    })
 
-   var t = new Artnum.DTable({table: 'projects'})
+   var t = new Artnum.DTable({table: 'projects', postsort: (table) => {
+     for (let i = table.firstElementChild; i; i = i.nextElementSibling) {
+       if (i.dataset.parentId) {
+         for (let j = table.firstElementChild; j; j = j.nextElementSibling) {
+           if (j.dataset.id === i.dataset.parentId) {
+             j.parentNode.insertBefore(i, j.nextElementSibling)
+             break
+           }
+         }
+       }
+     }
+   }})
  }
  
  window.addEventListener('load', load)

@@ -97,7 +97,11 @@
         var replaced = false
         for (let _tr = node.firstElementChild; _tr; _tr = _tr.nextElementSibling) {
           if (_tr.getAttribute('data-id') === entryId) {
-            entry.setAttribute('class', _tr.getAttribute('class'))
+            if (entry.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+              entry.firstElementChild.setAttribute('class', _tr.getAttribute('class'))
+            } else {
+              entry.setAttribute('class', _tr.getAttribute('class'))
+            }
             window.requestAnimationFrame(() => { node.replaceChild(entry, _tr); resolve() })
             replaced = true
             break
