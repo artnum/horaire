@@ -8,10 +8,112 @@
     <h1>Administration</h1>
   </header>
   <main class="flex">
-    <div class="button"><a href="project.html">Projets</a></div>
-    <div class="button"><a href="process.html" class="button">Processus</a></div>
-    <div class="button"><a href="user.html">Utilisateurs</a></div>
-    <div class="button"><a href="time.html" class="button">Temps</a></div>
   </main>
 </body>
+<script src="../local/js/sjcl.js"></script>
+<script type="text/javascript">
+ function login (ref) {
+   let div = document.createElement('DIV')
+   let form = document.createElement('FORM')
+
+   form.innerHTML = `<label for="username">Utilisateur : <input type="text" name="username"></label><br>
+                     <label for="password">Mot de passe : <input type="password" name="password"></label><br>
+                     <button type="submit">Authentifier</button>`
+
+   div.classList.add('login')
+   div.appendChild(form)
+   window.requestAnimationFrame(function () { ref.appendChild(div) })
+   
+   form.addEventListener('submit', function (event) {
+     event.preventDefault()
+     let nodeForm = event.target
+     for (; nodeForm.nodeName !== 'FORM'; nodeForm = nodeForm.parentNode);
+     let inputs = nodeForm.getElementsByTagName('INPUT')
+     let password = null
+     let username = null
+     for (var i = 0; i < inputs.length; i++) {
+       switch (inputs[i].getAttribute('name')) {
+         case 'password':
+           password = inputs[i].value
+           inputs[i].value = ''
+           break
+         case 'username':
+           username = inputs[i].value
+           break
+       }
+     }
+
+     let base = window.location.pathname.split('/')
+     while (!base[0]) { base.shift() }
+     let url = new URL(`${window.location.origin}/${base.shift()}/Person`)
+     url.searchParams.set('search.username', username)
+     fetch(url).then((result) => {
+       if (!result.ok) { alert('Authentification échouée'); return }
+       result.json().then((data) => {
+         console.log(data)
+         if (data.success && data.length === 1) {
+           let [iteration, salt] = data.data[0].keyopt.split(' ', 2)
+           let p = sjcl.codec.base64.fromBits(sjcl.misc.pbkdf2(password, sjcl.codec.base64.toBits(salt), parseInt(iteration)))
+           if (p === data.data[0].key) {
+             window.logged = true
+             window.level = parseInt(data.data[0].level)
+             open(ref)
+           } else {
+             alert('Autentification échouée')
+           }
+         }
+       })
+     })
+   })
+ }
+
+ function exec(event) {
+   event.preventDefault()
+   console.log(event)
+   let main = event.target
+   while (main.nodeName !== 'MAIN') { main = main.parentNode;}
+   document.body.classList.add('pageview')
+   let iframe = main.nextElementSibling
+   if (!iframe || iframe.nodeName !== 'IFRAME') {
+     iframe = document.createElement('IFRAME')
+     main.parentNode.insertBefore(iframe, main.nextSibling)
+   }
+
+   iframe.setAttribute('src', event.target.getAttribute('href'))
+ }
+ 
+ function open(ref) {
+   window.requestAnimationFrame(() => ref.innerHTML = '')
+   let buttons = [
+     { level: 128, node: `project.html`, label: 'Projets' },
+     { level: 64, node: `process.html`, label: 'Processus' },
+     { level: 16, node: `user.html`, label: 'Utilisateurs' },
+     { level: 32, node: `time.html`, label: 'Temps' }
+   ]
+
+   buttons.forEach((e) => {
+     if (parseInt(e.level) >= parseInt(window.level)) {
+       let div = document.createElement('DIV')
+       div.classList.add('button')
+       let link = document.createElement('A')
+       link.setAttribute('href', e.node)
+       link.addEventListener('click', exec)
+       link.appendChild(document.createTextNode(e.label))
+       div.appendChild(link)
+       window.requestAnimationFrame(() => ref.appendChild(div))
+     }
+   })
+   
+ }
+
+ window.addEventListener('load', (event) => {
+   if (window.logged) {
+     open(main)
+   } else {
+     let main = document.getElementsByTagName('main')[0]
+     main.innerHTML = ''
+     login(main)
+   }
+ })
+</script>
 </html>

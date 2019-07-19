@@ -7,12 +7,12 @@
   <link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
 </head>
 <body>
-  <nav><ul><li><a href="index.html">Home</a></li>
+<!--  <nav><ul><li><a href="index.html">Home</a></li>
       <li><a href="project.html">Projets</a></li>
       <li><a href="process.html">Processus</a></li>
       <li><a href="time.html">Temps</a></li>
     </ul>
-  </nav>
+  </nav> //-->
   <main>
   <h1>Utilisateurs</h1>
   <h2>Nouvel utilisateur</h2>
@@ -21,14 +21,19 @@
     <label for="username">Utilisateur : </label><input name="username" type="text" /><br> 
     <label for="efficiency">Efficacité : </label><input name="efficiency" type="text" value="1" /> (min: 0.1, max 2.0)<br> 
     <label for="password">Mot de passe : </label><input name="password" type="password" /><br>
-    <label for="admin"><input name="admin" type="checkbox" /> Administrateur</label>
-    <label for="time"><input name="time" type="checkbox" />Utilisateur</label><br>
+    <label for="level">Niveau d'accèss : <select name="level">
+      <option value="256">Ajout temps</option>
+      <option value="128">Gestion projet</option>
+      <option value="64">Gestion projet et processus </option>
+      <option value="32">Gestion temps, projet et processus</option>
+      <option value="16">Gestion de tout</option>
+    </select></label><br/>
     <input type="submit" value="Ajouter" />
 </form>
 <h2>Utilisateurs existants</h2>
 <form>
    <table id="users" data-source="Person">
-    <thead><tr><th>Nom</th><th>Utilisateur</th><th data-sort-type="float">Efficacité</th><th data-sort-type="bool">Actif</th><th data-sort-type="bool">Admin</th><th data-sort-type="no">Action</th></tr></thead>
+    <thead><tr><th>Nom</th><th>Utilisateur</th><th data-sort-type="float">Efficacité</th><th data-sort-type="bool">Actif</th><th data-sort-type="integer">Niveau</th><th data-sort-type="no">Action</th></tr></thead>
     <tbody>
     </tbody>
   </table>
@@ -58,6 +63,13 @@
          <label for="username">Nom d'utilisateur : <input type="text" name="username" value="${user.username}" /></label><br>
          <label for="name">Nom : <input type="text" name="name" value="${user.name}" /></label><br>
          <label for="efficiency">Efficacité : <input name="efficiency" type="text" value="${user.efficiency}"></label> (min: 0.1, max: 2.0)<br>
+         <label for="level">Niveau d'accèss : <select name="level">
+            <option value="256">Ajout temps</option>
+            <option value="128">Gestion projet</option>
+            <option value="64">Gestion projet et processus </option>
+            <option value="32">Gestion temps, projet et processus</option>
+            <option value="16">Gestion de tout</option>
+         </select></label><br/>
          <label for="password">Mot de passe : <input type="password" name="password" value=""></label><br><span class="notice" data-name="password-modified">Le mot de passe ne sera pas modifié</span><br>
          <label for="disabled"> Désactiver : <input type="checkbox" name="disabled" ${user.disabled === '0' ? '' : 'checked'} /></label><br>
          <button type="submit">Sauver</button><button type="reset">Annuler</button>
@@ -93,7 +105,7 @@
                return
              }
            }
-           let mapping = {username: 'username', name: 'name', efficiency: 'efficiency'}
+           let mapping = {username: 'username', name: 'name', efficiency: 'efficiency', level: 'level'}
            let body = {disabled: content.disabled ? '1' : '0'}
            for (let i in mapping) {
              if (content[i] && content[i] !== null) {
@@ -107,6 +119,8 @@
              alert(`Une efficacité de ${body.efficiency} n'est pas acceptable, la valeur doit être entre 0.1 et 2.0`)
              return
            }
+           body.level = parseInt(body.level)
+           
            if (content.password) {
              if (content.password.length < 6) {
                alert('Mot de passe trop court, veuillez entrer au moins 6 caractères')
@@ -136,19 +150,37 @@
    })
  }
 
+ const levels = {
+   256: 'Ajout de temps',
+   128: 'Gestion de projet',
+   64: 'Gestion de projet et processus',
+   32: 'Gestion de temps, projet et processus',
+   16: 'Gestion de tout'
+ }
+ 
  function newEntry (entry, edit = false) {
    return new Promise((resolve, reject) => {
      let tr = null
      if (entry.id) {
        tr = document.createElement('TR')
        tr.setAttribute('data-id', entry.id)
-       tr.setAttribute('data-admin', entry.admin ? 'yes' : 'no')
+       let level = ''
+       let highest = 32768;
+       for (let l in levels) {
+         if (parseInt(l) >= parseInt(entry.level)) {
+           if (parseInt(l) < highest) {
+             level = levels[l]
+             highest = parseInt(l)
+           }
+         }
+       }
+       
        tr.innerHTML =  `
          <td>${entry.name }</td>
          <td>${entry.username}</td>
          <td>${entry.efficiency}</td>
          <td>${(entry.disabled === '0' ? 'oui' : 'non')}</td>
-         <td>${(entry.admin ? 'oui' : 'non')}</td><td>
+         <td>${level}</td><td>
          <button data-user="${entry.id}" type="button" data-action="edit">Modifier</button>
          <button data-user="${entry.id}" type="button" data-action="delete">Supprimer</button>
 `
@@ -179,37 +211,38 @@
     var forms = document.getElementsByTagName('FORM')
     forms[0].addEventListener('submit', async function (event) {
       event.preventDefault()
-      var user = { name: null, efficiency: 1.0, key: null, keyopt: null, password: null, admin: false, user: false, username: null}
-      var inputs = event.target.getElementsByTagName('INPUT')
-      for (var i = 0; i < inputs.length; i++) {
-        switch (inputs[i].getAttribute('name')) {
-          case 'efficiency':
-            inputs[i].value = parseFloat(inputs[i].value)
-            if (inputs[i].value < 0.1 || inputs[i].value > 2.0) {
-              alert(`Une efficacité de ${inputs[i].value} n'est pas acceptable, la valeur doit être entre 0.1 et 2.0`)
-            }
-          case 'name':
-          case 'username':
-            user[inputs[i].getAttribute('name')] = inputs[i].value
-            break
-          case 'password':
-            user.password = inputs[i].value
-            var key = makeKey(user.password)
-            user.key = key.key
-            user.keyopt = key.keyopt
-            break
-          case 'admin':
-            if (inputs[i].checked) {
-              user.admin = true
-            }
-            break
-          case 'time':
-            if (inputs[i].checked) {
-              user.user = true
-            }
-            break
+      var user = { name: null, efficiency: 1.0, key: null, keyopt: null, password: null, admin: false, user: false, username: null }
+      
+      
+      ; ['INPUT', 'SELECT'].forEach((ename) => {
+        let inputs = event.target.getElementsByTagName(ename)
+        for (var i = 0; i < inputs.length; i++) {
+          switch (inputs[i].getAttribute('name')) {
+            case 'efficiency':
+              inputs[i].value = 1.0;
+              inputs[i].value = parseFloat(inputs[i].value)
+              if (inputs[i].value < 0.1 || inputs[i].value > 2.0) {
+                alert(`Une efficacité de ${inputs[i].value} n'est pas acceptable, la valeur doit être entre 0.1 et 2.0`)
+              }
+            case 'name':
+            case 'username':
+              user[inputs[i].getAttribute('name')] = inputs[i].value
+              inputs[i].value = ''
+              break
+            case 'password':
+              user.password = inputs[i].value
+              var key = makeKey(user.password)
+              user.key = key.key
+              user.keyopt = key.keyopt
+              inputs[i].value = ''
+              break
+            case 'level':
+              user.level = parseInt(inputs[i].value)
+              inputs[i].value = 256
+              break
+          }
         }
-      }
+      })
 
       var exists = await Artnum.Query.exec(Artnum.Path.url('Person', {params: {'search.username': user.username}}))
       if (exists.success && exists.length > 0) {
@@ -217,22 +250,16 @@
         return
       }
 
-      if (user.key && user.name && user.keyopt && user.username) {
-        if (user.user) {
-          Artnum.Query.exec(Artnum.Path.url('Person'), {method: 'POST', body: {name: user.name, key: user.key, keyopt: user.keyopt, username: user.username}}).then(function (result) {
-            if (!result.success && result.length !== 1) {
-              alert('Erreur de création des utilisateur')
-            } else {
-              Artnum.Query.exec(Artnum.Path.url('Person/' + result.data[0].id)).then(function (result) {
-                loadUsers()
-              })
-            }
-          })
-        }
-        if (user.admin) {
-          var admin = encodeURIComponent(JSON.stringify({op: 'edit', user: user.username, password: user.password}))
-          Artnum.Query.exec(Artnum.Path.url('admin/htpasswd.php?json=' + admin))
-        }
+      if (user.key && user.name && user.keyopt && user.username && user.level) {
+        Artnum.Query.exec(Artnum.Path.url('Person'), {method: 'POST', body: {level: user.level, name: user.name, key: user.key, keyopt: user.keyopt, username: user.username}}).then(function (result) {
+          if (!result.success && result.length !== 1) {
+            alert('Erreur de création des utilisateur')
+          } else {
+            Artnum.Query.exec(Artnum.Path.url('Person/' + result.data[0].id)).then(function (result) {
+              loadUsers()
+            })
+          }
+        })
       }
     })
     var t = new Artnum.DTable({table: 'users'})
