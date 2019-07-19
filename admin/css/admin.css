@@ -163,6 +163,14 @@ tr.sub[data-open="1"] {
 .odd {
     background-color: hsla(133, 60%, 60%, 0.2) !important;
 }
+
+.sub table td.longtext {
+    word-wrap: break-word !important;
+    max-width: calc(60 * 1ch) !important;
+    text-overflow: unset !important;
+    white-space: unset !important;
+}
+
 .sub table td.overflowable {
     text-overflow: initial;
     overflow: initial;

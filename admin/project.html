@@ -131,9 +131,9 @@ function changeState (event) {
       <input type="hidden" value="${project.id}" name="project" />
       <label for="subref">Référence : </label><input name="subref" type="text" value="${travail.reference}" /> <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" value="${travail.meeting}" /><br>
       <label for="contact">Personne de contact : </label><input name="contact" type="text" value="${travail.contact}" /> <label for="cphone">Téléphone : </label><input name="cphone" type="text" value="${travail.phone}"/><br>
+      <label for="end">Fin souhaitée : <input name="end" type="date" value="${travail.end ? travail.end : ''}"/><br>
       <label for="time">Temps du projet : <input name="time" type="text" value="${time}"></label><label for="force">à un force de <input name="force" type="text" value="${travail.force ? travail.force : 1}" /></label><br>
       <span class="notice">La force représente le nombre minimal d'ouvriers ayant une efficacité de 100% (1.0) pour effectuer le travail dans le temps donné.  Le temps du projet est en heure à moins que la valeur soit préfixée par 's' pour semaine, 'j' pour jour. Un jour dure ${window.Conf.workday} heures et une semaine dure ${window.Conf.weekhours} heures.</span><br>
-      <label for="end">Fin souhaitée : <input name="end" type="date" value="${travail.end ? travail.end : ''}"/><br>
       <label for="description>">Description du travail</label><br>
       <textarea name="description">${travail.description}</textarea><br>
       <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
@@ -474,7 +474,8 @@ async function evCancelEdit (event) {
            subTable.appendChild(trHeader)
            travaux.data.forEach((travail) => {
              let tr = document.createElement('TR')
-             tr.innerHTML = `<td data-sort-value="${travail.reference}">${travail.reference}</td><td>${travail.meeting}</td><td>${travail.contact}</td><td>${travail.phone}</td><td>${travail.description}</td><td class="overflowable"><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="edit">Éditer</button><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="print">Imprimer</button></td>`
+             let desc = travail.description.replace(/(?:\r\n|\r|\n)/g, '<br>')
+             tr.innerHTML = `<td data-sort-value="${travail.reference}">${travail.reference}</td><td>${travail.meeting}</td><td>${travail.contact}</td><td>${travail.phone}</td><td class="longtext">${desc}</td><td class="overflowable"><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="edit">Éditer</button><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="print">Imprimer</button></td>`
              tr.addEventListener('click', (event) => {
                if (event.target.nodeName === 'BUTTON') {
                  handleTravailButton(event)
