@@ -47,7 +47,11 @@
 <script src="/js/DTable.js"></script>
 <script src="js/admin.js"></script>
 <script>
+ window.Conf = { workweek: 5, weekhours: 42 }
+ window.Conf.workday = window.Conf.weekhours / window.Conf.workweek
 
+
+ const APPConf = Conf
 var searchParams = {'search.closed': '-', 'search.deleted': '-', 'sort.reference': 'asc'}
 
 function exportAll () {
@@ -113,13 +117,23 @@ function changeState (event) {
    query.then((result) => {
      let project = result.project
      let travail = result.travail
-/*     let popup = document.createElement('DIV')
-   popup.classList.add('popup') */
+
+     let time = travail.time ? travail.time : 0
+     if (Math.floor(time / APPConf.weekhours / 3600) > 0) {
+       time = `${Math.round(time / APPConf.weekhours / 36) / 100} s` // week
+     } else if (Math.floor(time / APPConf.workday / 3600) > 0) {
+       time = `${Math.round(time / APPConf.workday / 36) / 100} j` // week
+     } else {
+       time = time / 3600
+     }
+
      let popup = window.Admin.popup(`<form>
       <input type="hidden" value="${project.id}" name="project" />
       <label for="subref">Référence : </label><input name="subref" type="text" value="${travail.reference}" /> <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" value="${travail.meeting}" /><br>
       <label for="contact">Personne de contact : </label><input name="contact" type="text" value="${travail.contact}" /> <label for="cphone">Téléphone : </label><input name="cphone" type="text" value="${travail.phone}"/><br>
-      <label for="time">Temps du projet : <input name="time" type="text" value="${travail.time}"></label></br>
+      <label for="time">Temps du projet : <input name="time" type="text" value="${time}"></label><label for="force">à un force de <input name="force" type="text" value="${travail.force ? travail.force : 1}" /></label><br>
+      <span class="notice">La force représente le nombre minimal d'ouvriers ayant une efficacité de 100% (1.0) pour effectuer le travail dans le temps donné.  Le temps du projet est en heure à moins que la valeur soit préfixée par 's' pour semaine, 'j' pour jour. Un jour dure ${window.Conf.workday} heures et une semaine dure ${window.Conf.weekhours} heures.</span><br>
+      <label for="end">Fin souhaitée : <input name="end" type="date" value="${travail.end ? travail.end : ''}"/><br>
       <label for="description>">Description du travail</label><br>
       <textarea name="description">${travail.description}</textarea><br>
       <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
@@ -144,13 +158,45 @@ function changeState (event) {
      form.addEventListener('submit', (event) => {
        event.preventDefault()
        let content = window.Admin.getForm(event.target)
-       let mapping = {project: 'project', description: 'description', subref: 'reference', meeting: 'meeting', contact: 'contact', cphone: 'phone', time: 'time'}
+       let mapping = {project: 'project', description: 'description', subref: 'reference', meeting: 'meeting', contact: 'contact', cphone: 'phone', time: 'time', end: 'end', force: 'force'}
        let data = travail.id !== '' ?  {id: travail.id} : {}
        for (let i in mapping) {
-         if (content[i] && content[i] !== null) {
-           data[mapping[i]] = content[i]
-         } else {
-           data[mapping[i]] = ''
+         data[mapping[i]] = '' // init to empty string
+         switch(i) {
+           default:
+             if (!content[i]) { break }
+             data[mapping[i]] = content[i]
+             break
+           case 'end':
+             if (!content[i]) { break }
+             data[mapping[i]] = content[i].split('T')[0]
+             break
+           case 'force':
+             if (!content[i]) { data[mapping[i]] = 1.0; break }
+             data[mapping[i]] = parseFloat(content[i])
+             break
+           case 'time':
+             if(!content[i]) { data[mapping[i]] = 1.0; break }
+             let exp = /([0-9]+(?:[\.,][0-9]+)?)\s*([jJsS]?)/
+             let m
+             if ((m = exp.exec(content[i])) !== null) {
+               let x = parseFloat(m[1].replace(',', '.'))
+
+               switch(m[2]) {
+                 case 's':
+                 case 'S':
+                   x *= APPConf.weekhours
+                   break
+                 case 'j':
+                 case 'J':
+                   x *= APPConf.workday
+                   break
+               }
+               data[mapping[i]] = x * 3600 // stored in second
+             } else {
+               data[mapping[i]] = 1.0
+             }
+             break
          }
        }
        Artnum.Query.exec(Artnum.Path.url(`Travail/${travail.id}`), {method: travail.id !== '' ? 'PUT' : 'POST', body: data}).then((result) => {
