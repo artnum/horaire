@@ -474,7 +474,7 @@ async function evCancelEdit (event) {
            subTable.appendChild(trHeader)
            travaux.data.forEach((travail) => {
              let tr = document.createElement('TR')
-             let desc = travail.description.replace(/(?:\r\n|\r|\n)/g, '<br>')
+             let desc = travail.description ? travail.description.replace(/(?:\r\n|\r|\n)/g, '<br>') : ''
              tr.innerHTML = `<td data-sort-value="${travail.reference}">${travail.reference}</td><td>${travail.meeting}</td><td>${travail.contact}</td><td>${travail.phone}</td><td class="longtext">${desc}</td><td class="overflowable"><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="edit">Éditer</button><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="print">Imprimer</button></td>`
              tr.addEventListener('click', (event) => {
                if (event.target.nodeName === 'BUTTON') {
