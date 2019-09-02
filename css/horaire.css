@@ -126,26 +126,26 @@ body.waiting .waiting {
 }
 
 .button.tool span:before {
-    font-family: "Font Awesome 5 Free";
+    font-family: "FontAwesome";
     content: "\f0ad\0020";
 }
 .button.project span:before {
-    font-family: "Font Awesome 5 Free";
+    font-family: "FontAwesome";
     content: "\f006\0020";
 }
 
 .button.folder span:before {
-    font-family: "Font Awesome 5 Free";
+    font-family: "FontAwesome";
     content: "\f114\0020";
 }
 
 .button.user span:before {
-    font-family: "Font Awesome 5 Free";
+    font-family: "FontAwesome";
     content: "\f2c0\0020";
 }
 
 .button.home span:before {
-    font-family: "Font Awesome 5 Free";
+    font-family: "FontAwesome";
     content: "\f015\0020";
 }
 

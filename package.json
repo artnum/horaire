@@ -4,6 +4,9 @@
   "license": "MIT",
   "main": "index.html",
   "dependencies": {
+    "dijit": "^1.15.0",
+    "dojo": "^1.15.0",
+    "font-awesome": "^4.7.0",
     "popper.js": "^1.15.0",
     "sjcl": "^1.0.8",
     "transliteration": "^2.1.5"
