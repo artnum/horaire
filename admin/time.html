@@ -20,7 +20,8 @@
     <label for="person">Personne : </label><select data-source="Person" data-options="{parameters: {'search.deleted': '-'}}" name="person"></select><br />
     <label for="day">Jour :</label><input type="date" name="day" /> <label for="hour">Temps :</label><input type="text" name="hour" /><br />
     <label for="comment">Commentaire :</label><input type="text" name="comment" /><br />
-    <label for="project">Projet : </label><select data-source="Project" data-options='{label: "$reference - $name", id: "id", parameters: {"search.closed": "-", "search.deleted": "-"}}' name="project"></select>
+    <label for="project">Projet : </label>
+    <input name="project" id="selectProject" type="text" />
     <label for="process">Processus : </label><select data-source="Process" data-options="{label: '$name', id: 'id', parameters: {'search.deleted': '-'}}" name="process"></select><br />
     <input type="submit" value="Ajouter" />
   </form>
@@ -50,12 +51,16 @@
   </main>
 </body>
 <script src="https://bitwiseshiftleft.github.io/sjcl/sjcl.js"></script>
-<script src="https://artnum.ch/code/js/Date.js"></script>
+<script src="../node_modules/popper.js/dist/umd/popper.min.js"></script>
+<script src="/js/String.js"></script>
+<script src="/js/Date.js"></script>
 <script src="/js/Path.js"></script>
 <script src="/js/Hour.js"></script>
-<script src="https://artnum.ch/code/js/Query.js"></script>
-<script src="https://artnum.ch/code/js/DTable.js"></script>
+<script src="/js/Select.js"></script>
+<script src="/js/Query.js"></script>
+<script src="/js/DTable.js"></script>
 <script src="js/admin.js"></script>
+<script src="js/stores.js"></script>
 <script>
 function submitForm (event, doExport = false) {
    event.preventDefault()
@@ -253,7 +258,9 @@ window.onload = function (event) {
     for (var i = 0; i < forms.length; i++) {
       Admin.loadForm(forms[i])
     }
-  var t = new Artnum.DTable({table: 'results', sortOnly: true})
+   var t = new Artnum.DTable({table: 'results', sortOnly: true})
+   /* <select data-source="Project" data-options='{label: "$reference - $name", id: "id", parameters: {"search.closed": "-", "search.deleted": "-"}}' name="project"></select> */
+   Select(document.getElementById('selectProject'), STProject)
 }
 </script>
 </html>

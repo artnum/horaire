@@ -1,0 +1,36 @@
+.dropdown {
+    background-color: white;
+    max-height: 120px;
+    min-width:240px;
+    overflow: auto;
+    z-index: 99999;
+    padding: 5px;
+    border: 1px solid black;
+}
+
+.dropdown div {
+    cursor: pointer;
+    padding: 2px;
+    width: calc(100% - 4px); /* enleve le padding gauche/droite */
+    border: 1px solid transparent;
+}
+.dropdown div[data-hover="1"] {
+    background-color: hsla(var(--default-highlight-color-base), 0.2);
+    border: 1px solid hsla(var(--default-highlight-color-base), 0.4);
+    transition-delay: 10ms;
+}
+
+.dropdown div .match {
+    background-color: hsla(var(--default-highlight-color-base), 0.4);
+    pointer-events: none;
+}
+
+/*input.select {
+    border: 1px solid hsla(var(--default-color-base), 0.4);
+    background-color: var(--default-bg-color);
+    padding: 0.5ch;
+}*/
+
+input.select[data-loading="1"] {
+    background: url('../../resources/images/ripple-loader-32px.gif') no-repeat left center / 32px 32px;
+}
