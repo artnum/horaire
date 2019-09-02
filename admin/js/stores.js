@@ -46,6 +46,19 @@ const STProject = {
             entries.push(entry)
           })
         }
+        entries.sort((a, b) => {
+          let Xa = parseInt(a.reference)
+          let Xb = parseInt(b.reference)
+          if (isNaN(Xa)) { Xa = Infinity }
+          if (isNaN(Xb)) { Xb = Infinity }
+          if (Xa.toString() !== a.reference) { Xa = Infinity }
+          if (Xb.toString() !== b.reference) { Xb = Infinity }
+          if (Xa === Infinity && Xb === Infinity) {
+            return a.reference.localeCompare(b.reference)
+          }
+          return Xa - Xb
+        })
+
         resolve(entries)
       })
     })
