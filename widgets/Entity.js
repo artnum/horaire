@@ -106,6 +106,7 @@ define([
       section2.appendChild(this.TimeList.domNode)
 
       djOn(this.TimeBox, 'changeday', function (day) {
+        if (!day) { return }
         var url = Path.url('Htime')
         url.searchParams.append('sort.created', 'DESC')
         url.searchParams.append('search.person', this.entry.id)
