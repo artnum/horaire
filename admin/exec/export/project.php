@@ -52,7 +52,7 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
   
    $query_items = null;
    try {
-      $db = new PDO('sqlite:../../db/horaire.sqlite3');
+      $db = new PDO('sqlite:../../../db/horaire.sqlite3');
       $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
       $st = $db->prepare($query);
    } catch (Exception $e) {
@@ -78,13 +78,22 @@ try {
 
    $writer = new XLSXWriter();
 
+   $per_project = array();
    $per_process = array();
    $per_person = array();
+
+   /* Projet as first page */
+   $writer->writeSheetHeader('Par projet', array('Reference' => 'string', 'Nom' => 'string', 'Première entrée' => 'date', 'Dernière entrée' => 'date', 'Heure [h]' => '0.00'), array('widths'=>[10,60,15,15,10]));
+
+  
    /* Entrées */
-   $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process/Bon' => 'string', 'Jour' => 'datetime', 'Temps [h]' => '0.00', 'Personne' => 'string', 'Terminé' => 'datetime', 'Remarque' => 'string'), array('widths'=>[25, 25, 25, 25, 25, 25, 25, 100]));
+   $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process/Bon' => 'string', 'Jour' => 'date', 'Temps [h]' => '0.00', 'Personne' => 'string', 'Terminé' => 'datetime', 'Remarque' => 'string'), array('widths'=>[10, 40, 15, 15, 10, 15, 15, 100]));
    foreach ($values as $row) {
       if ($project === '') {
          $project = $row['project_reference'] . ' - ' . $row['project_name'];
+      }
+      if (!isset($per_project[$row['project_reference']])) {
+         $per_project[$row['project_reference']] = array('reference' => $row['project_reference'], 'name' => $row['project_name'], 'firstdate' => null, 'lastdate' => null, 'time' => 0); 
       }
       if (!isset($per_process[$row['process_name']])) {
          $per_process[$row['process_name']] = 0;
@@ -105,17 +114,53 @@ try {
        }
      }
      
-      $date = (new DateTime($row['htime_day']))->format('Y-m-d H:i:s');
+      $datetime = new DateTime($row['htime_day']);
+      $date = $datetime->format('Y-m-d');
       $writer->writeSheetRow('Entrées', array($row['project_reference'], $row['project_name'], $pb, $date, $row['htime_value'] / 3600, $row['person_name'], is_null($row['project_closed']) ? '' : $row['project_closed'], $row['htime_comment']));
 
       $per_process[$row['process_name']] += $row['htime_value'];
       $per_person[$row['person_name']] += $row['htime_value'];
+     
+      $per_project[$row['project_reference']]['time'] += $row['htime_value'];
+      if (is_null($per_project[$row['project_reference']]['firstdate'])) { $per_project[$row['project_reference']]['firstdate'] = $datetime; }
+      if (is_null($per_project[$row['project_reference']]['lastdate'])) { $per_project[$row['project_reference']]['lastdate'] = $datetime; }
+
+      if ($datetime->getTimestamp() < $per_project[$row['project_reference']]['firstdate']->getTimestamp()) {
+        $per_project[$row['project_reference']]['firstdate'] = $datetime; 
+      }
+      if ($datetime->getTimestamp() > $per_project[$row['project_reference']]['lastdate']->getTimestamp()) {
+        $per_project[$row['project_reference']]['lastdate'] = $datetime; 
+      } 
    }
 
    $writer->writeSheetRow('Entrées', array('', '', ''));
    $rc = $writer->countSheetRows('Entrées');
    $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', ''));
 
+
+  uasort($per_project, function ($a, $b) {
+    if (ctype_digit($a['reference']) && ctype_digit($b['reference'])) {
+      return intval($a['reference']) - intval($b['reference']);
+    }
+    if (ctype_digit($a['reference']) && !ctype_digit($b['reference'])) {
+      return -1;
+    }
+    if (!ctype_digit($a['reference']) && ctype_digit($b['reference'])) {
+      return 1;
+    }
+    return strcmp($a['reference'], $b['reference']);
+  });
+  /* Par projet */
+   foreach ($per_project as $project) {
+     $writer->writeSheetRow('Par projet', array($project['reference'], $project['name'],
+                            !is_null($project['firstdate']) ? $project['firstdate']->format('Y-m-d') : '',
+                            !is_null($project['lastdate']) ? $project['lastdate']->format('Y-m-d') : '',
+                            $project['time'] / 3600));
+   }
+   $writer->writeSheetRow('Par projet', array('', ''));
+   $rc = $writer->countSheetRows('Par projet');
+   $writer->writeSheetRow('Par projet', array('Total', '', '', '', '=SUM(E2:E' . ($rc - 1) . ')'));
+  
    /* Par processus */
    $writer->writeSheetHeader('Par processus', array('Process' => 'string', 'Temps [h]' => '0.00'), array('widths'=>[25,10]));
    foreach ($per_process as $process => $time) {

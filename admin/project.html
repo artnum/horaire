@@ -56,12 +56,12 @@ var searchParams = {'search.closed': '-', 'search.deleted': '-', 'sort.reference
 
 function exportAll () {
    if (!searchParams['search.closed']) {   
-     window.open(Artnum.Path.url('exec/export/project.php', {params: {state: 'alive'}}))
+     window.open(Artnum.Path.url('admin/exec/export/project.php', {params: {state: 'alive'}}))
    } else {
      if (searchParams['search.closed'] === '-') {
-       window.open(Artnum.Path.url('exec/export/project.php', {params: {state: 'open'}}))
+       window.open(Artnum.Path.url('admin/exec/export/project.php', {params: {state: 'open'}}))
      } else {
-       window.open(Artnum.Path.url('exec/export/project.php', {params: {state: 'closed'}}))
+       window.open(Artnum.Path.url('admin/exec/export/project.php', {params: {state: 'closed'}}))
      }
    }
 }
@@ -412,7 +412,7 @@ async function evCancelEdit (event) {
        exportButton.addEventListener('click', function (event) {
          if (event && event.target) {
            for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
-           window.open(Artnum.Path.url('exec/export/project.php', {params: {pid: node.getAttribute('data-id')}}))
+           window.open(Artnum.Path.url('admin/exec/export/project.php', {params: {pid: node.getAttribute('data-id')}}))
          }
        })
        exportButton.innerHTML = 'Exporter'
