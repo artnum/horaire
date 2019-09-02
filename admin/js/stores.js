@@ -17,7 +17,7 @@ const STProject = {
       if (id === undefined || id === null || id === false) { resolve(entry); return }
       Artnum.Query.exec(Artnum.Path.url(`Project/${id}`)).then((results) => {
         if (results.success && results.length === 1) {
-          let entry = results.data[0]
+          let entry = Array.isArray(results.data) ? results.data[0] : results.data
           entry.label = `${entry.reference} - ${entry.name}`
           entry.value = entry.uid ? entry.uid : entry.id
         }
