@@ -78,16 +78,12 @@ try {
 
    $writer = new XLSXWriter();
 
+   $per_entry = array();
    $per_project = array();
    $per_process = array();
    $per_person = array();
-
-   /* Projet as first page */
-   $writer->writeSheetHeader('Par projet', array('Reference' => 'string', 'Nom' => 'string', 'Première entrée' => 'date', 'Dernière entrée' => 'date', 'Heure [h]' => '0.00'), array('widths'=>[10,60,15,15,10]));
-
-  
+ 
    /* Entrées */
-   $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process/Bon' => 'string', 'Jour' => 'date', 'Temps [h]' => '0.00', 'Personne' => 'string', 'Terminé' => 'datetime', 'Remarque' => 'string'), array('widths'=>[10, 40, 15, 15, 10, 15, 15, 100]));
    foreach ($values as $row) {
       if ($project === '') {
          $project = $row['project_reference'] . ' - ' . $row['project_name'];
@@ -115,8 +111,9 @@ try {
      }
      
       $datetime = new DateTime($row['htime_day']);
-      $date = $datetime->format('Y-m-d');
-      $writer->writeSheetRow('Entrées', array($row['project_reference'], $row['project_name'], $pb, $date, $row['htime_value'] / 3600, $row['person_name'], is_null($row['project_closed']) ? '' : $row['project_closed'], $row['htime_comment']));
+     $date = $datetime->format('Y-m-d');
+     $per_entry[] =array($row['project_reference'], $row['project_name'], $pb, $date, $row['htime_value'] / 3600, $row['person_name'], is_null($row['project_closed']) ? '' : $row['project_c\
+losed'], $row['htime_comment']);
 
       $per_process[$row['process_name']] += $row['htime_value'];
       $per_person[$row['person_name']] += $row['htime_value'];
@@ -132,12 +129,6 @@ try {
         $per_project[$row['project_reference']]['lastdate'] = $datetime; 
       } 
    }
-
-   $writer->writeSheetRow('Entrées', array('', '', ''));
-   $rc = $writer->countSheetRows('Entrées');
-   $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', ''));
-
-
   uasort($per_project, function ($a, $b) {
     if (ctype_digit($a['reference']) && ctype_digit($b['reference'])) {
       return intval($a['reference']) - intval($b['reference']);
@@ -150,7 +141,9 @@ try {
     }
     return strcmp($a['reference'], $b['reference']);
   });
+  
   /* Par projet */
+  $writer->writeSheetHeader('Par projet', array('Reference' => 'string', 'Nom' => 'string', 'Première entrée' => 'date', 'Dernière entrée' => 'date', 'Heure [h]' => '0.00'), array('widths'=>[10,60,15,15,10]));
    foreach ($per_project as $project) {
      $writer->writeSheetRow('Par projet', array($project['reference'], $project['name'],
                             !is_null($project['firstdate']) ? $project['firstdate']->format('Y-m-d') : '',
@@ -160,7 +153,7 @@ try {
    $writer->writeSheetRow('Par projet', array('', ''));
    $rc = $writer->countSheetRows('Par projet');
    $writer->writeSheetRow('Par projet', array('Total', '', '', '', '=SUM(E2:E' . ($rc - 1) . ')'));
-  
+
    /* Par processus */
    $writer->writeSheetHeader('Par processus', array('Process' => 'string', 'Temps [h]' => '0.00'), array('widths'=>[25,10]));
    foreach ($per_process as $process => $time) {
@@ -210,6 +203,17 @@ try {
       }
    } 
 
+
+  /* Toutes les entrées */
+  $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process/Bon' => 'string', 'Jour' => 'date', 'Temps [h]' => '0.00', 'Personne' => 'string', 'Terminé' => 'datetime', 'Remarque' => 'string'), array('widths'=>[10, 40, 15, 15, 10, 15, 15, 100]));
+  foreach($per_entry as $entry) {
+      $writer->writeSheetRow('Entrées', array($entry[0], $entry[1], $entry[2], $entry[3], $entry[4], $entry[5], $entry[6], $entry[7]));
+  }
+  
+   $writer->writeSheetRow('Entrées', array('', '', ''));
+   $rc = $writer->countSheetRows('Entrées');
+   $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', ''));
+  
    header('Content-Disposition: inline; filename="' . $project . '.xlsx"');
    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
    $writer->writeToStdOut();
