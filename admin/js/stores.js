@@ -46,7 +46,6 @@ const STProject = {
             entries.push(entry)
           })
         }
-        console.log(entries)
         resolve(entries)
       })
     })

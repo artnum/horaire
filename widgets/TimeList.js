@@ -129,7 +129,6 @@ define([
           djOn(td, 'click', function (event) {
             var node = event.target
             while (node.nodeName !== 'TD') { node = node.parentNode }
-            console.log(node)
             var url = Path.url('Htime/' + node.getAttribute('data-time-id'))
             Query.exec(url, {method: 'DELETE', body: {id: event.target.getAttribute('data-time-id')}}).then(function (response) {
               this.refresh()

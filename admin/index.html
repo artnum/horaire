@@ -50,7 +50,6 @@
      fetch(url).then((result) => {
        if (!result.ok) { alert('Authentification échouée'); return }
        result.json().then((data) => {
-         console.log(data)
          if (data.success && data.length === 1) {
            let [iteration, salt] = data.data[0].keyopt.split(' ', 2)
            let p = sjcl.codec.base64.fromBits(sjcl.misc.pbkdf2(password, sjcl.codec.base64.toBits(salt), parseInt(iteration)))
@@ -69,7 +68,6 @@
 
  function exec(event) {
    event.preventDefault()
-   console.log(event)
    let main = event.target
    while (main.nodeName !== 'MAIN') { main = main.parentNode;}
    document.body.classList.add('pageview')

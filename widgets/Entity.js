@@ -146,7 +146,6 @@ define([
 
       djOn(this.TimeBox, 'submit', function (event) {
         var project = this.Project.get('value')
-        console.log(this, project)
         if (!event.date || !event.second || !project.project || (!project.process && !project.travail)) {
           new Log({message: 'Entrée incomplète', timeout: 2}).show()
           return
