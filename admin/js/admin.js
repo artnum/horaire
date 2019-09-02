@@ -48,14 +48,19 @@
           var name = inputs[i].getAttribute('name')
           switch (inputs[i].getAttribute('type')) {
             default:
-              if (inputs[i].value) { value = inputs[i].value }
+              if (inputs[i].dataset.value) {
+                value = inputs[i].dataset.value
+              } else if (inputs[i].value) {
+                value = inputs[i].value
+              }
               break
             case 'date':
               try {
+                let v = inputs[i].dataset.value ? inputs[i].dataset.value : inputs[i].value
                 if (inputs[i].valueAsDate) {
                   value = inputs[i].valueAsDate.toISOString().split('T')[0]
                 } else {
-                  value = (new Date(inputs[i].value)).toISOString().split('T')[0]
+                  value = (new Date(v)).toISOString().split('T')[0]
                 }
               } catch (e) {
                 value = null
