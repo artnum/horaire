@@ -564,7 +564,8 @@ async function evCancelEdit (event) {
      }
    })
  }
- 
+
+ var t = null
  async function load () {
    document.getElementById('inYear').value = String((new Date()).getFullYear())
    var forms = document.getElementsByTagName('FORM')
@@ -586,7 +587,8 @@ async function evCancelEdit (event) {
      }
    })
 
-   var t = new Artnum.DTable({table: 'projects', postsort: (table) => {
+   if (t) { return }
+   t = new Artnum.DTable({table: 'projects', postsort: (table) => {
      for (let i = table.firstElementChild; i; i = i.nextElementSibling) {
        if (i.dataset.parentId) {
          for (let j = table.firstElementChild; j; j = j.nextElementSibling) {
