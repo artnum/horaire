@@ -118,7 +118,7 @@ define([
         } else {
           let seconds = this.nHour.get('value')
           let h = Math.trunc(seconds / 3600)
-          let m = Math.trunc(((seconds / 3600) - h) * 60)
+          let m = Math.trunc(Math.round(((seconds / 3600) - h) * 60))
           let txt = `${h < 10 ? '0' + h : h} h ${m < 10 ? '0' + m : m} m`
           this.nHour.domNode.nextElementSibling.innerHTML = txt
         }
