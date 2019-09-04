@@ -1,4 +1,6 @@
 <?PHP
+define('DB_PATH', 'sqlite:../../../db/horaire.sqlite3');
+
 require('PHP_XLSXWriter/xlsxwriter.class.php');
 
 $project = 'tous';
@@ -16,16 +18,16 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
       WHERE quantity_project = :pid';
 
    try {
-      $db = new PDO('sqlite:../../db/horaire.sqlite3');
+      $db = new PDO(DB_PATH);
       $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
       $st = $db->prepare($query);
       $st->bindValue(':pid', $_GET['pid'], PDO::PARAM_INT);
    } catch (Exception $e) {
       die($e->getMessage());
    }
-   $project = '';
+   $project_name = '';
 } else {
-   $query = 'SELECT * FROM project
+  $query = 'SELECT * FROM project
          LEFT JOIN htime ON htime.htime_project = project.project_id
          LEFT JOIN person ON htime.htime_person = person.person_id
          LEFT JOIN process ON htime.htime_process = process.process_id
@@ -36,15 +38,19 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
     switch (strtolower($_GET['state'])) {
       case 'all': break;
       case 'open':
+        $project_name = 'Tous les projets ouverts';
         $query .= ' AND project.project_deleted IS NULL AND project.project_closed IS NULL';
         break;
       case 'closed':
+        $project_name = 'Tous les projets clos';
         $query .= ' AND project.project_deleted IS NULL AND project.project_closed IS NOT NULL';
         break;
       case 'alive':
+        $project_name = 'Tous les projets non supprimés';
         $query .= ' AND project.project_deleted IS NULL';
         break;
       case 'deleted':
+        $project_name = 'Tous les projets supprimés';
         $query .= ' AND project.project_deleted IS NOT NULL';
         break;
     }
@@ -52,7 +58,7 @@ if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
   
    $query_items = null;
    try {
-      $db = new PDO('sqlite:../../../db/horaire.sqlite3');
+      $db = new PDO(DB_PATH);
       $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
       $st = $db->prepare($query);
    } catch (Exception $e) {
@@ -82,11 +88,10 @@ try {
    $per_project = array();
    $per_process = array();
    $per_person = array();
- 
    /* Entrées */
    foreach ($values as $row) {
-      if ($project === '') {
-         $project = $row['project_reference'] . ' - ' . $row['project_name'];
+      if ($project_name === '') {
+         $project_name = $row['project_reference'] . ' - ' . $row['project_name'];
       }
       if (!isset($per_project[$row['project_reference']])) {
          $per_project[$row['project_reference']] = array('reference' => $row['project_reference'], 'name' => $row['project_name'], 'firstdate' => null, 'lastdate' => null, 'time' => 0); 
@@ -213,8 +218,9 @@ losed'], $row['htime_comment']);
    $writer->writeSheetRow('Entrées', array('', '', ''));
    $rc = $writer->countSheetRows('Entrées');
    $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', ''));
-  
-   header('Content-Disposition: inline; filename="' . $project . '.xlsx"');
+
+   $project_name = date('Y-m-d') . ' ' . $project_name;
+   header('Content-Disposition: inline; filename="' . $project_name . '.xlsx"');
    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
    $writer->writeToStdOut();
 } catch(Exception $e) {
