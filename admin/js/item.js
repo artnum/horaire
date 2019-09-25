@@ -83,7 +83,7 @@ Item.prototype.display = async function () {
       tbody.setAttribute('id', catid)
       tbody.innerHTML = `<tr data-header="1"><th colspan="5">${category ? category : '---'}</th></tr>`
       this.TBody[catid] = tbody
-      window.requestAnimationFrame(() => this.DisplayNode.appendChild(tbody))
+      this.DisplayNode.appendChild(tbody)
     }
 
     let div = document.createElement('TR')
