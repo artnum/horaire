@@ -260,7 +260,7 @@ window.onload = function (event) {
     }
    var t = new Artnum.DTable({table: 'results', sortOnly: true})
    /* <select data-source="Project" data-options='{label: "$reference - $name", id: "id", parameters: {"search.closed": "-", "search.deleted": "-"}}' name="project"></select> */
-   Select(document.getElementById('selectProject'), STProject)
+   Select(document.getElementById('selectProject'), new STProject('Project'))
 }
 </script>
 </html>
