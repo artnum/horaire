@@ -157,9 +157,5 @@ window.onload = async function (event) {
   var t = new Artnum.DTable({table: 'items', sortOnly: true})
   window.Item.load().then((Item) => {
     Item.display()
-    console.log(Item)
-    Item.write(1, {name: 'Tounch', reference: 'Rounche'}).then(([id, Item]) => {
-      Item.load(id).then((item) => { item.display() })
-    })
   })
 }
