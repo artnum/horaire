@@ -141,12 +141,14 @@
             var newid = id
             if (method !== 'DELETE' && result.length === 1) {
               newid = result.data[0].id
+              Artnum.Query.exec(Artnum.Path.url(store + '/' + newid)).then(function (result) {
+                if (result.success && result.length === 1) {
+                  resolve(result.data)
+                }
+              })
+            } else {
+              resolve(result.success)
             }
-            Artnum.Query.exec(Artnum.Path.url(store + '/' + newid)).then(function (result) {
-              if (result.success && result.length === 1) {
-                resolve(result.data)
-              }
-            })
           }
         })
       })

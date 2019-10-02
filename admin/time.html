@@ -37,7 +37,6 @@
     <label for="person">Personne : </label><select data-source="Person" name="person" data-options="{parameters: {'search.deleted': '-'}}">
     <option value=""></option></select><br />
     <label for="from">Du </label><input onchange="syncToFrom(event)" name="from" type="date" /><label for="to"> au </label><input name="to" type="date" data-sync-with="from" /><br />
-    <input type="checkbox" name="deleted" /><label for="deleted"> Inclure valeurs supprimées</label><br />
     <input type="submit" value="Chercher" />
     <input type="button" value="Exporter" onclick="submitForm(event, true)" />
   </form>
@@ -142,8 +141,8 @@ function makeEntry (entry) {
     </td><td data-value="${hour.format()}">${hour.format()}
     </td><td data-value="${(entry.comment ? entry.comment : '')}">
    ${(entry.comment ? entry.comment : '')}
-    </td><td data-source="Projects" data-id="${entry.project}">${entry._project.name}
-    </td><td data-source="Process" data-id="${entry.process}">${entry._process.name}
+    </td><td data-source="Projects" data-id="${entry.project}">${entry._project ? entry._project.name : ''}
+    </td><td data-source="Process" data-id="${entry.process}">${entry._process ? entry._process.name : ''}
     </td>`
 
   if (entry.deleted) {
@@ -172,10 +171,9 @@ function deleteEntry (event) {
   var id = line.getAttribute('data-id')
   if (id) {
     Admin.deleteEntry('Htime', id).then(function (data) {
-      var entry = makeEntry(data)
-      var table = line
-      for (; table && table.nodeName !== 'TABLE'; table = table.parentNode);
-      Admin.insertEntry(entry, table)
+      if (data) {
+        window.requestAnimationFrame(() => line.parentNode.removeChild(line))
+      }
     })
   }
 }
