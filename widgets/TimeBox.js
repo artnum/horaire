@@ -127,9 +127,14 @@ define([
 
     eSubmit: function (event) {
       this.emit('submit', {second: this.nHour.get('value'), date: this.selectDay.get('value'), comment: this.nRemark.value})
+    },
+    clear: function () {
       this.nRemark.value = ''
       this.nHour.set('value', '')
       this.nHour.focus()
+      if (this.nHour.domNode.nextElementSibling) {
+        this.nHour.domNode.nextElementSibling.innerHTML = ''
+      }
     }
   })
 })

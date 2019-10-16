@@ -102,7 +102,7 @@ define([
         var table = document.createElement('TABLE')
         var thead = document.createElement('THEAD')
         thead.setAttribute('class', 'entries head')
-        thead.innerHTML = '<tr><th class="day">Jour</th><th class="time">Durée</th><th class="project">Projet</th><th></th></tr>'
+        thead.innerHTML = '<tr><th class="day">Jour</th><th class="time">Durée</th><th class="project">Projet</th><th></th><th></th></tr>'
         var totalTime = 0
         var tbody = document.createElement('TBODY')
         for (var i = 0; i < data.length; i++) {
@@ -111,6 +111,7 @@ define([
           }
           var tr = document.createElement('TR')
           tr.setAttribute('class', 'entries')
+          tr.dataset.timeId = data[i].id
 
           var project = data[i]._project.name
           if (this.user.id !== data[i].person) {
@@ -121,9 +122,61 @@ define([
           }
           totalTime += Number(data[i].value)
           tr.innerHTML = '<td class="day">' + (new Date(data[i].day)).shortDate() + '</td><td class="time">' + (new Hour(data[i].value).toMinStr()) + '</td><td class="project">' + project + '</td>'
+          tr.dataset.duration = data[i].value
+          tr.dataset.comment = data[i].comment
+
+          let mod = document.createElement('TD')
+          mod.classList.add('modify', 'iconButton')
+          mod.dataset.timeId = data[i].id
+          mod.innerHTML = `<i class="fas fa-edit" />`
+          mod.addEventListener('click', function (event) {
+            let node = event.target
+            let save = false
+            for (; node && node.nodeName !== 'TR'; node = node.parentNode) {
+              if (node.nodeName === 'TD') {
+                if (node.dataset.active === '1') {
+                  node.dataset.active = '0'
+                  save = true
+                } else {
+                  node.dataset.active = '1'
+                }
+              }
+            }
+            let cnode = node.nextElementSibling
+            if (cnode.dataset.timeId !== node.dataset.timeId) { cnode = null }
+            if (save) {
+              let body = {id: node.dataset.timeId, value: 0, comment: ''}
+              for (let td = node.firstElementChild; td; td = td.nextElementSibling) {
+                if (td.classList.contains('time')) {
+                  body.value = strhourtosec(td.firstElementChild.value)
+                  break
+                }
+                if (cnode && cnode.firstElementChild && cnode.firstElementChild.firstElementChild) {
+                  body.comment = cnode.firstElementChild.firstElementChild.value
+                }
+              }
+              Query.exec(
+                Path.url(`Htime/${node.dataset.timeId}`),
+                {method: 'PATCH', body: body}
+              ).then((response) => {
+                this.refresh()
+              })
+            } else {
+              for (let td = node.firstElementChild; td; td = td.nextElementSibling) {
+                if (td.classList.contains('time')) {
+                  td.innerHTML = `<input name="time" class="small" value="${new Hour(node.dataset.duration).toMinStr()}" />`
+                  break
+                }
+                if (cnode) {
+                  cnode.firstElementChild.innerHTML = `<input name="comment" value="${node.dataset.comment}" />`
+                }
+              }
+            }
+          }.bind(this))
+          tr.appendChild(mod)
 
           var td = document.createElement('TD')
-          td.setAttribute('class', 'delete')
+          td.classList.add('delete', 'iconButton')
           td.setAttribute('data-time-id', data[i].id)
           td.innerHTML = '<i class="fas fa-eraser" />'
           djOn(td, 'click', function (event) {
@@ -139,8 +192,9 @@ define([
 
           if (data[i].comment) {
             tr = document.createElement('TR')
+            tr.dataset.timeId = data[i].id
             tr.setAttribute('class', 'comment')
-            tr.innerHTML = '<td colspan="4">' + data[i].comment + '</td>'
+            tr.innerHTML = '<td colspan="5">' + data[i].comment + '</td>'
             tbody.appendChild(tr)
           }
         }
