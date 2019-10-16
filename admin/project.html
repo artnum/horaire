@@ -208,7 +208,9 @@ function changeState (event) {
            }
            p.dispatchEvent(new CustomEvent('close'))
            newEntry(project).then((result) => {
-             replaceAddEntry(result, project.id)
+             replaceAddEntry(result, project.id).then(() => {
+               showHideTravaux(project.id, true)
+             })
              if (event.detail && event.detail.print) {
                window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: project.id, travail: tid}}))                         
              }
@@ -299,6 +301,23 @@ function changeState (event) {
        break
      case 'print':
        window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: button.dataset.project, travail: button.dataset.travail}}))          
+       break;
+     case 'delete':
+       Artnum.Query.exec(Artnum.Path.url(`Travail/${button.dataset.travail}`)).then((result) => {
+         if(result.length === 1 && confirm(`Voulez-vous supprimer le travail ayant comme référence "${result.data.reference}" ?`)) {
+           Artnum.Query.exec(Artnum.Path.url(`Travail/${button.dataset.travail}`), {method: 'DELETE'}).then((result) => {
+             if (result.success) {
+               let tr = button
+               for (; tr && tr.nodeName !== 'TR'; tr = tr.parentNode) ;
+               window.requestAnimationFrame(() => {
+                 if (tr.parentNode) {
+                   tr.parentNode.removeChild(tr)
+                 }
+               })
+             }
+           })
+         }
+       })
        break;
    }
  }
@@ -467,6 +486,7 @@ async function evCancelEdit (event) {
          tr.innerHTML = `<td data-name="reference" data-sort-value="${entry.reference}" data-type="text">${travaux.length > 0 ? '<span>&#9205;</span> ' : ''}${(entry.reference ? entry.reference : '')}</td>
                          <td data-name="name" data-type="text">${(entry.name ? entry.name : '')}</td>`
          if (travaux.length > 0) {
+           tr.classList.add('extensible')
            let subTable = document.createElement('TABLE')
            subTable.classList.add('sub')
            let trHeader = document.createElement('TR')
@@ -475,7 +495,7 @@ async function evCancelEdit (event) {
            travaux.data.forEach((travail) => {
              let tr = document.createElement('TR')
              let desc = travail.description ? travail.description.replace(/(?:\r\n|\r|\n)/g, '<br>') : ''
-             tr.innerHTML = `<td data-sort-value="${travail.reference}">${travail.reference}</td><td>${travail.meeting}</td><td>${travail.contact}</td><td>${travail.phone}</td><td class="longtext">${desc}</td><td class="overflowable"><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="edit">Éditer</button><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="print">Imprimer</button></td>`
+             tr.innerHTML = `<td data-sort-value="${travail.reference}">${travail.reference}</td><td>${travail.meeting}</td><td>${travail.contact}</td><td>${travail.phone}</td><td class="longtext">${desc}</td><td class="overflowable"><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="edit">Éditer</button><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="print">Imprimer</button><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="delete">Supprimer</button></td>`
              tr.addEventListener('click', (event) => {
                if (event.target.nodeName === 'BUTTON') {
                  handleTravailButton(event)
@@ -503,26 +523,7 @@ async function evCancelEdit (event) {
          
          tr.appendChild(td)
          tr.firstElementChild.addEventListener('click', (evt) => {
-           let node = evt.target
-           for (; node && node.nodeName !== 'TR'; node = node.parentNode) ;
-           if (node && node.dataset && node.dataset.id) {
-             let sub = node.nextElementSibling
-             let open = false
-             for(; sub && sub.dataset.parentId && sub.dataset.parentId === node.dataset.id; sub = sub.nextElementSibling) {
-               if (!sub.dataset.open) {
-                 sub.dataset.open = '1'
-                 open = true
-               } else {
-                 if (sub.dataset.open === '1') { sub.dataset.open = '0' } else { sub.dataset.open = '1'; open = true }
-               }
-
-               if (open) {
-                 node.firstElementChild.firstElementChild.innerHTML = '&#9207;'
-               } else {
-                 node.firstElementChild.firstElementChild.innerHTML = '&#9205;'
-               }
-             }
-           }
+           showHideTravaux(evt.target)
          }, {capture: true})
          
          resolve(frag)
@@ -533,6 +534,48 @@ async function evCancelEdit (event) {
    })
 }
 
+ function showHideTravaux (node) {
+   if (typeof node === 'string') {
+     let table = document.getElementById('projects')
+     let tbody = table.firstElementChild
+     
+     while (tbody && tbody.nodeName !== 'TBODY') { tbody = tbody.nextElementSibling }
+     for (let i = tbody.firstElementChild; i; i = i.nextElementSibling) {
+       console.log(i.dataset.id, node)
+       if (node === i.dataset.id) {
+         node = i
+         break
+       }
+     }
+   }
+   
+   for (; node && node.nodeName !== 'TR'; node = node.parentNode) ;
+   if (node && node.dataset && node.dataset.id) {
+     let sub = node.nextElementSibling
+     let open = false
+     for(; sub && sub.dataset.parentId && sub.dataset.parentId === node.dataset.id; sub = sub.nextElementSibling) {
+       if (!sub.dataset.open) {
+         sub.dataset.open = '1'
+         open = true
+       } else {
+         if (sub.dataset.open === '1') {
+           if (arguments[1]) { return }
+           sub.dataset.open = '0'
+         } else {
+           sub.dataset.open = '1';
+           open = true
+         }
+       }
+
+       if (open) {
+         node.firstElementChild.firstElementChild.innerHTML = '&#9207;'
+       } else {
+         node.firstElementChild.firstElementChild.innerHTML = '&#9205;'
+       }
+     }
+   }
+ }
+ 
  function replaceAddEntry (tr, id) {
    let table = document.getElementById('projects')
    let tbody = table.firstElementChild
@@ -549,7 +592,7 @@ async function evCancelEdit (event) {
        break
      }
    }
-   Admin.insertEntry(tr, table, id)
+   return Admin.insertEntry(tr, table, id)
  }
 
  function cleanTbody(table) {
