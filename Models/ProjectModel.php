@@ -15,7 +15,7 @@ class ProjectModel extends artnum\SQL {
     $this->conf('hook-path', 'exec/hooks');
     $this->conf('ignored', array('year'));
   }
-  function _write($arg) {
+  function _write($arg, $id = NULL) {
     $hook_succeed = false;
     if (!$this->conf('hook-path')) {
       $hook_succeed = true;
@@ -36,7 +36,7 @@ class ProjectModel extends artnum\SQL {
 
     $ret = null;
     if ($hook_succeed) {
-      $ret = parent::_write($arg);
+      $ret = parent::_write($arg, $id);
     }
     return $ret;
   }
