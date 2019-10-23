@@ -34,7 +34,11 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     if (!($tdata = $st->fetchAll())) { $tdata = array(array('travail_reference' => '', 'travail_meeting' => '', 'travail_contact' => '', 'travail_phone' => '', 'travail_progress' => '')); }
   }
 
-  $PDF = new HorairePDF();
+  $Filename= sprintf('%s.pdf', $pdata['project_reference']);
+  $PDF = new HorairePDF(array(
+    'doctype' => substr($pdata['project_reference'], 0, 1),
+    'name' => $pdata['project_name']
+  ));
   $PDF->SetAutoPageBreak(false);
   $PDF->SetMargins(15,30, 10);
   $PDF->addTab('middle');
@@ -187,7 +191,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->drawLine(ceil($PDF->GetX()  + 3), ceil($PDF->GetY() + 3), floor($PDF->w - $PDF->rMargin - $PDF->GetX() - 3), 0, 'dotted');
     $PDF->close_block();
   }
-  $PDF->Output();
+  $PDF->Output($Filename, 'I');
 }
 
 ?>
