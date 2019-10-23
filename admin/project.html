@@ -20,13 +20,14 @@
   <form>
     <fieldset name="general">
       <legend>Général</legend>
-      <label for="reference">Numéro de chantier : </label><input name="reference" type="text" /> <label for="year">Année : </label><input id="inYear" name="year" type="text" /><br>
+      <label for="reference">Numéro de chantier : </label><input name="reference" type="text" id="reference" /><br />
+      <br /><label for="year">Année : </label><input id="inYear" name="year" type="text" /><br>
       <label for="name">Nom : </label><input name="name" type="text" /><br>
       <label for="uncount">Heures non-comptabilisées : </label><input name="uncount" type="checkbox" /><br>
     </fieldset>
 <!--    <label for="end">Date de fin : </label><input name="name" type="date" /><br>
 //-->
-    <input type="submit" value="Ajouter"/><br>
+    <input type="submit" value="Ajouter"/><button type="submit" id="rDef"></button><button type="submit" id="rYear"></button><br>
   </form>
   <h2>Projets existants</h2>
   <input type="radio" onchange="changeState(event)" checked="checked" id="stateOpen" name="state"><label for="stateOpen">Ouvert</label>
@@ -51,9 +52,23 @@
  window.Conf.workday = window.Conf.weekhours / window.Conf.workweek
 
 
- const APPConf = Conf
+const APPConf = Conf
 var searchParams = {'search.closed': '-', 'search.deleted': '-', 'sort.reference': 'asc'}
+const RYName = `R${String(new Date().getFullYear()).substring(2)}`
+var References = { 'default': 1, RYName: 1 }
 
+function genRef (event) {
+   console.log(References)
+   let r = document.getElementById('reference');
+   if (event.target) {
+     if (event.target.id === 'rDef') {
+       r.value = References.default
+     } else {
+       r.value = `${RYName}-${References.RYName}`
+     }
+   }
+}
+ 
 function exportAll () {
    if (!searchParams['search.closed']) {   
      window.open(Artnum.Path.url('admin/exec/export/project.php', {params: {state: 'alive'}}))
@@ -135,7 +150,7 @@ function changeState (event) {
       <label for="time">Temps du projet : <input name="time" type="text" value="${time}"></label><label for="force">à un force de <input name="force" type="text" value="${travail.force ? travail.force : 1}" /></label><br>
       <span class="notice">La force représente le nombre minimal d'ouvriers ayant une efficacité de 100% (1.0) pour effectuer le travail dans le temps donné.  Le temps du projet est en heure à moins que la valeur soit préfixée par 's' pour semaine, 'j' pour jour. Un jour dure ${window.Conf.workday} heures et une semaine dure ${window.Conf.weekhours} heures.</span><br>
       <label for="description>">Description du travail</label><br>
-      <textarea name="description">${travail.description}</textarea><br>
+      <textarea name="description">${travail.description ? travail.description : project.name}</textarea><br>
       <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
      </form>`, `Travail pour ${project.reference} - ${project.name}`)
 
@@ -425,6 +440,31 @@ async function evCancelEdit (event) {
  function newEntry (entry) {
    return new Promise(function (resolve, reject) {
      if (entry.id) {
+       let reference = entry.reference.split('').reverse()
+       let newNextRef = []
+       for (i = reference.shift(); i; i = reference.shift()) {
+         if (isNaN(parseInt(i))) {
+           reference.unshift(i)
+           break
+         } else {
+           newNextRef.unshift(i)
+         }
+       }
+       reference = reference.reverse().join('')
+       newNextRef = parseInt(newNextRef.join(''))
+
+       if (reference === '') {
+         if(References.default < newNextRef + 1) {
+           References.default = newNextRef + 1
+           document.getElementById('rDef').innerHTML = `Ajouter projet ${newNextRef + 1}`
+         }
+       } else {
+         if (RYName === reference.substring(0, RYName.length) && References.RYName < newNextRef + 1) {
+           References.RYName = newNextRef + 1
+           document.getElementById('rYear').innerHTML = `Ajouter régie ${RYName}-${newNextRef + 1}`
+         }
+       }
+       
        let qTravail = Artnum.Query.exec(Artnum.Path.url('Travail', {params: {'search.project': entry.id}}))
        let exportButton = document.createElement('BUTTON')
        exportButton.setAttribute('type', 'button')
@@ -610,6 +650,8 @@ async function evCancelEdit (event) {
 
  var t = null
  async function load () {
+   document.getElementById('rDef').addEventListener('click', genRef)
+   document.getElementById('rYear').addEventListener('click', genRef)
    document.getElementById('inYear').value = String((new Date()).getFullYear())
    var forms = document.getElementsByTagName('FORM')
    forms[0].addEventListener('submit', function (event) {
