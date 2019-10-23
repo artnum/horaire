@@ -143,7 +143,7 @@ define([
               }
             }
             let cnode = node.nextElementSibling
-            if (cnode.dataset.timeId !== node.dataset.timeId) { cnode = null }
+            if (cnode && cnode.dataset.timeId !== node.dataset.timeId) { cnode = null }
             if (save) {
               let body = {id: node.dataset.timeId, value: 0, comment: ''}
               for (let td = node.firstElementChild; td; td = td.nextElementSibling) {
