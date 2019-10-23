@@ -168,7 +168,10 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetX(floor($furtherX - $PDF->GetStringWidth($str)));
     $PDF->printLn($str);
     $PDF->Line($PDF->lMargin, $PDF->GetY(), ceil($PDF->w - $PDF->rMargin), $PDF->GetY());
-    
+    $PDF->SetY($PDF->GetY() + 2);
+    $PDF->SetFont('helvetica', 'B', 12);
+    $PDF->printLn('Total');
+    $PDF->Line($PDF->lMargin, $PDF->GetY(), ceil($PDF->w - $PDF->rMargin), $PDF->GetY());    
 
     $PDF->block('remarks');
     $PDF->br();
