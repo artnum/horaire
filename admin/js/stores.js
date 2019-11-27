@@ -10,6 +10,55 @@ function highlight (val, txt, open = '<span class="match">', close = '</span>') 
   return txt
 }
 
+const STProcess = function (store) {
+  this.Store = store
+}
+STProcess.prototype.get = function (id) {
+  return new Promise((resolve, reject) => {
+    let entry = null
+    if (id === undefined || id === null || id === false) { resolve(entry); return }
+    Artnum.Query.exec(Artnum.Path.url(`${this.Store}/${id}`)).then((results) => {
+      if (results.success && results.length === 1) {
+        entry = Array.isArray(results.data) ? results.data[0] : results.data
+        entry.label = `${entry.name}`
+        entry.value = entry.uid ? entry.uid : entry.id
+      }
+      resolve(entry)
+    })
+  })
+}
+
+STProcess.prototype.query = function (txt) {
+  return new Promise((resolve, reject) => {
+    let entries = []
+    let searchTerm = txt.toAscii().toLowerCase()
+    let params = {
+      'search.name': `~%${searchTerm}%`,
+      'search.deleted': '-'
+    }
+    Artnum.Query.exec(Artnum.Path.url(`${this.Store}`, {params: params})).then((results) => {
+      if (results.success && results.length) {
+        results.data.forEach((entry) => {
+          let name = `${entry.name}`
+          name = highlight(searchTerm, name)
+          entry.label = name
+          entry.value = entry.uid ? entry.uid : entry.id
+          entries.push(entry)
+        })
+      }
+      entries.sort((a, b) => {
+        return a.name.localeCompare(b.name)
+      })
+
+      resolve(entries)
+    })
+  })
+}
+
+STProcess.prototype.getIdentity = function (object) {
+  return object.uid ? object.uid : object.id
+}
+
 const STProject = function (store) {
   this.Store = store
 }
