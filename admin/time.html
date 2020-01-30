@@ -17,7 +17,7 @@
   <h1>Heure</h1>
   <h2>Ajouter</h2>
   <form onsubmit="addTime(event)" data-source="Htime">
-    <label for="person">Personne : </label><select data-source="Person" data-options="{parameters: {'search.deleted': '-'}}" name="person"></select><br />
+    <label for="person">Personne : </label><select data-source="Person" data-options="{parameters: {'search.deleted': '-', 'search.disabled': 0}}" name="person"></select><br />
     <label for="day">Jour :</label><input type="date" name="day" /> <label for="hour">Temps :</label><input type="text" name="hour" /><br />
     <label for="comment">Commentaire :</label><input type="text" name="comment" /><br />
     <label for="project">Projet : </label>
