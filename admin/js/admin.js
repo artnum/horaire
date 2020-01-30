@@ -38,6 +38,77 @@
         }
       })
     },
+    setFormInputValue: function (form, inputName, inputValue = '') {
+      ;['SELECT', 'TEXTAREA', 'INPUT'].every((element) => {
+        let inputs = form.getElementsByTagName(element)
+        for (let i = 0; i < inputs.length; i++) {
+          if (inputName === '*') {
+            inputs[i].value = inputValue
+          } else {
+            if (inputs[i].getAttribute('name').toLowerCase() === inputName.toLowerCase()) {
+              inputs[i].value = inputValue
+              return false
+            }
+          }
+        }
+        return true
+      })
+    },
+    setFormInputInvalid: function (form, inputName, withMessage = 'error', remove = false) {
+      ;['SELECT', 'TEXTAREA', 'INPUT'].every((element) => {
+        let inputs = form.getElementsByTagName(element)
+        for (let i = 0; i < inputs.length; i++) {
+          if (inputName === '*') {
+            if (remove) {
+              inputs[i].setCustomValidity('')
+              inputs[i].setAttribute('aria-invalid', 'false')
+            } else {
+              inputs[i].setCustomValidity(withMessage)
+              inputs[i].addEventListener('change', () => inputs[i].setCustomValidity(''), {once: true})
+              inputs[i].setAttribute('aria-invalid', 'true')
+            }
+          } else {
+            if (inputs[i].getAttribute('name').toLowerCase() === inputName.toLowerCase()) {
+              if (remove) {
+                inputs[i].setCustomValidity('')
+                inputs[i].setAttribute('aria-invalid', 'false')
+              } else {
+                inputs[i].setCustomValidity(withMessage)
+                inputs[i].addEventListener('change', () => inputs[i].setCustomValidity(''), {once: true})
+                inputs[i].setAttribute('aria-invalid', 'true')
+              }
+              inputs[i].reportValidity()
+              return false
+            }
+          }
+        }
+        return true
+      })
+    },
+    setFormInputClass: function (form, inputName, className, remove = false) {
+      ;['SELECT', 'TEXTAREA', 'INPUT'].every((element) => {
+        let inputs = form.getElementsByTagName(element)
+        for (let i = 0; i < inputs.length; i++) {
+          if (inputName === '*') {
+            if (remove) {
+              window.requestAnimationFrame(() => inputs[i].classList.remove(className))
+            } else {
+              window.requestAnimationFrame(() => inputs[i].classList.add(className))
+            }
+          } else {
+            if (inputs[i].getAttribute('name').toLowerCase() === inputName.toLowerCase()) {
+              if (remove) {
+                window.requestAnimationFrame(() => inputs[i].classList.remove(className))
+              } else {
+                window.requestAnimationFrame(() => inputs[i].classList.add(className))
+              }
+              return false
+            }
+          }
+        }
+        return true
+      })
+    },
     getForm: function (form) {
       var oform = {}
       ;['SELECT', 'TEXTAREA', 'INPUT'].forEach(function (element) {

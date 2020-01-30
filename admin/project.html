@@ -58,7 +58,6 @@ const RYName = `R${String(new Date().getFullYear()).substring(2)}`
 var References = { 'default': 1, RYName: 1 }
 
 function genRef (event) {
-   console.log(References)
    let r = document.getElementById('reference');
    if (event.target) {
      if (event.target.id === 'rDef') {
@@ -241,70 +240,56 @@ function changeState (event) {
  }
  async function addProject (event) {
    var form = event.target
-   let el = form.getElementsByClassName('error')
-   for (let i = 0; i < el.length; i++) {
-     el[i].classList.remove('error')
-   }
    for (; form.nodeName !== 'FORM'; form = form.parentNode);
+   Admin.setFormInputInvalid(form, '*', 'error', true)
    var oform = Admin.getForm(form)
 
-   if (oform.name) {
-     if (oform.reference) {
-       var res = await Artnum.Query.exec(Artnum.Path.url('Project', {params: {'search.reference': oform.reference, 'search.deleted': '-'}}))
-       if (res.success && res.length > 0) {
-         if (!confirm(`La référence ${oform.reference} est déjà utilisée, voulez-vous créer un doublon ?`)) {
-           return
-         }
-       }
-     }
-
-     if (!oform.year) {
-       oform.year = String((new Date()).getFullYear())
-     } else {
-       if (String(parseInt(oform.year)) !== String(oform.year)) {
-         alert('Année invalide')
-         return
-       }
-     }
-     let map = { subref: 'reference', cphone: 'phone'}
-     let travail = {}
-     let error = false
-     ;['subref', 'meeting', 'contact', 'cphone'].forEach(function (i) {
-       if (String(oform[i]).length > 160) {
-         Admin.findInput(form, i).classList.add('error')
-         error = true
-       } else {
-         if (map[i]) {
-           travail[map[i]] = String(oform[i])
-         } else {
-           travail[i] = String(oform[i])
-         }
-       }
-     })
-     travail.description = oform.description
-     if (error) {
-       alert('Les entrées sont limitées à 160 caractères')
-       return
-     }
-
-     Artnum.Query.exec(Artnum.Path.url('Project'), {method: 'POST', body: {name: oform.name, reference: (oform.reference ? oform.reference : null), uncount: oform.uncount? 1 : 0, year: oform.year}}).then(function (result) {
-       if (!result.success && result.length < 1) {
-         alert('Erreur de création du projet')
-       } else {
-         let pId = result.data[0].id
-         Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`)).then(function (result) {
-           if (result.success && result.length === 1) {
-             newEntry(result.data).then((tr) => {
-               replaceAddEntry(tr, pId)
-               newTravailPopup({project: pId, first: true})
-             })  
-           } else {
-             alert('Erreur création du projet')
-           }
-         })
-       }
-     })
+   let errors = false
+   if (!oform.name) {
+     Admin.setFormInputInvalid(form, 'name', 'Nom manquant')
+     errors = true
    }
+
+   if (!oform.year) {
+     oform.year = String((new Date()).getFullYear())
+   } else {
+     if (String(parseInt(oform.year)) !== String(oform.year)) {
+       Admin.setFormInputInvalid(form, 'year', 'Format de l\'année non-reconnu')
+       errors = true
+     }
+   }
+   
+   if (!oform.reference) {
+     Admin.setFormInputInvalid(form, 'reference', 'Référence manquante')
+     errors = true
+   } else {
+     var res = await Artnum.Query.exec(Artnum.Path.url('Project', {params: {'search.reference': oform.reference, 'search.deleted': '-'}}))
+     if (res.success && res.length > 0) {
+       Admin.setFormInputInvalid(form, 'reference', 'Référence déjà existante')
+       errors = true
+     }
+   }
+   if (errors) { return }
+   
+   Artnum.Query.exec(Artnum.Path.url('Project'), {method: 'POST', body: {name: oform.name, reference: (oform.reference ? oform.reference : null), uncount: oform.uncount? 1 : 0, year: oform.year}}).then(function (result) {
+     if (!result.success && result.length < 1) {
+       alert('Erreur de création du projet')
+     } else {
+       let pId = result.data[0].id
+       Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`)).then(function (result) {
+         if (result.success && result.length === 1) {
+           newEntry(result.data).then((tr) => {
+             replaceAddEntry(tr, pId)
+             newTravailPopup({project: pId, first: true})
+           })
+           Admin.setFormInputValue(form, 'reference')
+           Admin.setFormInputValue(form, 'name')
+         } else {
+           alert('Erreur création du projet')
+         }
+       })
+     }
+   })   
  }
 
  async function handleTravailButton (event) {
