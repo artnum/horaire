@@ -254,3 +254,15 @@ table#projects tr.extensible td[data-name="reference"] {
     text-decoration: underline;
     text-decoration-style: dotted;
 }
+
+td[name] input {
+    width: calc(100% - 28px);
+}
+
+td[name="hour"] input {
+    max-width: 50%;
+}
+
+td[name="hour"] span {
+    font-family: monospace;
+}
