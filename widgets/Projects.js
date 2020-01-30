@@ -142,6 +142,7 @@ define([
           djOn(back, 'click', function (event) {
             this.On = 'group'
             this.Process.set('value', null)
+            this.Group.set('value', null)
             this.emit('change', this.get('value'))
             let nodes = []
             let n = event.target
@@ -224,10 +225,6 @@ define([
             if (values.travail) { this.Travaux.set('value', values.travail) }
           })
         })
-
-        djOn(back, 'click', function (event) {
-          this.resetMenu()
-        }.bind(this))
       }.bind(this))
     },
 
