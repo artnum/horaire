@@ -97,7 +97,12 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->printLn('Description du travail');
     $PDF->hr();
     $PDF->SetFont('helvetica', '', 10);
-    $PDF->printLn(isset($data['travail_description']) ? $data['travail_description'] : '', array('multiline' => true));
+    if (!empty($data['travail_description'])) {
+      $lines = preg_split('/\r?\n|\r/', $data['travail_description']);
+      foreach ($lines as $line) {
+        $PDF->printLn($line, ['multiline' => true]);
+      }
+    }
 
     $PDF->br();
     $PDF->block('worktime');
