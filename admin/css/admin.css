@@ -1,13 +1,21 @@
 @import 'select.css';
+@import 'contact.css';
+@import 'project.css';
 
 :root {
     --background-color: white;
     --title-background-color: black;
     --text-color: black;
     --title-text-color: white;
-    --input-background-color: hsla(50, 100%, 90%, 1);
+    --input-background-color: hsla(260, 100%, 90%, 0.2);
+    --input-border-color: hsla(260, 100%, 90%, 1);
     --input-background-color-error: hsla(340, 100%, 90%, 1);
     --default-highlight-color-base: 100, 100%, 40%;
+    --highlight-bgcolor: hsla(133, 60%, 60%, 0.2);
+    --input-modified-background: hsla(308, 100%, 50%, 0.2);
+    --input-modified-border: hsla(308, 100%, 50%, 1);
+    --input-disabled-background: hsla(0, 0%, 50%, 1);
+    --input-disabled-border: hsla(308, 0%, 80%, 1);
 }
 
 body {
@@ -36,10 +44,23 @@ thead {
 }
 
 input, select, textarea, button {
-    border: 2px solid gray;
+    border: none;
+    border-bottom: 2px solid var(--input-border-color);
     margin: 5px;
     background-color: var(--input-background-color);
     padding: 5px;
+}
+
+input.modified, select.modified, textarea.modified {
+    border-bottom-color: var(--input-modified-border);
+    background-color: var(--input-modified-background);
+    transition: 0.7s ease;
+}
+
+input:disabled, select:disabled, textarea:disabled {
+    color: white;
+    border-bottom-color: var(--input-disabled-border);
+    background-color: var(--input-disabled-background);    
 }
 
 textarea {
@@ -62,6 +83,15 @@ input[type=submit], input[type=button], button {
     min-height: 1.8em;
     white-space: nowrap;
     font-weight: bold;
+}
+
+label {
+    display: inline-block;
+    min-width: 18ch;
+}
+
+input[type=text] {
+    min-width: 24ch;
 }
 
 main.flex {
@@ -160,12 +190,12 @@ tr.sub[data-open="1"] {
     background-color: hsla(246, 40%, 40%, 0.2);
 }
 
-.even {
+/*.even {
     background-color: hsla(200, 60%, 60%, 0.2) !important;
 }
 .odd {
     background-color: hsla(133, 60%, 60%, 0.2) !important;
-}
+}*/
 
 .sub table td.longtext {
     word-wrap: break-word !important;
@@ -265,4 +295,23 @@ td[name="hour"] input {
 
 td[name="hour"] span {
     font-family: monospace;
+}
+
+
+.selectable:hover, .selectable[selected] {
+    background-color: var(--highlight-bgcolor);
+    cursor: pointer;
+}
+
+
+span.addMore:before {
+    cursor: pointer;
+    font-size: 24px;
+    display: inline-block;
+    font-family: FontAwesome;
+    font-variant: normal;
+    font-weight: normal;
+    content: '\f141';
+    padding: 5px;
+    margin: 5px;
 }

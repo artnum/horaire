@@ -1,7 +1,19 @@
 <?PHP
+include('artnum/autoload.php');
 include('pdf.php');
 include('artnum/bvrkey.php');
 include('../../../lib/barcode/barcode.php');
+
+$path = explode('/', $_SERVER['PHP_SELF']);
+for ($i = 0; $i < 4; $i++) {
+  array_pop($path);
+}
+
+$JClient = new artnum\JRestClient(
+  $_SERVER['REQUEST_SCHEME'] .
+  '://' .
+  $_SERVER['SERVER_NAME'] .
+  implode('/', $path));
 
 $pdo = new PDO('sqlite:../../../db/horaire.sqlite3');
 $pdo->exec('PRAGMA foreign_keys = YES;');
@@ -52,6 +64,18 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetY($y + 8);
     $PDF->squaredFrame(37, array('line-type' => 'dotted', 'square' => 9, 'lined' => true));
     $PDF->SetY($y);
+
+    $client = null;
+    if (!empty($data['project_client'])) {
+      $uri = explode('/', $data['project_client']);
+      if (count($uri) === 2) {
+        $result = $JClient->get($uri[1], $uri[0]);
+        if ($result['length'] === 1) {
+          $client = $result['data'][0];
+        }
+      }
+    }
+    
     if (isset($data['travail_id'])) {
       $data['bon_number'] = $data['project_reference'] . '.' . $data['travail_id'];
       $barcode_value = '0001' . sprintf('%09u', $data['travail_id']);
@@ -88,7 +112,62 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       $PDF->SetFont('helvetica', '', 8);
       $PDF->printLn($label);
       $PDF->SetFont('helvetica', 'B', 10);
-      $PDF->printLn('');
+      switch ($item) {
+        case 1:
+          $PDF->printLn($client['displayname']);
+          break;
+        case 2:
+          $phone = '';
+          if (!empty($client['mobile'])) {
+            $phone = $client['mobile'];
+          } else if (!empty($client['telephonenumber'])) {
+            $phone = $client['telephonenumber'];
+          }
+          if ($phone !== '' && is_array($phone)) {
+            $phone = $phone[0];
+          }
+          $PDF->printLn($phone);
+          break;
+        case 3:
+          $address = [];
+          if (!empty($client['postaladdress'])) {
+            $p = preg_split('/(\r\n|\n|\r)/', $client['postaladdress']);
+            if (count($p) > 2) {
+              while (count($p) > 2) {
+                array_shift($p);
+              }
+            }
+            if (count($p) === 2) {
+              $address[] = $p[0];
+              $address[] = $p[1];
+            } else {
+              $address[] = $p[0];
+            }
+          }
+          if (!empty($client['locality'])) {
+            if (is_array($client['locality'])) {
+              $address[] = $client['locality'][0];
+            } else {
+              $address[] = $client['locality'];
+            }
+          }
+
+          if (count($address) === 2 && $client['type'] === 'person' && !empty($client['o'])) {
+            if (is_array($client['o'])) {
+              array_unshift($address, $client['o'][0]);
+            } else {
+              array_unshift($address, $client['o']);
+            }
+          }
+
+          foreach($address as $line) {
+            $PDF->SetFont('helvetica', 'B', 10);
+            $PDF->printLn($line);
+            $PDF->SetFont('helvetica', '', 8);
+            $PDF->printLn('');
+          }
+          break;
+      }
     }
 
     

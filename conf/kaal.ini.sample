@@ -1,0 +1,12 @@
+[storage]
+pdo-string = 'sqlite:db/horaire.sqlite3'
+user = ''
+password = ''
+
+[addressbook]
+servers = s1
+base = 'ou=Contacts,o=company'
+
+[ab-s1]
+uri = 'ldap://localhost/'
+read-only = 1

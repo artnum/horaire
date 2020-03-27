@@ -4,6 +4,7 @@
   "license": "MIT",
   "main": "index.html",
   "dependencies": {
+    "@popperjs/core": "^2.0.6",
     "dijit": "^1.15.0",
     "dojo": "^1.15.0",
     "font-awesome": "^4.7.0",
