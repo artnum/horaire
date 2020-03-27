@@ -16,8 +16,13 @@
     padding: 4px 6px 4px 6px;
 }
 
-.dtable tr.even {
+/*.dtable tr.even {
     background-color: #EEE;
+}*/
+
+.dtable tr td {
+    border: none;
+    border-top: 1px solid black;
 }
 
 .dtable td {

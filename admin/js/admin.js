@@ -45,6 +45,7 @@
           if (inputName === '*') {
             inputs[i].value = inputValue
           } else {
+            if (!inputs[i].getAttribute('name')) { continue }
             if (inputs[i].getAttribute('name').toLowerCase() === inputName.toLowerCase()) {
               inputs[i].value = inputValue
               return false
@@ -68,6 +69,7 @@
               inputs[i].setAttribute('aria-invalid', 'true')
             }
           } else {
+            if (!inputs[i].getAttribute('name')) { continue }
             if (inputs[i].getAttribute('name').toLowerCase() === inputName.toLowerCase()) {
               if (remove) {
                 inputs[i].setCustomValidity('')
