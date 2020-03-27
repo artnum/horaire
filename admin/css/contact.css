@@ -1,0 +1,40 @@
+.addressList {
+    background-color: white;
+    max-height: 40%;
+    min-width: 400px;
+    overflow-y: scroll;
+    display: none;
+    border: 2px solid black;
+}
+
+.addressList[data-show] {
+    display: block;
+}
+
+.addressList address {
+    margin: 1ex 1ch 1ex 1ch;
+    padding: 1ex 1ch 1ex 1ch;
+}
+
+address span {
+    display: block;
+    margin-left: 28px;
+}
+
+address.organization:before {
+    font-size: 24px;
+    font-family: FontAwesome;
+    font-weight: normal;
+    font-style: normal;
+    float: left;
+    content: '\f1ad';    
+}
+
+address.person:before {
+    font-size: 24px;
+    font-family: FontAwesome;
+    font-weight: normal;
+    font-style: normal;
+    float: left;
+    content: '\f007';
+}
