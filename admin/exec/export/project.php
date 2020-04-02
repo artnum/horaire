@@ -4,7 +4,7 @@ define('DB_PATH', 'sqlite:../../../db/horaire.sqlite3');
 require('PHP_XLSXWriter/xlsxwriter.class.php');
 
 $project = 'tous';
-if (isset($_GET['pid']) || is_numeric($_GET['pid'])) {
+if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
    $query = 'SELECT * FROM project
          LEFT JOIN htime ON htime.htime_project = project.project_id
          LEFT JOIN person ON htime.htime_person = person.person_id
@@ -117,8 +117,7 @@ try {
      
       $datetime = new DateTime($row['htime_day']);
      $date = $datetime->format('Y-m-d');
-     $per_entry[] =array($row['project_reference'], $row['project_name'], $pb, $date, $row['htime_value'] / 3600, $row['person_name'], is_null($row['project_closed']) ? '' : $row['project_c\
-losed'], $row['htime_comment']);
+     $per_entry[] =array($row['project_reference'], $row['project_name'], $pb, $date, $row['htime_value'] / 3600, $row['person_name'], is_null($row['project_closed']) ? '' : $row['project_closed'], $row['htime_comment']);
 
       $per_process[$row['process_name']] += $row['htime_value'];
       $per_person[$row['person_name']] += $row['htime_value'];

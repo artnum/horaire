@@ -49,7 +49,7 @@
   <input type="radio" onchange="changeState(event)" id="stateAny" name="state"><label for="stateAny">Tous</label>
   <input type="button" onclick="exportAll()" value="Tout exporter"></input>
   <table id="projects" data-source="Project">
-    <thead><tr><th data-sort-type="integer">Référence</th><th>Nom</th><th data-sort-type="no">Action</th></tr></thead>
+    <thead class="darkbg"><tr><th data-sort-type="integer">Référence</th><th>Nom</th><th data-sort-type="no">Action</th></tr></thead>
     <tbody>
     </tbody>
   </table>
@@ -64,15 +64,6 @@
 <script type="module">
  import {SContactStore, SAddrList, FContact} from './js/contact.js'
  
- window.Conf = { workweek: 5, weekhours: 42 }
- window.Conf.workday = window.Conf.weekhours / window.Conf.workweek
-
-
-const APPConf = Conf
-var searchParams = {'search.closed': '-', 'search.deleted': '-', 'sort.reference': 'asc'}
-const RYName = `R${String(new Date().getFullYear()).substring(2)}`
-var References = { 'default': 1, RYName: 1 }
- var MyPopper = null
  const SContact = new SContactStore('../Contact/')
  const SAddr = new SAddrList(document.getElementById('c:displayname'))
 
@@ -170,6 +161,19 @@ return
        break
    }
  })
+</script>
+<script>
+ window.Conf = { workweek: 5, weekhours: 42 }
+ window.Conf.workday = window.Conf.weekhours / window.Conf.workweek
+
+
+ const APPConf = Conf
+ var searchParams = {'search.closed': '-', 'search.deleted': '-', 'sort.reference': 'asc'}
+ const RYName = `R${String(new Date().getFullYear()).substring(2)}`
+ var References = { 'default': 1, RYName: 1 }
+ var MyPopper = null
+
+
 function genRef (event) {
    let r = document.getElementById('reference');
    if (event.target) {

@@ -7,6 +7,7 @@
     --title-background-color: black;
     --text-color: black;
     --title-text-color: white;
+    --fg-color-on-dark: white;
     --input-background-color: hsla(260, 100%, 90%, 0.2);
     --input-border-color: hsla(260, 100%, 90%, 1);
     --input-background-color-error: hsla(340, 100%, 90%, 1);
@@ -48,8 +49,10 @@ input, select, textarea, button {
     border-bottom: 2px solid var(--input-border-color);
     margin: 5px;
     background-color: var(--input-background-color);
+    color: var(--text-color) !important;
     padding: 5px;
 }
+
 
 input.modified, select.modified, textarea.modified {
     border-bottom-color: var(--input-modified-border);
@@ -75,8 +78,8 @@ input.error, select.error, textarea.error {
 
 input[type=submit], input[type=button], button {
     cursor: pointer;
-    background-color: white;
-    color: black;
+    background-color: var(--background-color) !important;
+    color: var(--text-color) !important;
     border: 2px solid gray;
     margin: 5px;
     min-width: 100px;
@@ -314,4 +317,9 @@ span.addMore:before {
     content: '\f141';
     padding: 5px;
     margin: 5px;
+}
+
+
+.darkbg, .darkbg * {
+    color: var(--fg-color-on-dark) !important;
 }
