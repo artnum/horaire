@@ -2,6 +2,7 @@
 <head>
   <title>Horaire</title>
   <link rel="stylesheet" href="css/admin.css" type="text/css" />
+  <link rel="stylesheet" href="../node_modules/font-awesome/css/font-awesome.min.css" type="text/css" />
 </head>
 <body>
   <header>
@@ -16,8 +17,8 @@
    let div = document.createElement('DIV')
    let form = document.createElement('FORM')
 
-   form.innerHTML = `<label for="username">Utilisateur : <input type="text" name="username"></label><br>
-                     <label for="password">Mot de passe : <input type="password" name="password"></label><br>
+   form.innerHTML = `<label for="username">Utilisateur : <input type="text" name="username" class="darkbg"></label><br>
+                     <label for="password">Mot de passe : <input type="password" name="password" class="darkbg"></label><br>
                      <button type="submit">Authentifier</button>`
 
    div.classList.add('login')
@@ -87,6 +88,7 @@
      { level: 64, node: `process.html`, label: 'Processus' },
      { level: 16, node: `user.html`, label: 'Utilisateurs' },
      { level: 32, node: `time.html`, label: 'Temps' },
+     { level: 32, node: `bill.html`, label: 'Facture' },
      { level: 128, node: `item.html`, label: 'Matériels' },
    ]
 
