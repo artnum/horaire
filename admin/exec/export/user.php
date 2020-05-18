@@ -96,7 +96,7 @@ try {
   $writer->writeSheetRow('Par processus', array('', ''));
   $rc = $writer->countSheetRows('Par processus');
   $writer->writeSheetRow('Par processus', array('Total', '=SUM(B2:B' . ($rc - 1) . ')'));
-  $write->setTitle($person);
+  $writer->setTitle($person);
   header('Content-Disposition: inline; filename="' . $person . '.xlsx"');
   header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   $writer->writeToStdOut();
