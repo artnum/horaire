@@ -220,6 +220,18 @@ try {
 
    $project_name = date('Y-m-d') . ' ' . $project_name;
    $writer->setTitle($project_name);
+   if (method_exists($writer, 'setHeaderFooter')) {
+      if (count($per_project) === 1) {
+         reset($per_project);
+         $p = current($per_project);
+         $writer->setHeaderFooter('l', 'Projet ' . $p['reference']);
+         $writer->setHeaderFooter('r', $p['name']);
+      } else {
+         $writer->setHeaderFooter('c', 'Tous les projets');
+      }
+      $writer->setHeaderFooter('c', '&[Tab]', true);
+      $writer->setHeaderFooter('r', 'Page &[Page] sur &[Pages]', true);
+    }
    header('Content-Disposition: inline; filename="' . $project_name . '.xlsx"');
    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
    $writer->writeToStdOut();

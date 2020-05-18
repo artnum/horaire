@@ -97,6 +97,11 @@ try {
   $rc = $writer->countSheetRows('Par processus');
   $writer->writeSheetRow('Par processus', array('Total', '=SUM(B2:B' . ($rc - 1) . ')'));
   $writer->setTitle($person);
+  if (method_exists($writer, 'setHeaderFooter')) {
+    $writer->setHeaderFooter('c', 'Heures pour ' . $person);
+    $writer->setHeaderFooter('c', '&[Tab]', true);
+    $writer->setHeaderFooter('r', 'Page &[Page] sur &[Pages]', true);
+  }
   header('Content-Disposition: inline; filename="' . $person . '.xlsx"');
   header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   $writer->writeToStdOut();
