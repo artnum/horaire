@@ -34,7 +34,7 @@
   </table>
   <h2>Rerchercher</h2>
   <form onsubmit="submitForm(event)" data-source="Htime">
-    <label for="person">Personne : </label><select data-source="Person" name="person" data-options="{parameters: {'search.deleted': '-'}}">
+    <label for="person">Personne : </label><select data-source="Person" name="person" data-options="{parameters: {'search.deleted': '-', 'search.disabled': '0'}}">
     <option value=""></option></select><br />
     <label for="from">Du </label><input onchange="syncToFrom(event)" name="from" type="date" /><label for="to"> au </label><input name="to" type="date" data-sync-with="from" /><br />
     <input type="submit" value="Chercher" />
