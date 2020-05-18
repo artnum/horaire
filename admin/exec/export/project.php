@@ -219,6 +219,7 @@ try {
    $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', ''));
 
    $project_name = date('Y-m-d') . ' ' . $project_name;
+   $writer->setTitle($project_name);
    header('Content-Disposition: inline; filename="' . $project_name . '.xlsx"');
    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
    $writer->writeToStdOut();
