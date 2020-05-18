@@ -329,10 +329,11 @@ export class SContactStore {
       for (let t of terms) {
         if (t.length <= 0) { continue }
         for (let k of searchOn) {
-          url.searchParams.append(`search.${k}`, `${t}*`)
+          url.searchParams.append(`search.${k}`, `*${t}*`)
         }
       }
-      fetch(url)
+      url.searchParams.append('limit', KAAL.search.liveLimit)
+      KAAL.fetch(url, KAAL.fetchOpts)
         .then((response) => {
           if (response.ok) {
             return response.json()
