@@ -70,7 +70,7 @@ Une valeur absolue entière peut être exprimée avec la syntax #Nombre.- : 10.-
 Une valeur absolue peut être suivie d'un symbole monétaire. Les symboles monétaires connus sont :
 
 | Symbole   | Monnaie        |
-|           |                |
+|-----------|----------------|
 | fr        | Franc suisse   |
 | fr.       |                |
 | frs       |                |
