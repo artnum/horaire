@@ -1,0 +1,21 @@
+.codebox {
+    border: 3px dashed black;
+    width: 100%;
+    height: 90px;
+    opacity: 0.3;
+    text-align: center;
+    display: table;
+    vertical-align: middle;
+}
+
+.codebox:focus {
+    opacity: 1;
+}
+
+.codebox.bvr .bvr {
+    color: red;
+}
+
+.codebox.qrcode .qrcode {
+    color: red;
+}
