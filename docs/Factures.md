@@ -24,22 +24,21 @@ Pour entrer une durée, le programme s'attend à avoir une valeur "#Nombre #Lett
 | y       | year      | en     |               |
 | ja      | jahre     | de     |               |
 |         | anno      | it     |               |
-|---------|-----------|--------|---------------|
+|         |           |        |               |
 | m       | mois      | fr     | Mois          |
 |         | month     | en     |               |
 |         | monat     | de     |               |
 |         | mese      | it     |               |
-|---------|-----------|--------|---------------|
+|         |           |        |               |
 | s       | semaine   | fr     | Semaine (7 j) |
 | w       | week      | en     |               |
 |         | woche     | de     |               |
 |         | settimana | it     |               |
-|---------|-----------|--------|---------------|
+|         |           |        |               |
 | j       | jour      | fr     | Jour          |
 | d       | day       | en     |               |
 | t       | tag       | de     |               |
 | g       | giorno    | it     |               |
-|---------|-----------|--------|---------------|
 
 La lettre peut être suivie de n'importe quoi. De fait les mots complets sont reconnus correctement.
 
@@ -71,7 +70,7 @@ Une valeur absolue entière peut être exprimée avec la syntax #Nombre.- : 10.-
 Une valeur absolue peut être suivie d'un symbole monétaire. Les symboles monétaires connus sont :
 
 | Symbole   | Monnaie        |
-|-----------|----------------|
+|           |                |
 | fr        | Franc suisse   |
 | fr.       |                |
 | frs       |                |
@@ -79,21 +78,20 @@ Une valeur absolue peut être suivie d'un symbole monétaire. Les symboles moné
 | ch        |                |
 | sfr.      |                |
 | sfr       |                |
-|-----------|----------------|
+|           |                |
 | $         | US Dollar      |
 | usd       |                |
 | us        |                |
-|-----------|----------------|
+|           |                |
 | £         | Livre sterling |
 | gbp       |                |
 | gb        |                |
-|-----------|----------------|
+|           |                |
 | €         | Euro           | 
 | eur       |                |
 | eu        |                |
-|-----------|----------------|
+|           |                |
 | ¥         | Yen            |
 | jp¥       |                |
 | jpy       |                |
 | jp        |                |
-|-----------|----------------|
