@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" type="text/css" href="css/admin.css" />
+  <link rel="stylesheet" type="text/css" href="css/codebox.css" />
+  <link rel="stylesheet" type="text/css" href="css/dtable.css" />
+<title>Horaire</title>
+<link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
+</head>
+<body>
+  <h2>Ajout facture</h2>
+  <form id="bill">
+    <div class="codebox" tabindex>
+      <span class="qrcode">QR Code</span> ou <span class="bvr">Référence BVR</span>
+    </div>
+    <label>Débiteur <input type="checkbox" name="debtor" /></label><br />
+    <label>Date <input type="text" name="date" /></label>
+    <label>Référence <input type="text" name="reference"  style="width: 120ch;"/></label><br>
+    <label>Montant <input type="text" name="amount"  style="width: 120ch;"/></label><br>
+    <label>Monnaie <select name="currency">
+      <option value="chf" selected>CHF</option>
+      <option value="eur">EUR [€]</option>
+      <option value="usd">USD [$]</option>
+      <option value="gbp">GBP [£]</option>
+      <option value="jpy">JPY [¥]</option>
+    </select></label>
+    <label>Compte <input type="text" name="account"  style="width: 120ch;"/></label><br>
+    <label>Payable <input type="text" name="due" /></label>
+  </form>
+  <h3>Répartition du montant</h3>
+  <form data-type="repartition">
+    <div data-type="repartitionFrag">
+     <label>Projet <input type="text" name="project" tabindex></label>
+     <label>Valeur <input type="text" name="value" tabindex></label>
+    </div>
+  </form>
+</body>
+<script type="module" src="js/bill.js"></script>
+<script src="../node_modules/sjcl/sjcl.js"></script>
+<script src="../node_modules/popper.js/dist/umd/popper.min.js"></script>
+<script src="/js/String.js"></script>
+<script src="/js/Path.js"></script>
+<script src="/js/Select.js"></script>
+<script src="/js/Query.js"></script>
+<script src="/js/DTable.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/stores.js"></script>
+<script>
+  let inputs = document.getElementsByTagName('INPUT')
+  for (let i = 0; i < inputs.length; i++) {
+    if (inputs[i].getAttribute('name') === 'project') {
+      Select(inputs[i], new STProject('Project'), {realSelect: true, allowFreeText: false})
+    }
+  }
+</script>
+</html>

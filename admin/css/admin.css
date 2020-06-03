@@ -1,6 +1,7 @@
 @import 'select.css';
 @import 'contact.css';
 @import 'project.css';
+@import 'bill.css';
 
 :root {
     --background-color: white;
