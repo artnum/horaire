@@ -189,27 +189,37 @@ export class RepartitionUI {
     formChange (event) {
         let node = this.addNextLine(event)
         if (!node) { return }
-
-        let nodes = node.getElementsByTagName('INPUT')
+        console.log(node)
+        let nodes = [...node.getElementsByTagName('INPUT'), ...node.getElementsByTagName('SELECT')]
+        let value = 0
+        let tva = 0
+        let id
+        let del = false
+        console.log(nodes)
         for (let i = 0; i < nodes.length; i++) {
             if (nodes[i].getAttribute('name') === 'value') {
-                let value = this.checkValue(nodes[i])
-                let id = node.id
+                value = this.checkValue(nodes[i])
+                id = node.id
                 if (value && value.num === 0) {
                     node.parentNode.removeChild(node)
-                    this.Events.dispatchEvent(new CustomEvent('change', {detail: {op:'delete', id: id, value: 0}}))
-                    return
+                    del = true
                 }
-                if (value) {
-                    this.Events.dispatchEvent(new CustomEvent('change', {detail: {op:'edit', id: id, value: value}}))
-                } else {
-                    this.Events.dispatchEvent(new CustomEvent('change', {detail: {op:'delete', id: id, value: 0}}))
-
+                if (!value) {
+                    del = true
                 }
 
                 this.printValue(nodes[i], value)
-                break
+            } 
+            if (nodes[i].getAttribute('name') === 'tva') {
+                if (!Number.isNaN(parseFloat(nodes[i].value))) {
+                    tva = parseFloat(nodes[i].value)
+                }
             }
+        }
+        if (del) {
+            this.Events.dispatchEvent(new CustomEvent('change', {detail: {op:'delete', id: id, value: 0}}))
+        } else {
+            this.Events.dispatchEvent(new CustomEvent('change', {detail: {op:'edit', id: id, value: value, tva: tva}}))
         }
     }
 
@@ -627,12 +637,15 @@ export class Facture {
         let amountLeft = this.amount
         let lastId = ''
         for (let k in this.repartition) {
-            if (this.repartition[k].type === '%') {
+            if (this.repartition[k][0].type === '%') {
                 relativeValues.push(k)
             } else {
-                if (Number.isFinite(this.repartition[k].num)) {
-                    amountLeft = roundCurrency(amountLeft - this.repartition[k].num, this.currency)
-                    this.Events.dispatchEvent(new CustomEvent('change', {detail: {op: 'calculatedValue', id: k, value: this.repartition[k].num, currency: this.currency}}))
+                if (Number.isFinite(this.repartition[k][0].num)) {
+                    let val = this.repartition[k][0].num 
+                    val =  roundCurrency(val + (val * this.repartition[k][1] / 100), this.currency)
+                    amountLeft -= val
+                    console.log(val, this.repartition[k][1])
+                    this.Events.dispatchEvent(new CustomEvent('change', {detail: {op: 'calculatedValue', id: k, value: val, currency: this.currency}}))
                 } else {
                     infiniteValues.push(k)
                 }
@@ -641,7 +654,8 @@ export class Facture {
         }
         let totalLeft = amountLeft
         relativeValues.forEach((key) => {
-            let val = roundCurrency(totalLeft * this.repartition[key].num / 100, this.currency)
+            let val = totalLeft * this.repartition[key][0].num / 100
+            val = roundCurrency(val + (val * this.repartition[key][1] / 100), this.currency)
             amountLeft -= val
             this.Events.dispatchEvent(new CustomEvent('change', {detail: {op: 'calculatedValue', id: key, value: val, currency: this.currency}}))
         })
@@ -661,8 +675,8 @@ export class Facture {
         this.Events.dispatchEvent(new CustomEvent('change', {detail: {op: 'amountLeft', id: lastId, value: amountLeft, currency: this.currency}}))
     }
 
-    setRepartition (id, value) {
-        this.repartition[id] = value
+    setRepartition (id, value, tva) {
+        this.repartition[id] = [value, tva]
         this.amountLeft()
     }
 
@@ -687,7 +701,7 @@ window.onload = () => {
     RUI.addEventListener('change', (event) => { 
         switch (event.detail.op) {
             case 'edit':
-                F.setRepartition(event.detail.id, event.detail.value)
+                F.setRepartition(event.detail.id, event.detail.value, event.detail.tva)
                 break
             case 'delete':
                 F.unsetRepartition(event.detail.id)

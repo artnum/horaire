@@ -32,8 +32,29 @@
     <div data-type="repartitionFrag">
      <label>Projet <input type="text" name="project" tabindex></label>
      <label>Valeur <input type="text" name="value" tabindex></label>
+     <label>TVA <select name="tva" tabindex>
+       <option value="7.7">7.7%</option>
+       <option value="2.5">2.5%</option>
+       <option value="0">0%</option>
+      </select></label>
     </div>
   </form>
+  <h2>Factures enregistrées</h2>
+  <table id="facture" data-source="Facture" data-options="{}" data-entry-id="id">
+    <thead class="darkbg"><tr>
+      <th data-attribute="date:datetime">Date</th>
+      <th data-attribute="duedate:datetime">Délai</th>
+      <th data-attribute="reference">Référence</th>
+
+      <th data-attribute="amount:money">Montant</th>
+      <th data-attribute="@../$person displayname|person">Client</th>
+      <th data-attribute="debt">Débiteur</th>
+      <th data-attribute="paid">Payée</th>
+      <th data-attribute="paiement">Nbre paiements</th>
+    </tr></thead>
+    <tbody>
+    </tbody>
+  </table>
 </body>
 <script type="module" src="js/bill.js"></script>
 <script src="../node_modules/sjcl/sjcl.js"></script>
@@ -46,6 +67,10 @@
 <script src="js/admin.js"></script>
 <script src="js/stores.js"></script>
 <script>
+    console.log(Artnum.DTable)
+    let facture = new Artnum.DTable({table: document.getElementById('facture')})
+    console.log(facture)
+  
   let inputs = document.getElementsByTagName('INPUT')
   for (let i = 0; i < inputs.length; i++) {
     if (inputs[i].getAttribute('name') === 'project') {
