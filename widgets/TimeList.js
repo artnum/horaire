@@ -55,6 +55,7 @@ define([
                <thead><tr><th>Jour</th><th>Projet</th><th>Processus/Bon</th><th>Durée</th></tr></thead><tbody>`
           for (var i = 0; i < result.length; i++) {
             var e = result.data[i]
+            if (e._project === null) { continue; }
             if (prevDay !== (new Date(e.day)).shortDate()) {
               if (prevDay !== null) {
                 table += `<tr><th colspan="3">Total pour le ${prevDay}</th><th>${new Hour(acc).toMinStr()}</th></tr>`
