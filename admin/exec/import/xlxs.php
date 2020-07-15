@@ -98,26 +98,68 @@ foreach ($files as $year => $file) {
                 if (!isset($invoices[$nfacture])) {
                     if (!NO_QUERY) {
                         if (!isset($F[$fournisseur])) {
+                            fprintf(STDERR, "<%s>\n", $fournisseur);
                             $_f = explode(' ', $fournisseur);
-                            $search = ['search.name' => []];
-                            foreach ($_f as $x) {
-                                $search['search.name'][] = '~' . $x;
-                                $search['search.name'][] = '*' . $x . '*';
+                            $search = ['search.name' => ['*' . $fournisseur . '*', '~' . $fournisseur], 'search._or' => '1'];
+                            if (strchr($fournisseur, ' ')) {
+                                $rf = implode(' ', array_reverse(explode(' ', $fournisseur)));
+                                $search['search.name'][] = '*' . $rf . '*';
+                                $search['search.name'][] = '~' . $rf;
                             }
                             $res = $jclient->search($search, 'Contact');
                             if ($res['length'] === 1) {
                                 $F[$fournisseur] = $res['data'][0];
                                 fprintf(STDERR, 'Trouvé ' . $F[$fournisseur]['displayname'] . ' pour ' . $fournisseur . PHP_EOL);
                                 $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
-                            } else if ($res['length'] === 2) {
-                                $perc = 0;
-                                similar_text($res['data'][0]['displayname'], $res['data'][1]['displayname'], $perc);
-                                if ($perc > 80) {
-                                    if (count(array_keys($res['data'][0])) > count(array_keys($res['data'][1]))) {
-                                        $F[$fournisseur] = $res['data'][0];
+                            } else {
+                                $sub = substr($fournisseur, 0, 3);            
+                                $search['search.name'] = '*' . $sub . '*';
+                                $res = $jclient->search($search, 'Contact');
+                                if ($res['length'] > 1) {
+                                    $filtered = [];
+                                    foreach ($res['data'] as $entry) {
+                                        if (stristr($entry['displayname'], $fournisseur)) {
+                                            $filtered[] = $entry;
+                                        }
+                                    }
+                                    
+                                    if (count($filtered) === 1) {
+                                        $F[$fournisseur] = $filtered[0];
+                                        fprintf(STDERR, 'Trouvé ' . $F[$fournisseur]['displayname'] . ' pour ' . $fournisseur . PHP_EOL);
                                         $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
                                     } else {
-                                        $F[$fournisseur] = $res['data'][1];
+                                        $match = [];
+                                        foreach ($res['data'] as $entry) {
+                                            $perc = 0;
+                                            similar_text($entry['displayname'], $fournisseur, $perc);
+                                            fprintf(STDERR, "#### %s, %s => %d\n", $fournisseur, $entry['displayname'], $perc);
+                                            if ($perc > 75) {
+                                                $match[] = [$perc, $entry];
+                                            }
+                                        }
+                                        $highest = 0;
+                                        $E = [];
+                                        if (count($match) > 0) {
+                                            foreach ($match as $m) {
+                                                if($m[0] > $highest) {
+                                                    $E = $m[1];
+                                                    $highest = $m[0];
+                                                } else if ($m[0] === $highest) {
+                                                    if(count(array_keys($E)) < count(array_keys($m[1]))) {
+                                                        $E = $m[1];
+                                                    }
+                                                }
+                                            }
+                                        
+                                            $F[$fournisseur] = $E;
+                                            fprintf(STDERR, 'Trouvé ' . $F[$fournisseur]['displayname'] . ' pour ' . $fournisseur . PHP_EOL);
+                                            $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
+                                        }
+                                    }
+                                } else if ($res['length'] === 1) {
+                                    if (stristr($res['data'][0]['displayname'], $fournisseur)) {
+                                        $F[$fournisseur] = $res['data'][0];
+                                        fprintf(STDERR, 'Trouvé ' . $F[$fournisseur]['displayname'] . ' pour ' . $fournisseur . PHP_EOL);
                                         $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
                                     }
                                 }
@@ -248,26 +290,68 @@ foreach ($files as $year => $file) {
                 if (!isset($invoices[$nfacture])) {
                     if (!NO_QUERY) {
                         if (!isset($F[$fournisseur])) {
+                            fprintf(STDERR, "<%s>\n", $fournisseur);
                             $_f = explode(' ', $fournisseur);
-                            $search = ['search.name' => []];
-                            foreach ($_f as $x) {
-                                $search['search.name'][] = '~' . $x;
-                                $search['search.name'][] = '*' . $x . '*';
+                            $search = ['search.name' => ['*' . $fournisseur . '*', '~' . $fournisseur], 'search._or' => '1'];
+                            if (strchr($fournisseur, ' ')) {
+                                $rf = implode(' ', array_reverse(explode(' ', $fournisseur)));
+                                $search['search.name'][] = '*' . $rf . '*';
+                                $search['search.name'][] = '~' . $rf;
                             }
                             $res = $jclient->search($search, 'Contact');
                             if ($res['length'] === 1) {
                                 $F[$fournisseur] = $res['data'][0];
                                 fprintf(STDERR, 'Trouvé ' . $F[$fournisseur]['displayname'] . ' pour ' . $fournisseur . PHP_EOL);
                                 $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
-                            } else if ($res['length'] === 2) {
-                                $perc = 0;
-                                similar_text($res['data'][0]['displayname'], $res['data'][1]['displayname'], $perc);
-                                if ($perc > 80) {
-                                    if (count(array_keys($res['data'][0])) > count(array_keys($res['data'][1]))) {
-                                        $F[$fournisseur] = $res['data'][0];
+                            } else {
+                                $sub = substr($fournisseur, 0, 3);            
+                                $search['search.name'] = '*' . $sub . '*';
+                                $res = $jclient->search($search, 'Contact');
+                                if ($res['length'] > 1) {
+                                    $filtered = [];
+                                    foreach ($res['data'] as $entry) {
+                                        if (stristr($entry['displayname'], $fournisseur)) {
+                                            $filtered[] = $entry;
+                                        }
+                                    }
+                                    
+                                    if (count($filtered) === 1) {
+                                        $F[$fournisseur] = $filtered[0];
+                                        fprintf(STDERR, 'Trouvé ' . $F[$fournisseur]['displayname'] . ' pour ' . $fournisseur . PHP_EOL);
                                         $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
                                     } else {
-                                        $F[$fournisseur] = $res['data'][1];
+                                        $match = [];
+                                        foreach ($res['data'] as $entry) {
+                                            $perc = 0;
+                                            similar_text($entry['displayname'], $fournisseur, $perc);
+                                            fprintf(STDERR, "#### %s, %s => %d\n", $fournisseur, $entry['displayname'], $perc);
+                                            if ($perc > 75) {
+                                                $match[] = [$perc, $entry];
+                                            }
+                                        }
+                                        $highest = 0;
+                                        $E = [];
+                                        if (count($match) > 0) {
+                                            foreach ($match as $m) {
+                                                if($m[0] > $highest) {
+                                                    $E = $m[1];
+                                                    $highest = $m[0];
+                                                } else if ($m[0] === $highest) {
+                                                    if(count(array_keys($E)) < count(array_keys($m[1]))) {
+                                                        $E = $m[1];
+                                                    }
+                                                }
+                                            }
+                                        
+                                            $F[$fournisseur] = $E;
+                                            fprintf(STDERR, 'Trouvé ' . $F[$fournisseur]['displayname'] . ' pour ' . $fournisseur . PHP_EOL);
+                                            $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
+                                        }
+                                    }
+                                } else if ($res['length'] === 1) {
+                                    if (stristr($res['data'][0]['displayname'], $fournisseur)) {
+                                        $F[$fournisseur] = $res['data'][0];
+                                        fprintf(STDERR, 'Trouvé ' . $F[$fournisseur]['displayname'] . ' pour ' . $fournisseur . PHP_EOL);
                                         $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
                                     }
                                 }
