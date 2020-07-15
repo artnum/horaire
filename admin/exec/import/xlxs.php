@@ -99,9 +99,10 @@ foreach ($files as $year => $file) {
                     if (!NO_QUERY) {
                         if (!isset($F[$fournisseur])) {
                             $_f = explode(' ', $fournisseur);
-                            $search = [];
+                            $search = ['search.name' => []];
                             foreach ($_f as $x) {
-                                $search['search.name'] = '*' . $x .'*';
+                                $search['search.name'][] = '~' . $x;
+                                $search['search.name'][] = '*' . $x . '*';
                             }
                             $res = $jclient->search($search, 'Contact');
                             if ($res['length'] === 1) {
@@ -248,9 +249,10 @@ foreach ($files as $year => $file) {
                     if (!NO_QUERY) {
                         if (!isset($F[$fournisseur])) {
                             $_f = explode(' ', $fournisseur);
-                            $search = [];
+                            $search = ['search.name' => []];
                             foreach ($_f as $x) {
-                                $search['search.name'] = '*' . $x .'*';
+                                $search['search.name'][] = '~' . $x;
+                                $search['search.name'][] = '*' . $x . '*';
                             }
                             $res = $jclient->search($search, 'Contact');
                             if ($res['length'] === 1) {
