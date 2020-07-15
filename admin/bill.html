@@ -4,6 +4,11 @@
   <link rel="stylesheet" type="text/css" href="css/admin.css" />
   <link rel="stylesheet" type="text/css" href="css/codebox.css" />
   <link rel="stylesheet" type="text/css" href="css/dtable.css" />
+  <style type="text/css">
+    .client.alt_0 {
+      color: darkblue;
+    }
+  </style>
 <title>Horaire</title>
 <link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
 </head>
@@ -46,7 +51,7 @@
       <th data-attribute="duedate:date">Délai</th>
       <th data-attribute="reference">Référence</th>
       <th data-attribute="amount:money">Montant</th>
-      <th data-attribute="@../$person displayname|person">Client</th>
+      <th data-class="client" data-attribute="@../$person displayname|person">Client</th>
       <th data-attribute="debt~1=Débiteur,2=Créancier">Débiteur</th>
       <th data-attribute="paid~0=non,1=oui">Payée</th>
       <th data-attribute="paiement">Nbre paiements</th>
