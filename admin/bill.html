@@ -8,6 +8,19 @@
     .client.alt_0 {
       color: darkblue;
     }
+    .client {
+      max-width: 32ch !important;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .reference {
+      max-width: 12ch !important;
+      overflow: hidden;;
+      text-overflow:  ellipsis;
+    }
+    .center {
+      text-align: center;
+    }
   </style>
 <title>Horaire</title>
 <link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
@@ -49,12 +62,12 @@
     <thead class="darkbg"><tr>
       <th data-attribute="date:date">Date</th>
       <th data-attribute="duedate:date">Délai</th>
-      <th data-attribute="reference">Référence</th>
+      <th data-class="reference" data-attribute="reference">Référence</th>
       <th data-attribute="amount:money">Montant</th>
       <th data-class="client" data-attribute="@../$person displayname|person">Client</th>
-      <th data-attribute="debt~1=Débiteur,2=Créancier">Débiteur</th>
-      <th data-attribute="paid~0=non,1=oui">Payée</th>
-      <th data-attribute="paiement">Nbre paiements</th>
+      <th data-class="center" data-attribute="debt~1=Débiteur,2=Créancier">Débiteur</th>
+      <th data-class="center" data-attribute="paid~0=non,1=oui">Payée</th>
+      <th data-class="center" data-attribute="paiement">Nbre paiements</th>
     </tr></thead>
     <tbody>
     </tbody>
