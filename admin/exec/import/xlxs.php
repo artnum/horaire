@@ -5,9 +5,20 @@ require 'vendor/autoload.php';
 /* à 1 pour tester sans faire de requête vers la base de données */
 define ('NO_QUERY', false);
 
+$content = file('source.list');
+foreach ($content as $line) {
+    $fields = explode(' ', $line, 2);
+    if (is_numeric($fields[0]) && is_readable((substr($fields[1], 0, -1)))) {
+        $files[$fields[0]] = substr($fields[1], 0, -1);
+    }
+}
+
+if (count($files) === 0) {
+    exit(0);
+}
+
 $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
 $reader->setReadDataOnly(true);
-$files = ['2019' => '../../../db/gf2.xlsx', '2020' => '../../../db/gf.xlsx'];
 
 $invoices = [];
 $F = [];
@@ -87,7 +98,7 @@ foreach ($files as $year => $file) {
                 if (!isset($invoices[$nfacture])) {
                     if (!NO_QUERY) {
                         if (!isset($F[$fournisseur])) {
-                            $res = $jclient->search(['search.name' => $fournisseur . '*'], 'Contact');
+                            $res = $jclient->search(['search.name' => '*' . $fournisseur . '*'], 'Contact');
                             if ($res['length'] === 1) {
                                 $F[$fournisseur] = $res['data'][0];
                                 fprintf(STDERR, 'Trouvé ' . $F[$fournisseur]['displayname'] . ' pour ' . $fournisseur . PHP_EOL);
