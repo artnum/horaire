@@ -98,11 +98,28 @@ foreach ($files as $year => $file) {
                 if (!isset($invoices[$nfacture])) {
                     if (!NO_QUERY) {
                         if (!isset($F[$fournisseur])) {
-                            $res = $jclient->search(['search.name' => '*' . $fournisseur . '*'], 'Contact');
+                            $_f = explode(' ', $fournisseur);
+                            $search = [];
+                            foreach ($_f as $x) {
+                                $search['search.name'] = '*' . $x .'*';
+                            }
+                            $res = $jclient->search($search, 'Contact');
                             if ($res['length'] === 1) {
                                 $F[$fournisseur] = $res['data'][0];
                                 fprintf(STDERR, 'Trouvé ' . $F[$fournisseur]['displayname'] . ' pour ' . $fournisseur . PHP_EOL);
                                 $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
+                            } else if ($res['length'] === 2) {
+                                $perc = 0;
+                                similar_text($res['data'][0]['displayname'], $res['data'][1]['displayname'], $perc);
+                                if ($perc > 80) {
+                                    if (count(array_keys($res['data'][0])) > count(array_keys($res['data'][1]))) {
+                                        $F[$fournisseur] = $res['data'][0];
+                                        $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
+                                    } else {
+                                        $F[$fournisseur] = $res['data'][1];
+                                        $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
+                                    }
+                                }
                             }
                         } else {
                             $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
@@ -230,11 +247,28 @@ foreach ($files as $year => $file) {
                 if (!isset($invoices[$nfacture])) {
                     if (!NO_QUERY) {
                         if (!isset($F[$fournisseur])) {
-                            $res = $jclient->search(['search.name' => $fournisseur . '*'], 'Contact');
+                            $_f = explode(' ', $fournisseur);
+                            $search = [];
+                            foreach ($_f as $x) {
+                                $search['search.name'] = '*' . $x .'*';
+                            }
+                            $res = $jclient->search($search, 'Contact');
                             if ($res['length'] === 1) {
                                 $F[$fournisseur] = $res['data'][0];
                                 fprintf(STDERR, 'Trouvé ' . $F[$fournisseur]['displayname'] . ' pour ' . $fournisseur . PHP_EOL);
                                 $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
+                            } else if ($res['length'] === 2) {
+                                $perc = 0;
+                                similar_text($res['data'][0]['displayname'], $res['data'][1]['displayname'], $perc);
+                                if ($perc > 80) {
+                                    if (count(array_keys($res['data'][0])) > count(array_keys($res['data'][1]))) {
+                                        $F[$fournisseur] = $res['data'][0];
+                                        $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
+                                    } else {
+                                        $F[$fournisseur] = $res['data'][1];
+                                        $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
+                                    }
+                                }
                             }
                         } else {
                             $facture['dbaddress'] = 'Contact/' . $F[$fournisseur]['IDent'];
