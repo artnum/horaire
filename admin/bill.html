@@ -66,7 +66,7 @@
       <th data-attribute="date:date">Date</th>
       <th data-attribute="duedate:date">Délai</th>
       <th data-class="reference" data-attribute="reference">Référence</th>
-      <th data-attribute="amount:money">Montant</th>
+      <th data-attribute="amount:money" data-sort-type="money">Montant</th>
       <th data-class="client" data-attribute="@../$person displayname|person">Client</th>
       <th data-class="center" data-attribute="debt~1=Débiteur,2=Créancier">Débiteur</th>
       <th data-class="center" data-attribute="type~1=Facture,2=Note de crédit">Type</th>
@@ -95,7 +95,7 @@
   const address = new Address(document.getElementById('address'))
 </script>
 <script>
-  let facture = new Artnum.DTable({table: document.getElementById('facture')})
+  const facture = new Artnum.DTable({table: document.getElementById('facture')})
   facture.transliterate = transliterate
   
   let inputs = document.getElementsByTagName('INPUT')
@@ -128,6 +128,7 @@
       if (response.ok) {
         response.json().then(async function (result) {
           if (result.length === 1 && result.data[0].id) {
+            facture.queryOne(result.data[0].id)
             for (let i in values.repartition) {
               let rep = values.repartition[i]
               let postData = {
@@ -136,7 +137,6 @@
                 value: rep.ht,
                 tva: rep.tvapc // valeur en pourcent de la TVA
               }
-
               let response = await fetch(new URL('../Repartition', window.location), {
                   method: 'POST', 
                   body: JSON.stringify(postData),
