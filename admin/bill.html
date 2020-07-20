@@ -28,34 +28,37 @@
 <body>
   <h2>Ajout facture</h2>
   <form id="bill">
-    <div class="codebox" tabindex>
-      <span class="qrcode">QR Code</span> ou <span class="bvr">Référence BVR</span>
-    </div>
-    <label>Débiteur <input type="checkbox" name="debtor" /></label><br />
-    <label>Date <input type="text" name="date" /></label>
-    <label>Référence <input type="text" name="reference"  style="width: 120ch;"/></label><br>
-    <label>Montant <input type="text" name="amount"  style="width: 120ch;"/></label><br>
-    <label>Monnaie <select name="currency">
-      <option value="chf" selected>CHF</option>
-      <option value="eur">EUR [€]</option>
-      <option value="usd">USD [$]</option>
-      <option value="gbp">GBP [£]</option>
-      <option value="jpy">JPY [¥]</option>
-    </select></label>
-    <label>Compte <input type="text" name="account"  style="width: 120ch;"/></label><br>
-    <label>Payable <input type="text" name="due" /></label>
-  </form>
-  <h3>Répartition du montant</h3>
-  <form data-type="repartition">
-    <div data-type="repartitionFrag">
-     <label>Projet <input type="text" name="project" tabindex></label>
-     <label>Valeur <input type="text" name="value" tabindex></label>
-     <label>TVA <select name="tva" tabindex>
-       <option value="7.7">7.7%</option>
-       <option value="2.5">2.5%</option>
-       <option value="0">0%</option>
+    <fieldset id="address">
+      <legend>Adresse</legend>
+    </fieldset>
+    <fieldset id="detail">
+      <legend>Détail facture</legend>
+      <label>Débiteur <input type="checkbox" name="debtor" /></label><label>Note de crédit <input type="checkbox" name="credit" /></label><br />
+      <label>Remarque <input type="text" name="comment" style="width: 120ch;"/></label><br />
+      <label>Référence <input type="text" name="reference" /></label>
+      <label>Date <input type="text" name="date" /></label>
+      <label>Délai <input type="text" name="due" value="30" /></label><br />
+      <label>Montant (TVA incluse) <input type="text" name="amount" /></label>
+      <label>Monnaie <select name="currency">
+        <option value="chf" selected>CHF</option>
+        <option value="eur">EUR [€]</option>
+        <option value="usd">USD [$]</option>
+        <option value="gbp">GBP [£]</option>
+        <option value="jpy">JPY [¥]</option>
       </select></label>
-    </div>
+    </fieldset>
+    <fieldset data-type="repartition">
+      <legend>Répartition du montant</legend>
+      <div class="note">
+        Les montants indiqués en valeur absolue sont hors TVA. Les montants exprimés en pourcent inlcuent la TVA.
+      </div>
+      <div data-type="repartitionFrag">
+      <label>Projet <input type="text" name="project" tabindex></label>
+      <label>Montant <input type="text" name="value" tabindex></label>
+      <label>TVA <input name="tva" type="text" data-default="7.7" tabindex value="7.7"></label>
+      </div>
+    </fieldset>
+    <input type="submit" value="Ajouter" />
   </form>
   <h2>Factures enregistrées</h2>
   <table id="facture" data-source="Facture" data-options="{}" data-entry-id="id">
@@ -66,6 +69,7 @@
       <th data-attribute="amount:money">Montant</th>
       <th data-class="client" data-attribute="@../$person displayname|person">Client</th>
       <th data-class="center" data-attribute="debt~1=Débiteur,2=Créancier">Débiteur</th>
+      <th data-class="center" data-attribute="type~1=Facture,2=Note de crédit">Type</th>
       <th data-class="center" data-attribute="paid~0=non,1=oui">Payée</th>
       <th data-class="center" data-attribute="paiement">Nbre paiements</th>
     </tr></thead>
@@ -73,6 +77,7 @@
     </tbody>
   </table>
 </body>
+<script src="../conf/kaal.js"></script>?
 <script type="module" src="js/bill.js"></script>
 <script src="../node_modules/sjcl/sjcl.js"></script>
 <script src="../node_modules/popper.js/dist/umd/popper.min.js"></script>
@@ -85,6 +90,10 @@
 <script src="/js/DTable.js"></script>
 <script src="js/admin.js"></script>
 <script src="js/stores.js"></script>
+<script type="module">
+  import {Address} from './js/address.js'
+  const address = new Address(document.getElementById('address'))
+</script>
 <script>
   let facture = new Artnum.DTable({table: document.getElementById('facture')})
   facture.transliterate = transliterate
@@ -95,5 +104,58 @@
       Select(inputs[i], new STProject('Project'), {realSelect: true, allowFreeText: false})
     }
   }
+
+  let f = document.getElementById('bill').addEventListener('submit', event => {
+    event.preventDefault()
+    let values = window.Facture.getValues()
+    let postData = {
+      reference: values.reference !== undefined ? values.reference : '',
+      date: values.date !== undefined ? values.date : '',
+      duedate: values.due !== undefined ? values.due : '',
+      reference: values.reference !== undefined ? values.reference : '',
+      amount: values.amount !== undefined ? values.amount : 0,
+      type: values.credit ? 2 : 1, // note de credit
+      debt: values.debtor ? 1 : 2,
+      comment: values.comment !== undefined ? values.comment : '',
+      person: address.dataset.id ? `Contact/${address.dataset.id}` : ''
+    }
+
+    fetch(new URL('../Facture', window.location), {
+        method: 'POST', 
+        body: JSON.stringify(postData),
+        header: new Headers({'X-Request-Id':`${new Date().getTime()}-${performance.now()}`})
+      }).then(response => {
+      if (response.ok) {
+        response.json().then(async function (result) {
+          if (result.length === 1 && result.data[0].id) {
+            for (let i in values.repartition) {
+              let rep = values.repartition[i]
+              let postData = {
+                facture: result.data[0].id,
+                project: rep.project,
+                value: rep.ht,
+                tva: rep.tvapc // valeur en pourcent de la TVA
+              }
+
+              let response = await fetch(new URL('../Repartition', window.location), {
+                  method: 'POST', 
+                  body: JSON.stringify(postData),
+                  header: new Headers({'X-Request-Id':`${new Date().getTime()}-${performance.now()}`})
+              })
+              if (response.ok) {
+                let data = await response.json()
+                if (data.length === 1) {
+                  console.log(data)
+                } else {
+                  console.log(data)
+                }
+              }
+            }
+          }
+        })
+      }
+    })
+  })
+
 </script>
 </html>

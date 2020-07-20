@@ -3,6 +3,54 @@
     font-size: 0.8em;
 }
 
-.calculated::before {
-    content: 'asbolu: '
+div.calculated {
+    display: inline-block;
+}
+
+div.calculated span.tva::before {
+    content: 'TVA: ';
+}
+
+div.calculated span.total::before {
+    content: 'Total: ';
+}
+
+div.calculated.chf span.tva::after {
+    content: ' CHF';
+}
+
+div.calculated.chf span.total::after {
+    content: ' CHF';
+}
+
+div.calculated.eur span.tva::after {
+    content: ' €';
+}
+
+div.calculated.eur span.total::after {
+    content: ' €';
+}
+
+div.calculated.usd span.tva::after {
+    content: ' $';
+}
+
+div.calculated.usd span.total::after {
+    content: ' $';
+}
+
+div.calculated.gbp span.tva::after {
+    content: ' £';
+}
+
+div.calculated.gbp span.total::after {
+    content: ' £';
+}
+
+div.calculated.jpy span.tva::after {
+    content: ' ¥';
+}
+
+div.calculated.jpy span.total::after {
+    content: ' ¥';
 }

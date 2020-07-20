@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS "repartition" ( -- repartition d'une facture sur un p
        "repartition_facture" INTEGER NOT NULL, -- Facture à répartir
        "repartition_project" INTEGER NOT NULL, -- Projet sur lequel répartir
        "repartition_travail" INTEGER DEFAULT NULL, -- Travail sur lequel répartir
-       "repartition_value" FLOAT DEFAULT NULL, -- Valeur de la facture, NULL étant la valeur restante
+       "repartition_value" FLOAT DEFAULT NULL, -- Valeur répartie hors TVA
+       "repartition_tva" FLOAT DEFAULT 7.7, -- valeur de la TVA par défaut 7.7%
        FOREIGN KEY("repartition_facture") REFERENCES "facture"("facture_id") ON UPDATE CASCADE ON DELETE CASCADE,
        FOREIGN KEY("repartition_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE CASCADE,
        FOREIGN KEY("repartition_travail") REFERENCES "travail"("travail_id") ON UPDATE CASCADE ON DELETE SET NULL

@@ -89,9 +89,10 @@ function roundCurrency (value, currency) {
 export class RepartitionUI {
     constructor () {
         this.Events = new EventTarget()
-        let forms = document.getElementsByTagName('FORM');
+        let forms = document.getElementsByTagName('FIELDSET');
         for (let i = 0; i < forms.length; i++) {
             if (forms[i].dataset && forms[i].dataset.type === 'repartition') {
+                this.domNode = forms[i]
                 forms[i].addEventListener('change', this.formChange.bind(this))
             }
             forms[i].addEventListener('keyup', (event) => {
@@ -114,7 +115,13 @@ export class RepartitionUI {
             if (child.children.length > 0) {
                 this.cleanChild(child)
             }
-            child.value = ''
+            if (child.nodeName !== 'OPTION' && child.nodeName !== 'SELECT') {
+                if (child.dataset.default) {
+                    child.value = child.dataset.default
+                } else {
+                    child.value = ''
+                }
+            }
         }
     }
 
@@ -189,13 +196,12 @@ export class RepartitionUI {
     formChange (event) {
         let node = this.addNextLine(event)
         if (!node) { return }
-        console.log(node)
         let nodes = [...node.getElementsByTagName('INPUT'), ...node.getElementsByTagName('SELECT')]
         let value = 0
         let tva = 0
         let id
         let del = false
-        console.log(nodes)
+        let project = null
         for (let i = 0; i < nodes.length; i++) {
             if (nodes[i].getAttribute('name') === 'value') {
                 value = this.checkValue(nodes[i])
@@ -215,11 +221,14 @@ export class RepartitionUI {
                     tva = parseFloat(nodes[i].value)
                 }
             }
+            if (nodes[i].getAttribute('name') === 'project') {
+                project = nodes[i].dataset.value
+            }
         }
         if (del) {
             this.Events.dispatchEvent(new CustomEvent('change', {detail: {op:'delete', id: id, value: 0}}))
         } else {
-            this.Events.dispatchEvent(new CustomEvent('change', {detail: {op:'edit', id: id, value: value, tva: tva}}))
+            this.Events.dispatchEvent(new CustomEvent('change', {detail: {op:'edit', id: id, value: value, tva: tva, project: project}}))
         }
     }
 
@@ -323,7 +332,6 @@ export class RepartitionUI {
         switch (matches[4]) {
             default:
                 if (matches[4] === undefined) { break }
-                console.log(matches[4])
                 if (matches[4] !== undefined && Object.keys(Currency).indexOf(matches[4].toLowerCase()) !== -1) {
                     val.type = Currency[matches[4].toLowerCase()]
                 } else {
@@ -453,7 +461,8 @@ export class QRBill extends BVRCode{
 const BillAttributes = ['currency', 'amount', 'reference', 'account', 'due', 'date']
 
 export class Facture {
-    constructor (form) {
+    constructor (form, RUI) {
+        this.RUI = RUI
         this.repartition = {}
         this.form = form
         this.amount = 0
@@ -465,10 +474,11 @@ export class Facture {
         this.BVR = new BVRCode()
         this.QRBill = new QRBill()
         this.Events = new EventTarget()
+        this.Values = {}
 
         this.BVR.addEventListener('decoded', this.handleDecodeEvent.bind(this))
         this.QRBill.addEventListener('decoded', this.handleDecodeEvent.bind(this))
-        this.form.addEventListener('change', this.handleFormChange.bind(this))
+        this.form.addEventListener('blur', this.handleFormChange.bind(this), {capture: true})
 
         let divs = this.form.getElementsByTagName('DIV')
         for (let i = 0; i < divs.length; i++) {
@@ -504,7 +514,7 @@ export class Facture {
 
     parseDate (node, parseDuration = false, origin = null) {
         const durationReg = /^\s*([0-9]+)\s*(ja|j|s|m|a|d|y|w|g|t)?.*$/gi
-        const dateReg = /^\s*([0-9]+)\s*[\.\/\-]?\s*([0-9]+|[a-zäéû]+)\s*[\.\/\-]?\s*([0-9]+)?\s*$/gi
+        const dateReg = /^\s*([0-9]+)\s*[\.\/\-]?\s*([0-9]+|[a-zäéû]+)?\s*[\.\/\-]?\s*([0-9]+)?\s*$/gi
         let duration = null
         if (parseDuration) {
             duration = durationReg.exec(node.value)
@@ -513,17 +523,23 @@ export class Facture {
             let date = dateReg.exec(node.value)
             if (date) {
                 let d = parseInt(date[1])
-                let m = parseInt(date[2])
-                if (isNaN(m)) {
-                    date[2] = date[2].toLocaleLowerCase()
-                    if (Months[date[2]] !== undefined) {
-                        m = Months[date[2]]
-                    } else {
-                        for(let month in Months) {
-                            if (month.indexOf(date[2]) === 0) {
-                                m = Months[month]
-                                break
+                let m = (new Date()).getMonth() + 1
+                if (date[2]) {
+                    m = parseInt(date[2])
+                    if (isNaN(m)) {
+                        date[2] = date[2].toLocaleLowerCase()
+                        if (Months[date[2]] !== undefined) {
+                            m = Months[date[2]]
+                        } else {
+                            for(let month in Months) {
+                                if (month.indexOf(date[2]) === 0) {
+                                    m = Months[month]
+                                    break
+                                }
                             }
+                        }
+                        if (isNaN(m)) {
+                            m = (new Date()).getMonth() + 1
                         }
                     }
                 }
@@ -564,6 +580,71 @@ export class Facture {
                     return new Date(origin.getFullYear() + parseInt(duration[1]), origin.getMonth(), origin.getDate())
             }
         }
+        return new Date('Invalid Date')
+    }
+
+    getValues () {
+        let nodes = [...this.form.getElementsByTagName('INPUT'), ...this.form.getElementsByTagName('SELECT')]
+        let dueNode = null
+        let values = {}
+        for (let k in nodes) {
+            let node = nodes[k]
+            let name = node.getAttribute('name')
+            if (name === null) { continue }
+            // need to have date processed so save for later
+            if (name === 'due') {
+                dueNode = node
+                continue
+            }
+            let tmp = null
+            switch (name) {
+                default:
+                    let type = node.getAttribute('type')
+                    if (type && type.toLowerCase() === 'checkbox') {
+                        if (node.checked) {
+                            values[name] = 1
+                        } else {
+                            values[name] = 0
+                        }
+                    } else {
+                        if (node.dataset.value) {
+                            values[name] = node.dataset.value
+                        } else if (node.value) {
+                            values[name] = node.value
+                        } else {
+                            // error 
+                        }
+                    }
+                    break
+                case 'amount':
+                    tmp = parseInt(node.value)
+                    if (!isNaN(tmp)) {
+                        values[name] = tmp
+                    } else {
+                        // error
+                    }
+                    break
+                case 'date':
+                    tmp = this.parseDate(node)
+                    if (!isNaN(tmp.getTime())) {
+                        values[name] = tmp.toISOString()
+                    } else {
+                        // error 
+                    }
+                   break
+            }
+        }
+        if (dueNode && values['date']) {
+            let tmp = this.parseDate(dueNode, true, new Date(values['date']))
+            if (!isNaN(tmp.getTime())) {
+                values['due'] = tmp.toISOString()
+            } else {
+                // error
+            }
+        }
+
+        values['repartition'] = this.Values
+        return values
     }
 
     handleFormChange (event) {
@@ -580,11 +661,13 @@ export class Facture {
                     break
                 case 'date':
                     this.date = this.parseDate(node)
-                    let n = document.createTextNode(`${this.date.getDate()}.${this.date.getMonth() + 1}.${this.date.getFullYear()}`)
-                    if (!node.nextSibling) {
-                        node.parentNode.appendChild(n)
-                    } else {
-                        node.parentNode.replaceChild(n, node.nextSibling)
+                    if (!isNaN(this.date.getTime())) {
+                        let n = document.createTextNode(`${this.date.getDate()}.${this.date.getMonth() + 1}.${this.date.getFullYear()}`)
+                        if (!node.nextSibling) {
+                            node.parentNode.appendChild(n)
+                        } else {
+                            node.parentNode.replaceChild(n, node.nextSibling)
+                        }
                     }
                     /* fall through */
                 case 'due':
@@ -597,11 +680,13 @@ export class Facture {
                         break
                     }
                     this.due = this.parseDate(node, true, this.date)
-                    let n1 = document.createTextNode(`${this.due.getDate()}.${this.due.getMonth() + 1}.${this.due.getFullYear()}`)
-                    if (!node.nextSibling) {
-                        node.parentNode.appendChild(n1)
-                    } else {
-                        node.parentNode.replaceChild(n1, node.nextSibling)
+                    if (!isNaN(this.due.getTime())) {
+                        let n1 = document.createTextNode(`${this.due.getDate()}.${this.due.getMonth() + 1}.${this.due.getFullYear()}`)
+                        if (!node.nextSibling) {
+                            node.parentNode.appendChild(n1)
+                        } else {
+                            node.parentNode.replaceChild(n1, node.nextSibling)
+                        }
                     }
                     break
 
@@ -641,11 +726,27 @@ export class Facture {
                 relativeValues.push(k)
             } else {
                 if (Number.isFinite(this.repartition[k][0].num)) {
-                    let val = this.repartition[k][0].num 
-                    val =  roundCurrency(val + (val * this.repartition[k][1] / 100), this.currency)
-                    amountLeft -= val
-                    console.log(val, this.repartition[k][1])
-                    this.Events.dispatchEvent(new CustomEvent('change', {detail: {op: 'calculatedValue', id: k, value: val, currency: this.currency}}))
+                    let val = roundCurrency(this.repartition[k][0].num, this.currency)
+                    let tva = roundCurrency(val * this.repartition[k][1] / 100, this.currency)
+                    let total = roundCurrency(val + tva, this.currency)
+                    
+                    amountLeft -= total
+                    this.Events.dispatchEvent(new CustomEvent('change', {detail: {
+                        op: 'calculatedValue',
+                        id: k,
+                        value: total,
+                        ht: val, // hors-taxe
+                        tva: tva, // tva montant,
+                        tvapc: this.repartition[k][1],
+                        currency: this.currency
+                    }}))
+                    this.Values[k] = {
+                        tva: tva,
+                        total: total,
+                        ht: val,
+                        tvapc: this.repartition[k][1],
+                        project: this.repartition[k][2]
+                    }
                 } else {
                     infiniteValues.push(k)
                 }
@@ -654,41 +755,99 @@ export class Facture {
         }
         let totalLeft = amountLeft
         relativeValues.forEach((key) => {
-            let val = totalLeft * this.repartition[key][0].num / 100
-            val = roundCurrency(val + (val * this.repartition[key][1] / 100), this.currency)
-            amountLeft -= val
-            this.Events.dispatchEvent(new CustomEvent('change', {detail: {op: 'calculatedValue', id: key, value: val, currency: this.currency}}))
+            let val = roundCurrency(totalLeft * this.repartition[key][0].num / 100, this.currency)
+            let tva = roundCurrency(val * this.repartition[key][1] / 100, this.currency)
+            let total = val
+            val = roundCurrency(val - tva, this.currency)
+            
+            // val = roundCurrency(val + (val * this.repartition[key][1] / 100), this.currency)
+            amountLeft -= total
+            this.Events.dispatchEvent(new CustomEvent('change', {detail: {
+                op: 'calculatedValue',
+                id: key,
+                value: total,
+                ht: val,
+                tva: tva, // montant tva
+                tvapc: this.repartition[key][1], // tva pourcent
+                currency: this.currency
+            }}))
+            this.Values[key] = {
+                tva: tva,
+                total: total,
+                ht: val,
+                tvapc: this.repartition[key][1], // tva pourcent
+                project: this.repartition[key][2]
+            }
         })
         if (infiniteValues.length > 0) {
             let splitInfinity = roundCurrency(amountLeft / infiniteValues.length, this.currency)
             let lastKey
             infiniteValues.forEach((key) => {
                 amountLeft -= splitInfinity
+                let tva = roundCurrency(splitInfinity * this.repartition[key][1] / 100, this.currency)
+                let val = roundCurrency(splitInfinity - tva, this.currency)
+                
                 lastKey = key
-                this.Events.dispatchEvent(new CustomEvent('change', {detail: {op: 'calculatedValue', id: key, value: splitInfinity, currency: this.currency}}))
+                this.Events.dispatchEvent(new CustomEvent('change', {detail: {
+                    op: 'calculatedValue',
+                    id: key,
+                    value: splitInfinity,
+                    ht: val, // valeur hors taxe
+                    tva: tva, // montant tva
+                    tvapc: this.repartition[key][1],
+                    currency: this.currency
+                }}))
+                this.Values[key] = {
+                    tva: tva,
+                    total: splitInfinity,
+                    ht: val,
+                    tvapc: this.repartition[key][1],
+                    project: this.repartition[key][2]
+                }
             })
             if (amountLeft !== 0) {
-                this.Events.dispatchEvent(new CustomEvent('change', {detail: {op: 'calculatedValue', id: lastKey, value: roundCurrency(splitInfinity + amountLeft, this.currency), currency: this.currency}}))
+                let total = roundCurrency(splitInfinity + amountLeft, this.currency)
+                let tva = roundCurrency(splitInfinity * this.repartition[lastKey][1] / 100, this.currency)
+                let val = roundCurrency(splitInfinity - tva, this.currency)
+                this.Events.dispatchEvent(new CustomEvent('change', {detail: {
+                    op: 'calculatedValue',
+                    id: lastKey,
+                    value:
+                    total,
+                    ht: val,
+                    tva: tva,
+                    tvapc: this.repartition[lastKey][1],
+                    currency: this.currency
+                }}))
+                this.Values[lastKey] = {
+                    tva: tva,
+                    total: total,
+                    ht: val,
+                    tvapc: this.repartition[lastKey][1],
+                    project: this.repartition[lastKey][2]
+                }
             }
             amountLeft = 0
         }
         this.Events.dispatchEvent(new CustomEvent('change', {detail: {op: 'amountLeft', id: lastId, value: amountLeft, currency: this.currency}}))
     }
 
-    setRepartition (id, value, tva) {
-        this.repartition[id] = [value, tva]
+    setRepartition (id, value, tva, project) {
+        this.repartition[id] = [value, tva, project]
         this.amountLeft()
     }
 
     unsetRepartition (id) {
         delete this.repartition[id]
+        delete this.Values[id]
         this.amountLeft()
     }
 }
 
 window.onload = () => {
     let RUI = new RepartitionUI()
-    let F = new Facture(document.getElementById('bill'))
+    let F = new Facture(document.getElementById('bill'), RUI)
+    window.Facture = F
     let Values = {}
     F.addEventListener('change', (event) => {
         if (event.detail.op  === 'amountLeft') {
@@ -701,7 +860,7 @@ window.onload = () => {
     RUI.addEventListener('change', (event) => { 
         switch (event.detail.op) {
             case 'edit':
-                F.setRepartition(event.detail.id, event.detail.value, event.detail.tva)
+                F.setRepartition(event.detail.id, event.detail.value, event.detail.tva, event.detail.project)
                 break
             case 'delete':
                 F.unsetRepartition(event.detail.id)
@@ -711,17 +870,22 @@ window.onload = () => {
                     let node = document.getElementById(k)
                     if (node) {
                         let add = false
-                        let lc = node.querySelector('span[class="calculated"]')
+                        let lc = node.firstElementChild
+                        while (lc && !lc.classList.contains('calculated')) { lc = lc.nextElementSibling }
                         if (!lc) {
-                            lc = document.createElement('SPAN')
+                            lc = document.createElement('DIV')
                             lc.classList.add('calculated')
                             add = true
                         }
+                        for (let i of ['chf', 'eur', 'usd', 'gbp', 'jpy']) {
+                            lc.classList.remove(i)
+                        }
+                        lc.classList.add(Values[k].currency)
                         window.requestAnimationFrame(() => {
                             if (add) {
                                 node.appendChild(lc)
                             }
-                            lc.innerHTML = `${Values[k].value}`
+                            lc.innerHTML = `<span class="total">${Values[k].value}</span> <span class="tva">${Values[k].tva}</span>`
                         }) 
                     }
                 } 
