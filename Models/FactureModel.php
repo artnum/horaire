@@ -4,7 +4,7 @@
          parent::__construct($db, 'facture', 'facture_id', $config);
          $this->conf('auto-increment', true);
          $this->conf('force-type', ['amount' => 'str']);
-         $this->set_req('get', 'SELECT *, (SELECT COUNT("paiement_id") FROM "paiement" WHERE "paiement_facture" = "facture_id") AS "facture_paiement", CASE WHEN (SELECT SUM("paiement_amount") FROM "paiement" WHERE "paiement_facture" = "facture_id") = "facture_amount" THEN 1 ELSE 0 END AS "facture_paid" FROM "\\Table"');
+         $this->set_req('get', 'SELECT *, (SELECT COUNT("paiement_id") FROM "paiement" WHERE "paiement_facture" = "facture_id") AS "facture_paiement", (SELECT COUNT("repartition_id") FROM "repartition" WHERE "repartition_facture" = "facture_id") AS "facture_repartition", CASE WHEN (SELECT SUM("paiement_amount") FROM "paiement" WHERE "paiement_facture" = "facture_id") = "facture_amount" THEN 1 ELSE 0 END AS "facture_paid" FROM "\\Table"');
       }
    
       function getYears ($options) {

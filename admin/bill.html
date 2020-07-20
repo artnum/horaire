@@ -73,9 +73,10 @@
       <th data-attribute="amount:money" data-sort-type="money">Montant</th>
       <th data-class="client" data-attribute="@../$person displayname|person">Client</th>
       <th data-class="center" data-attribute="debt~1=Débiteur,2=Créancier">Débiteur</th>
-      <th data-class="center" data-attribute="type~1=Facture,2=Note de crédit,3=Compensation">Type</th>
+      <th data-class="center" data-attribute="type~1=Facture,2=Note de crédit,3=Compensation" data-sort-type="int">Type</th>
       <th data-class="center" data-attribute="paid~0=non,1=oui">Payée</th>
-      <th data-class="center" data-attribute="paiement">Nbre paiements</th>
+      <th data-class="center" data-attribute="paiement" data-sort-type="int">Nbre paiements</th>
+      <th data-class="center" data-attribute="repartition" data-sort-type="int">Répartitions</th>
     </tr></thead>
     <tbody>
     </tbody>
