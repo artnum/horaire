@@ -33,7 +33,11 @@
     </fieldset>
     <fieldset id="detail">
       <legend>Détail facture</legend>
-      <label>Débiteur <input type="checkbox" name="debtor" /></label><label>Note de crédit <input type="checkbox" name="credit" /></label><br />
+      <label>Débiteur <input type="checkbox" name="debtor" /></label><label>Type </label> <select name="type">
+        <option value="1">Facture</option>
+        <option value="2">Note de crédit</option>
+        <option value="3">Compensation</option>
+      </select></label><br />
       <label>Remarque <input type="text" name="comment" style="width: 120ch;"/></label><br />
       <label>Référence <input type="text" name="reference" /></label>
       <label>Date <input type="text" name="date" /></label>
@@ -69,7 +73,7 @@
       <th data-attribute="amount:money" data-sort-type="money">Montant</th>
       <th data-class="client" data-attribute="@../$person displayname|person">Client</th>
       <th data-class="center" data-attribute="debt~1=Débiteur,2=Créancier">Débiteur</th>
-      <th data-class="center" data-attribute="type~1=Facture,2=Note de crédit">Type</th>
+      <th data-class="center" data-attribute="type~1=Facture,2=Note de crédit,3=Compensation">Type</th>
       <th data-class="center" data-attribute="paid~0=non,1=oui">Payée</th>
       <th data-class="center" data-attribute="paiement">Nbre paiements</th>
     </tr></thead>
@@ -114,7 +118,7 @@
       duedate: values.due !== undefined ? values.due : '',
       reference: values.reference !== undefined ? values.reference : '',
       amount: values.amount !== undefined ? values.amount : 0,
-      type: values.credit ? 2 : 1, // note de credit
+      type: parseInt(values.type),
       debt: values.debtor ? 1 : 2,
       comment: values.comment !== undefined ? values.comment : '',
       person: address.dataset.id ? `Contact/${address.dataset.id}` : ''
