@@ -3,6 +3,57 @@
 (function () {
   var global = Function('return this')() // eslint-disable-line
   var admin = {
+    clearForm: function (startNode) {
+      if (!(startNode instanceof HTMLElement)) {
+        startNode = document.getElementById(startNode)
+      }
+      
+      let node = startNode.firstElementChild
+      while (node) {
+        let current = node
+        node = node.nextElementSibling
+        if (current.dataset.removeOnClean) {
+          window.requestAnimationFrame(() => current.parentNode.removeChild(current))
+        }
+        if (current.firstElementChild) {
+          this.clearForm(current)
+        }
+        switch (current.nodeName) {
+          case 'INPUT':
+            let type = current.getAttribute('type')
+            if (type) {
+              if (type.toLowerCase() === 'radio') {
+                window.requestAnimationFrame(() => current.checked = false)
+                break
+              }
+              if (type.toLowerCase() === 'checkbox') {
+                window.requestAnimationFrame(() => current.checked = false)
+                break
+              }
+              if (
+                type.toLowerCase() === 'button' ||
+                type.toLowerCase() === 'submit'
+              ) {
+                break
+              }
+            }
+          case 'TEXTAREA':
+            let value = ''
+            if (current.dataset.default) {
+              value = current.dataset.default
+            }
+            if (current.dataset.value) {
+              current.dataset.value = value
+            }
+            window.requestAnimationFrame(() => current.value = value)
+            break
+          case 'SELECT':
+            window.requestAnimationFrame(() => current.selectedIndex = 0)
+            break
+        }
+      }
+    },
+
     loadForm: function (form) {
       ;['SELECT', 'TEXTAREA', 'INPUT'].forEach(function (elements) {
         var inputs = form.getElementsByTagName(elements)

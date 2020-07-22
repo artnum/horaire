@@ -33,13 +33,13 @@
     </fieldset>
     <fieldset id="detail">
       <legend>Détail facture</legend>
-      <label>Débiteur <input type="checkbox" name="debtor" /></label><label>Type </label> <select name="type">
-        <option value="1">Facture</option>
-        <option value="2">Note de crédit</option>
-        <option value="3">Compensation</option>
-      </select></label><br />
-      <label>Remarque <input type="text" name="comment" style="width: 120ch;"/></label><br />
-      <label>Référence <input type="text" name="reference" /></label>
+      <label>Type </label> <select name="type">
+        <option value="1">Facture débiteur</option>
+        <option value="2">Facture créancier</option>
+        <option value="3">Note de crédit</option>
+        <option value="4">Compensation</option>
+      </select></label>
+      <label>N° de facture <input type="text" name="reference" /></label>
       <label>Date <input type="text" name="date" /></label>
       <label>Délai <input type="text" name="due" value="30" /></label><br />
       <label>Montant (TVA incluse) <input type="text" name="amount" /></label>
@@ -49,7 +49,8 @@
         <option value="usd">USD [$]</option>
         <option value="gbp">GBP [£]</option>
         <option value="jpy">JPY [¥]</option>
-      </select></label>
+      </select></label><br />
+      <label>Remarque <input type="text" name="comment" style="width: 120ch;"/></label>
     </fieldset>
     <fieldset data-type="repartition">
       <legend>Répartition du montant</legend>
@@ -67,13 +68,13 @@
   <h2>Factures enregistrées</h2>
   <table id="facture" data-source="Facture" data-options="{}" data-entry-id="id">
     <thead class="darkbg"><tr>
-      <th data-attribute="date:date">Date</th>
-      <th data-attribute="duedate:date">Délai</th>
+      <th data-attribute="indate:date">Date d'entrée</th>
+      <th data-attribute="date:date">Date de facture</th>
+      <th data-attribute="duedate:date">Date de paiement</th>
       <th data-class="reference" data-attribute="reference">Référence</th>
       <th data-attribute="amount:money" data-sort-type="money">Montant</th>
-      <th data-class="client" data-attribute="@../$person displayname|person">Client</th>
-      <th data-class="center" data-attribute="debt~1=Débiteur,2=Créancier">Débiteur</th>
-      <th data-class="center" data-attribute="type~1=Facture,2=Note de crédit,3=Compensation" data-sort-type="int">Type</th>
+      <th data-class="client" data-attribute="@../$person displayname|person">Adresse</th>
+      <th data-class="center" data-attribute="type~1=Facture débiteur,2=Facture créancier,3=Note de crédit,4=Compensation" data-sort-type="int">Type</th>
       <th data-class="center" data-attribute="paid~0=non,1=oui">Payée</th>
       <th data-class="center" data-attribute="paiement" data-sort-type="int">Nbre paiements</th>
       <th data-class="center" data-attribute="repartition" data-sort-type="int">Répartitions</th>
@@ -82,7 +83,7 @@
     </tbody>
   </table>
 </body>
-<script src="../conf/kaal.js"></script>?
+<script src="../conf/kaal.js"></script>
 <script type="module" src="js/bill.js"></script>
 <script src="../node_modules/sjcl/sjcl.js"></script>
 <script src="../node_modules/popper.js/dist/umd/popper.min.js"></script>
@@ -102,6 +103,7 @@
 <script>
   const facture = new Artnum.DTable({table: document.getElementById('facture')})
   facture.transliterate = transliterate
+  facture.run()
   
   let inputs = document.getElementsByTagName('INPUT')
   for (let i = 0; i < inputs.length; i++) {
@@ -117,10 +119,10 @@
       reference: values.reference !== undefined ? values.reference : '',
       date: values.date !== undefined ? values.date : '',
       duedate: values.due !== undefined ? values.due : '',
+      indate: new Date().toISOString(),
       reference: values.reference !== undefined ? values.reference : '',
       amount: values.amount !== undefined ? values.amount : 0,
       type: parseInt(values.type),
-      debt: values.debtor ? 1 : 2,
       comment: values.comment !== undefined ? values.comment : '',
       person: address.dataset.id ? `Contact/${address.dataset.id}` : ''
     }
@@ -133,7 +135,6 @@
       if (response.ok) {
         response.json().then(async function (result) {
           if (result.length === 1 && result.data[0].id) {
-            facture.queryOne(result.data[0].id)
             for (let i in values.repartition) {
               let rep = values.repartition[i]
               let postData = {
@@ -156,11 +157,12 @@
                 }
               }
             }
+            facture.queryOne(result.data[0].id)
+            Admin.clearForm('bill')
           }
         })
       }
     })
   })
-
 </script>
 </html>

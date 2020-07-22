@@ -1,31 +1,43 @@
--- Une facture est soit émise (facture_debt = 2) soit reçue (facture_debt = 1).
--- Se faisant un rappel associé est soit émis soit reçu en fonction de cette valeur
+-- Une facture est soit émise (type = 2) soit reçue (type = 1).
+-- Un rappel, une sommation, ..., est une nouvelle facture en lien avec une précédente
+-- Un note de crédit ou une compensation est liée à une facture débiteur ou créancier
 CREATE TABLE IF NOT EXISTS "facture" (
        "facture_id" INTEGER PRIMARY KEY AUTOINCREMENT,
        "facture_reference" CHAR(64) NOT NULL DEFAULT '', -- peut être ligne de code bvr, numero de facture, ...
        "facture_date" CHAR(32) NOT NULL, -- ISO 8601 date de la facture
        "facture_duedate" CHAR(32) NOT NULL, -- ISO 8601 date de paiement
-       "facture_category" INTEGER DEFAULT NULL, -- reference à une catégorie
+       "facture_indate" CHAR(32) NOT NULL, -- ISO 8601 date d'entrée de la facture
        "facture_amount" FLOAT DEFAULT 0.0, -- montant de la facture
-       "facture_type" INTEGER DEFAULT 1, -- 0 pas utilisé, 1 facture, 2 note de crédit
+       "facture_type" INTEGER DEFAULT 1, -- 0 pas utilisé, 1 facture débiteur, 2 facture créancier, 3 note de crédit, 4 compensation
        "facture_qrdata" CHAR(997) DEFAULT '', -- facture qr code sont à 997 caractères max
        "facture_person" TEXT NOT NULL, -- personne (physique ou morale) sur qui porte la facture
-       "facture_debt" INTEGER DEFAULT 1, -- 0 pas utilisé, 1 dette, 2 créance
        "facture_comment" CHAR(200) DEFAULT '', -- commentaire sur la facture
-       FOREIGN KEY ("facture_category") REFERENCES "category"("category_id") ON UPDATE CASCADE ON DELETE SET NULL
+       "facture_deleted" INT DEFAULT 0 -- facture supprimée
 );
 
-CREATE TABLE IF NOT EXISTS "rappel" (
-       "rappel_id" INTEGER PRIMARY KEY AUTOINCREMENT,
-       "rappel_facture" INTEGER NOT NULL,
-       "rappel_date" CHAR(32) NOT NULL, -- ISO 8601
-       "rappel_type" INTEGER DEFAULT 1, -- 0 pas utilisé, 1 rappel, 2 sommation, 3 poursuites
-       "rappel_delay" INTEGER DEFAULT 0, -- 0 pas de délai sinon nombre de jours
-       "rappel_frais" FLOAT DEFAULT 0.0, -- montant des frais
-       "rappel_cc" INTEGER DEFAULT 0, -- Société de recouvement ? 0 non, 1 oui
-       "rappel_qrdata" CHAR(997) DEFAULT '', -- facture qr code sont à 997 caractères max
-       FOREIGN KEY("rappel_facture") REFERENCES "facture"("facture_id") ON UPDATE CASCADE ON DELETE CASCADE
+-- permet de lier des factures entre elles. utile pour lier une note de crédit à des factures
+-- ou toutes autres sortes de liens (remplace rappel)
+CREATE TABLE IF NOT EXISTS "factureLien" ( 
+	"factureLien_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"factureLien_source" INTEGER NOT NULL, -- facture source
+	"factureLien_destination" INTEGER NOT NULL, -- facture de destination
+	"factureLien_reason" INTEGER DEFAULT 1, -- 0 pas utilisé, 1 relation générique, 2 rappel, 3 sommation, 4 poursuite
+	"factureLien_comment" CHAR(200) DEFAULT '', -- commentaire sur le lien
+	FOREIGN KEY ("factureLien_source") REFERENCES "facture"("facture_id") ON UPDATE CASCADE ON DELETE CASCADE,
+	FOREIGN KEY ("factureLien_destination") REFERENCES "facture"("facture_destination") ON UPDATE CASCADE ON DELETE CASCADE
 );
+
+--CREATE TABLE IF NOT EXISTS "rappel" (
+--       "rappel_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+--       "rappel_facture" INTEGER NOT NULL,
+--       "rappel_date" CHAR(32) NOT NULL, -- ISO 8601
+--       "rappel_type" INTEGER DEFAULT 1, -- 0 pas utilisé, 1 rappel, 2 sommation, 3 poursuites
+--       "rappel_delay" INTEGER DEFAULT 0, -- 0 pas de délai sinon nombre de jours
+--       "rappel_frais" FLOAT DEFAULT 0.0, -- montant des frais
+--       "rappel_cc" INTEGER DEFAULT 0, -- Société de recouvement ? 0 non, 1 oui
+--       "rappel_qrdata" CHAR(997) DEFAULT '', -- facture qr code sont à 997 caractères max
+--       FOREIGN KEY("rappel_facture") REFERENCES "facture"("facture_id") ON UPDATE CASCADE ON DELETE CASCADE
+--);
 
 CREATE TABLE IF NOT EXISTS "repartition" ( -- repartition d'une facture sur un projet
        "repartition_id" INTEGER PRIMARY KEY AUTOINCREMENT,
