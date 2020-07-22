@@ -1,0 +1,28 @@
+<form name="searchBill">
+    <fieldset>
+        <legend>Facture à associer</legend>
+        <label>Recherche par </label><select name="searchby">
+            <option value="reference">N° de facture</option>
+            <option value="date">Date de facture</option>
+            <option value="amount">Montant</option>
+            <!--<option value="contact">Adresse</option>//-->
+        </select><input type="text" name="terms" value="" />
+        <input type="submit" value="Rechercher" />
+        <div name="link-results" class="link results">
+            <div data-static=1 class="head"><span class="reference">N°</span><span class="amount">Montant</span><span class="date">Date</span><span class="address">Addresse</span></div>
+        </div>
+    </fieldset>
+</form>
+<form name="Link">
+    <fieldset>
+        <legend>Détails</legend>
+        <label>Relation </label><select name="type">
+            <option value="1">Note de crédit ou compensation</option>
+            <option value="2">Rappel</option>
+            <option value="3">Sommation</option>
+            <option value="4">Poursuite</option>
+        </select>
+    </fieldset>
+    <input type="submit" value="Lier">
+    <input type="reset" value="Annuler">
+</form>
