@@ -116,7 +116,10 @@
               inputs[i].setAttribute('aria-invalid', 'false')
             } else {
               inputs[i].setCustomValidity(withMessage)
-              inputs[i].addEventListener('change', () => inputs[i].setCustomValidity(''), {once: true})
+              inputs[i].addEventListener('change', (event) => {
+                event.target.setCustomValidity('')
+                event.target.setAttribute('aria-invalid', 'false')
+              }, {once: true})
               inputs[i].setAttribute('aria-invalid', 'true')
             }
           } else {
@@ -127,7 +130,10 @@
                 inputs[i].setAttribute('aria-invalid', 'false')
               } else {
                 inputs[i].setCustomValidity(withMessage)
-                inputs[i].addEventListener('change', () => inputs[i].setCustomValidity(''), {once: true})
+                inputs[i].addEventListener('change', (event) => {
+                  event.target.setCustomValidity('')
+                  event.target.setAttribute('aria-invalid', 'false')
+                }, {once: true})
                 inputs[i].setAttribute('aria-invalid', 'true')
               }
               inputs[i].reportValidity()

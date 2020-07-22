@@ -54,6 +54,10 @@ input, select, textarea, button {
     padding: 5px;
 }
 
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] {
+    background-color: rgba(255, 0, 0, 0.2);
+    border-bottom: 2px solid red;
+}
 
 input.modified, select.modified, textarea.modified {
     border-bottom-color: var(--input-modified-border);

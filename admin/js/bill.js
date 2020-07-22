@@ -173,6 +173,7 @@ export class RepartitionUI {
             this.cleanChild(newNode)
             newNode.id = `repui-${performance.now()}`
             newNode.dataset.empty = 1
+            newNode.dataset.removeOnClean = 1
             node.parentNode.insertBefore(newNode, node.nextSibling)
             var exploreTree = function (r) {
                 for (let c = r.firstElementChild; c; c = c.nextElementSibling) {
@@ -458,7 +459,7 @@ export class QRBill extends BVRCode{
     }
 }
 
-const BillAttributes = ['currency', 'amount', 'reference', 'account', 'due', 'date']
+const BillAttributes = ['currency', 'amount', 'reference', 'account', 'duedate', 'date']
 
 export class Facture {
     constructor (form, RUI) {
@@ -470,7 +471,7 @@ export class Facture {
         this.currency = Currency['chf']
         this.account = ''
         this.reference = ''
-        this.due = ''
+        this.duedate = ''
         this.BVR = new BVRCode()
         this.QRBill = new QRBill()
         this.Events = new EventTarget()
@@ -592,7 +593,7 @@ export class Facture {
             let name = node.getAttribute('name')
             if (name === null) { continue }
             // need to have date processed so save for later
-            if (name === 'due') {
+            if (name === 'duedate') {
                 dueNode = node
                 continue
             }
@@ -637,7 +638,7 @@ export class Facture {
         if (dueNode && values['date']) {
             let tmp = this.parseDate(dueNode, true, new Date(values['date']))
             if (!isNaN(tmp.getTime())) {
-                values['due'] = tmp.toISOString()
+                values['duedate'] = tmp.toISOString()
             } else {
                 // error
             }
@@ -670,8 +671,8 @@ export class Facture {
                         }
                     }
                     /* fall through */
-                case 'due':
-                    if (name === 'due') {
+                case 'duedate':
+                    if (name === 'duedate') {
                         this.dueNode = node
                     }
                     if (this.dueNode) {
@@ -857,7 +858,7 @@ window.onload = () => {
             Values[event.detail.id] = event.detail
         }
     })
-    RUI.addEventListener('change', (event) => { 
+    RUI.addEventListener('change', (event) => {
         switch (event.detail.op) {
             case 'edit':
                 F.setRepartition(event.detail.id, event.detail.value, event.detail.tva, event.detail.project)

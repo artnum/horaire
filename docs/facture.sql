@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS "factureLien" (
 	"factureLien_id" INTEGER PRIMARY KEY AUTOINCREMENT,
 	"factureLien_source" INTEGER NOT NULL, -- facture source
 	"factureLien_destination" INTEGER NOT NULL, -- facture de destination
-	"factureLien_reason" INTEGER DEFAULT 1, -- 0 pas utilisé, 1 relation générique, 2 rappel, 3 sommation, 4 poursuite
+	"factureLien_type" INTEGER DEFAULT 1, -- 0 pas utilisé, 1 relation générique, 2 rappel, 3 sommation, 4 poursuite
 	"factureLien_comment" CHAR(200) DEFAULT '', -- commentaire sur le lien
 	FOREIGN KEY ("factureLien_source") REFERENCES "facture"("facture_id") ON UPDATE CASCADE ON DELETE CASCADE,
 	FOREIGN KEY ("factureLien_destination") REFERENCES "facture"("facture_destination") ON UPDATE CASCADE ON DELETE CASCADE

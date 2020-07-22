@@ -41,7 +41,7 @@
       </select></label>
       <label>N° de facture <input type="text" name="reference" /></label>
       <label>Date <input type="text" name="date" /></label>
-      <label>Délai <input type="text" name="due" value="30" /></label><br />
+      <label>Délai <input type="text" name="duedate" value="30" data-default="30" /></label><br />
       <label>Montant (TVA incluse) <input type="text" name="amount" /></label>
       <label>Monnaie <select name="currency">
         <option value="chf" selected>CHF</option>
@@ -70,8 +70,8 @@
     <thead class="darkbg"><tr>
       <th data-attribute="indate:date">Date d'entrée</th>
       <th data-attribute="date:date">Date de facture</th>
-      <th data-attribute="duedate:date">Date de paiement</th>
-      <th data-class="reference" data-attribute="reference">Référence</th>
+      <th data-attribute="duedate:date">Payable</th>
+      <th data-class="reference" data-attribute="reference">N° de facture</th>
       <th data-attribute="amount:money" data-sort-type="money">Montant</th>
       <th data-class="client" data-attribute="@../$person displayname|person">Adresse</th>
       <th data-class="center" data-attribute="type~1=Facture débiteur,2=Facture créancier,3=Note de crédit,4=Compensation" data-sort-type="int">Type</th>
@@ -114,18 +114,51 @@
 
   let f = document.getElementById('bill').addEventListener('submit', event => {
     event.preventDefault()
+    Admin.setFormInputInvalid(document.getElementById('bill'), '*', '', true)
     let values = window.Facture.getValues()
     let postData = {
       reference: values.reference !== undefined ? values.reference : '',
       date: values.date !== undefined ? values.date : '',
-      duedate: values.due !== undefined ? values.due : '',
+      duedate: values.duedate !== undefined ? values.duedate : '',
       indate: new Date().toISOString(),
       reference: values.reference !== undefined ? values.reference : '',
-      amount: values.amount !== undefined ? values.amount : 0,
+      amount: values.amount !== undefined ? values.amount : '',
       type: parseInt(values.type),
       comment: values.comment !== undefined ? values.comment : '',
       person: address.dataset.id ? `Contact/${address.dataset.id}` : ''
     }
+
+    let invalid = false;
+    let dateInvalid = false
+    const Must = ['date', 'duedate', 'amount']
+    for (let item of Must) {
+      if (dateInvalid && item === 'duedate') { continue }
+      if (postData[item] === '') {
+        if (item === 'date') { dateInvalid = true }
+        Admin.setFormInputInvalid(document.getElementById('bill'), item, 'Valeur nécessaire')
+        invalid = true
+      } else {
+        switch (item) {
+          case 'amount':
+            if (isNaN(parseFloat(postData[item]))) {
+              invalid = true
+              Admin.setFormInputInvalid(document.getElementById('bill'), item, 'Valeur invalide')
+            }
+            break
+          case 'date':
+          case 'duedate':
+            if (isNaN(new Date(postData[item]).getTime())) {
+              if (item === 'date') {
+                dateInvalid = true
+              }
+              invalid = true
+              Admin.setFormInputInvalid(document.getElementById('bill'), item, 'Valeur invalide')
+            }
+            break
+        }
+      }
+    }
+    if (invalid) { return }
 
     fetch(new URL('../Facture', window.location), {
         method: 'POST', 
