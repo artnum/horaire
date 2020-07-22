@@ -81,7 +81,7 @@ input.error, select.error, textarea.error {
     background-color: var(--input-background-color-error)
 }
 
-input[type=submit], input[type=button], button {
+input[type=submit], input[type=button], input[type=reset], button {
     cursor: pointer;
     background-color: var(--background-color) !important;
     color: var(--text-color) !important;

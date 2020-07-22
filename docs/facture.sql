@@ -4,6 +4,7 @@
 CREATE TABLE IF NOT EXISTS "facture" (
        "facture_id" INTEGER PRIMARY KEY AUTOINCREMENT,
        "facture_reference" CHAR(64) NOT NULL DEFAULT '', -- peut être ligne de code bvr, numero de facture, ...
+       "facture_currency" CHAR(3) NOT NULL DEFAULT 'chf', -- ISO 4217 code monétaire 3 lettre
        "facture_date" CHAR(32) NOT NULL, -- ISO 8601 date de la facture
        "facture_duedate" CHAR(32) NOT NULL, -- ISO 8601 date de paiement
        "facture_indate" CHAR(32) NOT NULL, -- ISO 8601 date d'entrée de la facture
@@ -24,7 +25,7 @@ CREATE TABLE IF NOT EXISTS "factureLien" (
 	"factureLien_type" INTEGER DEFAULT 1, -- 0 pas utilisé, 1 relation générique, 2 rappel, 3 sommation, 4 poursuite
 	"factureLien_comment" CHAR(200) DEFAULT '', -- commentaire sur le lien
 	FOREIGN KEY ("factureLien_source") REFERENCES "facture"("facture_id") ON UPDATE CASCADE ON DELETE CASCADE,
-	FOREIGN KEY ("factureLien_destination") REFERENCES "facture"("facture_destination") ON UPDATE CASCADE ON DELETE CASCADE
+	FOREIGN KEY ("factureLien_destination") REFERENCES "facture"("facture_id") ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 --CREATE TABLE IF NOT EXISTS "rappel" (

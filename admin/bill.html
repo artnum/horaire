@@ -52,6 +52,10 @@
       </select></label><br />
       <label>Remarque <input type="text" name="comment" style="width: 120ch;"/></label>
     </fieldset>
+    <fieldset id="link-target" class="link results">
+      <legend>Lier à</legend>
+      <input type="button" value="Lier ..." onclick="linkTo()"/>
+    </fieldset>
     <fieldset data-type="repartition">
       <legend>Répartition du montant</legend>
       <div class="note">
@@ -72,8 +76,9 @@
       <th data-attribute="date:date">Date de facture</th>
       <th data-attribute="duedate:date">Payable</th>
       <th data-class="reference" data-attribute="reference">N° de facture</th>
-      <th data-attribute="amount:money" data-sort-type="money">Montant</th>
       <th data-class="client" data-attribute="@../$person displayname|person">Adresse</th>
+      <th data-attribute="amount:money" data-sort-type="money">Montant</th>
+      <th data-attribute="currency">Devise</th>
       <th data-class="center" data-attribute="type~1=Facture débiteur,2=Facture créancier,3=Note de crédit,4=Compensation" data-sort-type="int">Type</th>
       <th data-class="center" data-attribute="paid~0=non,1=oui">Payée</th>
       <th data-class="center" data-attribute="paiement" data-sort-type="int">Nbre paiements</th>
@@ -101,10 +106,214 @@
   const address = new Address(document.getElementById('address'))
 </script>
 <script>
+  function SearchBill (param, term) {
+    return new Promise((resovle, reject) => {
+      let url = new URL('../Facture', window.location)
+      switch (param) {
+        case 'reference':
+          url.searchParams.append('search.reference', `~${term.trim()}%`)
+          break
+        case 'amount':
+          url.searchParams.append('search.amount', `${term.trim()}`)
+          break
+        case 'date':
+          let date = Date.EUParse(term)
+          if (!isNaN(date.getTime())) {
+            url.searchParams.append('search.date', `~${date.toISOString()}`)
+          } else {
+            return
+          }
+          break
+      }
+      fetch(url).then(response => {
+        if (response.ok) {
+          response.json().then(results => {
+            if (results.length > 0) {
+              if (!Array.isArray(results.data)) {
+                results.data = [results.data]
+              }
+            } else {
+              results.data = []
+            }
+            resovle(results.data)
+          })
+        } else {
+          reject(new Error('Pas de résultats'))
+        }
+      }, reason => reject(reason))
+    })
+  } 
+
+  function extendBill () {
+
+  }
+
   const facture = new Artnum.DTable({table: document.getElementById('facture')})
   facture.transliterate = transliterate
-  facture.run()
-  
+
+  function linkTo () {
+    Admin.fetchPopup('html_frag/linkbill.html', 'Lier facture', { closable: true, minWidth: '40%' }).then(popup => {
+      popup.addEventListener('submit', event => {
+        event.preventDefault()
+        switch (event.target.getAttribute('name')) {
+          case 'searchBill':
+            let search = Admin.getForm(event.target)
+            if (search.terms && search.searchby) {
+              let queries = []
+              queries.push(SearchBill(search.searchby, search.terms))
+              Promise.all(queries).then(results => {
+                let outRes = []
+                results.forEach(result => {
+                  if (Array.isArray(result) && result.length > 0) {
+                    outRes = [...outRes, ...result]
+                  }
+                })
+                let addrs = []
+                let Addresses = {}
+                outRes.forEach(bill => {
+                  if (bill.person === '') { return }
+                  if (Addresses[bill.person] === undefined) {
+                    addrs.push(new Promise((resolve, reject) => {
+                      fetch(`../${bill.person}`, window.location).then(response => {
+                        if (response.ok) {
+                          response.json().then(result => {
+                            if (result.length > 0) {
+                              if (Array.isArray(result.data)) {
+                                result.data = result.data[0]
+                              }
+                              resolve(result.data)
+                            } else {
+                              reject(new Error('Contact introuvable'))
+                            }
+                          }, reason => reject(reason))
+                        } else {
+                          reject(new Error('Contact introuvable'))
+                        }
+                      }, reason => reject(reason))
+                    }))
+                    Addresses[bill.person] = addrs.length - 1
+                  }
+                })
+                let ids = []
+                let divs = event.target.getElementsByTagName('DIV')
+                let resultDiv
+                for (let div of divs) {
+                  if (div.getAttribute('name') === 'link-results') {
+                    resultDiv = div
+                    break
+                  }
+                }
+                if (addrs.length === 0) {
+                  let node = resultDiv.firstElementChild
+                  while (node) {
+                    let current = node
+                    node = node.nextElementSibling
+                    if (current.dataset.static) { continue }
+                    if (ids.indexOf(current.id) === -1) {
+                    window.requestAnimationFrame(() => current.parentNode.removeChild(current))
+                    }
+                  }
+                  return
+                }
+                Promise.all(addrs).then(addrs => {
+                  for (let i in outRes) {
+                    let person = outRes[i].person
+                    if (Addresses[person] !== undefined) {
+                      outRes[i].person = addrs[Addresses[person]]
+                    }
+                  }
+
+                  outRes.forEach (bill => {
+                    let d = document.createElement('DIV')
+                    d.id = `link-result-${bill.id}`
+                    ids.push(d.id)
+                    let adresse = ''
+                    if (bill.person && bill.person.displayname) {
+                      adresse = bill.person.displayname
+                    }
+                    d.innerHTML = `<span class="reference">${bill.reference}</span><span class="amount">${Admin.formatMoney(bill.amount, bill.currency)}</span><span class="date">${new Date(bill.date).fullDate()}</span><span class="address">${adresse}</span>`
+                    if (document.getElementById(d.id)) {
+                      window.requestAnimationFrame(() => resultDiv.replaceChild(d, document.getElementById(d.id)))
+                    } else {
+                      window.requestAnimationFrame(() => resultDiv.appendChild(d))
+                    }
+                    d.addEventListener('click', (event) => {
+                      let node = event.target
+                      while (node && node.nodeName !== 'DIV') { node = node.parentNode }
+                      window.requestAnimationFrame(() => node.classList.add('selected'))
+                      for(let other = node.parentNode.firstElementChild; other; other = other.nextElementSibling) {
+                        if (other.id !== node.id && other.classList.contains('selected')) {
+                          window.requestAnimationFrame(() => other.classList.remove('selected'))
+                        }
+                      }
+                    })
+                  })
+                
+
+                 let node = resultDiv.firstElementChild
+                  while (node) {
+                    let current = node
+                    node = node.nextElementSibling
+                    if (current.dataset.static) { continue }
+                    if (ids.indexOf(current.id) === -1) {
+                    window.requestAnimationFrame(() => current.parentNode.removeChild(current))
+                    }
+                  }
+                })
+              })
+            }
+            break
+          case 'Link':
+            let link = Admin.getForm(event.target)
+            let popup = event.target.parentNode
+            while (popup && popup.nodeName !== 'DIV') { popup = popup.parentNode }
+            let selectedDiv = popup.querySelector('form[name="searchBill"] div[name="link-results"] div.selected')
+            if (selectedDiv) {
+              let div = selectedDiv.cloneNode(selectedDiv)
+              div.dataset.linkType = link.type
+              div.dataset.linkId = selectedDiv.id.split('-').pop()
+              div.removeAttribute('id')
+              let target = document.getElementById('link-target')
+              let valid = true
+              for (let link = target.firstElementChild; link; link = link.nextElementSibling) {
+                if (link.dataset.linkId === div.dataset.linkId) {
+                  valid = false;
+                  break;
+                }
+              }
+              let type = document.createElement('SPAN')
+              type.classList.add('type')
+              switch(div.dataset.linkType) {
+                case '1': 
+                  type.innerHTML = 'Note de crédite / Compensation'
+                  break
+                case '2': 
+                  type.innerHTML = 'Rappel'
+                  break
+                case '3': 
+                  type.innerHTML = 'Sommation'
+                  break
+                case '4': 
+                  type.innerHTML = 'Poursuite'
+                  break
+              }
+              div.insertBefore(type, div.firstElementChild)
+              div.classList.remove('selected')
+              if (valid) {
+                window.requestAnimationFrame(() => target.appendChild(div))
+              }
+            }
+            popup.dispatchEvent(new Event('close'))
+            break
+        }
+      }, { capture: true })
+      popup.addEventListener('reset', event => {
+        event.preventDefault()
+        popup.dispatchEvent(new Event('close'))
+      }, { capture: true })
+    })
+  }
+
   let inputs = document.getElementsByTagName('INPUT')
   for (let i = 0; i < inputs.length; i++) {
     if (inputs[i].getAttribute('name') === 'project') {
@@ -118,6 +327,7 @@
     let values = window.Facture.getValues()
     let postData = {
       reference: values.reference !== undefined ? values.reference : '',
+      currency: values.currency !== undefined ? values.currency : 'chf',
       date: values.date !== undefined ? values.date : '',
       duedate: values.duedate !== undefined ? values.duedate : '',
       indate: new Date().toISOString(),
@@ -168,10 +378,11 @@
       if (response.ok) {
         response.json().then(async function (result) {
           if (result.length === 1 && result.data[0].id) {
+            const FactureID = result.data[0].id
             for (let i in values.repartition) {
               let rep = values.repartition[i]
               let postData = {
-                facture: result.data[0].id,
+                facture: FactureID,
                 project: rep.project,
                 value: rep.ht,
                 tva: rep.tvapc // valeur en pourcent de la TVA
@@ -183,12 +394,25 @@
               })
               if (response.ok) {
                 let data = await response.json()
-                if (data.length === 1) {
-                  console.log(data)
-                } else {
-                  console.log(data)
-                }
               }
+            }
+            let links = document.getElementById('link-target')
+            let link = links.firstElementChild
+            while(link) {
+              if (link.dataset.linkId && link.dataset.linkType) {
+                let respone = await fetch(new URL('../FactureLien', window.location), {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    source: parseInt(FactureID),
+                    destination: parseInt(link.dataset.linkId),
+                    type: parseInt(link.dataset.linkType)
+                  }),
+                  header: new Headers({'X-Request-Id':`${new Date().getTime()}-${performance.now()}`})
+                })
+                let current = link
+                window.requestAnimationFrame(() => current.parentNode.removeChild(current))
+              }
+              link = link.nextElementSibling
             }
             facture.queryOne(result.data[0].id)
             Admin.clearForm('bill')

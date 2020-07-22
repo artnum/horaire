@@ -3,6 +3,10 @@
 (function () {
   var global = Function('return this')() // eslint-disable-line
   var admin = {
+    formatMoney: function (value, currency = 'chf') {
+      value = parseFloat(value).toFixed(2)
+      return `${String(value)} ${currency.toUpperCase()}`
+    },
     clearForm: function (startNode) {
       if (!(startNode instanceof HTMLElement)) {
         startNode = document.getElementById(startNode)
@@ -32,7 +36,8 @@
               }
               if (
                 type.toLowerCase() === 'button' ||
-                type.toLowerCase() === 'submit'
+                type.toLowerCase() === 'submit' ||
+                type.toLowerCase() === 'reset'
               ) {
                 break
               }
