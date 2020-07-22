@@ -222,6 +222,7 @@ tr.sub[data-open="1"] {
 }
 
 .popup {
+    filter: none !important;    
     border: 2px var(--title-background-color) solid;
     padding: 8px;
     box-shadow: 4px 4px 8px 0px var(--title-background-color);
@@ -232,6 +233,22 @@ tr.sub[data-open="1"] {
     top: 50%;
     transform: translateY(-50%) translateX(-50%);
 }
+
+body.AdminPopupModal {
+    overflow: hidden !important;
+}
+
+body.AdminPopupModal * {
+    filter: opacity(0.6) !important;
+}
+
+div.popup * {
+    filter: none !important;
+}
+div.popup {
+    filter: none !important;
+}
+
 .popup .title {
     background-color: var(--title-background-color);
     color: var(--title-text-color);
@@ -239,6 +256,29 @@ tr.sub[data-open="1"] {
     width: calc(100% - 16px);
     font-size: 1.2em;
     padding: 8px;
+    margin-bottom: 1ch;
+}
+
+
+.popup .title .close {
+    float: right;
+    height: 100%;
+    min-height: 100%;
+    width: 1ch;
+    min-width: 1ch;
+    font-family: monospace;
+    padding: 4px 4px 4px 4px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.popup .title .close::before {
+    content: 'X';
+}
+
+.popup .title .close:active {
+    background-color: white;
+    color: black;
 }
 
 button[type="reset"] {

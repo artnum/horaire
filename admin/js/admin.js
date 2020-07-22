@@ -7,7 +7,7 @@
       if (!(startNode instanceof HTMLElement)) {
         startNode = document.getElementById(startNode)
       }
-      
+
       let node = startNode.firstElementChild
       while (node) {
         let current = node
@@ -277,7 +277,22 @@
         })
       })
     },
-    popup: function (html, title) {
+
+    fetchPopup: function (link, title, options) {
+      return new Promise((resolve, reject) => {
+        fetch(link, window.location).then(response => {
+          if (response.ok) {
+            response.text().then(html => {
+              resolve(this.popup(html, title, options))
+            }, reason => reject(reason))
+          } else {
+            reject(new Error(`Query failed ${response.statusText}`))
+          }
+        }, reason => reject(reason))
+      })
+    },
+
+    popup: function (html, title, options = {}) {
       let popup = document.createElement('DIV')
       popup.innerHTML = html
       let titleNode = document.createElement('SPAN')
@@ -285,12 +300,38 @@
 
       popup.classList.add('popup')
       titleNode.classList.add('title')
+      
+      if (options.modal === undefined) {
+        options.modal = true
+      }
+
+      if (options.closable) {
+        let close = document.createElement('SPAN')
+        close.classList.add('close')
+        close.addEventListener('click', function (event) {
+          this.dispatchEvent(new Event('close'))
+        }.bind(popup))
+        titleNode.appendChild(close)
+      }
+
+      if (options.minWidth) {
+        popup.style.minWidth = options.minWidth
+      }
+
       popup.insertBefore(titleNode, popup.firstChild)
       popup.addEventListener('close', function (event) {
-        window.requestAnimationFrame(() => this.parentNode.removeChild(this))
+        window.requestAnimationFrame(() => {
+          this.parentNode.removeChild(this)
+          if (document.body.classList.contains('AdminPopupModal')) {
+            document.body.classList.remove('AdminPopupModal')
+          }
+        })
       }.bind(popup))
       window.requestAnimationFrame(() => {
         document.body.appendChild(popup)
+        if (options.modal) {
+          document.body.classList.add('AdminPopupModal')
+        }
       })
       return popup
     }
