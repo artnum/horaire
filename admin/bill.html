@@ -396,6 +396,7 @@
                 let data = await response.json()
               }
             }
+            window.Facture.clearRepartition()
             let links = document.getElementById('link-target')
             let link = links.firstElementChild
             while(link) {

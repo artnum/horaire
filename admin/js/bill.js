@@ -843,6 +843,12 @@ export class Facture {
         delete this.Values[id]
         this.amountLeft()
     }
+
+    clearRepartition () {
+        this.repartition = {}
+        this.Values = {}
+        this.amountLeft()
+    }
 }
 
 window.onload = () => {
