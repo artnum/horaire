@@ -304,17 +304,32 @@
     },
 
     popup: function (html, title, options = {}) {
+      if (options.modal === undefined) {
+        options.modal = true
+      }
+      
+      if (options.modal) {
+        let underlay = document.createElement('DIV')
+        underlay.style.position = 'absolute'
+        underlay.style.width = '100%'
+        underlay.style.height = '100%'
+        underlay.style.backgrounColor = 'transparent'
+        underlay.style.left = '0'
+        underlay.style.top = '0'
+        underlay.style.zIndex = '9900'
+        
+        window.underlay = underlay
+        window.requestAnimationFrame(() => document.body.appendChild(underlay))
+      }
+
       let popup = document.createElement('DIV')
       popup.innerHTML = html
+      popup.style.zIndex = '9999'
       let titleNode = document.createElement('SPAN')
       titleNode.innerHTML = title
 
       popup.classList.add('popup')
       titleNode.classList.add('title')
-      
-      if (options.modal === undefined) {
-        options.modal = true
-      }
 
       if (options.closable) {
         let close = document.createElement('SPAN')
@@ -333,6 +348,10 @@
       popup.addEventListener('close', function (event) {
         window.requestAnimationFrame(() => {
           this.parentNode.removeChild(this)
+          if (window.underlay) {
+            window.underlay.parentNode.removeChild(window.underlay)
+            window.underlay = null
+          }
           if (document.body.classList.contains('AdminPopupModal')) {
             document.body.classList.remove('AdminPopupModal')
           }
