@@ -86,6 +86,10 @@ function roundCurrency (value, currency) {
     return parseFloat((Math.ceil(value / CurrencyRounding[currency] ) * CurrencyRounding[currency]).toFixed(p))
 }
 
+function round (value) {
+    return parseFloat(value).toFixed(4)
+}
+
 export class RepartitionUI {
     constructor () {
         this.Events = new EventTarget()
@@ -247,7 +251,7 @@ export class RepartitionUI {
             node.appendChild(printBox)
         }
         window.requestAnimationFrame(() => {
-            printBox.innerHTML = `Restant : ${val}`
+            printBox.innerHTML = `Restant : ${val.toFixed(2)}`
         })
     }
 
@@ -278,7 +282,7 @@ export class RepartitionUI {
                 if (!Number.isFinite(val.num)) {
                     printBox.innerHTML = `~ ${val.type}`
                 } else {
-                    printBox.innerHTML = `${val.num} ${val.type}`
+                    printBox.innerHTML = `${val.num.toFixed(2)} ${val.type}`
                 }
                 printBox.classList.remove('error')
                 this.Events.dispatchEvent(new CustomEvent('change', {detail: {op:'draw', id: node.id}}))
@@ -717,6 +721,11 @@ export class Facture {
         }
     }
 
+    reverseTVA (num, tva) {
+        let dec = (tva / 100) + 1
+        return num / dec
+    }
+
     amountLeft () {
         let infiniteValues = []
         let relativeValues = []
@@ -727,9 +736,9 @@ export class Facture {
                 relativeValues.push(k)
             } else {
                 if (Number.isFinite(this.repartition[k][0].num)) {
-                    let val = roundCurrency(this.repartition[k][0].num, this.currency)
-                    let tva = roundCurrency(val * this.repartition[k][1] / 100, this.currency)
-                    let total = roundCurrency(val + tva, this.currency)
+                    let val = round(this.repartition[k][0].num, this.currency)
+                    let tva = round(val * this.repartition[k][1] / 100, this.currency)
+                    let total = round(val + tva, this.currency)
                     
                     amountLeft -= total
                     this.Events.dispatchEvent(new CustomEvent('change', {detail: {
@@ -756,12 +765,10 @@ export class Facture {
         }
         let totalLeft = amountLeft
         relativeValues.forEach((key) => {
-            let val = roundCurrency(totalLeft * this.repartition[key][0].num / 100, this.currency)
-            let tva = roundCurrency(val * this.repartition[key][1] / 100, this.currency)
-            let total = val
-            val = roundCurrency(val - tva, this.currency)
+            let val = round(this.reverseTVA(totalLeft, this.repartition[key][0].num), this.currency)
+            let tva = round(val * this.repartition[key][1] / 100, this.currency)
+            let total = val + tva
             
-            // val = roundCurrency(val + (val * this.repartition[key][1] / 100), this.currency)
             amountLeft -= total
             this.Events.dispatchEvent(new CustomEvent('change', {detail: {
                 op: 'calculatedValue',
@@ -781,12 +788,12 @@ export class Facture {
             }
         })
         if (infiniteValues.length > 0) {
-            let splitInfinity = roundCurrency(amountLeft / infiniteValues.length, this.currency)
+            let splitInfinity = round(amountLeft / infiniteValues.length, this.currency)
             let lastKey
             infiniteValues.forEach((key) => {
                 amountLeft -= splitInfinity
-                let tva = roundCurrency(splitInfinity * this.repartition[key][1] / 100, this.currency)
-                let val = roundCurrency(splitInfinity - tva, this.currency)
+                let val = round(this.reverseTVA(splitInfinity, this.repartition[key][1]), this.currency)
+                let tva = round(val * this.repartition[key][1] / 100, this.currency)
                 
                 lastKey = key
                 this.Events.dispatchEvent(new CustomEvent('change', {detail: {
@@ -807,9 +814,10 @@ export class Facture {
                 }
             })
             if (amountLeft !== 0) {
-                let total = roundCurrency(splitInfinity + amountLeft, this.currency)
-                let tva = roundCurrency(splitInfinity * this.repartition[lastKey][1] / 100, this.currency)
-                let val = roundCurrency(splitInfinity - tva, this.currency)
+                let total = round(splitInfinity + amountLeft, this.currency)
+                let val = this.reverseTVA($total, $this.repartition[lastKey][1])
+                let tva = round(val * this.repartition[lastKey][1] / 100, this.currency)
+                
                 this.Events.dispatchEvent(new CustomEvent('change', {detail: {
                     op: 'calculatedValue',
                     id: lastKey,
