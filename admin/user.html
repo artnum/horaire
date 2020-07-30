@@ -269,7 +269,16 @@
         })
       }
     })
-    var t = new Artnum.DTable({table: 'users'})
+    const UserTable = new Artnum.DTable({table: 'users'})
+    window.addEventListener('update', (event) => {
+      if (!event.detail)  { return }
+      if (!event.detail.type) { return }
+      switch (event.detail.type) {
+        case 'user': 
+          getUser(event.detail.id)
+        break
+      }
+    })
     document.getElementById('users').addEventListener('click', (event) => {
       if (event.target.nodeName !== 'BUTTON') { return }
       let node = event.target
@@ -303,7 +312,7 @@
           for (let i = 0; i < result.length; i++) {
             let entry = result.data[i]
             let date = new Date(entry.validity)
-            html += `<div data-id="${entry.id}" data-date="${date.toISOString().split('T')[0]}" class="entry"><span class="begin">${date.fullDate()}</span><span class="amount">${parseFloat(entry.value)}</span><i class="fa fa-trash-o" aria-hidden="true"></i></div>`
+            html += `<div data-id="${entry.id}" data-person="${userId}" data-date="${date.toISOString().split('T')[0]}" class="entry"><span class="begin">${date.fullDate()}</span><span class="amount">${parseFloat(entry.value)}</span><i class="fa fa-trash-o" aria-hidden="true"></i></div>`
           }
           html = `<div class="pricing">
               <div class="entry head"><span>Depuis</span><span>Montant</span></div>
@@ -326,6 +335,10 @@
               }).then(response => {
                 if (response.ok) {
                   window.requestAnimationFrame(() => p.parentNode.removeChild(p))
+                  window.dispatchEvent(new CustomEvent('update', {detail: {
+                    type: 'user',
+                    id: p.dataset.person
+                  }}))
                 }
               })
             }
@@ -349,6 +362,10 @@
                     if (response.ok) {
                       response.json().then(result => {
                         if (result.length === 1) {
+                          window.dispatchEvent(new CustomEvent('update', {detail: {
+                            type: 'user',
+                            id: values.person
+                          }}))
                           let id = Array.isArray(result.data) ? result.data[0].id : result.data.id
                           if (id) {
                             let date = new Date(values.validity)
@@ -407,7 +424,21 @@
        }
      })
    })
- }
+  }
+
+  function getUser (id) {
+    fetch(new URL(`../Person/${id}`, window.location), {
+      headers: new Headers({'X-Request-Id': `${new Date().getTime()}-${id}`})
+    }).then(response => {
+        if (response.ok) {
+          response.json().then(result => {
+            if (result.length === 1) {
+              newEntry(result.data).then(html => replaceAddEntry(html))
+            }
+          })
+        }
+      })
+  }
 
   async function loadUsers () {
     var admin = await Artnum.Query.exec(Artnum.Path.url('admin/htpasswd.php'))
