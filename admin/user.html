@@ -320,7 +320,10 @@
             if (event.target.classList.contains('fa-trash-o')) {
               let p = event.target.parentNode
               while (p && p.dataset.id === undefined) { p = p.parentNode }
-              fetch(new URL(`../PrixHeure/${p.dataset.id}`, window.location), {method: 'DELETE'}).then(response => {
+              fetch(new URL(`../PrixHeure/${p.dataset.id}`, window.location), {
+                method: 'DELETE',
+                headers: new Headers({'X-Request-Id': `${new Date().getTime()}-${p.dataset.id}`})
+              }).then(response => {
                 if (response.ok) {
                   window.requestAnimationFrame(() => p.parentNode.removeChild(p))
                 }
