@@ -280,23 +280,23 @@ try {
                break;
                case 2:
                   $type = 'Créance';
-                  $amount_ht = -floatval($repData['repartition_value']);
+                  $amount_ht = floatval($repData['repartition_value']);
                   $tva = floatval($repData['repartition_tva']);
                break;
                case 3:
                   $type = 'Note de crédit';
-                  $amount_ht = -floatval($repData['repartition_value']);
+                  $amount_ht = floatval($repData['repartition_value']);
                   $tva = floatval($repData['repartition_tva']);
                break;
                case 4:
                   $type = 'Compensation';
-                  $amount_ht = -floatval($repData['repartition_value']);
+                  $amount_ht = floatval($repData['repartition_value']);
                   $tva = floatval($repData['repartition_tva']);
                break;
 
             }
-            $factureAmount += ($amount_ht + ($amount_ht * $tva / 100));
-            $amountByType[intval($repData['facture_type'])-1] += ($amount_ht + ($amount_ht * $tva / 100));
+            $factureAmount += $amount_ht;
+            $amountByType[intval($repData['facture_type'])-1] += $amount_ht;
             $SheetFacture['content'][] = [$reference, $amount_ht, $tva, '=B'.($line+1). '+(B' . ($line+1) . '*C' . ($line+1) .'%)' , $type];
 
             $line++;
@@ -306,51 +306,27 @@ try {
       }
    }
 
-   $project_name = date('Y-m-d') . ' ' . $project_name;
-   $writer->setTitle($project_name);
-   if (method_exists($writer, 'setHeaderFooter')) {
-      if (count($per_project) === 1) {
-         reset($per_project);
-         $p = current($per_project);
-         $writer->setHeaderFooter('l', 'Projet ' . $p['reference']);
-         $writer->setHeaderFooter('r', $p['name']);
-      } else {
-         $writer->setHeaderFooter('c', 'Tous les projets');
-      }
-      $writer->setHeaderFooter('c', '&[Tab]', true);
-      $writer->setHeaderFooter('r', 'Page &[Page] sur &[Pages]', true);
-   }
-
    if (!$allProjectsExport) {
       $writer->writeSheetRow('Résumé', ['Projet', $project['reference']], ['font-style' => 'bold']);
       $writer->writeSheetRow('Résumé', ['', $project['name']]);
-      $writer->writeSheetRow('Résumé', []);
-      $writer->writeSheetRow('Résumé', ['Coûts', '', '', $project['workcost'] + $factureAmount + $materielMontant], ['font-style' => 'bold'], ['string', '', '', 'price']);
-      $writer->writeSheetRow('Résumé', []);
-      $writer->writeSheetRow('Résumé', ['Travail', '', '', $project['workcost']], null, ['string', '', '', 'price']);
+      $writer->writeSheetRow('Résumé', ['']);
+      $writer->writeSheetRow('Résumé', ['Matériel', '', '', $materielMontant], null, ['string', 'string', 'string', 'price']);
+      $writer->writeSheetRow('Résumé', ['']);
+      $writer->writeSheetRow('Résumé', ['Main d\'œuvre', '', '', $project['workcost']], null, ['string', 'string', 'string', 'price']);
       $writer->writeSheetRow('Résumé', ['dont'], ['font-style' => 'italic']);
+      
       foreach ($processus as $k => $v) {
-         $writer->writeSheetRow('Résumé', ['', $k, $v], ['font-style' => 'italic'], ['', 'string', 'price']);
+         $writer->writeSheetRow('Résumé', ['', $k, $v], ['font-style' => 'italic'], ['string', 'string', 'price']);
       }
-      $writer->writeSheetRow('Résumé', ['Facture', '', '', $factureAmount], null, ['string', '', '', 'price']);
-      $writer->writeSheetRow('Résumé', ['dont'], ['font-style' => 'italic']);
-      foreach($amountByType as $type => $v) {
-         switch ($type) {
-            case 0:
-               $writer->writeSheetRow('Résumé', ['', 'Débiteur', $v], ['font-style' => 'italic'], ['', 'string', 'price']);
-            break;
-            case 1:
-               $writer->writeSheetRow('Résumé', ['', 'Créance', $v], ['font-style' => 'italic'], ['', 'string', 'price']);
-            break;
-            case 2:
-               $writer->writeSheetRow('Résumé', ['', 'Note de crédit', $v], ['font-style' => 'italic'], ['', 'string', 'price']);
-            break;
-            case 3:
-               $writer->writeSheetRow('Résumé', ['', 'Compensation', $v], ['font-style' => 'italic'], ['', 'string', 'price']);
-            break;
-         }
-      }
-      $writer->writeSheetRow('Résumé', ['Matériel', '', '', $materielMontant], null, ['string', '', '', 'price']);
+      $writer->writeSheetRow('Résumé', ['']);
+      $writer->writeSheetRow('Résumé', ['Créanciers', '', '', $amountByType[1]], null, ['string', 'string', 'string', 'price']);
+      $writer->writeSheetRow('Résumé', ['']);
+      $writer->writeSheetRow('Résumé', ['Coûts HT', '', '', $project['workcost'] + $amountByType[1] + $materielMontant], ['font-style' => 'bold'], ['string', 'string', 'string', 'price']);
+      $writer->writeSheetRow('Résumé', ['Prix Vendu', '', '', 0], null, ['string', 'string', 'string', 'price']);
+      $writer->writeSheetRow('Résumé', ['Résultat [CHF]', '', '', 0], null, ['string', 'string', 'string', 'price']);
+      $writer->writeSheetRow('Résumé', ['Résultat [%]', '', '', 0], null, ['string', 'string', 'string', '0.00 %']);
+      $writer->writeSheetRow('Résumé', ['']);
+      $writer->writeSheetRow('Résumé', ['Débiteurs HT', '', '', $amountByType[0]], null, ['string', 'string', 'string', 'price']);
 
    }
    
@@ -371,7 +347,7 @@ try {
    foreach ($per_person as $person => $time) {
       $writer->writeSheetRow('Par personne', array($person, $time / 3600));
    }
-   $writer->writeSheetRow('Par personne', array('', ''));
+   $writer->writeSheetRow('Par personne', ['', '']);
    $rc = $writer->countSheetRows('Par personne');
    $writer->writeSheetRow('Par personne', array('Total', '=SUM(B2:B' . ($rc - 1) . ')'));
 
@@ -392,6 +368,20 @@ try {
    $rc = $writer->countSheetRows('Entrées');
    $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', '=AVERAGE(F2:F' . ($rc - 1) . ')', '=SUM(G2:G' . ($rc - 1) . ')'));
 
+   $project_name = date('Y-m-d') . ' ' . $project_name;
+   $writer->setTitle($project_name);
+   if (method_exists($writer, 'setHeaderFooter')) {
+      if (count($per_project) === 1) {
+         reset($per_project);
+         $p = current($per_project);
+         $writer->setHeaderFooter('l', 'Projet ' . $p['reference']);
+         $writer->setHeaderFooter('r', $p['name']);
+      } else {
+         $writer->setHeaderFooter('c', 'Tous les projets');
+      }
+      $writer->setHeaderFooter('c', '&[Tab]', true);
+      $writer->setHeaderFooter('r', 'Page &[Page] sur &[Pages]', true);
+   }
 
    header('Content-Disposition: inline; filename="' . $project_name . '.xlsx"');
    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
