@@ -99,7 +99,7 @@ try {
          $project_name = $row['project_reference'] . ' - ' . $row['project_name'];
       }
       if (!isset($per_project[$row['project_reference']])) {
-         $per_project[$row['project_reference']] = array('reference' => $row['project_reference'], 'name' => $row['project_name'], 'firstdate' => null, 'lastdate' => null, 'time' => 0, 'workcost' => 0); 
+         $per_project[$row['project_reference']] = array('reference' => $row['project_reference'], 'name' => $row['project_name'], 'price' => $row['project_price'], 'firstdate' => null, 'lastdate' => null, 'time' => 0, 'workcost' => 0); 
       }
       if (!isset($per_process[$row['process_name']])) {
          $per_process[$row['process_name']] = [0, 0];
@@ -321,10 +321,11 @@ try {
       $writer->writeSheetRow('Résumé', ['']);
       $writer->writeSheetRow('Résumé', ['Créanciers', '', '', $amountByType[1]], null, ['string', 'string', 'string', 'price']);
       $writer->writeSheetRow('Résumé', ['']);
-      $writer->writeSheetRow('Résumé', ['Coûts HT', '', '', $project['workcost'] + $amountByType[1] + $materielMontant], ['font-style' => 'bold'], ['string', 'string', 'string', 'price']);
-      $writer->writeSheetRow('Résumé', ['Prix Vendu', '', '', 0], null, ['string', 'string', 'string', 'price']);
-      $writer->writeSheetRow('Résumé', ['Résultat [CHF]', '', '', 0], null, ['string', 'string', 'string', 'price']);
-      $writer->writeSheetRow('Résumé', ['Résultat [%]', '', '', 0], null, ['string', 'string', 'string', '0.00 %']);
+      $total = $project['workcost'] + $amountByType[1] + $materielMontant;
+      $writer->writeSheetRow('Résumé', ['Coûts HT', '', '', $total], ['font-style' => 'bold'], ['string', 'string', 'string', 'price']);
+      $writer->writeSheetRow('Résumé', ['Prix Vendu', '', '', $project['price']], null, ['string', 'string', 'string', 'price']);
+      $writer->writeSheetRow('Résumé', ['Résultat [CHF]', '', '', $project['price'] - $total], null, ['string', 'string', 'string', '0.00;[RED]-0.00']);
+      $writer->writeSheetRow('Résumé', ['Résultat [%]', '', '', floatval($project['price']) === 0.0 ? -1.0 : (($project['price'] - $total) / $project['price'])], null, ['string', 'string', 'string', '0.00 %;[RED]-0.00%']);
       $writer->writeSheetRow('Résumé', ['']);
       $writer->writeSheetRow('Résumé', ['Débiteurs HT', '', '', $amountByType[0]], null, ['string', 'string', 'string', 'price']);
 

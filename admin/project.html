@@ -23,21 +23,11 @@
       <label for="reference">Numéro de chantier : </label><input name="reference" type="text" id="reference" /><br />
       <br /><label for="year">Année : </label><input id="inYear" name="year" type="text" /><br>
       <label for="name">Nom : </label><input name="name" type="text" /><br>
+      <label for="price">Prix de vente : </label><input name="price" type="text" /><br>
       <label for="uncount">Heures non-comptabilisées : </label><input name="uncount" type="checkbox" /><br>
     </fieldset>
     <fieldset name="client" id="client">
       <legend>Client</legend>
-      <label for="c:person"><input disabled type="radio" value="person" name="type" id="c:person" checked /> Personne</label>
-      <label for="c:organization""><input disabled type="radio" value="organization" name="type" id="c:organization" /> Organisation</label><br />
-      <label for="c:displayname">Nom à afficher</label><input type="text" id="c:displayname" /><span class="notice">Nom servant à identifier l'adresse sans en avoir les détails sous les yeux</span><br />
-      <label for="c:sn">Nom</label><input disabled type="text" id="c:sn" /><label for="c:givenname">Prénom</label><input disabled type="text" id="c:givenname" /><br />
-      <label for="c:o">Organisation</label><input disabled type="text" id="c:o"><br />
-      <label for="c:postaladdress">Addresse</label><textarea disabled id="c:postaladdress"></textarea><br />
-      <label for="c:postalcode">Code postal</label><input disabled type="text" id="c:postalcode">
-      <label for="c:l">Localité</label><input type="text" disabled id="c:l"><br />
-      <label for="c:telephonenumber">Téléphone</label><input disabled type="text" id="c:telephonenumber"><span class="addMore"></span><br />
-      <label for="c:mobile">Mobile</label><input type="text" disabled id="c:mobile"><span class="addMore"></span><br />
-      <label for="c:mail">E-mail</label><input type="text" disabled id="c:mail"><span class="addMore"></span><br />
     </fieldset>
 <!--    <label for="end">Date de fin : </label><input name="name" type="date" /><br>
 //-->
@@ -49,7 +39,7 @@
   <input type="radio" onchange="changeState(event)" id="stateAny" name="state"><label for="stateAny">Tous</label>
   <input type="button" onclick="exportAll()" value="Tout exporter"></input>
   <table id="projects" data-source="Project">
-    <thead class="darkbg"><tr><th data-sort-type="integer">Référence</th><th>Nom</th><th data-sort-type="no">Action</th></tr></thead>
+    <thead class="darkbg"><tr><th data-sort-type="integer">Référence</th><th>Nom</th></th><th data-sort-type="no">Action</th></tr></thead>
     <tbody>
     </tbody>
   </table>
@@ -63,105 +53,8 @@
 <script src="/js/DTable.js"></script>
 <script src="js/admin.js"></script>
 <script type="module">
- import {SContactStore, SAddrList, FContact} from './js/contact.js'
- 
- const SContact = new SContactStore('../Contact/')
- const SAddr = new SAddrList(document.getElementById('c:displayname'))
-
- document.getElementById('client').addEventListener('change', (event) => {
-   const node = event.target
-   if (node.dataset.value !== node.value) {
-     node.classList.add('modified')
-   } else {
-     node.classList.remove('modified')
-   }
- })
-
- function addMoreFrom (node) {
-   const previous = node.previousElementSibling
-   if (previous) {
-     const node = previous.cloneNode(true)
-     node.value = ''
-     node.dataset.value = ''
-     let id = /^([0-9a-zA-Z.:-_,;+]*)\[([0-9]+)\]$/.exec(node.id)
-     if (id) {
-       node.id = `${id[1]}[${parseInt(id[2])+1}]`
-     } else {
-       node.id = `${previous.id}[1]`
-       previous.id = `${previous.id}[0]`
-     }
-     previous.parentNode.insertBefore(node, previous.nextSibling)
-   }
- }
-
- document.getElementById('client').addEventListener('click', (event) => {
-   if (event.target.classList.contains('addMore')) {
-     addMoreFrom(event.target)
-   }
- })
-
- SAddr.addEventListener('select', (event) => {
-   const contact = event.detail.object
-   let fcontact = new FContact(document.getElementById('client'), 'c')
-   fcontact.clear()
-   fcontact.apply(contact)
-return
-   if (contact.type === 'person') {
-     document.getElementById('c:person').checked = true
-     document.getElementById('c:organization').checked = false
-   } else {
-     document.getElementById('c:person').checked = false
-     document.getElementById('c:organization').checked = true     
-   }
-   
-   for (let attr in contact) {
-     let node = document.getElementById(`c:${attr}`)
-     if (node) {
-       node.value = contact[attr]
-     }
-   }
-
- })
- 
- function searchAddress (value) {
-   SContact.search(event.target.value)
-           .then((list) => {
-             SAddr.showList(list)
-           })   
- }
- var searchTimeout = null
- var keyupDisable = false
- document.getElementById('c:displayname').addEventListener('keyup', (event) => {
-   if (keyupDisable) {
-     keyupDisable = false
-     return
-   }
-   if (event.target.value.length > 0) {
-     searchAddress(event.target.value)
-   }
- })
- document.getElementById('c:displayname').addEventListener('keydown', (event) => {
-   switch (event.key.toLowerCase()) {
-     case 'backspace':
-       if (event.target.value.length === 0) {
-         SAddr.hide()
-         let f = new FContact(document.getElementById('client'), 'c')
-         f.clear()
-       }
-       break
-     case 'tab':
-     case 'escape':
-       SAddr.hide()
-       keyupDisable = true
-       break
-     case 'arrowdown':
-     
-       break
-     case 'arrowup':
-     
-       break
-   }
- })
+  import { Address } from './js/address.js'
+  const address = new Address(document.getElementById('client'))
 </script>
 <script>
  window.Conf = { workweek: 5, weekhours: 42 }
@@ -387,6 +280,11 @@ function changeState (event) {
        errors = true
      }
    }
+  if (oform.price === '' || oform.price === null) { oform.price = 0.0 }
+  if (isNaN(parseFloat(oform.price))) {
+    Admin.setFormInputInvalid(form, 'price', 'Prix de vente invalide')
+    errors = true
+  }
    if (errors) { return }
    
    let client = ''
@@ -402,6 +300,7 @@ function changeState (event) {
         reference: (oform.reference ? oform.reference : null), 
         uncount: oform.uncount? 1 : 0, 
         year: oform.year,
+        price: parseFloat(oform.price),
         client: client
       }}).then(function (result) {
      if (!result.success && result.length < 1) {
@@ -523,8 +422,9 @@ async function evCancelEdit (event) {
      let project = result.data
      let popup = window.Admin.popup(`<form>
       <input type="hidden" value="${project.id}" name="project" />
-      <label for="subref">Numéro de chantier : </label><input name="reference" type="text" value="${project.reference}" />
-      <label for="cphone">Nom : </label><input name="name" type="text" value="${project.name}"/><br>
+      <label for="reference">Numéro de chantier : </label><input name="reference" type="text" value="${project.reference}" />
+      <label for="name">Nom : </label><input name="name" type="text" value="${project.name}"/><br>
+      <label for="price">Vendu : </label><input name="price" type="text" value="${project.price}"/><br>
       <button type="submit">Sauver</button><button type="reset">Annuler</button>
      </form>`, `Projet ${project.reference} - ${project.name}`)
      let form = popup.getElementsByTagName('FORM')[0]
@@ -536,7 +436,7 @@ async function evCancelEdit (event) {
      form.addEventListener('submit', (event) => {
        event.preventDefault()
        let content = window.Admin.getForm(event.target)
-       Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`), {method: 'PUT', body: {id: content.project, name: content.name, reference: content.reference}}).then((result) => {
+       Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`), {method: 'PUT', body: {id: content.project, name: content.name, reference: content.reference, price: content.price}}).then((result) => {
          if (result.success) {
            Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`)).then((result) => {
              if (result.success) {
