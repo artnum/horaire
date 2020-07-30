@@ -148,7 +148,37 @@
 
   }
 
-  const facture = new Artnum.DTable({table: document.getElementById('facture')})
+  function delBill(id, dtable) {
+    if (!id) {
+      return
+    }
+    
+    fetch(new URL(`../Facture/${id}`, window.location), {
+      method: 'DELETE',
+      headers: new Headers({'X-Request-Id': `${new Date().getTime()}-${id}`})
+    }).then(response => {
+      if (!response.ok) {
+        return
+      }
+      response.json().then(result => {
+        if (result.length === 1) {
+          if (result.data[0][id]) {
+            dtable.queryOne(id)
+          }
+        }
+      })
+    })
+  }
+
+  const actions = [
+    {
+      html: '<button type="button">Supprimer</button>',
+      events: [
+        {name: 'click', callback: (event, dtable) => delBill(event.target.dataset.id, dtable) }
+      ]
+    }
+  ]
+  const facture = new Artnum.DTable({table: document.getElementById('facture'), actions: actions})
   facture.transliterate = transliterate
 
   function linkTo () {
