@@ -37,7 +37,7 @@
 <h2>Utilisateurs existants</h2>
 <form>
    <table id="users" data-source="Person">
-    <thead class="darkbg"><tr><th>Nom</th><th>Utilisateur</th><th data-sort-type="float">Efficacité</th><th data-sort-type="bool">Actif</th><th data-sort-type="integer">Niveau</th><th data-sort-type="no">Action</th></tr></thead>
+    <thead class="darkbg"><tr><th>Nom</th><th>Utilisateur</th><th data-sort-type="float">Efficacité</th><th data-sort-type="float">Prix horaire</th><th data-sort-type="bool">Actif</th><th data-sort-type="integer">Niveau</th><th data-sort-type="no">Action</th></tr></thead>
     <tbody>
     </tbody>
   </table>
@@ -184,6 +184,7 @@
          <td>${entry.name}</td>
          <td>${entry.username}</td>
          <td>${entry.efficiency}</td>
+         <td>${entry.price}</td>
          <td>${(entry.disabled === '0' ? 'oui' : 'non')}</td>
          <td>${level}</td><td>
          <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="edit">Modifier</button>
