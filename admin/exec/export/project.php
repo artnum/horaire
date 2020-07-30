@@ -102,7 +102,7 @@ try {
          $per_project[$row['project_reference']] = array('reference' => $row['project_reference'], 'name' => $row['project_name'], 'firstdate' => null, 'lastdate' => null, 'time' => 0, 'workcost' => 0); 
       }
       if (!isset($per_process[$row['process_name']])) {
-         $per_process[$row['process_name']] = 0;
+         $per_process[$row['process_name']] = [0, 0];
       }
       if (!isset($per_person[$row['person_name']])) {
          $per_person[$row['person_name']] = 0;
@@ -167,7 +167,8 @@ try {
         $price * $hours
      ];
 
-      $per_process[$row['process_name']] += $row['htime_value'];
+      $per_process[$row['process_name']][0] += $row['htime_value'];
+      $per_process[$row['process_name']][1] += $price * $hours;
       $per_person[$row['person_name']] += $row['htime_value'];
      
       $per_project[$row['project_reference']]['time'] += $row['htime_value'];
@@ -196,73 +197,72 @@ try {
     return strcmp($a['reference'], $b['reference']);
   });
   
-  /* Par projet */
-  $writer->writeSheetHeader('Par projet', array('Reference' => 'string', 'Nom' => 'string', 'Première entrée' => 'date', 'Dernière entrée' => 'date', 'Heure [h]' => '0.00', 'Coût travail' => 'price'), array('widths'=>[10,60,15,15,10]));
-   foreach ($per_project as $project) {
-     $writer->writeSheetRow('Par projet', array($project['reference'], $project['name'],
-                            !is_null($project['firstdate']) ? $project['firstdate']->format('Y-m-d') : '',
-                            !is_null($project['lastdate']) ? $project['lastdate']->format('Y-m-d') : '',
-                            $project['time'] / 3600,
-                            $project['workcost']
-                            )
-                           );
+   $project;
+   /* Par projet */
+   if ($allProjectsExport) {
+      $writer->writeSheetHeader('Par projet', array('Reference' => 'string', 'Nom' => 'string', 'Première entrée' => 'date', 'Dernière entrée' => 'date', 'Heure [h]' => '0.00', 'Coût travail' => 'price'), array('widths' => [10, 60, 15, 15, 10]));
+      foreach ($per_project as $project) {
+         $writer->writeSheetRow('Par projet', array(
+            $project['reference'], $project['name'],
+            !is_null($project['firstdate']) ? $project['firstdate']->format('Y-m-d') : '',
+            !is_null($project['lastdate']) ? $project['lastdate']->format('Y-m-d') : '',
+            $project['time'] / 3600,
+            $project['workcost']
+         ));
+      }
+
+      $writer->writeSheetRow('Par projet', array('', ''));
+      $rc = $writer->countSheetRows('Par projet');
+      $writer->writeSheetRow('Par projet', array('Total', '', '', '', '=SUM(E2:E' . ($rc - 1) . ')', '=SUM(F2:F' . ($rc - 1) . ')'));
+   } else {
+      $project = current($per_project);
    }
-   $writer->writeSheetRow('Par projet', array('', ''));
-   $rc = $writer->countSheetRows('Par projet');
-   $writer->writeSheetRow('Par projet', array('Total', '', '', '', '=SUM(E2:E' . ($rc - 1) . ')', '=SUM(F2:F' . ($rc - 1) . ')'));
 
    /* Par processus */
-   $writer->writeSheetHeader('Par processus', array('Process' => 'string', 'Temps [h]' => '0.00'), array('widths'=>[25,10]));
-   foreach ($per_process as $process => $time) {
-      $writer->writeSheetRow('Par processus', array($process, $time / 3600));
+   $SheetProcessus = ['header' => [], 'content' => []];
+   $SheetProcessus['header'] = ['Process' => 'string', 'Temps [h]' => '0.00', 'Coût' => 'price'];
+   $processus = [];
+   foreach ($per_process as $process => $value) {
+      $SheetProcessus['content'][] = [$process, $value[0] / 3600, $value[1]];
+      $processus[$process] = $value[1];
    }
-   $writer->writeSheetRow('Par processus', array('', ''));
-   $rc = $writer->countSheetRows('Par processus');
-   $writer->writeSheetRow('Par processus', array('Total', '=SUM(B2:B' . ($rc - 1) . ')'));
+   $SheetProcessus['content'][] = ['', ''];
+   $rc = count($SheetProcessus['content']);
+   $SheetProcessus['content'][] = ['Total', '=SUM(B2:B' . ($rc - 1) . ')'];
 
-   /* Par personne */
-   $writer->writeSheetHeader('Par personne', array('Personne' => 'string', 'Temps [h]' => '0.00'), array('widths'=>[25,10]));
-   foreach ($per_person as $person => $time) {
-      $writer->writeSheetRow('Par personne', array($person, $time / 3600));
-   }
-   $writer->writeSheetRow('Par personne', array('', ''));
-   $rc = $writer->countSheetRows('Par personne');
-   $writer->writeSheetRow('Par personne', array('Total', '=SUM(B2:B' . ($rc - 1) . ')'));
-
+   $SheetMateriel = [
+      'header' => [ 'Référence' => 'string', 'Nom' => 'string', 'Prix unitaire' => 'price', 'Quantité' => '0.00', 'Personne' => 'string', '' => 'string', 'Total' => 'price'],
+      'content' => []
+   ];
+   $materielMontant = 0;
    if ($ist) {
       $items = $ist->fetchAll(PDO::FETCH_ASSOC);
       if (count($items) > 0) {
-         $writer->writeSheetHeader('Matériel', 
-            array(
-               'Référence' => 'string', 
-               'Nom' => 'string', 
-               'Prix unitaire' => '0.00',
-               'Quantité' => '0.00',
-               'Personne' => 'string',
-               '' => 'string',
-               'Total' => '0.00'
-            ));
          $line = 1;
          foreach ($items as $item) {
-            $writer->writeSheetRow('Matériel', array(
+            $SheetMateriel['content'][] = [
                $item['item_reference'],
                $item['item_name'],
                $item['item_price'],
                $item['quantity_value'],
                $item['person_name'],
                '',
-               '=' . $writer->xlsCell($line, 2) . '*' . $writer->xlsCell($line, 3)
-            ));
+               $item['item_price'] * $item['quantity_value']];
+            $materielMontant += $item['item_price'] * $item['quantity_value'];
             $line++;
          }
-         $writer->writeSheetRow('Matériel', array('','','','','','',''));
-         $writer->writeSheetRow('Matériel', array('', '', '', '', '', '', '=SUM(G2:G' . $line .  ')')); 
+         $SheetMateriel['content'][] = ['','','','','','',''];
+         $SheetMateriel['content'][] = ['', '', '', '', '', '', '=SUM(G2:G' . $line .  ')'];
       }
    } 
 
    /* Facture, unqiuement par projet */
+   $factureCount = 0;
+   $SheetFacture = ['header' => [], 'content' => []];
+   $factureAmount = 0;
+   $amountByType = [0, 0, 0, 0];
    if (!$allProjectsExport) {
-      $writer->writeSheetHeader('Factures', ['N° de facture' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string' ]);
+      $SheetFacture['header'] = ['N° de facture' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string' ];
       $repSt = $db->prepare('SELECT * FROM "repartition" LEFT JOIN "facture" ON "facture_id" = "repartition_facture" WHERE "repartition_project" = :id AND "facture_deleted" = 0');
       $repSt->bindValue(':id', $row['project_id'], PDO::PARAM_INT);
       if ($repSt->execute()) {
@@ -275,45 +275,36 @@ try {
             switch (intval($repData['facture_type'])) {
                case 1:
                   $type = 'Débiteur';
-                  $amount_ht = -floatval($repData['repartition_value']);
+                  $amount_ht = floatval($repData['repartition_value']);
                   $tva = floatval($repData['repartition_tva']);
                break;
                case 2:
                   $type = 'Créance';
-                  $amount_ht = floatval($repData['repartition_value']);
+                  $amount_ht = -floatval($repData['repartition_value']);
                   $tva = floatval($repData['repartition_tva']);
                break;
                case 3:
                   $type = 'Note de crédit';
-                  $amount_ht = floatval($repData['repartition_value']);
+                  $amount_ht = -floatval($repData['repartition_value']);
                   $tva = floatval($repData['repartition_tva']);
                break;
                case 4:
                   $type = 'Compensation';
-                  $amount_ht = floatval($repData['repartition_value']);
+                  $amount_ht = -floatval($repData['repartition_value']);
                   $tva = floatval($repData['repartition_tva']);
                break;
 
             }
-            $writer->writeSheetRow('Factures', [$reference, $amount_ht, $tva, '=B'.($line+1). '+(B' . ($line+1) . '*C' . ($line+1) .'%)' , $type]);
+            $factureAmount += ($amount_ht + ($amount_ht * $tva / 100));
+            $amountByType[intval($repData['facture_type'])-1] += ($amount_ht + ($amount_ht * $tva / 100));
+            $SheetFacture['content'][] = [$reference, $amount_ht, $tva, '=B'.($line+1). '+(B' . ($line+1) . '*C' . ($line+1) .'%)' , $type];
 
             $line++;
-         
          }
-         $writer->writeSheetRow('Factures', ['', '', '', '']); 
-         $writer->writeSheetRow('Factures', ['Totaux', '=SUM(B2:B' . $line .  ')', '', '=SUM(D2:D' . $line .  ')']); 
+         $SheetFacture['content'][] = ['', '', '', ''];
+         $SheetFacture['content'][] = ['Totaux', '=SUM(B2:B' . $line .  ')', '', '=SUM(D2:D' . $line .  ')']; 
       }
    }
-
-  /* Toutes les entrées */
-  $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process/Bon' => 'string', 'Jour' => 'date', 'Temps [h]' => '0.00', 'Prix horaire' => '0.00', 'Prix' => 'price', 'Personne' => 'string', 'Terminé' => 'datetime', 'Remarque' => 'string'), array('widths'=>[10, 40, 15, 15, 10, 15, 15, 100]));
-  foreach($per_entry as $entry) {
-      $writer->writeSheetRow('Entrées', array($entry[0], $entry[1], $entry[2], $entry[3], $entry[4], $entry[8], $entry[9], $entry[5], $entry[6], $entry[7]));
-  }
-  
-   $writer->writeSheetRow('Entrées', array('', '', ''));
-   $rc = $writer->countSheetRows('Entrées');
-   $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', '=AVERAGE(F2:F' . ($rc - 1) . ')', '=SUM(G2:G' . ($rc - 1) . ')'));
 
    $project_name = date('Y-m-d') . ' ' . $project_name;
    $writer->setTitle($project_name);
@@ -328,7 +319,80 @@ try {
       }
       $writer->setHeaderFooter('c', '&[Tab]', true);
       $writer->setHeaderFooter('r', 'Page &[Page] sur &[Pages]', true);
-    }
+   }
+
+   if (!$allProjectsExport) {
+      $writer->writeSheetRow('Résumé', ['Projet', $project['reference']], ['font-style' => 'bold']);
+      $writer->writeSheetRow('Résumé', ['', $project['name']]);
+      $writer->writeSheetRow('Résumé', []);
+      $writer->writeSheetRow('Résumé', ['Coûts', '', '', $project['workcost'] + $factureAmount + $materielMontant], ['font-style' => 'bold'], ['string', '', '', 'price']);
+      $writer->writeSheetRow('Résumé', []);
+      $writer->writeSheetRow('Résumé', ['Travail', '', '', $project['workcost']], null, ['string', '', '', 'price']);
+      $writer->writeSheetRow('Résumé', ['dont'], ['font-style' => 'italic']);
+      foreach ($processus as $k => $v) {
+         $writer->writeSheetRow('Résumé', ['', $k, $v], ['font-style' => 'italic'], ['', 'string', 'price']);
+      }
+      $writer->writeSheetRow('Résumé', ['Facture', '', '', $factureAmount], null, ['string', '', '', 'price']);
+      $writer->writeSheetRow('Résumé', ['dont'], ['font-style' => 'italic']);
+      foreach($amountByType as $type => $v) {
+         switch ($type) {
+            case 0:
+               $writer->writeSheetRow('Résumé', ['', 'Débiteur', $v], ['font-style' => 'italic'], ['', 'string', 'price']);
+            break;
+            case 1:
+               $writer->writeSheetRow('Résumé', ['', 'Créance', $v], ['font-style' => 'italic'], ['', 'string', 'price']);
+            break;
+            case 2:
+               $writer->writeSheetRow('Résumé', ['', 'Note de crédit', $v], ['font-style' => 'italic'], ['', 'string', 'price']);
+            break;
+            case 3:
+               $writer->writeSheetRow('Résumé', ['', 'Compensation', $v], ['font-style' => 'italic'], ['', 'string', 'price']);
+            break;
+         }
+      }
+      $writer->writeSheetRow('Résumé', ['Matériel', '', '', $materielMontant], null, ['string', '', '', 'price']);
+
+   }
+   
+   $writer->writeSheetHeader('Par processus', $SheetProcessus['header'], ['widths'=>[25,10, 10]]);
+   foreach($SheetProcessus['content'] as $row) {  
+      $writer->writeSheetRow('Par processus', $row);
+   }
+
+   if (count($SheetMateriel['content']) > 0) {
+      $writer->writeSheetHeader('Matériel', $SheetMateriel['header']);
+      foreach ($SheetMateriel['content'] as $row) {
+         $writer->writeSheetRow('Matériel', $row);
+      }
+   }
+
+   /* Par personne */
+   $writer->writeSheetHeader('Par personne', array('Personne' => 'string', 'Temps [h]' => '0.00'), array('widths' => [25, 10]));
+   foreach ($per_person as $person => $time) {
+      $writer->writeSheetRow('Par personne', array($person, $time / 3600));
+   }
+   $writer->writeSheetRow('Par personne', array('', ''));
+   $rc = $writer->countSheetRows('Par personne');
+   $writer->writeSheetRow('Par personne', array('Total', '=SUM(B2:B' . ($rc - 1) . ')'));
+
+   if (!$allProjectsExport) {
+      $writer->writeSheetHeader('Factures', $SheetFacture['header']);
+      foreach ($SheetFacture['content'] as $row) {
+         $writer->writeSheetRow('Factures', $row);
+      }
+   }
+
+  /* Toutes les entrées */
+  $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process/Bon' => 'string', 'Jour' => 'date', 'Temps [h]' => '0.00', 'Prix horaire' => '0.00', 'Prix' => 'price', 'Personne' => 'string', 'Terminé' => 'datetime', 'Remarque' => 'string'), array('widths'=>[10, 40, 15, 15, 10, 15, 15, 100]));
+  foreach($per_entry as $entry) {
+      $writer->writeSheetRow('Entrées', array($entry[0], $entry[1], $entry[2], $entry[3], $entry[4], $entry[8], $entry[9], $entry[5], $entry[6], $entry[7]));
+  }
+  
+   $writer->writeSheetRow('Entrées', array('', '', ''));
+   $rc = $writer->countSheetRows('Entrées');
+   $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', '=AVERAGE(F2:F' . ($rc - 1) . ')', '=SUM(G2:G' . ($rc - 1) . ')'));
+
+
    header('Content-Disposition: inline; filename="' . $project_name . '.xlsx"');
    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
    $writer->writeToStdOut();
