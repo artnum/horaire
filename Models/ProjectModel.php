@@ -21,6 +21,7 @@ class ProjectModel extends artnum\SQL {
       $hook_succeed = true;
     } else {
       if(is_executable($this->conf('hook-path') . '/project-write')) {
+        setlocale(LC_CTYPE, 'C.UTF-8'); // generic UTF-8 so escapeshell allow utf-8 chars
         $cmd = $this->conf('hook-path') . '/project-write ';
         foreach ($arg as $k => $v) {
           $k = preg_replace('/[^A-Za-z0-9]+/', '', $k);
