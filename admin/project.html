@@ -39,7 +39,7 @@
   <input type="radio" onchange="changeState(event)" id="stateAny" name="state"><label for="stateAny">Tous</label>
   <input type="button" onclick="exportAll()" value="Tout exporter"></input>
   <table id="projects" data-source="Project">
-    <thead class="darkbg"><tr><th data-sort-type="integer">Référence</th><th>Nom</th></th><th data-sort-type="no">Action</th></tr></thead>
+    <thead class="darkbg"><tr><th data-sort-type="string">Référence</th><th>Nom</th></th><th data-sort-type="no">Action</th></tr></thead>
     <tbody>
     </tbody>
   </table>
@@ -541,7 +541,7 @@ async function evCancelEdit (event) {
          frag.appendChild(tr)
          
          tr.setAttribute('data-id', entry.id)
-         tr.innerHTML = `<td data-name="reference" data-sort-value="${entry.reference}" data-type="text">${travaux.length > 0 ? '<span>&#9205;</span> ' : ''}${(entry.reference ? entry.reference : '')}</td>
+         tr.innerHTML = `<td data-name="reference" data-sort-value="${entry.reference}"  data-filter-value="${entry.reference}">${travaux.length > 0 ? '<span>&#9205;</span> ' : ''}${(entry.reference ? entry.reference : '')}</td>
                          <td data-name="name" data-type="text">${(entry.name ? entry.name : '')}</td>`
          if (travaux.length > 0) {
            tr.classList.add('extensible')
