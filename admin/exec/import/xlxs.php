@@ -471,25 +471,28 @@ $facture = [
     'creancier' => false,
     'annee' => intval($year)'
 ]; */
-$id = 1;
+echo 'CREATE TEMP TABLE _var (name TEXT, value text);' . "\n";
 foreach ($invoices as $facture) {
-    echo "INSERT INTO facture (facture_id, facture_reference, facture_date, facture_duedate, facture_amount, facture_debt, facture_person, facture_comment) VALUES (" . 
-        $id . ', "' . $facture['reference'] . '", "' . $facture['date']->format(DATE_ATOM) . '", "' . $facture['payable']->format(DATE_ATOM) . '", ' . 
+    echo 'BEGIN TRANSACTION;' . "\n";
+    echo 'INSERT INTO facture (facture_reference, facture_date, facture_duedate, facture_amount, facture_type, facture_person, facture_comment, facture_indate) VALUES ("' .
+        $facture['reference'] . '", "' . $facture['date']->format(DATE_ATOM) . '", "' . $facture['payable']->format(DATE_ATOM) . '", ' . 
         $facture['montant'] . ', ' . ($facture['creancier'] ? '1' : '2') . ', "' . (empty($facture['dbaddress']) ? $facture['adresse'] : $facture['dbaddress'] ) . '", "' .
-        $facture['comment'] .'");' . PHP_EOL;
+        $facture['comment'] .'", "' . date_format(new DateTime(), 'c') . '");' . PHP_EOL;
     
+    echo 'INSERT INTO _var(name, value) VALUES ("id", (SELECT facture_id FROM facture WHERE rowid = (SELECT last_insert_rowid())));' . "\n";
+
     if ($facture['etat'] && count($facture['paiement']) <= 0) {
         fprintf(STDERR, "Facture totalement payée" . PHP_EOL);
-        echo "\tINSERT INTO paiement (paiement_facture, paiement_date, paiement_amount) VALUES (".
-            $id . ', "' . $facture['payable']->format(DATE_ATOM) . '", ' . $facture['montant'] . '); -- Totalement payée' . PHP_EOL;
+        echo "\tINSERT INTO paiement (paiement_facture, paiement_date, paiement_amount) VALUES ((select value from _var where name = 'id'), "
+            . '"' . $facture['payable']->format(DATE_ATOM) . '", ' . $facture['montant'] . '); -- Totalement payée' . PHP_EOL;
     } else if (count($facture['paiement']) > 0) {
         $total = 0;
         foreach ($facture['paiement'] as $p) {
             if (is_null($p['date'])) {
                 fprintf(STDERR, 'ERREUR avec paiement sans date' . PHP_EOL);
             } else {
-                echo "\tINSERT INTO paiement (paiement_facture, paiement_date, paiement_amount) VALUES (".
-                $id . ', "' . $p['date']->format(DATE_ATOM) . '", ' . $p['montant'] . '); -- Répartition' . PHP_EOL;
+                echo "\tINSERT INTO paiement (paiement_facture, paiement_date, paiement_amount) VALUES ((select value from _var where name = 'id'), ".
+                '"' . $p['date']->format(DATE_ATOM) . '", ' . $p['montant'] . '); -- Répartition' . PHP_EOL;
             }
             
             $total += $p['montant'];
@@ -498,21 +501,21 @@ foreach ($invoices as $facture) {
          * pour rendre les versements correct
          */
         if ($facture['etat'] && $total < $facture['montant']) {
-            echo "\tINSERT INTO paiement (paiement_facture, paiement_date, paiement_amount) VALUES (".
-            $id . ', "' . $facture['payable']->format(DATE_ATOM) . '", ' . ($facture['montant'] - $total) . '); -- totalement payée, répartition incomplète' . PHP_EOL;  
+            echo "\tINSERT INTO paiement (paiement_facture, paiement_date, paiement_amount) VALUES ((select value from _var where name = 'id'), ".
+            '"' . $facture['payable']->format(DATE_ATOM) . '", ' . ($facture['montant'] - $total) . '); -- totalement payée, répartition incomplète' . PHP_EOL;  
         }
     }
 
     foreach ($facture['repartition'] as $r) {
-        echo "\tINSERT INTO repartition (repartition_facture, repartition_project, repartition_value) VALUES (" . 
-            $id . ', ' . $r['dbchantier'] . ', ' . $r['montant'] .');' . PHP_EOL;
+        echo "\tINSERT INTO repartition (repartition_facture, repartition_project, repartition_value) VALUES ((select value from _var where name = 'id'), " . 
+            $r['dbchantier'] . ', ' . $r['montant'] .');' . PHP_EOL;
     }
 
-
-    $id++; 
     fprintf(STDERR, PHP_EOL);
+    echo 'DELETE FROM _var WHERE name = "id";' . "\n";
+    echo 'COMMIT;' . "\n";
 }
-
+echo "DROP TABLE _var;";
 
 fprintf(STDERR, '--------' . PHP_EOL . PHP_EOL);
 fprintf(STDERR, "Total débiteur $dtotal" . PHP_EOL);
