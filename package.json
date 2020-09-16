@@ -1,10 +1,10 @@
 {
-  "name": "Horaire",
-  "version": "0.5.0",
+  "name": "Kaal",
   "license": "MIT",
   "main": "index.html",
   "dependencies": {
     "@popperjs/core": "^2.0.6",
+    "artnum": "artnum/js",
     "dijit": "^1.15.0",
     "dojo": "^1.15.0",
     "font-awesome": "^4.7.0",

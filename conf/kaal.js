@@ -1,4 +1,7 @@
 window.KAAL = {
+    work: {
+        day: 504
+    },
     search: {
         liveLimit: '20' // les recherches lors de la saisie sont limitées en nombre de résultat
     },
