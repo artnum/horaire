@@ -47,8 +47,10 @@ TSeg.prototype.unlock = function () {
 
 TSeg.prototype.fromObject = function (o) {
   if (o.id) {
-    this.data.id = o.id
+    this.data.dbId = o.id
   }
+  this.data.id = this.domId()
+
   if (o.date) {
     this.data.date = o.date
   }
@@ -78,13 +80,12 @@ TSeg.prototype.duplicate = function () {
   newTseg.saved = false
   newTseg.locked = false
   newTseg.id = null
-  console.log(newTseg)
   return (new TSeg()).fromObject(newTseg)
 }
 
 TSeg.prototype.toObject = function () {
   let o = {}
-  if (this.data.id !== null) { o.id = this.data.id }
+  if (this.data.dbId !== null) { o.id = this.data.dbId }
   if (this.data.date) { o.date = this.data.date }
   if (this.data.person) {
     o.person = this.data.person.split('/')[1]
@@ -126,17 +127,17 @@ TSeg.prototype.delete = function () {
 /* commit return true if tseg must be kept and false if not */
 TSeg.prototype.commit = function () {
   return new Promise((resolve, reject) => {
-    if (this.deleted && this.data.id) {
-      fetch(RelURL(`TSeg/${this.data.id}`), {credential: 'include', headers: {'X-Request-Id': new Date().getTime()}, method: 'DELETE'})
+    if (this.deleted && this.data.dbId) {
+      fetch(RelURL(`TSeg/${this.data.dbId}`), {credential: 'include', headers: {'X-Request-Id': new Date().getTime()}, method: 'DELETE'})
         .then((response) => {
           resolve(false) // handle error later
         })
-    } else if (this.deleted && !this.data.id) {
+    } else if (this.deleted && !this.data.dbId) {
       resolve(false)
-    } else if (this.saved && this.data.id) {
+    } else if (this.saved && this.data.dbId) {
       resolve(true) // is saved
-    } else if (!this.saved && this.data.id) {
-      fetch(RelURL(`TSeg/${this.data.id}`),
+    } else if (!this.saved && this.data.dbId) {
+      fetch(RelURL(`TSeg/${this.data.dbId}`),
             {credential: 'include',
              headers: {'X-Request-Id': new Date().getTime()},
              method: 'PUT',
@@ -150,7 +151,7 @@ TSeg.prototype.commit = function () {
                  resolve(false)
                }
              })
-    } else if (!this.saved && !this.get('id')) {
+    } else if (!this.saved && !this.data.dbId) {
       fetch(RelURL(`TSeg`),
             {credential: 'include',
              headers: {'X-Request-Id': new Date().getTime()},
@@ -159,7 +160,7 @@ TSeg.prototype.commit = function () {
               if (response.ok) {
                 response.json().then((data) => {
                   this.saved = true
-                  this.data.id = data.data[0].id
+                  this.data.dbId = data.data[0].id
                   resolve(true)
                 })
               } else {
@@ -171,11 +172,12 @@ TSeg.prototype.commit = function () {
 }
 
 TSeg.prototype.domId = function () {
-  let tid = `tseg-${performance.now()}`
-  while (document.getElementById(tid)) {
-    tid = `tseg-${performance.now()}`
+  if (this.data.dbId === undefined) {
+    this.data.id = KAAL.domId()
+  } else {
+    this.data.id = `tseg-${this.data.dbId}`
   }
-  return tid
+  return this.data.id
 }
 
 TSeg.prototype.removeDom = function () {
@@ -193,16 +195,16 @@ TSeg.prototype.removeDom = function () {
 TSeg.prototype.newDom = function (maxTime) {
   let subnode = document.createElement('DIV')
   this.removeDom()
-
-  let height = this.data.time * 100 / maxTime
+  let height = this.data.time * 100 / KAAL.work.getDay()
   subnode.id = this.domId()
   subnode.classList.add('travailMark')
   subnode.style.backgroundColor = this.data.color
-  subnode.style.maxHeight = `${height}%`
-  subnode.style.minHeight = `${height}%`
-  subnode.style.height = `${height}%`
+  subnode.style.maxHeight = `calc(${height}% - 4px)`
+  subnode.style.minHeight = `calc(${height}% - 4px)`
+  subnode.style.height = `calc(${height}% - 4px)`
   subnode.innerHTML = `${this.data.time / 3600}`
   subnode.setAttribute('draggable', 'true')
+  subnode.dataset.travail = this.data.travail
 
   this.data.domNode = subnode
   this.data.domNode.addEventListener('dragstart', (event) => {
@@ -225,6 +227,8 @@ function Planning (options) {
     project: document.getElementById('leftPane')
   }
   this.TSeg = {
+  }
+  this.TSegByTravail = {
   }
   this.domIdCount = 0
   this.options = options
@@ -265,6 +269,22 @@ Planning.prototype.PBar = function () {
                 })
               }
             })
+  })
+  
+  this.views.project.addEventListener('dragover', event => {
+    if (!event.dataTransfer.getData('application/segment-id')) { return }
+    event.preventDefault()
+    event.target.style.backgroundColor = 'red'
+  })
+
+
+  this.views.project.addEventListener('drop', event => {
+    if (!event.dataTransfer.getData('application/segment-id')) { return }
+    let tseg = this.getTSegById(event.dataTransfer.getData('application/segment-id'))
+    this.getRelatedTSegs(tseg).forEach(tseg => {
+      this.deleteTSeg(tseg)
+    })
+
   })
 
   div.appendChild(i)
@@ -356,7 +376,6 @@ Planning.prototype.newDomId = function () {
 }
 
 Planning.prototype.tsegDrop = function (event) {
-  console.log(event)
   event.preventDefault()
   let pNode = event.target
   let dNode = event.target
@@ -384,7 +403,6 @@ Planning.prototype.tsegDrop = function (event) {
     totalTime = totalTime / efficiency
     /* move the task */
     for (let tseg of tsegs) {
-      console.log(tseg, totalTime)
       if (totalTime <= 0) {
         this.deleteTSeg(tseg)
       } else {
@@ -399,9 +417,9 @@ Planning.prototype.tsegDrop = function (event) {
         tseg.set('time', totalTime < 0 ? totalTime + nHours : nHours)
         this.moveTSeg(tseg, oldPerson, oldDate, oldTime)
       }
-      do {
+      while (dNode && dNode.classList.contains('weekend')) {
         dNode = dNode.nextElementSibling
-      } while (dNode && dNode.classList.contains('weekend'))
+      }
     }
 
     while (totalTime > 0) {
@@ -412,8 +430,6 @@ Planning.prototype.tsegDrop = function (event) {
       oTseg.set('time', totalTime < 0 ? totalTime + nHours : nHours)
       oTseg.set('efficiency', efficiency)
       this.addTSeg(oTseg)
-      console.log(oTseg)
-      console.log(nHours)
       do {
         dNode = dNode.nextElementSibling
       } while (dNode && dNode.classList.contains('weekend'))
@@ -432,7 +448,6 @@ Planning.prototype.tsegDragOver = function (event) {
     node.dataset.dragover = true
     node.style.backgroundColor = tseg.get('domNode').style.backgroundColor
   }
-  console.log(event)
 }
 
 Planning.prototype.getTSegsByAttribute = function (attr, value) {
@@ -445,6 +460,15 @@ Planning.prototype.getTSegsByAttribute = function (attr, value) {
     }
   }
   return tsegs
+}
+
+/* get tsegs from same travail */
+Planning.prototype.getRelatedTSegs = function (tseg) {
+  if (!tseg) { return [] }
+  if (!tseg.data) { return [] }
+  if (!tseg.data.travail) { return [] }
+  if (!this.TSegByTravail[tseg.data.travail]) { return [] }
+  return this.TSegByTravail[tseg.data.travail]
 }
 
 Planning.prototype.getTSegById = function (tsegid) {
@@ -558,7 +582,6 @@ Planning.prototype.draw = function () {
               }
             }
             for (let tseg of tsegs) {
-              console.log(tseg.data)
               bgcolor = tseg.get('domNode').style.backgroundColor
               let currentEfficiency = parseFloat(parent.dataset.efficiency)
               let time = tseg.get('time') * tseg.get('efficiency')
@@ -630,7 +653,6 @@ Planning.prototype.draw = function () {
           }
         })
         subDiv.addEventListener('drop', (event) => {
-          console.log(event)
           if (event.dataTransfer.getData('application/segment-id')) {
             return this.tsegDrop(event)
           }
@@ -708,10 +730,9 @@ Planning.prototype.displayTravail = function (travaux) {
     })
   }).then(() => {
     travaux.forEach((travail) => {
-      console.log(travail)
-      if (parseFloat(travail.time) === 0 || isNaN(parseFloat(travail.time))) { travail.time = KAAL.work.day }
-
+      if (parseFloat(travail.time) === 0 || isNaN(parseFloat(travail.time))) { travail.time = KAAL.work.getDay() }
       if (parseFloat(travail.force) === 0 || isNaN(parseFloat(travail.force))) { travail.force = 1.0 }
+    
       let div = document.createElement('DIV')
       div.id = `Travail/${travail.id}`
       div.draggable = true
@@ -753,12 +774,24 @@ Planning.prototype.openTravail = function (node) {
   fetch(RelURL(`${node.id}`), {credential: 'include', headers: {'X-Request-Id': new Date().getTime()}}).then((response) => {
     if (response.ok) {
       response.json().then((result) => {
-        console.log(result)
         this.closeOthers(node)
+
+        let travailTime = 0
+        let defaultTime = false
+        if (parseFloat(result.data.time) === 0) {
+          travailTime = KAAL.work.getDay('h')
+          defaultTime = true
+        } else if (parseFloat(result.data.force) === 0.0) {
+          travailTime = KAAL.work.getDay('h')
+          defaultTime = true
+        } else {
+          travailTime = parseFloat(result.data.time) / parseFloat(result.data.force) / 3600
+        }
+
         let details = document.createElement('DIV')
         details.classList.add('details')
         details.innerHTML = `<ul>
-                                <li><span class="label">Temps</span>${result.data.time / result.data.force / 3600} h</li>
+                                <li><span class="label">Temps</span>${travailTime} h ${defaultTime ? '(valeur par défaut)' : ''}</li>
                                 <li><span class="label">Contact</span>${result.data.contact}</li>
                                 <li><span class="label">Téléphone</span>${result.data.phone}</li>
                              </ul>`
@@ -836,21 +869,56 @@ Planning.prototype.addTSeg = function (tseg) {
             }
           }
         }
+        if (!tseg.data.domNode) {
+          let node = document.getElementById(tseg.data.id)
+          if (node) {
+            tseg.data.domNode = node
+          }
+        }
+        let segDom
         if (found) {
+          segDom = tseg.data.domNode
         } else {
           this.TSeg[node.id].push(tseg)
+          if(!this.TSegByTravail[tseg.data.travail]) {
+            this.TSegByTravail[tseg.data.travail] = []
+          }
+          this.TSegByTravail[tseg.data.travail].push(tseg)
           this.nodeAddTime(node, tseg.get('time'))
+
+          segDom = tseg.newDom()
           window.requestAnimationFrame(() => {
-            node.appendChild(tseg.newDom(this.HoursPerDay))
+            node.appendChild(segDom)
           })
         }
+        if (!segDom) { return }
+
+        segDom.addEventListener('mouseover', event => {
+          window.requestAnimationFrame(() => {
+            event.target.style.backgroundColor = 'green'
+          })
+          if (this.TSegByTravail[event.target.dataset.travail]) {
+            this.TSegByTravail[event.target.dataset.travail].forEach(tseg => {
+              window.requestAnimationFrame(() => tseg.data.domNode.style.backgroundColor = 'green')
+            })
+          }
+        })
+        segDom.addEventListener('mouseout', event => {
+          window.requestAnimationFrame(() => {
+            event.target.style.backgroundColor = ''
+            if (this.TSegByTravail[event.target.dataset.travail]) {
+              this.TSegByTravail[event.target.dataset.travail].forEach(tseg => {
+                window.requestAnimationFrame(() => tseg.data.domNode.style.backgroundColor = '')
+              })
+            }
+          })
+        })
       }
     })
   }
 }
 
 Planning.prototype.save = async function () {
-  console.log('save')
   let sleep = function (ms) {
     return new Promise((resolve, reject) => setTimeout(resolve(), ms))
   }
