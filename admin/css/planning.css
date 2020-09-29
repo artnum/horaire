@@ -39,9 +39,12 @@ body {
 .line .box {
     display: inline-block;
     height: calc(100% - 4px);
-    width: 120px;
     overflow: hidden;
     border-bottom: 1px solid black;
+}
+
+.box {
+    width: var(--box-size) !important;
 }
 
 .line .box.day {
