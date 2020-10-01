@@ -61,6 +61,45 @@ function Planning (options) {
   this.resetCurrent()
   this.installUI()
   document.documentElement.style.setProperty('--box-size', `calc((100% / ${this.Days+1}) - 4px)`)
+
+  window.addEventListener('keyup', event => {
+    if (!this.current.travail) { return }
+    let wnode = this.current.wnode
+    switch (event.key) {    
+      case 'Control':
+        if (!(this.current.days & 0x40)) {
+          this.current.days |= 0x40 // add saturday
+        } else if (!(this.current.days & 0x01)) {
+          this.current.days |= 0x01 // add sunday
+        } else {
+          this.current.days = 0x3E // reset to week day
+        }
+        if (wnode) {
+          this.placeTravailOnGrid(wnode)
+        }
+      return
+      case 'Shift':
+        if (!wnode) { return }
+        let person = wnode.getPerson()
+        let remove = false
+        for (let i = 0; i < this.current.people.length; i++) {
+          if (this.current.people[i].id === person.id) {
+            this.current.people.splice(i, 1)
+            remove = true
+          }
+        }
+        if (!remove) {
+          this.current.people.push(person)
+        }
+        this.placeTravailOnGrid(wnode)
+      return
+      case 'Escape':
+        this.closeTravail()
+        this.cleanNodesInList()
+        this.resetCurrent()
+      return
+    }
+  })
 }
 
 Planning.prototype.PBar = function () {
@@ -235,51 +274,6 @@ Planning.prototype.tsegDrop = function (event) {
   }
 }
 
-Planning.prototype.tsegDragOver = function (event) {
-  event.preventDefault()
-  let tsegid = event.dataTransfer.getData('application/segment-id')
-  let tseg = this.getTSegById(tsegid)
-  if (tseg) {
-    let node = event.target
-    for (; node && !node.classList.contains('box'); node = node.parentNode) ;
-
-    node.dataset.dragover = true
-    node.style.backgroundColor = tseg.get('domNode').style.backgroundColor
-  }
-}
-
-Planning.prototype.getTSegsByAttribute = function (attr, value) {
-  let tsegs = []
-  for (let k in this.TSeg) {
-    for (let i in this.TSeg[k]) {
-      if (this.TSeg[k][i].get(attr) === value) {
-        tsegs.push(this.TSeg[k][i])
-      }
-    }
-  }
-  return tsegs
-}
-
-/* get tsegs from same travail */
-Planning.prototype.getRelatedTSegs = function (tseg) {
-  if (!tseg) { return [] }
-  if (!tseg.data) { return [] }
-  if (!tseg.data.travail) { return [] }
-  if (!this.TSegByTravail[tseg.data.travail]) { return [] }
-  return this.TSegByTravail[tseg.data.travail]
-}
-
-Planning.prototype.getTSegById = function (tsegid) {
-  for (let k in this.TSeg) {
-    for (let i in this.TSeg[k]) {
-      if (this.TSeg[k][i].get('id') === tsegid) {
-        return this.TSeg[k][i]
-      }
-    }
-  }
-  return undefined
-}
-
 /* return an array of double-linked list of nodes we can look for */
 Planning.prototype.getNodesForTravail = function (date, travail, people, days = 0x3E) {
   /* find a set of node to fill with worktime */
@@ -302,21 +296,39 @@ Planning.prototype.getNodesForTravail = function (date, travail, people, days = 
   let lists = new Array(firstNode.length)
   let leftTime = averageTime
   while (firstNode[0] !== null && leftTime > 0) {
-    if (!(days & firstNode[0].weekDay())) {
-      for (let i = 0; i < firstNode.length; i++) { firstNode[i] = firstNode[i]._next }
-      continue;
+    let passCheck = true
+    let maxNodeTime = Infinity
+
+    for (let i = 0; i < firstNode.length; i++) {
+      if (!firstNode[i]) { passCheck = false; break }
+      if (!(days & firstNode[i].weekDay())) {
+        passCheck = false
+        break
+      }
+      if (!firstNode[i].hasPlace(KAAL.work.getMin('s'))) {
+        passCheck = false
+        break
+      }
+      if (maxNodeTime > firstNode[i].leftTime()) {
+        maxNodeTime = firstNode[i].leftTime()
+      }
     }
-    if (!firstNode[0].hasPlace(KAAL.work.getMin('s'))) {
-      for (let i = 0; i < firstNode.length; i++) { firstNode[i] = firstNode[i]._next }
-      continue;
+
+    if (!passCheck) {
+      for (let i = 0; i < firstNode.length; i++) { 
+        if (!firstNode[i]) { return } // somthing wrong with it
+        firstNode[i] = firstNode[i]._next 
+      }
+      continue
     }
 
     let time = 0
-    if (leftTime - firstNode[0].leftTime() < 0) {
+    if (leftTime - maxNodeTime <= 0) {
       time = leftTime
     } else {
-      time = firstNode[0].leftTime()
+      time = maxNodeTime
     }
+
     leftTime = leftTime - time
     for (let i = 0; i < firstNode.length; i++) { 
       if (!lists[i]) { lists[i] = new DLList() }  
@@ -425,103 +437,26 @@ Planning.prototype.draw = function () {
             })
           }
         }
-        wnode.addEventListener('dragenter', event => {
-          let dataTransfer = event.dataTransfer.getData('application/travail-id') || event.dataTransfer.getData('application/segment-id') || DNDWorkaround
-          if (dataTransfer) {
-            event.preventDefault()
-          }
-        })
-
-        wnode.addEventListener('dragover', (event) => {
-          let dataTransfer = event.dataTransfer.getData('application/travail-id') || event.dataTransfer.getData('application/segment-id') || DNDWorkaround
-          if (!dataTransfer) { return }
-          event.preventDefault()
+   
+        wnode.addEventListener('mouseover', event => {
           this.cleanNodesInList()
-
           let dnode = event.target
           let wnode
           while (dnode && !(wnode = WNode.getWNodeByDomNode(dnode))) {
             dnode = dnode.parentNode
           }
 
-          let person = wnode.getPerson()
-          if (event.shiftKey && !this.current.events.shift) {
-            this.current.events.shift = true
-          }
-          if (!event.shiftKey && this.current.events.shift) {
-            this.current.events.shift = false
-            let remove = false
-            for (let i = 0; i < this.current.people.length; i++) {
-              if (this.current.people[i].id === person.id) {
-                this.current.people.splice(i, 1)
-                remove = true
-              }
-            }
-            if (!remove) {
-              this.current.people.push(person)
-            }
-          }
-          if (event.ctrlKey) {
-            if (!(this.current.days & 0x40)) {
-              this.current.days |= 0x40 // add saturday
-            } else if (!(this.current.days & 0x01)) {
-              this.current.days |= 0x01 // add sunday
-            } else {
-              this.current.days = 0x3E // reset to week day
-            }
-          }
-          let people = [person]
-          for (let i  = 0; i < this.current.people.length; i++) {
-            if (this.current.people[i].id !== person.id) {
-              people.push(this.current.people[i])
-            }
-          }
-          let date
-          if (wnode._head === null) {
-            date = wnode._next.date.toISOString().split('T')[0]
-          } else {
-            date = wnode.date.toISOString().split('T')[0]
-          }
-          let nodes = this.getNodesForTravail(date, this.current.travail, people, this.current.days)
-          for (let i = 0; i < nodes.length; i++) {
-            if (!nodes[i]) { continue }
-            for (let n = nodes[i].first(); n; n = nodes[i].next()) {
-                this.current.cleanList.push(n)
-                let color = 'red'
-                if (n.node.personId !== person.id) { color = 'blue' }
-                window.requestAnimationFrame(() => n.node.style.backgroundColor = color)
-            }
-          }
-
-          this.current.nodes = nodes
-          return false
+          this.placeTravailOnGrid(wnode)
         })
 
-        wnode.addEventListener('drop', (event) => {       
-          let dataTransfer = event.dataTransfer.getData('application/travail-id') || event.dataTransfer.getData('application/segment-id') || DNDWorkaround
-          DNDWorkaround = null
-
-          if (!dataTransfer) { return }
-          event.preventDefault()
-
-          let nodes = this.current.nodes
-          if (nodes === null) { return }
-          for (let i = 0; i < nodes.length; i++) {
-            for (let node = nodes[i].first(); node; node = nodes[i].next()) {
-              let tseg = new TSeg({
-                travail: dataTransfer,
-                time: node.time,
-                person: node.node.personId,
-                date: node.node.date.toISOString().split('T')[0],
-                efficiency: 1
-              })
-              tseg.commit().then(result => {
-                this.TSegs.add(tseg)
-              })
-            }
-          }
+        wnode.addEventListener('click', event => {
+          if (!this.current.travail) { return }
+          this.placeTSegOnGrid()
+          this.removeTravail()
           this.cleanNodesInList()
+          this.resetCurrent()
         })
+
         wnode.addToDom(div)
       }
       window.requestAnimationFrame(() => {
@@ -535,6 +470,58 @@ Planning.prototype.draw = function () {
 
     this.displayTravail(this.Travaux.data)
   })
+}
+
+Planning.prototype.placeTSegOnGrid = function () {
+  let nodes = this.current.nodes
+  if (nodes === null) { return }
+  for (let i = 0; i < nodes.length; i++) {
+    for (let node = nodes[i].first(); node; node = nodes[i].next()) {
+      let tseg = new TSeg({
+        travail: `Travail/${this.current.travail.id}`,
+        time: node.time,
+        person: node.node.personId,
+        date: node.node.date.toISOString().split('T')[0],
+        efficiency: 1
+      })
+      tseg.commit().then(result => {
+        this.TSegs.add(tseg)
+      })
+    }
+  }
+}
+
+Planning.prototype.placeTravailOnGrid = function (wnode) {
+  if (!this.current.travail) { return }
+  if (!wnode) { return }
+  this.cleanNodesInList()
+
+  this.current.wnode = wnode
+  let person = wnode.getPerson()
+  let people = [person]
+  for (let i  = 0; i < this.current.people.length; i++) {
+    if (this.current.people[i].id !== person.id) {
+      people.push(this.current.people[i])
+    }
+  }
+  let date
+  if (wnode._head === null) {
+    date = wnode._next.date.toISOString().split('T')[0]
+  } else {
+    date = wnode.date.toISOString().split('T')[0]
+  }
+  let nodes = this.getNodesForTravail(date, this.current.travail, people, this.current.days)
+  for (let i = 0; i < nodes.length; i++) {
+    if (!nodes[i]) { continue }
+    for (let n = nodes[i].first(); n; n = nodes[i].next()) {
+        this.current.cleanList.push(n)
+        let color = 'red'
+        if (n.node.personId !== person.id) { color = 'blue' }
+        window.requestAnimationFrame(() => n.node.style.backgroundColor = color)
+    }
+  }
+
+  this.current.nodes = nodes
 }
 
 Planning.prototype.displayTravail = function (travaux) {
@@ -559,15 +546,7 @@ Planning.prototype.displayTravail = function (travaux) {
       window.requestAnimationFrame(() => {
         this.views.project.appendChild(div)
       })
-      div.addEventListener('dragstart', (event) => {
-        DNDWorkaround = event.target.id
-        event.dataTransfer.setData('application/travail-id', event.target.id)
-        event.dataTransfer.setData('text/plain', `Travail ID ${event.target.id}`)
 
-        let node = event.target
-        for (; node && !node.classList.contains('travail'); node = node.parentNode) ;
-        this.openTravail(node)
-      })
       div.addEventListener('click', (event) => {
         let node = event.target
         for (; node && !node.classList.contains('travail'); node = node.parentNode) ;
@@ -588,10 +567,6 @@ Planning.prototype.closeOthers = function (node) {
   }
 }
 
-Planning.prototype.closeTravail = function () {
-  this.current.travail = null
-}
-
 Planning.prototype.resetCurrent = function () {
   this.current = {}
   this.current.days = 0x3E /* bit 0 -> sunday, bit 6 -> saturday */
@@ -600,6 +575,8 @@ Planning.prototype.resetCurrent = function () {
   this.current.events = {}
   this.current.cleanList = new Array()
   this.current.nodes = null
+  this.current.wnode = null
+  this.current.tnode = null
 }
 
 Planning.prototype.openTravail = function (node) {
@@ -635,6 +612,7 @@ Planning.prototype.openTravail = function (node) {
                                 <li><span class="label">Contact</span>${result.data.contact}</li>
                                 <li><span class="label">Téléphone</span>${result.data.phone}</li>
                              </ul>`
+        this.current.tnode = node
         window.requestAnimationFrame(() => node.classList.add('selected'))
         if (node.lastChild && node.lastChild.classList.contains('details')) {
           window.requestAnimationFrame(() => node.replaceChild(details, node.lastChild))
@@ -644,6 +622,20 @@ Planning.prototype.openTravail = function (node) {
       })
     }
   })
+}
+
+Planning.prototype.removeTravail = function () {
+  let node = this.current.tnode
+  if (!node) { return }
+  window.requestAnimationFrame(() => { if (node.parentNode) { node.parentNode.removeChild(node) } })
+  this.current.travail = null
+}
+
+Planning.prototype.closeTravail = function () {
+  let node = this.current.tnode
+  if (!node) { return }
+  window.requestAnimationFrame(() => node.classList.remove('selected'))
+  this.current.travail = null
 }
 
 Planning.prototype.nextColor = function () {

@@ -8,7 +8,7 @@ window.KAAL = {
     },
     work: {
         day: 504.0, // minutes
-        min: 15.0, // minimal job time, minutes
+        min: 30.0, // minimal job time, minutes
         getDay: function (unit = 's') {
             switch (unit) {
                 default: case 's': case 'S': return KAAL.work.day * 60
