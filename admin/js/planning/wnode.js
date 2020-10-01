@@ -9,40 +9,51 @@ function WNode (personId, date = null) {
         date: date,
         personId: personId
     }
+    this.TSegs = []
+
+    /* one wnode is head, in that case, _next is first and _previous is last */
+    this._head = null
+    this._next = null
+    this._previous = null
+    this.time = 0.0
     this._generateDom()
-    this._register()
 
     let proxy = new Proxy(this, {
         set: (object, property, value) => {
-            console.log(object,property)
             if (object.hasOwnProperty(property)) {
                 object[property] = value
-                return
+                return true
             }
             switch (property) {
-                default: object.domNode[property] = value; return
+                default: object.domNode[property] = value; return true
             }
+            return false
         },
         get: (object, property) => {
+            switch (property) {
+                case 'id': return object.getId()
+            }
             let retval = Reflect.get(object, property)
-            if (retval) {
+            if (retval !== undefined) {
                 if (typeof(retval) === 'function') {
                     retval.bind(object)
                 }
-            } else {
-                retval = Reflect.get(object['domNode'], property)
+            } else if ((retval = Reflect.get(object['domNode'], property)) !== undefined) {
                 if (typeof(retval) === 'function') {
                     retval.bind(object['domNode'])
                 }
+            } else {
+                retval = Reflect.get(object.data, property)
             }
             return retval
         }
     })
+    this._register(proxy)
     return proxy
 }
 
 WNode.idFromTSeg = function (tseg) {
-    return `${tseg.get('person')}+${tseg.get('date')}`
+    return `${tseg.person}+${tseg.date}`
 }
 
 WNode.getWNodeByDomNode = function (domNode) {
@@ -53,17 +64,40 @@ WNode.getWNodeByDomNode = function (domNode) {
     return null
 }
 
-WNode.prototype.addEventListener = function (event, callback, options) {
-    switch (event) {
-        default: this.domNode.addEventListener(event, callback.bind(this), options); break
+WNode.getWNodeById = function (id) {
+    if (KAAL.wnodes === undefined) { return null }
+    for (const value of Object.values(KAAL.wnodes)) {
+        if (value.getId() === id) {
+            return value
+        }
+    }
+    return null
+}
+
+WNode.prototype.gotoDate = function (date) {
+    let c = null
+    if (this._head === null) {
+        c = this._next
+    } else {
+        c = this._head._next       
+    }
+    while (c !== null) {
+        if (c.date.toISOString().split('T')[0] === date) { return c }
+        c = c._next
     }
 }
 
-WNode.prototype._register = function () {
+WNode.prototype.addEventListener = function (event, callback, options) {
+    switch (event) {
+        default: this.domNode.addEventListener(event, (event) => { callback(event) }, options); break
+    }
+}
+
+WNode.prototype._register = function (proxy) {
     if (KAAL.wnodes === undefined) {
         KAAL.wnodes = {}
     }
-    KAAL.wnodes[this.getId()] = this
+    KAAL.wnodes[this.getId()] = proxy
 }
 
 WNode.prototype._unregister = function () {
@@ -74,6 +108,7 @@ WNode.prototype._unregister = function () {
 }
 
 WNode.prototype._generateDom = function () {
+    this.domNode.setAttribute('draggable', 'true')
     this.domNode.classList.add('box')
     if (this.data.date === null) {
         this.domNode.classList.add('user')
@@ -89,7 +124,7 @@ WNode.prototype.getId = function () {
     if (this.data.date === null) {
         return `${this.data.personId}+head`
     } else {
-        return `${this.data.personId}-${this.data.date.toISOString().split('T')[0]}`
+        return `${this.data.personId}+${this.data.date.toISOString().split('T')[0]}`
     }
 }
 
@@ -107,10 +142,68 @@ WNode.prototype.addToDom = function (parent) {
 }
 
 WNode.prototype.appendChild = function (node) {
-    if (node instanceof WNodes) {
-        node.addToTom(this.domNode)
+    if (typeof node.addToDom === 'function') {
+        node.addToDom(this.domNode)
     } else {
         window.requestAnimationFrame(() => this.domNode.appendChild(node))    
     }
+}
 
+WNode.prototype.highlight = function () {
+    window.requestAnimationFrame(() => this.domNode.classList.add('highlight'))
+}
+
+WNode.prototype.nolight = function () {
+    windows.requestAnimationFrame(() => this.domNode.classList.remove('highlight'))
+}
+
+WNode.prototype.fill = function (time) {
+    if (KAAL.work.getDay() - this.time < KAAL.work.getMin()) {
+        return false
+    }
+    this.time += time
+    return true    
+}
+
+WNode.prototype.hasPlace = function (time) {
+    if (KAAL.work.getDay() - this.time < KAAL.work.getMin()) {
+        return false
+    } else {
+        return true
+    }
+}
+
+WNode.prototype.addTSeg = function (tseg) {
+    if (tseg.order === 0) {
+        tseg.order = this.TSegs.push(tseg)
+        tseg.commit()
+    } else {
+        let pos = tseg.order - 1
+        if (this.TSegs[pos] !== undefined) {
+            let nextSlot = pos + 1
+            while (this.TSegs[nextSlot] !== undefined) {
+                nextSlot++
+            }
+            this.TSegs[nextSlot] = this.TSegs[pos]
+            this.TSegs[nextSlot].order = nextSlot + 1
+            this.TSegs[nextSlot].commit()
+            this.TSegs[pos] = tseg
+        }
+    }
+    
+    let before = this.TSegs[tseg.order]
+    if (before !== undefined) { before = before.domNode}
+    this.time += tseg.time
+    this.domNode.insertBefore(tseg.domNode, before)
+}
+
+/* to extend */
+WNode.prototype.getPerson = function () {
+    let head = this._head
+    if (head === null) { head = this }
+    return { id: head.data.personId, efficiency: head.data.efficiency }
+}
+
+WNode.prototype.weekDay = function () {
+    return Math.pow(2, this.date.getDay())
 }

@@ -1,79 +1,137 @@
 /* registry for tseg */
-function TSegs () {
+function TSegs() {
     this.TSegs = {}
     this.TSegsByNode = {}
     this.TSegsByTravail = {}
 }
 
-TSegs.prototype.add = function (tseg, toId) {
+TSegs.neededSegment = function (travail, person) {
+    let workday = KAAL.work.getDay('s')
+    if (person.workday) {
+        workday = person.workday
+    }
+    let travailTime = travail.time * travail.force
+    return Math.ceil((travailTime / person.efficiency) / workday)
+}
+
+TSegs.averageTime = function (travail, people) {
+    if (!Array.isArray(people)) {
+        people = [people]
+    }
+
+    let travailTime = travail.time * travail.force
+    let averageTime = 0
+    let smallestWorkDay = KAAL.work.getDay('s')
+    for (let i = 0; i < people.length; i++) {
+        averageTime += (travailTime / people[i].efficiency)
+        if (people[i].workday && smallestWorkDay > people[i].workday) {
+            smallestWorkDay = people[i].workday
+        }
+    }
+    averageTime /= people.length
+
+    return [averageTime, smallestWorkDay]
+}
+
+TSegs.prototype.getById = function (tsegid) {
+    if (this.TSegs[tsegid]) {
+        return this.TSegs[tsegid]
+    }
+    return undefined
+}
+
+TSegs.prototype.generateList = function (travail, people) {
+    if (!Array.isArray(people)) {
+        people = [people]
+    }
+
+    let [averageTime, smallestWorkDay] = TSegs.averageTime(travail, people)
+    let segsNeeded = Math.ceil(averageTime / smallestWorkDay)
+    let gHead = null // group head
+    for (let i = 0; i < people.length; i++) {
+        let head = null
+        for (let j = 0; j < segsNeeded; j++) {
+            let tseg = new TSeg({
+                person: people[i].id,
+                travail: travail.id,
+                locked: false,
+                time: averageTime - (j * smallestWorkDay)
+            })
+            if (head === null) {
+                head = tseg
+            } else {
+                let c = head
+                for (; c._next !== null; c = c._next);
+                c._next = tseg
+                tseg._previous = c
+            }
+        }
+        if (gHead === null) {
+            gHead = head
+        } else {
+            let c = gHead
+            for (; c._down !== null; c = c._down);
+            c._down = head
+            head._up = c
+        }
+    }
+
+    return gHead
+}
+
+TSegs.prototype.add = function (tseg) {
     if (!tseg || !tseg instanceof TSeg) { return }
-    
     tseg.commit().then(() => {
         if (!this.TSegs[tseg.id]) {
             this.TSegs[tseg.id] = tseg
         } else {
             this.TSegs[tseg.id].refresh(tseg)
         }
-    let node = document.getElementById(`${tseg.get('person')}+${tseg.get('date')}`)
-    if (node) {
-        if (!this.TSegs[node.id]) {
-        this.TSegs[node.id] = []
+
+        if (!this.TSegsByNode[WNode.idFromTSeg(tseg)]) {
+            this.TSegsByNode[WNode.idFromTSeg(tseg)] = []
+        }
+        if (this.TSegsByNode[WNode.idFromTSeg(tseg)].indexOf(tseg.id) === -1) {
+            this.TSegsByNode[WNode.idFromTSeg(tseg)].push(tseg.id)
         }
 
-        let found = false
-        if (tseg.get('id') !== null) {
-        for (let i in this.TSegs[node.id]) {
-            if (this.TSegs[node.id][i].get('id') === tseg.get('id')) {
-            found = true
-            this.TSegs[node.id][i].fromObject(tseg.toObject())
-            }
+        if (!this.TSegsByTravail[tseg.travail]) {
+            this.TSegsByTravail[tseg.travail] = []
         }
+        if (this.TSegsByTravail[tseg.travail].indexOf(tseg.id) === -1) {
+            this.TSegsByTravail[tseg.travail].push(tseg.id)
         }
-        if (!tseg.data.domNode) {
-        let node = document.getElementById(tseg.data.id)
-        if (node) {
-            tseg.data.domNode = node
-        }
-        }
-        let segDom
-        if (found) {
-        segDom = tseg.data.domNode
-        } else {
-        this.TSegs[node.id].push(tseg)
-        if(!this.TSegByTravail[tseg.data.travail]) {
-            this.TSegByTravail[tseg.data.travail] = []
-        }
-        this.TSegByTravail[tseg.data.travail].push(tseg)
-        this.nodeAddTime(node, tseg.get('time'))
 
-        segDom = tseg.newDom()
-        window.requestAnimationFrame(() => {
-            node.appendChild(segDom)
-        })
-        }
-        if (!segDom) { return }
+        this._installEvents(tseg)
 
-        segDom.addEventListener('mouseover', event => {
-        window.requestAnimationFrame(() => {
-            event.target.style.backgroundColor = 'green'
-        })
-        if (this.TSegByTravail[event.target.dataset.travail]) {
-            this.TSegByTravail[event.target.dataset.travail].forEach(tseg => {
-            window.requestAnimationFrame(() => tseg.data.domNode.style.backgroundColor = 'green')
-            })
-        }
-        })
-        segDom.addEventListener('mouseout', event => {
-        window.requestAnimationFrame(() => {
-            event.target.style.backgroundColor = ''
-            if (this.TSegByTravail[event.target.dataset.travail]) {
-            this.TSegByTravail[event.target.dataset.travail].forEach(tseg => {
-                window.requestAnimationFrame(() => tseg.data.domNode.style.backgroundColor = '')
-            })
-            }
-        })
-        })
-    }
+        let wnode = WNode.getWNodeById(WNode.idFromTSeg(tseg))
+        wnode.addTSeg(tseg)
     })
+}
 
-  }
+TSegs.prototype._installEvents = function (tseg) {
+    tseg.addEventListener('mouseover', event => {
+        if (this.TSegs[event.target.id] === undefined) { return }
+        let tseg = this.TSegs[event.target.id]
+        tseg.highlight()
+        if (this.TSegsByTravail[tseg.travail]) {
+            this.TSegsByTravail[tseg.travail].forEach (id => {
+                if (tseg.id !== id) {
+                    this.TSegs[id].lowlight()
+                }
+            })
+        }
+    })
+    tseg.addEventListener('mouseout', event => {
+        if (this.TSegs[event.target.id] === undefined) { return }
+        let tseg = this.TSegs[event.target.id]
+        tseg.nolight()
+        if (this.TSegsByTravail[tseg.travail]) {
+            this.TSegsByTravail[tseg.travail].forEach (id => {
+                if (tseg.id !== id) {
+                    this.TSegs[id].nolight()
+                }
+            })
+        }
+    })
+}

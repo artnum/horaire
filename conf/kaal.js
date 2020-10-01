@@ -1,4 +1,5 @@
 window.KAAL = {
+    base: '/horaire/',
     domId: function () {
         if (KAAL.domIdCount === undefined) {
             KAAL.domIdCount = 0
@@ -26,6 +27,17 @@ window.KAAL = {
     search: {
         liveLimit: '20' // les recherches lors de la saisie sont limitées en nombre de résultat
     },
-    fetch: window.fetch.bind(window), // fonction pour les requêtes
-    fetchOpts: {}, // parametre pour fetch
+    getBase: () => {
+        return `${window.location.origin}/${KAAL.base}`
+    },
+    fetch: (url, options = {}) => {
+        if (options.headers === undefined) {
+            options.headers = new Headers({'X-Request-Id': `${new Date().getTime()}-${performance.now()}`})
+        } else {
+            if (!options.headers.has('X-Request-Id')) {
+                options.headers.append('X-Request-Id', `${new Date().getTime()}-${performance.now()}`)
+            }
+        }
+        return fetch(url, options)
+    }
 }

@@ -47,19 +47,17 @@ body {
     width: var(--box-size) !important;
 }
 
+.lowlight {
+    background-color: green !important;
+}
+
+.highlight {
+    background-color: lightgreen !important;
+}
+
 .line .box.day {
     border-left: 1px dotted black;
 }
-
-/*.day.box[data-dragover="1"] {
-    border-color: red;
-    background-color: red !important;
-}
-
-.day.box.weekend[data-dragover="1"] {
-    background-color: rgba(255,0 ,0, 0.5) !important;
-}
-*/
 
 *[data-dragging] {
     opacity: 0.5;
@@ -74,6 +72,8 @@ body {
     padding: 0;
     margin: 0;
     width: calc(100%-4px);
+    font-family: 'B612', sans-serif;
+    font-size: 8pt;
 }
 
 .travail {

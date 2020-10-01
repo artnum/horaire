@@ -1,4 +1,7 @@
 /* eslint-env browser */
+
+/* workaround bugs in google chrome */
+var DNDWorkaround = null
 Date.prototype.getWeekNumber = function () {
   let d = new Date(Date.UTC(this.getFullYear(), this.getMonth(), this.getDate()))
   let dayNum = d.getUTCDay() || 7
@@ -26,202 +29,8 @@ function RelURL (url) {
   return new URL(`${window.location.origin}/${component}/${url}`)
 }
 
-function TSeg (args) {
-  this.data = {}
-  this.saved = false
-  this.deleted = false
-  this.accessed = 0
-  for (let k in args) {
-    this.data[k] = args[k]
-  }
-  this.modified = performance.now()
-}
-
-TSeg.prototype.lock = function () {
-  this.locked = true
-}
-
-TSeg.prototype.unlock = function () {
-  this.locked = false
-}
-
-TSeg.prototype.fromObject = function (o) {
-  if (o.id) {
-    this.data.dbId = o.id
-  }
-  this.data.id = this.domId()
-
-  if (o.date) {
-    this.data.date = o.date
-  }
-  if (o.travail) {
-    this.data.travail = `Travail/${o.travail}`
-  }
-  if (o.person) {
-    this.data.person = `Person/${o.person}`
-  }
-  if (o.time) {
-    this.data.time = parseFloat(o.time)
-  }
-  if (o.efficiency) {
-    this.data.efficiency = parseFloat(o.efficiency)
-  }
-  if (o.color) {
-    this.data.color = o.color
-  }
-  this.saved = true
-
-  return this
-}
-
-TSeg.prototype.duplicate = function () {
-  let newTseg = this.toObject()
-  newTseg.deleted = false
-  newTseg.saved = false
-  newTseg.locked = false
-  newTseg.id = null
-  return (new TSeg()).fromObject(newTseg)
-}
-
-TSeg.prototype.toObject = function () {
-  let o = {}
-  if (this.data.dbId !== null) { o.id = this.data.dbId }
-  if (this.data.date) { o.date = this.data.date }
-  if (this.data.person) {
-    o.person = this.data.person.split('/')[1]
-  }
-  if (this.data.travail) {
-    o.travail = this.data.travail.split('/')[1]
-  }
-  if (this.data.time) {
-    o.time = this.data.time
-  }
-  if (this.data.color) {
-    o.color = this.data.color
-  }
-  if (this.data.efficiency) {
-    o.efficiency = this.data.efficiency
-  }
-  return o
-}
-
-TSeg.prototype.toJson = function () {
-  return JSON.stringify(this.toObject())
-}
-
-TSeg.prototype.set = function (prop, val) {
-  this.data[prop] = val
-  this.modified = performance.now()
-  this.saved = false
-}
-
-TSeg.prototype.get = function (prop) {
-  this.accessed = performance.now()
-  return this.data[prop]
-}
-
-TSeg.prototype.delete = function () {
-  this.deleted = performance.now()
-}
-
-/* commit return true if tseg must be kept and false if not */
-TSeg.prototype.commit = function () {
-  return new Promise((resolve, reject) => {
-    if (this.deleted && this.data.dbId) {
-      fetch(RelURL(`TSeg/${this.data.dbId}`), {credential: 'include', headers: {'X-Request-Id': new Date().getTime()}, method: 'DELETE'})
-        .then((response) => {
-          resolve(false) // handle error later
-        })
-    } else if (this.deleted && !this.data.dbId) {
-      resolve(false)
-    } else if (this.saved && this.data.dbId) {
-      resolve(true) // is saved
-    } else if (!this.saved && this.data.dbId) {
-      fetch(RelURL(`TSeg/${this.data.dbId}`),
-            {credential: 'include',
-             headers: {'X-Request-Id': new Date().getTime()},
-             method: 'PUT',
-             body: this.toJson()}).then((response) => {
-               if (response.ok) {
-                 response.json().then((data) => {
-                   this.saved = true
-                   resolve(true)
-                 })
-               } else {
-                 resolve(false)
-               }
-             })
-    } else if (!this.saved && !this.data.dbId) {
-      fetch(RelURL(`TSeg`),
-            {credential: 'include',
-             headers: {'X-Request-Id': new Date().getTime()},
-             method: 'POST',
-             body: this.toJson()}).then((response) => {
-              if (response.ok) {
-                response.json().then((data) => {
-                  this.saved = true
-                  this.data.dbId = data.data[0].id
-                  resolve(true)
-                })
-              } else {
-                resolve(false)
-              }
-            })
-    }
-  })
-}
-
-TSeg.prototype.domId = function () {
-  if (this.data.dbId === undefined) {
-    this.data.id = KAAL.domId()
-  } else {
-    this.data.id = `tseg-${this.data.dbId}`
-  }
-  return this.data.id
-}
-
-TSeg.prototype.removeDom = function () {
-  if (this.data.domNode) {
-    let d = this.data.domNode
-    delete this.data.domNode
-    window.requestAnimationFrame(() => {
-      if (d.parentNode) {
-        d.parentNode.removeChild(d)
-      }
-    })
-  }
-}
-
-TSeg.prototype.newDom = function (maxTime) {
-  let subnode = document.createElement('DIV')
-  this.removeDom()
-  let height = this.data.time * 100 / KAAL.work.getDay()
-  subnode.id = this.domId()
-  subnode.classList.add('travailMark')
-  subnode.style.backgroundColor = this.data.color
-  subnode.style.maxHeight = `calc(${height}% - 4px)`
-  subnode.style.minHeight = `calc(${height}% - 4px)`
-  subnode.style.height = `calc(${height}% - 4px)`
-  subnode.innerHTML = `${this.data.time / 3600}`
-  subnode.setAttribute('draggable', 'true')
-  subnode.dataset.travail = this.data.travail
-
-  this.data.domNode = subnode
-  this.data.domNode.addEventListener('dragstart', (event) => {
-    event.dataTransfer.setData('application/segment-id', this.get('id'))
-    let node = event.target
-    for (; node && node.nodeName !== 'DIV'; node = node.parentNode) ;
-    node.dataset.dragging = '1'
-  })
-  this.data.domNode.addEventListener('dragend', (event) => {
-    let node = event.target
-    for (; node && node.nodeName !== 'DIV'; node = node.parentNode) ;
-    delete node.dataset.dragging
-  })
-  return this.data.domNode
-}
-
 function Planning (options) {
+  this.TSegs = new TSegs()
   this.views = {
     planning: document.getElementById('rightPane'),
     project: document.getElementById('leftPane')
@@ -249,8 +58,10 @@ function Planning (options) {
     this.Week = new Date().getWeekNumber()
     this.Year = new Date().getFullYear()
   }
+
+  this.resetCurrent()
   this.installUI()
-  this.boxSize = `calc(((100% - 120px) / ${this.Days}) - 1px)`
+  document.documentElement.style.setProperty('--box-size', `calc((100% / ${this.Days+1}) - 4px)`)
 }
 
 Planning.prototype.PBar = function () {
@@ -270,28 +81,16 @@ Planning.prototype.PBar = function () {
               }
             })
   })
-  
-  this.views.project.addEventListener('dragover', event => {
-    if (!event.dataTransfer.getData('application/segment-id')) { return }
-    event.preventDefault()
-    event.target.style.backgroundColor = 'red'
-  })
-
-
-  this.views.project.addEventListener('drop', event => {
-    if (!event.dataTransfer.getData('application/segment-id')) { return }
-    let tseg = this.getTSegById(event.dataTransfer.getData('application/segment-id'))
-    this.getRelatedTSegs(tseg).forEach(tseg => {
-      this.deleteTSeg(tseg)
-    })
-
-  })
 
   div.appendChild(i)
   this.views.project.parentNode.insertBefore(div, this.views.project)
 }
 
 Planning.prototype.zoom = function (nDay) {
+  if (this.zoom.last) {
+    if (performance.now() - this.zoom.last < 250) { return}
+  } 
+  this.zoom.last = performance.now()
   if (this.TSegTimeout) {
     clearTimeout(this.TSegTimeout)
   }
@@ -300,7 +99,7 @@ Planning.prototype.zoom = function (nDay) {
   } else if (nDay > 0 && this.Days < 180) {
     this.Days += nDay
   }
-  this.boxSize = `calc(((100% - 124px) / ${this.Days}) - 1px)`
+  document.documentElement.style.setProperty('--box-size', `calc((100%  / ${this.Days+1}) - 4px)`)
   this.TSegTimeout = setTimeout(() => {
     this.loadTSeg().then(() => {
       this.TSegTimeout = null
@@ -482,8 +281,115 @@ Planning.prototype.getTSegById = function (tsegid) {
   return undefined
 }
 
+/* return an array of double-linked list of nodes we can look for */
+Planning.prototype.getNodesForTravail = function (date, travail, people, days = 0x3E) {
+  /* find a set of node to fill with worktime */
+  let [averageTime, maxDayTime] = TSegs.averageTime(travail, people)
+  let firstNode = []
+  let peoplesNodes = []
+  let moreWNodes = false
+  let skippedStart = 0
+  for (let person of people) {
+    let wnode = WNode.getWNodeById(`${person.id}+head`)
+    if (wnode) {
+      peoplesNodes.push(wnode)
+      wnode = wnode.gotoDate(date)
+      while (wnode && !(days & wnode.weekDay())) { 
+        wnode = wnode._next 
+        skippedStart++
+      }
+      if (wnode) {
+        firstNode.push(wnode)
+      } else {
+        break
+      }
+    }
+  }
+
+  let leftTime = averageTime
+  let lists = new Array(firstNode.length)
+  let endOfNodes = false
+  let loopStart = performance.now()
+  while (leftTime > 0) {
+    // BUG some logic fail, workaround for now
+    if (performance.now() - loopStart > 800) { break }
+    let availableTime = Infinity
+    for (let i = 0; i < firstNode.length; i++) {
+      if (firstNode[i] === null) { endOfNodes = true; continue }
+      if (lists[i] === undefined) {
+        lists[i] = new DLList()
+      }
+      let node = firstNode[i]
+      firstNode[i] = firstNode[i]._next
+      if (!(node.weekDay() & days)) {
+        continue // skip unselected days
+      }
+
+      lists[i].add({ node: node, time: 0 })
+      if (maxDayTime - node.time > KAAL.work.getMin('s')) {
+        if (node.time < availableTime) {
+          availableTime = maxDayTime - node.time
+        }
+      }
+    }
+
+    if (availableTime === Infinity) {
+      if (endOfNodes) { 
+        moreWNodes = Math.ceil(leftTime / KAAL.work.getDay('s'))
+        break 
+      }
+    } else if (availableTime > 0) {
+      let time = 0
+      if (availableTime < leftTime) {
+        time = availableTime
+      } else {
+        time = leftTime
+      }
+      for (let i = 0; i < lists.length; i++) {
+        let d = lists[i].getCurrent()
+        d.time = time
+        lists[i].setCurrent(d)
+      }
+      leftTime -= availableTime
+    } else {
+      for (let i = 0; i < lists.length; i++) {
+        lists[i].removeCurrent()
+      }
+    }
+  }
+  if (moreWNodes) {
+    if (skippedStart) {
+      this.zoom(skippedStart)
+    } else {
+      this.zoom(moreWNodes + 1) // an emty day after
+    }
+  }
+  return lists
+}
+
+Planning.prototype.travailOver = function () {
+  /* travail must be open */
+  if (this.current.travail === null) { return }
+  if (this.current.people.length === 0) { return }
+
+  let lists = this.getNodesForTravail(this.current.travail, this.current.people)
+
+}
+
+Planning.prototype.cleanNodesInList = function () {
+  for (let i = 0; i < this.current.cleanList.length; i++) {
+    let n = this.current.cleanList[i]
+    window.requestAnimationFrame(() => {
+      if (n.node) {
+        n.node.style.backgroundColor = ''
+      }
+    })
+  }
+  this.current.cleanList = []
+}
+
 Planning.prototype.draw = function () {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => { 
     let days = this.Days ? this.Days : 7
     let header = document.createElement('DIV')
     header.id = 'planingHeader'
@@ -501,7 +407,6 @@ Planning.prototype.draw = function () {
         if (x.getDay() === 0 || x.getDay() === 6) {
           col.classList.add('weekend')
         }
-        col.style.width = this.boxSize
         col.classList.add('day')
       }
       col.classList.add('box')
@@ -521,24 +426,30 @@ Planning.prototype.draw = function () {
       div.dataset.efficiency = parseFloat(user.efficiency)
       div.id = `Person/${user.id}`
       div.classList.add('line')
+      let head = null
       for (let i = 0; i <= days; i++) {
-        let subDiv = document.createElement('DIV')
+        let wnode 
         if (i === 0) {
-          subDiv.id = `${div.id}+head`
-          subDiv.classList.add('user')
-          subDiv.innerHTML = `<span class="name">${user.name}</span>`
+          wnode = new WNode(div.id)
+          wnode.innerHTML = `<span class="name">${user.name}</span>`
+          wnode.data.efficiency = parseFloat(user.efficiency)
+          head = wnode
         } else {
-          let x = new Date(Date.getStartISOWeek(this.Week, this.Year).getTime() + ((i - 1) * 86400000))
-          x.setHours(12, 0, 0)
-          subDiv.id = `${div.id}+${x.toISOString().split('T')[0]}`
-          subDiv.dataset.date = x.toISOString()
-          if (x.getDay() === 0 || x.getDay() === 6) {
-            subDiv.classList.add('weekend')
+          let date = new Date(Date.getStartISOWeek(this.Week, this.Year).getTime() + ((i - 1) * 86400000))
+          date.setHours(12, 0, 0)
+
+          wnode = new WNode(div.id, date)
+          wnode._head = head
+          if (head._next === null) {
+            head._next = wnode
+            head._previous = wnode
+          } else {
+            wnode._previous = head._previous
+            head._previous._next = wnode
+            head._previous = wnode
           }
-          subDiv.classList.add('day')
-          subDiv.style.width = this.boxSize
-          if (this.TSeg[subDiv.id]) {
-            this.TSeg[subDiv.id].forEach((tseg) => {
+          if (this.TSeg[wnode.getId()]) {
+            this.TSeg[wnode.getId()].forEach((tseg) => {
               if (tseg.domNode) {
                 subDiv.appendChild(tseg.domNode)
                 this.nodeAddTime(subDiv, tseg.get('time'))
@@ -549,8 +460,14 @@ Planning.prototype.draw = function () {
             })
           }
         }
-        subDiv.classList.add('box')
-        subDiv.addEventListener('dragover', (event) => {
+        
+        wnode.addEventListener('dragenter', event => {
+          let dataTransfer = event.dataTransfer.getData('application/travail-id') || event.dataTransfer.getData('application/segment-id') || DNDWorkaround
+          if (dataTransfer) {
+            event.preventDefault()
+          }
+        })
+        wnode.addEventListener('dragover', (event) => {
           let node = event.target
           while (node && (node.nodeName !== 'DIV' || node.classList.contains('travailMark'))) { node = node.parentNode }
           if (node.classList.contains('user')) { node = node.nextElementSibling }
@@ -560,154 +477,82 @@ Planning.prototype.draw = function () {
           let days = 0
           let bgcolor = event.dataTransfer.getData('drag/css-color') || 'red'
 
-          if (event.dataTransfer.getData('application/travail-id')) {
-            let tNode = document.getElementById(event.dataTransfer.getData('application/travail-id'))
-            if (!tNode) { return }
-            days = ((parseFloat(tNode.dataset.time) / this.HoursPerDay) * parseFloat(tNode.dataset.force)) / parseFloat(parent.dataset.efficiency)
-          } else if (event.dataTransfer.getData('application/segment-id')) {
-            let tsegs
-            let tseg = this.getTSegById(event.dataTransfer.getData('application/segment-id'))
-            if (!tseg) { return }
-            tsegs = this.getTSegsByAttribute('travail', tseg.get('travail'))
-            days = 0
-            if (tsegs.length <= 0) { return }
-            let people = 1
-            if (event.shiftKey) {
-              let p = []
-              for (let tseg of tsegs) {
-                if (p.indexOf(tseg.get('person')) === -1) {
-                  people++
-                  p.push(tseg.get('person'))
-                }
+          let dataTransfer = event.dataTransfer.getData('application/travail-id') || event.dataTransfer.getData('application/segment-id') || DNDWorkaround
+          if (!dataTransfer) { return }
+          event.preventDefault()
+          this.cleanNodesInList()
+
+          let dnode = event.target
+          let wnode
+          while (dnode && !(wnode = WNode.getWNodeByDomNode(dnode))) {
+            dnode = dnode.parentNode
+          }
+
+          let person = wnode.getPerson()
+          if (event.shiftKey && !this.current.events.shift) {
+            this.current.events.shift = true
+          }
+          if (!event.shiftKey && this.current.events.shift) {
+            this.current.events.shift = false
+            let remove = false
+            for (let i = 0; i < this.current.people.length; i++) {
+              if (this.current.people[i].id === person.id) {
+                this.current.people.splice(i, 1)
+                remove = true
               }
             }
-            for (let tseg of tsegs) {
-              bgcolor = tseg.get('domNode').style.backgroundColor
-              let currentEfficiency = parseFloat(parent.dataset.efficiency)
-              let time = tseg.get('time') * tseg.get('efficiency')
-              days += (time / people) / currentEfficiency / this.HoursPerDay
+            if (!remove) {
+              this.current.people.push(person)
             }
-          } else {
-            return
           }
-          event.preventDefault()
-
-          if (node.classList.contains('weekend')) {
-            let realNode = node
-            if (realNode.previousElementSibling &&
-                !realNode.previousElementSibling.classList.contains('weekend')) {
-              node = realNode.previousElementSibling
-            } else if (realNode.nextElementSibling &&
-                       !realNode.nextElementSibling.classList.contains('weekend')) {
-              node = realNode.nextElementSibling
+          if (event.ctrlKey) {
+            if (!(this.current.days & 0x40)) {
+              this.current.days |= 0x40 // add saturday
+            } else if (!(this.current.days & 0x01)) {
+              this.current.days |= 0x01 // add sunday
             } else {
-              while (realNode && realNode.classList.contains('weekend')) { realNode = realNode.previousElementSibling }
-              if (!realNode) {
-                while (realNode && realNode.classList.contains('weekend')) { realNode = realNode.nextElementSibling }
-              }
-              if (!realNode) { return }
-              node = realNode
+              this.current.days = 0x3E // reset to week day
+            }
+          }
+          let people = [person]
+          for (let i  = 0; i < this.current.people.length; i++) {
+            if (this.current.people[i].id !== person.id) {
+              people.push(this.current.people[i])
+            }
+          }
+          let date
+          if (wnode._head === null) {
+            date = wnode._next.date.toISOString().split('T')[0]
+          } else {
+            date = wnode.date.toISOString().split('T')[0]
+          }
+          let nodes = this.getNodesForTravail(date, this.current.travail, people, this.current.days)
+          for (let i = 0; i < nodes.length; i++) {
+            for (let n = nodes[i].first(); n; n = nodes[i].next()) {
+                this.current.cleanList.push(n)
+                let color = 'red'
+                if (n.node.personId !== person.id) { color = 'blue' }
+                window.requestAnimationFrame(() => n.node.style.backgroundColor = color)
             }
           }
 
-          while (node && this.nodeFullness(node) >= this.HoursPerDay) { node = node.nextElementSibling }
-          if (!node) { return }
+          this.current.nodes = nodes
+          return false
+        })
 
-          while (days > 0 && node) {
-            if (node.classList.contains('weekend')) {
-              node = node.nextElementSibling
-              continue
-            }
-            let fullness = this.nodeFullness(node)
-            if (fullness < this.HoursPerDay) {
-              let s = node
-              window.requestAnimationFrame(() => {
-                s.style.backgroundColor = bgcolor
-              })
-              node.dataset.dragover = '1'
-              days -= (1 - (1 * fullness / this.HoursPerDay))
-              if (days < (this.Tolerance / this.HoursPerDay) && days > 0) {
-                console.log('Cross tolerance limit', days, this.Tolerance / this.HoursPerDay)
-                days = this.Tolerance / this.HoursPerDay
-              }
-            }
-            node = node.nextElementSibling
-          }
-          if (days > 0) {
-            this.zoom(Math.ceil(days))
-          }
-        })
-        subDiv.addEventListener('dragleave', (event) => {
-          let node = event.target
-          while (node && (!node.classList || !node.classList.contains('line'))) { node = node.parentNode }
-          node = node.firstElementChild
-          while (node) {
-            let n = node
-            if (n.dataset.dragover) {
-              delete node.dataset.dragover
-              window.requestAnimationFrame(() => {
-                n.style.backgroundColor = ''
-              })
-            }
-            node = node.nextElementSibling
-          }
-        })
-        subDiv.addEventListener('drop', (event) => {
-          if (event.dataTransfer.getData('application/segment-id')) {
-            return this.tsegDrop(event)
-          }
-          let node = event.target
-          while (node.nodeName !== 'DIV') { node = node.parentNode }
-          let transfer = event.dataTransfer.getData('application/travail-id')
-          if (!transfer) { return }
+        wnode.addEventListener('drop', (event) => {       
+          let dataTransfer = event.dataTransfer.getData('application/travail-id') || event.dataTransfer.getData('application/segment-id') || DNDWorkaround
+          DNDWorkaround = null
+
+          if (!dataTransfer) { return }
           event.preventDefault()
-          let bgcolor = event.dataTransfer.getData('drag/css-color')
 
-          /* Prepare color */
-          this.nextColor()
-
-          let tNode = document.getElementById(transfer)
-          if (!tNode) { return }
-          while (node && !node.classList.contains('line')) { node = node.parentNode }
-          let totalTime = parseFloat(tNode.dataset.time) * parseFloat(tNode.dataset.force) / parseFloat(node.dataset.efficiency)
-          let atEfficiency = parseFloat(node.dataset.efficiency)
-          for (node = node.firstElementChild;
-               node;
-               node = node.nextElementSibling) {
-            let n = node
-            if (node.dataset.dragover) {
-              let nodeHours = this.HoursPerDay - this.nodeFullness(node)
-              node.dataset.travail = tNode.dataset.travail
-              let nodeTime = totalTime
-              if (totalTime > nodeHours) {
-                totalTime -= nodeHours
-                nodeTime = nodeHours
-              }
-              let tseg = new TSeg({
-                date: node.id.split('+')[1],
-                person: node.id.split('+')[0],
-                travail: transfer,
-                locked: false,
-                id: null,
-                deleted: false,
-                saved: false,
-                time: nodeTime,
-                color: bgcolor,
-                efficiency: atEfficiency
-              })
-              this.addTSeg(tseg)
-            }
-
-            delete node.dataset.dragover
-            window.requestAnimationFrame(() => {
-              n.style.backgroundColor = ''
-            })
+          let nodes = this.current.nodes
+          if (nodes === null) { return }
+          for (let i = 0; i < nodes.length; i++) {
           }
-          window.requestAnimationFrame(() => {
-            tNode.parentNode.removeChild(tNode)
-          })
         })
-        div.appendChild(subDiv)
+        wnode.addToDom(div)
       }
       window.requestAnimationFrame(() => {
         if (document.getElementById(div.id)) {
@@ -745,7 +590,10 @@ Planning.prototype.displayTravail = function (travaux) {
         this.views.project.appendChild(div)
       })
       div.addEventListener('dragstart', (event) => {
+        DNDWorkaround = event.target.id
         event.dataTransfer.setData('application/travail-id', event.target.id)
+        event.dataTransfer.setData('text/plain', `Travail ID ${event.target.id}`)
+
         let node = event.target
         for (; node && !node.classList.contains('travail'); node = node.parentNode) ;
         this.openTravail(node)
@@ -770,28 +618,50 @@ Planning.prototype.closeOthers = function (node) {
   }
 }
 
+Planning.prototype.closeTravail = function () {
+  this.current.travail = null
+}
+
+Planning.prototype.resetCurrent = function () {
+  this.current = {}
+  this.current.days = 0x3E /* bit 0 -> sunday, bit 6 -> saturday */
+  this.current.travail = null
+  this.current.people = []
+  this.current.events = {}
+  this.current.cleanList = new Array()
+  this.current.nodes = null
+}
+
 Planning.prototype.openTravail = function (node) {
   fetch(RelURL(`${node.id}`), {credential: 'include', headers: {'X-Request-Id': new Date().getTime()}}).then((response) => {
     if (response.ok) {
       response.json().then((result) => {
+        if (result.data.length === 0) { throw new Error('Travail non-trouvé') }
         this.closeOthers(node)
-
-        let travailTime = 0
-        let defaultTime = false
-        if (parseFloat(result.data.time) === 0) {
-          travailTime = KAAL.work.getDay('h')
-          defaultTime = true
-        } else if (parseFloat(result.data.force) === 0.0) {
-          travailTime = KAAL.work.getDay('h')
-          defaultTime = true
-        } else {
-          travailTime = parseFloat(result.data.time) / parseFloat(result.data.force) / 3600
+        
+        let travail = {
+          id: result.data.id,
+          raw: result.data,
+          time: parseFloat(result.data.time),
+          force: parseFloat(result.data.force)
         }
-
+        this.resetCurrent()
+        this.current.travail = travail
+  
+        /* work without time are considered as one day job */
+        if (travail.time === 0.0) {
+          travail.time = KAAL.work.getDay('s')
+        }
+        /* when no force is set, force is considered as 1 */
+        if (travail.force === 0.0) {
+          travail.force = 1.0
+        }
+  
+        let travailTime = travail.time / travail.force / 3600      
         let details = document.createElement('DIV')
         details.classList.add('details')
         details.innerHTML = `<ul>
-                                <li><span class="label">Temps</span>${travailTime} h ${defaultTime ? '(valeur par défaut)' : ''}</li>
+                                <li><span class="label">Temps</span>${travailTime} h</li>
                                 <li><span class="label">Contact</span>${result.data.contact}</li>
                                 <li><span class="label">Téléphone</span>${result.data.phone}</li>
                              </ul>`
@@ -852,70 +722,7 @@ Planning.prototype._deleteTSeg = function (tseg, oldPerson, oldDate, oldTime) {
 }
 
 Planning.prototype.addTSeg = function (tseg) {
-  if (tseg) {
-    tseg.commit().then(() => {
-      let node = document.getElementById(`${tseg.get('person')}+${tseg.get('date')}`)
-      if (node) {
-        if (!this.TSeg[node.id]) {
-          this.TSeg[node.id] = []
-        }
-
-        let found = false
-        if (tseg.get('id') !== null) {
-          for (let i in this.TSeg[node.id]) {
-            if (this.TSeg[node.id][i].get('id') === tseg.get('id')) {
-              found = true
-              this.TSeg[node.id][i].fromObject(tseg.toObject())
-            }
-          }
-        }
-        if (!tseg.data.domNode) {
-          let node = document.getElementById(tseg.data.id)
-          if (node) {
-            tseg.data.domNode = node
-          }
-        }
-        let segDom
-        if (found) {
-          segDom = tseg.data.domNode
-        } else {
-          this.TSeg[node.id].push(tseg)
-          if(!this.TSegByTravail[tseg.data.travail]) {
-            this.TSegByTravail[tseg.data.travail] = []
-          }
-          this.TSegByTravail[tseg.data.travail].push(tseg)
-          this.nodeAddTime(node, tseg.get('time'))
-
-          segDom = tseg.newDom()
-          window.requestAnimationFrame(() => {
-            node.appendChild(segDom)
-          })
-        }
-        if (!segDom) { return }
-
-        segDom.addEventListener('mouseover', event => {
-          window.requestAnimationFrame(() => {
-            event.target.style.backgroundColor = 'green'
-          })
-          if (this.TSegByTravail[event.target.dataset.travail]) {
-            this.TSegByTravail[event.target.dataset.travail].forEach(tseg => {
-              window.requestAnimationFrame(() => tseg.data.domNode.style.backgroundColor = 'green')
-            })
-          }
-        })
-        segDom.addEventListener('mouseout', event => {
-          window.requestAnimationFrame(() => {
-            event.target.style.backgroundColor = ''
-            if (this.TSegByTravail[event.target.dataset.travail]) {
-              this.TSegByTravail[event.target.dataset.travail].forEach(tseg => {
-                window.requestAnimationFrame(() => tseg.data.domNode.style.backgroundColor = '')
-              })
-            }
-          })
-        })
-      }
-    })
-  }
+  this.TSegs.add(tseg)
 }
 
 Planning.prototype.save = async function () {
