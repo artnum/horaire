@@ -89,10 +89,10 @@ TSeg.prototype._label = function () {
             })
         })
     }).then(travail => {
-        this.innerHTML = `
-        ${travail.project.reference} | ${travail.description}<br>
-        Temps ${this.time / 3600} h
-        `
+        window.requestAnimationFrame(() => { 
+            this.innerHTML = `${travail.project.reference} | ${travail.description}<br>
+            Temps ${this.time / 3600} h`
+        })
     })
 }
 

@@ -1,5 +1,4 @@
 /* eslint-env browser */
-
 /* workaround bugs in google chrome */
 var DNDWorkaround = null
 Date.prototype.getWeekNumber = function () {
@@ -287,17 +286,11 @@ Planning.prototype.getNodesForTravail = function (date, travail, people, days = 
   let [averageTime, maxDayTime] = TSegs.averageTime(travail, people)
   let firstNode = []
   let peoplesNodes = []
-  let moreWNodes = false
-  let skippedStart = 0
   for (let person of people) {
     let wnode = WNode.getWNodeById(`${person.id}+head`)
     if (wnode) {
       peoplesNodes.push(wnode)
       wnode = wnode.gotoDate(date)
-      while (wnode && !(days & wnode.weekDay())) { 
-        wnode = wnode._next 
-        skippedStart++
-      }
       if (wnode) {
         firstNode.push(wnode)
       } else {
@@ -306,64 +299,36 @@ Planning.prototype.getNodesForTravail = function (date, travail, people, days = 
     }
   }
 
-  let leftTime = averageTime
   let lists = new Array(firstNode.length)
-  let endOfNodes = false
-  let loopStart = performance.now()
-  while (leftTime > 0) {
-    // BUG some logic fail, workaround for now
-    if (performance.now() - loopStart > 800) { break }
-    let availableTime = Infinity
-    for (let i = 0; i < firstNode.length; i++) {
-      if (firstNode[i] === null) { endOfNodes = true; continue }
-      if (lists[i] === undefined) {
-        lists[i] = new DLList()
-      }
-      let node = firstNode[i]
+  let leftTime = averageTime
+  while (firstNode[0] !== null && leftTime > 0) {
+    if (!(days & firstNode[0].weekDay())) {
+      for (let i = 0; i < firstNode.length; i++) { firstNode[i] = firstNode[i]._next }
+      continue;
+    }
+    if (!firstNode[0].hasPlace(KAAL.work.getMin('s'))) {
+      for (let i = 0; i < firstNode.length; i++) { firstNode[i] = firstNode[i]._next }
+      continue;
+    }
+
+    let time = 0
+    if (leftTime - firstNode[0].leftTime() < 0) {
+      time = leftTime
+    } else {
+      time = firstNode[0].leftTime()
+    }
+    leftTime = leftTime - time
+    for (let i = 0; i < firstNode.length; i++) { 
+      if (!lists[i]) { lists[i] = new DLList() }  
+      lists[i].add({node: firstNode[i], time: time})
       firstNode[i] = firstNode[i]._next
-      if (!(node.weekDay() & days)) {
-        continue // skip unselected days
-      }
-
-      lists[i].add({ node: node, time: 0 })
-      if (maxDayTime - node.time > KAAL.work.getMin('s')) {
-        if (node.time < availableTime) {
-          availableTime = maxDayTime - node.time
-        }
-      }
-    }
-
-    if (availableTime === Infinity) {
-      if (endOfNodes) { 
-        moreWNodes = Math.ceil(leftTime / KAAL.work.getDay('s'))
-        break 
-      }
-    } else if (availableTime > 0) {
-      let time = 0
-      if (availableTime < leftTime) {
-        time = availableTime
-      } else {
-        time = leftTime
-      }
-      for (let i = 0; i < lists.length; i++) {
-        let d = lists[i].getCurrent()
-        d.time = time
-        lists[i].setCurrent(d)
-      }
-      leftTime -= availableTime
-    } else {
-      for (let i = 0; i < lists.length; i++) {
-        lists[i].removeCurrent()
-      }
     }
   }
-  if (moreWNodes) {
-    if (skippedStart) {
-      this.zoom(skippedStart)
-    } else {
-      this.zoom(moreWNodes + 1) // an emty day after
-    }
+
+  if (!firstNode[0]) {
+    this.zoom(7)
   }
+
   return lists
 }
 
@@ -398,7 +363,7 @@ Planning.prototype.draw = function () {
       let col = document.createElement('div')
       if (i === 0) {
         col.id = 'header+head'
-        col.innerHTML = `Semain n°<span class="number">${this.Week}</span>`
+        col.innerHTML = `Semaine n°<span class="number">${this.Week}</span>`
       } else {
         let x = new Date(Date.getStartISOWeek(this.Week, this.Year).getTime() + ((i - 1) * 86400000))
         x.setHours(12, 0, 0)
@@ -460,23 +425,14 @@ Planning.prototype.draw = function () {
             })
           }
         }
-        
         wnode.addEventListener('dragenter', event => {
           let dataTransfer = event.dataTransfer.getData('application/travail-id') || event.dataTransfer.getData('application/segment-id') || DNDWorkaround
           if (dataTransfer) {
             event.preventDefault()
           }
         })
+
         wnode.addEventListener('dragover', (event) => {
-          let node = event.target
-          while (node && (node.nodeName !== 'DIV' || node.classList.contains('travailMark'))) { node = node.parentNode }
-          if (node.classList.contains('user')) { node = node.nextElementSibling }
-          let parent = node
-          while (!parent.dataset.efficiency) { parent = parent.parentNode }
-
-          let days = 0
-          let bgcolor = event.dataTransfer.getData('drag/css-color') || 'red'
-
           let dataTransfer = event.dataTransfer.getData('application/travail-id') || event.dataTransfer.getData('application/segment-id') || DNDWorkaround
           if (!dataTransfer) { return }
           event.preventDefault()
@@ -528,6 +484,7 @@ Planning.prototype.draw = function () {
           }
           let nodes = this.getNodesForTravail(date, this.current.travail, people, this.current.days)
           for (let i = 0; i < nodes.length; i++) {
+            if (!nodes[i]) { continue }
             for (let n = nodes[i].first(); n; n = nodes[i].next()) {
                 this.current.cleanList.push(n)
                 let color = 'red'
@@ -550,7 +507,20 @@ Planning.prototype.draw = function () {
           let nodes = this.current.nodes
           if (nodes === null) { return }
           for (let i = 0; i < nodes.length; i++) {
+            for (let node = nodes[i].first(); node; node = nodes[i].next()) {
+              let tseg = new TSeg({
+                travail: dataTransfer,
+                time: node.time,
+                person: node.node.personId,
+                date: node.node.date.toISOString().split('T')[0],
+                efficiency: 1
+              })
+              tseg.commit().then(result => {
+                this.TSegs.add(tseg)
+              })
+            }
           }
+          this.cleanNodesInList()
         })
         wnode.addToDom(div)
       }

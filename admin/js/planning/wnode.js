@@ -166,11 +166,16 @@ WNode.prototype.fill = function (time) {
 }
 
 WNode.prototype.hasPlace = function (time) {
-    if (KAAL.work.getDay() - this.time < KAAL.work.getMin()) {
-        return false
-    } else {
+    let person = this.getPerson()
+    if (person.daytime - this.time >= time) {
         return true
     }
+    return true
+}
+
+WNode.prototype.leftTime = function () {
+    let person = this.getPerson()
+    return person.daytime - this.time
 }
 
 WNode.prototype.addTSeg = function (tseg) {
@@ -201,7 +206,7 @@ WNode.prototype.addTSeg = function (tseg) {
 WNode.prototype.getPerson = function () {
     let head = this._head
     if (head === null) { head = this }
-    return { id: head.data.personId, efficiency: head.data.efficiency }
+    return { id: head.data.personId, efficiency: head.data.efficiency, daytime: KAAL.work.getDay('s') }
 }
 
 WNode.prototype.weekDay = function () {
