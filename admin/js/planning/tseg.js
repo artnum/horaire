@@ -22,7 +22,9 @@ function TSeg(args) {
                 object['data'][property] = value
                 object.modified = performance.now() // modification on data need to be sent back
                 object.saved = false
-                return true
+                return true 
+            } else if(property === 'domNode') {
+                object.domNode = value
             }
             switch (property) {
                 default: object.domNode[property] = value; return
@@ -52,10 +54,9 @@ function TSeg(args) {
 TSeg.prototype._generateDom = function () {
     let node = document.createElement('DIV')
     this.removeDom()
-    let height = this.data.time * 100 / KAAL.work.getDay()
+    let height = this.time * 100 / KAAL.work.getDay()
     node.id = this.domId()
     node.classList.add('travailMark')
-    node.style.backgroundColor = this.data.color
     node.style.maxHeight = `calc(${height}% - 4px)`
     node.style.minHeight = `calc(${height}% - 4px)`
     node.style.height = `calc(${height}% - 4px)`
@@ -137,6 +138,7 @@ TSeg.prototype.fromObject = function (o) {
     }
     this.saved = true
     this._label() // trigger label 
+    this._generateDom()
     return this
 }
 
