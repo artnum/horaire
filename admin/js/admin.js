@@ -364,6 +364,43 @@
         }
       })
       return popup
+    },
+    parseDuration: function (text, to = 's') {
+      const exp = /([0-9]+(?:[\.,][0-9]+)?)\s*([jJsSmMhH]?).*/
+      const dayLength =  8640
+      let x = 0.0
+      let m
+      if ((m = exp.exec(text)) !== null) {
+        x = parseFloat(m[1].replace(',', '.'))
+        switch(m[2]) {
+          case 'm':
+          case 'M':
+            x *= dayLength * 30 // 30 days
+            break;
+          case 's':
+          case 'S':
+            x *= dayLength * 7 // 7 days
+            break
+          case 'j':
+          case 'J':
+            x *= dayLength
+            break
+          default:
+          case 'h':
+          case 'H':
+            x *= 3600
+            break
+        }
+
+        switch (to) {
+          default: case 's': case 'S': break
+          case 'h': case 'H': x /= 3600; break
+          case 'm': case 'M': x /= 60; break
+          case 'd': case 'D': x /= 8640; break
+        }
+      }
+
+      return x
     }
   }
   global.Admin = admin

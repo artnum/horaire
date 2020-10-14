@@ -109,15 +109,29 @@ Planning.prototype.PBar = function () {
   let s = new Select(i, new STProject('Project'))
 
   s.addEventListener('change', (event) => {
-    fetch(RelURL(`Travail/.unplanned/?search.project=${event.value}`),
-          {credential: 'include', headers: {'X-Request-Id': new Date().getTime()}}).then(
-            (response) => {
-              if (response.ok) {
-                response.json().then((result) => {
-                  this.displayTravail(result.data)
-                })
-              }
+    const projectId = event.value
+    this.TSegs.resetLight()
+    fetch(RelURL(`Travail/.unplanned/?search.project=${projectId}`),
+      { credential: 'include', headers: { 'X-Request-Id': new Date().getTime() } }).then(
+        (response) => {
+          if (response.ok) {
+            response.json().then((result) => {
+              this.displayTravail(result.data, projectId)
             })
+          }
+        })
+    
+    let url = new URL('Travail', KAAL.getBase())
+    url.searchParams.append('search.project', projectId)
+    fetch(url).then(response => {
+      if (!response.ok) { return }
+      response.json().then(result => {
+        for (let i = 0; i < result.length; i++) {
+          let t = `Travail/${result.data[i].id}`
+          this.TSegs.highlightTravail(t)
+        }
+      })
+    })
   })
 
   div.appendChild(i)
@@ -524,13 +538,66 @@ Planning.prototype.placeTravailOnGrid = function (wnode) {
   this.current.nodes = nodes
 }
 
-Planning.prototype.displayTravail = function (travaux) {
+Planning.prototype.addTravail = function (event) {
+  event.preventDefault()
+
+  const TravailBody = {
+    force: 1.0,
+    project: null,
+    description: null,
+    time: null
+  }
+
+ let formData = new FormData(event.target)
+ TravailBody.project = formData.get('project')
+ TravailBody.description = formData.get('description')
+ TravailBody.time = Admin.parseDuration(formData.get('duration'))
+ TravailBody.plan = 1
+ if (TravailBody.time <= 0) {
+   alert('La durée est incorrecte')
+   return
+ }
+ fetch(new URL('Travail', KAAL.getBase()), {
+   credential: 'include', 
+   headers: new Headers({'X-Request-Id': `${new Date().getTime()}-${performance.now()}`}),
+   method: 'POST',
+   body: JSON.stringify(TravailBody)
+  }).then((response) => {
+    fetch(RelURL(`Travail/.unplanned/?search.project=${TravailBody.project}`),
+    {credential: 'include', headers: {'X-Request-Id': new Date().getTime()}}).then(
+      (response) => {
+        if (response.ok) {
+          response.json().then((result) => {
+            this.displayTravail(result.data, TravailBody.project)
+          })
+        }
+      })
+  })
+}
+
+Planning.prototype.displayTravail = function (travaux, projectId = false) {
   new Promise((resolve, reject) => {
+    let element 
+    if (projectId) {
+      element = document.createElement('FORM')
+      element.classList.add('add')
+      element.innerHTML = `<fieldset><legend>Ajout travail</legend>
+      <input type="hidden" value="${projectId}" name="project" />
+      <label>Durée : <input type="text" name="duration" /></label>
+      <label>Description : <textarea name="description"></textarea></label>
+      <input type="submit" value="Ajouter" /><input type="reset" value="Annuler" />
+      </fieldset>
+      `
+      element.addEventListener('submit', this.addTravail.bind(this))
+    }
     window.requestAnimationFrame(() => {
       this.views.project.innerHTML = ''
+      if (projectId) {
+        this.views.project.appendChild(element)
+      }
       resolve()
     })
-  }).then(() => {
+  }).then(() => {   
     travaux.forEach((travail) => {
       if (parseFloat(travail.time) === 0 || isNaN(parseFloat(travail.time))) { travail.time = KAAL.work.getDay() }
       if (parseFloat(travail.force) === 0 || isNaN(parseFloat(travail.force))) { travail.force = 1.0 }
@@ -559,7 +626,7 @@ Planning.prototype.displayTravail = function (travaux) {
 Planning.prototype.closeOthers = function (node) {
   for (let s = node.parentNode.firstElementChild; s; s = s.nextElementSibling) {
     if (s !== node) {
-      if (s.lastChild && s.lastChild.classList.contains('details')) {
+      if (s.lastChild && s.lastChild.classList && s.lastChild.classList.contains('details')) {
         window.requestAnimationFrame(() => s.removeChild(s.lastChild))
       }
       window.requestAnimationFrame(() => s.classList.remove('selected'))

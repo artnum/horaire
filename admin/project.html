@@ -485,7 +485,7 @@ async function evCancelEdit (event) {
          }
        }
        
-       let qTravail = Artnum.Query.exec(Artnum.Path.url('Travail', {params: {'search.project': entry.id}}))
+       let qTravail = Artnum.Query.exec(Artnum.Path.url('Travail', {params: {'search.project': entry.id, 'search.plan': '0'}}))
        let exportButton = document.createElement('BUTTON')
        exportButton.setAttribute('type', 'button')
        exportButton.addEventListener('click', function (event) {

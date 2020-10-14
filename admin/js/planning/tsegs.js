@@ -109,6 +109,21 @@ TSegs.prototype.add = function (tseg) {
     })
 }
 
+TSegs.prototype.highlightTravail = function (travail) {
+    if (this.TSegsByTravail[travail]) {
+        this.TSegsByTravail[travail].forEach(tseg => {
+            this.TSegs[tseg].light(0)          
+        })   
+    }
+}
+
+TSegs.prototype.resetLight = function () {
+    console.log(this.TSegs)
+    for(let id of Object.keys(this.TSegs)) {
+        this.TSegs[id].nolight()
+    }
+}
+
 TSegs.prototype._installEvents = function (tseg) {
     tseg.addEventListener('mouseover', event => {
         if (this.TSegs[event.target.id] === undefined) { return }

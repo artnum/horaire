@@ -274,6 +274,18 @@ TSeg.prototype.appendChild = function (node) {
     }
 }
 
+TSeg.prototype.light = function (level) {
+    let light = 'light'
+    switch (level) {
+        default:
+        case 0: case '0': light += '0'; break
+        case 1: case '1': light += '1'; break
+        case 2: case '2': light += '2'; break
+        case 3: case '3': light += '3'; break
+    }
+    window.requestAnimationFrame(() => this.domNode.classList.add(light))
+}
+
 TSeg.prototype.lowlight = function () {
     window.requestAnimationFrame(() => this.domNode.classList.add('lowlight'))
 }
@@ -283,7 +295,7 @@ TSeg.prototype.highlight = function () {
 }
 
 TSeg.prototype.nolight = function () {
-    window.requestAnimationFrame(() => this.domNode.classList.remove('highlight', 'lowlight'))
+    window.requestAnimationFrame(() => this.domNode.classList.remove('highlight', 'lowlight', 'light0', 'light1', 'light2', 'ligth3'))
 }
 
 TSeg.prototype.addEventListener = function (event, callback, options) {

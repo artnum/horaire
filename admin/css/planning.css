@@ -47,6 +47,23 @@ body {
     width: var(--box-size) !important;
 }
 
+.light0 {
+    background-color: lightcoral !important;
+}
+
+
+.light1 {
+    background-color: lightpink !important;
+}
+
+.light2 {
+    background-color: lightseagreen !important;
+}
+
+.light3 {
+    background-color: lightgoldenrodyellow !important;
+}
+
 .lowlight {
     background-color: green !important;
 }
