@@ -426,7 +426,7 @@ Planning.prototype.draw = function () {
       let col = document.createElement('div')
       if (i === 0) {
         col.id = 'header+head'
-        col.innerHTML = `Semaine n°<span class="number">${this.Week}</span>`
+        col.innerHTML = `Semaine n°<span class="number">${startDate.getWeek()}</span>`
       } else {
         let x = new Date(startDate.getTime() + ((i - 1) * 86400000))
         x.setHours(12, 0, 0)
