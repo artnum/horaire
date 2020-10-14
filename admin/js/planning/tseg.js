@@ -60,7 +60,6 @@ TSeg.prototype._generateDom = function () {
     node.style.minHeight = `calc(${height}% - 4px)`
     node.style.height = `calc(${height}% - 4px)`
     node.innerHTML = '&nbsp;'
-    node.setAttribute('draggable', 'true')
     this.domNode = node
     return this.domNode
 }

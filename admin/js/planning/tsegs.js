@@ -110,6 +110,7 @@ TSegs.prototype.add = function (tseg) {
         let wnode = WNode.getWNodeById(WNode.idFromTSeg(tseg))
         if (wnode !== null) {
             wnode.addTSeg(tseg)
+            tseg._label()
         }
     })
 }
