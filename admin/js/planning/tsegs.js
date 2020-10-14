@@ -81,6 +81,10 @@ TSegs.prototype.generateList = function (travail, people) {
 
 TSegs.prototype.add = function (tseg) {
     if (!tseg || !tseg instanceof TSeg) { return }
+    if (tseg.id && this.TSegs[tseg.id]) {
+        this.TSegs[tseg.id].refresh(tseg)
+        return
+    }
     tseg.commit().then(() => {
         if (!this.TSegs[tseg.id]) {
             this.TSegs[tseg.id] = tseg
@@ -103,10 +107,20 @@ TSegs.prototype.add = function (tseg) {
         }
 
         this._installEvents(tseg)
-
         let wnode = WNode.getWNodeById(WNode.idFromTSeg(tseg))
-        wnode.addTSeg(tseg)
+        if (wnode !== null) {
+            wnode.addTSeg(tseg)
+        }
     })
+}
+
+TSegs.prototype.draw = function () {
+    for (let tsegId of Object.keys(this.TSegs)) {
+        let wnode = WNode.getWNodeById(WNode.idFromTSeg(this.TSegs[tsegId]))
+        if (wnode !== null) {
+            wnode.addTSeg(this.TSegs[tsegId])
+        }
+    }
 }
 
 TSegs.prototype.highlightTravail = function (travail) {

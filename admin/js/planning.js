@@ -138,9 +138,28 @@ Planning.prototype.PBar = function () {
   this.views.project.parentNode.insertBefore(div, this.views.project)
 }
 
+const moveZoomTime = 85
+
+Planning.prototype.move = function (nDays) {
+  if (this.move.last) {
+    if (performance.now() - this.move.last < moveZoomTime) { return}
+  }
+  if (this.TSegTimeout) {
+    clearTimeout(this.TSegTimeout)
+  }
+  this.move.last = performance.now()
+  this.startDate = new Date(this.startDate.getTime() + (nDays * 86400000))
+  this.TSegTimeout = setTimeout(() => {
+    this.loadTSeg().then(() => {
+      this.TSegTimeout = null
+    })
+  }, 250)
+  this.draw()
+}
+
 Planning.prototype.zoom = function (nDay) {
   if (this.zoom.last) {
-    if (performance.now() - this.zoom.last < 250) { return}
+    if (performance.now() - this.zoom.last < moveZoomTime) { return}
   } 
   this.zoom.last = performance.now()
   if (this.TSegTimeout) {
@@ -169,6 +188,12 @@ Planning.prototype.installUI = function () {
         this.zoom(-1)
       } else {
         this.zoom(1)
+      }
+    } else if (!event.ctrlKey && !event.shiftKey) {
+      if (event.deltaY < 0) {
+        this.move(1)
+      } else {
+        this.move(-1)
       }
     }
   })
@@ -238,7 +263,6 @@ Planning.prototype.tsegDrop = function (event) {
   let tseg = this.getTSegById(event.dataTransfer.getData('application/segment-id'))
   let tsegs = this.getTSegsByAttribute('travail', tseg.get('travail'))
   let totalTime = 0
-  let totalPeople = 0
   let peopleList = []
   for (let tseg of tsegs) {
     if (peopleList.indexOf(tseg.get('person')) === -1) {
@@ -380,6 +404,8 @@ Planning.prototype.cleanNodesInList = function () {
 }
 
 Planning.prototype.draw = function () {
+  const startDate = this.startDate || Date.getStartISOWeek(this.Week, this.Year)
+  this.startDate = startDate
   return new Promise((resolve, reject) => { 
     let days = this.Days ? this.Days : 7
     let header = document.createElement('DIV')
@@ -391,7 +417,7 @@ Planning.prototype.draw = function () {
         col.id = 'header+head'
         col.innerHTML = `Semaine n°<span class="number">${this.Week}</span>`
       } else {
-        let x = new Date(Date.getStartISOWeek(this.Week, this.Year).getTime() + ((i - 1) * 86400000))
+        let x = new Date(startDate.getTime() + ((i - 1) * 86400000))
         x.setHours(12, 0, 0)
         col.id = `header+day-${x.toISOString()}`
         col.innerHTML = `<span class="date">${x.fullDate()}</span>`
@@ -419,14 +445,14 @@ Planning.prototype.draw = function () {
       div.classList.add('line')
       let head = null
       for (let i = 0; i <= days; i++) {
-        let wnode 
+        let wnode
         if (i === 0) {
           wnode = new WNode(div.id)
           wnode.innerHTML = `<span class="name">${user.name}</span>`
           wnode.data.efficiency = parseFloat(user.efficiency)
           head = wnode
         } else {
-          let date = new Date(Date.getStartISOWeek(this.Week, this.Year).getTime() + ((i - 1) * 86400000))
+          const date = new Date(startDate.getTime() + ((i - 1) * 86400000))
           date.setHours(12, 0, 0)
 
           wnode = new WNode(div.id, date)
@@ -438,17 +464,6 @@ Planning.prototype.draw = function () {
             wnode._previous = head._previous
             head._previous._next = wnode
             head._previous = wnode
-          }
-          if (this.TSeg[wnode.getId()]) {
-            this.TSeg[wnode.getId()].forEach((tseg) => {
-              if (tseg.domNode) {
-                subDiv.appendChild(tseg.domNode)
-                this.nodeAddTime(subDiv, tseg.get('time'))
-              } else {
-                subDiv.appendChild(tseg.newDom(this.HoursPerDay))
-                this.nodeAddTime(subDiv, tseg.get('time'))
-              }
-            })
           }
         }
    
@@ -473,7 +488,9 @@ Planning.prototype.draw = function () {
 
         wnode.addToDom(div)
       }
-      window.requestAnimationFrame(() => {
+      this.TSegs.draw()
+      
+       window.requestAnimationFrame(() => {
         if (document.getElementById(div.id)) {
           document.getElementById(div.id).parentNode.replaceChild(div, document.getElementById(div.id))
         } else {
@@ -796,14 +813,14 @@ Planning.prototype.getTSegByTravail = function (tid) {
 
 Planning.prototype.loadTSeg = function () {
   return new Promise((resolve, reject) => {
-    let begin = new Date(Date.getStartISOWeek(this.Week, this.Year).getTime())
+    const begin = this.startDate || new Date(Date.getStartISOWeek(this.Week, this.Year).getTime())
     begin.setHours(12)
-    let end = new Date(Date.getStartISOWeek(this.Week, this.Year).getTime() + ((this.Days - 1) * 86400000))
+    const end = new Date(begin.getTime() + ((this.Days - 1) * 86400000))
     end.setHours(12)
-    let URL = RelURL('TSeg')
-    URL.searchParams.append('search.date', `>=${begin.toISOString().split('T')[0]}`)
-    URL.searchParams.append('search.date', `<=${end.toISOString().split('T')[0]}`)
-    fetch(URL, {credential: 'include', headers: {'X-Request-Id': new Date().getTime()}})
+    const url = new URL('TSeg', KAAL.getBase())
+    url.searchParams.append('search.date', `>=${begin.toISOString().split('T')[0]}`)
+    url.searchParams.append('search.date', `<=${end.toISOString().split('T')[0]}`)
+    fetch(url, {credential: 'include', headers: {'X-Request-Id': new Date().getTime()}})
       .then((response) => {
         if (response.ok) {
           return response.json()

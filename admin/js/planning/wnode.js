@@ -10,6 +10,7 @@ function WNode (personId, date = null) {
         personId: personId
     }
     this.TSegs = []
+    this.TSegsId = []
 
     /* one wnode is head, in that case, _next is first and _previous is last */
     this._head = null
@@ -53,6 +54,7 @@ function WNode (personId, date = null) {
 }
 
 WNode.idFromTSeg = function (tseg) {
+    if (tseg === undefined) { return }
     return `${tseg.person}+${tseg.date}`
 }
 
@@ -179,6 +181,8 @@ WNode.prototype.leftTime = function () {
 }
 
 WNode.prototype.addTSeg = function (tseg) {
+    if (this.TSegsId.indexOf(tseg.id) !== -1) { return } // don't add already added tseg
+    this.TSegsId.push(tseg.id)
     if (tseg.order === 0) {
         tseg.order = this.TSegs.push(tseg)
         tseg.commit()
