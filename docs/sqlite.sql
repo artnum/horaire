@@ -101,5 +101,6 @@ CREATE TABLE IF NOT EXISTS "travail" ( -- table containing specific work to be d
 	"travail_modified" INTEGER DEFAULT 0,
 	"travail_closed" INTEGER DEFAULT 0,
 	"travail_progress" INTEGER DEFAULT 0,
+	"travail_plan" INTEGER DEFAULT 0,
 	FOREIGN KEY("travail_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE CASCADE
 );
