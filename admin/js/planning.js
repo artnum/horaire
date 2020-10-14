@@ -189,7 +189,7 @@ Planning.prototype.installUI = function () {
       } else {
         this.zoom(1)
       }
-    } else if (!event.ctrlKey && !event.shiftKey) {
+    } else if (!event.ctrlKey && event.shiftKey) {
       if (event.deltaY < 0) {
         this.move(1)
       } else {
