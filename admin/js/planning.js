@@ -29,6 +29,7 @@ function RelURL (url) {
 }
 
 function Planning (options) {
+  this.Grid = new Grid(1, 8)
   this.TSegs = new TSegs()
   this.views = {
     planning: document.getElementById('rightPane'),
@@ -408,9 +409,19 @@ Planning.prototype.draw = function () {
   this.startDate = startDate
   return new Promise((resolve, reject) => { 
     let days = this.Days ? this.Days : 7
+    if (this.Grid.colLength() < days + 1) {
+      this.Grid.addColumn(this.Grid.colLength() - (days + 1))
+    } else {
+      this.Grid.removeColumn((days + 1) - this.Grid.colLength())
+    }
+    if (this.Grid.rowLength() !== this.Users.data.length + 1) {
+      this.Grid.addRow(this.Grid.rowLength() - (this.Users.data.length + 1))
+    }
+
     let header = document.createElement('DIV')
     header.id = 'planingHeader'
     header.classList.add('line', 'header')
+    
     for (let i = 0; i <= days; i++) {
       let col = document.createElement('div')
       if (i === 0) {
@@ -456,6 +467,7 @@ Planning.prototype.draw = function () {
           date.setHours(12, 0, 0)
 
           wnode = new WNode(div.id, date)
+          wnode.data.efficiency = parseFloat(user.efficiency)
           wnode._head = head
           if (head._next === null) {
             head._next = wnode
@@ -513,7 +525,7 @@ Planning.prototype.placeTSegOnGrid = function () {
         time: node.time,
         person: node.node.personId,
         date: node.node.date.toISOString().split('T')[0],
-        efficiency: 1
+        efficiency: node.node.efficiency
       })
       tseg.commit().then(result => {
         this.TSegs.add(tseg)

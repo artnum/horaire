@@ -132,7 +132,6 @@ TSegs.prototype.highlightTravail = function (travail) {
 }
 
 TSegs.prototype.resetLight = function () {
-    console.log(this.TSegs)
     for(let id of Object.keys(this.TSegs)) {
         this.TSegs[id].nolight()
     }
@@ -161,6 +160,22 @@ TSegs.prototype._installEvents = function (tseg) {
                     this.TSegs[id].nolight()
                 }
             })
+        }
+    })
+    tseg.addEventListener('click', event => {
+        if (this.TSegs[event.target.id] === undefined) { return }
+        let tseg = this.TSegs[event.target.id]
+        tseg.nolight()
+        tseg.light(1)
+        if (event.shiftKey) {
+            if (this.TSegsByTravail[tseg.travail]) {
+                this.TSegsByTravail[tseg.travail].forEach(id => {
+                    if (tseg.id !== id) {
+                        this.TSegs[id].nolight()
+                        this.TSegs[id].light(2)
+                    }
+                })
+            }
         }
     })
 }
