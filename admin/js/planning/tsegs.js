@@ -1,8 +1,9 @@
 /* registry for tseg */
-function TSegs() {
+function TSegs(planning) {
     this.TSegs = {}
     this.TSegsByNode = {}
     this.TSegsByTravail = {}
+    this.Planning = planning
 }
 
 TSegs.neededSegment = function (travail, person) {
@@ -142,6 +143,7 @@ TSegs.prototype._installEvents = function (tseg) {
     tseg.addEventListener('mouseover', event => {
         if (this.TSegs[event.target.id] === undefined) { return }
         let tseg = this.TSegs[event.target.id]
+        if (tseg.selected) { return }
         tseg.highlight()
         if (this.TSegsByTravail[tseg.travail]) {
             this.TSegsByTravail[tseg.travail].forEach (id => {
@@ -154,6 +156,7 @@ TSegs.prototype._installEvents = function (tseg) {
     tseg.addEventListener('mouseout', event => {
         if (this.TSegs[event.target.id] === undefined) { return }
         let tseg = this.TSegs[event.target.id]
+        if (tseg.selected) { return }
         tseg.nolight()
         if (this.TSegsByTravail[tseg.travail]) {
             this.TSegsByTravail[tseg.travail].forEach (id => {
@@ -164,16 +167,23 @@ TSegs.prototype._installEvents = function (tseg) {
         }
     })
     tseg.addEventListener('click', event => {
+        let select = true
+        event.stopPropagation()
         if (this.TSegs[event.target.id] === undefined) { return }
         let tseg = this.TSegs[event.target.id]
+        if (tseg.selected) { select = false }
         tseg.nolight()
-        tseg.light(1)
+        if (select) { tseg.light(1) }
+        tseg.selected = select
+        this.Planning.openSegment(tseg)
         if (event.shiftKey) {
             if (this.TSegsByTravail[tseg.travail]) {
-                this.TSegsByTravail[tseg.travail].forEach(id => {
+                    this.TSegsByTravail[tseg.travail].forEach(id => {
                     if (tseg.id !== id) {
                         this.TSegs[id].nolight()
-                        this.TSegs[id].light(2)
+                        if (select) { this.TSegs[id].light(2) }
+                        this.TSegs[id].selected = select
+                        this.Planning.addToOpenSegment(this.TSegs[id])
                     }
                 })
             }

@@ -30,7 +30,7 @@ function RelURL (url) {
 
 function Planning (options) {
   this.Grid = new Grid(1, 8)
-  this.TSegs = new TSegs()
+  this.TSegs = new TSegs(this)
   this.views = {
     planning: document.getElementById('rightPane'),
     project: document.getElementById('leftPane')
@@ -252,67 +252,6 @@ Planning.prototype.newDomId = function () {
   return pid
 }
 
-Planning.prototype.tsegDrop = function (event) {
-  event.preventDefault()
-  let pNode = event.target
-  let dNode = event.target
-  for (; pNode && !pNode.dataset.efficiency; pNode = pNode.parentNode) ;
-  if (!pNode) { return }
-  for (; dNode && !dNode.dataset.date; dNode = dNode.parentNode) ;
-  if (!dNode) { return }
-
-  let tseg = this.getTSegById(event.dataTransfer.getData('application/segment-id'))
-  let tsegs = this.getTSegsByAttribute('travail', tseg.get('travail'))
-  let totalTime = 0
-  let peopleList = []
-  for (let tseg of tsegs) {
-    if (peopleList.indexOf(tseg.get('person')) === -1) {
-      totalPeople++
-      peopleList.push(tseg.get('person'))
-    }
-    totalTime += tseg.get('time') * tseg.get('efficiency')
-  }
-  if (event.shiftKey) {
-    /* add people on the task */
-  } else {
-    let efficiency = parseFloat(pNode.dataset.efficiency)
-    totalTime = totalTime / efficiency
-    /* move the task */
-    for (let tseg of tsegs) {
-      if (totalTime <= 0) {
-        this.deleteTSeg(tseg)
-      } else {
-        let oldDate = tseg.get('date')
-        let oldPerson = tseg.get('person')
-        let oldTime = tseg.get('time')
-        tseg.set('person', pNode.id)
-        tseg.set('date', dNode.dataset.date.split('T')[0])
-        tseg.set('efficiency', efficiency)
-        let nHours = this.HoursPerDay - this.nodeFullness(dNode)
-        totalTime -= nHours
-        tseg.set('time', totalTime < 0 ? totalTime + nHours : nHours)
-        this.moveTSeg(tseg, oldPerson, oldDate, oldTime)
-      }
-      while (dNode && dNode.classList.contains('weekend')) {
-        dNode = dNode.nextElementSibling
-      }
-    }
-
-    while (totalTime > 0) {
-      let oTseg = tsegs[tsegs.length - 1].duplicate()
-      let nHours = this.HoursPerDay - this.nodeFullness(dNode)
-      totalTime -= nHours
-      oTseg.set('date', dNode.dataset.date.split('T')[0])
-      oTseg.set('time', totalTime < 0 ? totalTime + nHours : nHours)
-      oTseg.set('efficiency', efficiency)
-      this.addTSeg(oTseg)
-      do {
-        dNode = dNode.nextElementSibling
-      } while (dNode && dNode.classList.contains('weekend'))
-    }
-  }
-}
-
 /* return an array of double-linked list of nodes we can look for */
 Planning.prototype.getNodesForTravail = function (date, travail, people, days = 0x3E) {
   /* find a set of node to fill with worktime */
@@ -459,7 +398,7 @@ Planning.prototype.draw = function () {
         let wnode
         if (i === 0) {
           wnode = new WNode(div.id)
-          wnode.innerHTML = `<span class="name">${user.name}</span>`
+          wnode.innerHTML = `<span class="name">${user.name}</span><br/><span class="efficiency">${user.efficiency}</span>`
           wnode.data.efficiency = parseFloat(user.efficiency)
           head = wnode
         } else {
@@ -492,8 +431,26 @@ Planning.prototype.draw = function () {
 
         wnode.addEventListener('click', event => {
           if (!this.current.travail) { return }
-          this.placeTSegOnGrid()
-          this.removeTravail()
+          if (this.current.travail.fake) {
+            let tsegs = this.generateTSegForGrid()
+            while (tseg = tsegs.pop()) {
+              let old_tseg = this.current.travail.segment.pop()
+              if (old_tseg) {
+                old_tseg.copy(tseg)
+                old_tseg.commit()
+              } else {
+                tseg.commit()
+              }
+            }
+            /* move use less time (so less segment) than old */
+            while (tseg = this.current.travail.segment.pop()) {
+              tseg.delete()
+              tseg.commit()
+            }
+          } else {
+            this.placeTSegOnGrid()
+            this.removeTravail()
+          }
           this.cleanNodesInList()
           this.resetCurrent()
         })
@@ -515,7 +472,8 @@ Planning.prototype.draw = function () {
   })
 }
 
-Planning.prototype.placeTSegOnGrid = function () {
+Planning.prototype.generateTSegForGrid = function () {
+  let tsegs = []
   let nodes = this.current.nodes
   if (nodes === null) { return }
   for (let i = 0; i < nodes.length; i++) {
@@ -527,11 +485,19 @@ Planning.prototype.placeTSegOnGrid = function () {
         date: node.node.date.toISOString().split('T')[0],
         efficiency: node.node.efficiency
       })
-      tseg.commit().then(result => {
-        this.TSegs.add(tseg)
-      })
+      tsegs.push(tseg)
     }
   }
+  return tsegs
+}
+
+Planning.prototype.placeTSegOnGrid = function () {
+  let tsegs = this.generateTSegForGrid()
+  tsegs.forEach(tseg => {
+    tseg.commit().then(result => {
+      this.TSegs.add(tseg)
+    })
+  })
 }
 
 Planning.prototype.placeTravailOnGrid = function (wnode) {
@@ -746,6 +712,23 @@ Planning.prototype.nextColor = function () {
     }
     this.stepLight = -this.stepLight
   }
+}
+
+Planning.prototype.openSegment = function (tseg) {
+  this.resetCurrent()
+  this.FakeTravail = {
+    fake: true,
+    time: tseg.normTime(),
+    force: 1,
+    id: tseg.travail.split('/')[1],
+    segment: [tseg]
+  }
+  this.current.travail = this.FakeTravail
+}
+
+Planning.prototype.addToOpenSegment = function (tseg) {
+  this.FakeTravail.time += tseg.normTime()
+  this.FakeTravail.segment.push(tseg)
 }
 
 Planning.prototype.deleteTSeg = function (tseg) {

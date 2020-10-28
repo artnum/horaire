@@ -96,12 +96,39 @@ TSeg.prototype._label = function () {
     })
 }
 
+/* Normalize time on efficiency of 1.0 */
+TSeg.prototype.normTime = function () {
+    let efficiency = 1.0
+    if (this.efficiency) {
+        efficiency = this.efficiency
+    }
+    /*      T1
+     * Te = -- => T1 = Te * E
+     *      E
+     */
+    return this.time * efficiency
+}
+
 TSeg.prototype.lock = function () {
     this.locked = true
 }
 
 TSeg.prototype.unlock = function () {
     this.locked = false
+}
+
+TSeg.prototype.copy = function (from) {
+    this.travail = from.travail
+    this.efficiency = from.efficiency
+    this.time = from.time
+    this.person = from.person
+    this.details = from.details
+    this.date = from.date
+    this.color = from.color
+    this.saved = false
+    this._label()
+    this._generateDom()
+    return this
 }
 
 TSeg.prototype.fromObject = function (o) {
