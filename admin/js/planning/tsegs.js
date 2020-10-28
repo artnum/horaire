@@ -125,8 +125,13 @@ TSegs.prototype.add = function (tseg) {
 
 TSegs.prototype.draw = function () {
     for (let tsegId of Object.keys(this.TSegs)) {
+        if (this.TSegs[tsegId].domNode.parentNode) { continue; }
         let wnode = WNode.getWNodeById(WNode.idFromTSeg(this.TSegs[tsegId]))
         if (wnode !== null) {
+            this.TSegs[tsegId].draw()
+            if (!this.TSegs[tsegId].events) {
+                this._installEvents(this.TSegs[tsegId])
+            }
             wnode.addTSeg(this.TSegs[tsegId])
         }
     }

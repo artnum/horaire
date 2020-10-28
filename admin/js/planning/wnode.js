@@ -1,5 +1,6 @@
 function WNode (personId, date = null) {
     this.domNode = document.createElement('DIV')
+    this.date = date
     if (date === null) {
         this.domNode.id = `${personId}+head`
     } else {
@@ -121,13 +122,26 @@ WNode.prototype._generateDom = function () {
         }
         this.domNode.classList.add('day', 'wnode')
     }
-    this.domNode.appendChild(document.createElement('DIV'))
     this.showTime()
 }
 
 WNode.prototype.showTime = function () {
-    if (!this.domNode.firstElementChild) { return }
-    window.requestAnimationFrame(() => { this.domNode.firstElementChild.innerHTML = `${this.time / 3600} h` })
+    if (this.date === null) { return }
+    if (this.time > 0) {
+        window.requestAnimationFrame(() => { 
+            if (!this.domNode.firstElementChild || !this.domNode.firstElementChild.classList.contains('usedTime')) {
+                this.domNode.insertBefore(document.createElement('DIV'), this.domNode.firstElementChild)
+                this.domNode.firstElementChild.classList.add('usedTime')
+            }
+            this.domNode.firstElementChild.innerHTML = `${(this.time / 3600).toFixed(2)} h` 
+        })
+    } else {
+        window.requestAnimationFrame(() => { 
+            if (this.domNode.firstElementChild && this.domNode.firstElementChild.classList.contains('usedTime')) {
+                this.domNode.removeChild(this.firstElementChild)
+            }
+        })
+    }
 }
 
 WNode.prototype.getId = function () {
@@ -215,6 +229,7 @@ WNode.prototype.addTSeg = function (tseg) {
     if (before !== undefined) { before = before.domNode}
     this.time += tseg.time
     this.domNode.insertBefore(tseg.domNode, before)
+    this.showTime()
 }
 
 WNode.prototype.removeTSeg = function (tseg) {
@@ -223,6 +238,7 @@ WNode.prototype.removeTSeg = function (tseg) {
     this.TSegsId.splice(this.TSegsId.indexOf(tseg.id), 1)
     this.time -= tseg.time
     this.domNode.removeChild(tseg.domNode)
+    this.showTime()
 }
 
 /* to extend */

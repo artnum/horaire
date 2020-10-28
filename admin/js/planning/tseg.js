@@ -15,6 +15,7 @@ function TSeg(args) {
     
     let proxy = new Proxy(this, {
         set: (object, property, value) => {
+            object.lastSet = performance.now()
             if (object.hasOwnProperty(property)) {
                 object[property] = value
                 return true
@@ -52,6 +53,12 @@ function TSeg(args) {
 }
 
 TSeg.prototype._generateDom = function () {
+    if (this.lastSet && this.lastDom) {
+        if (this.lastSet < this.lastDom) {
+            return this.domNode
+        }
+    }
+    this.lastDom = performance.now()
     let node = document.createElement('DIV')
     this.removeDom()
     let height = this.time * 100 / KAAL.work.getDay()
@@ -94,6 +101,14 @@ TSeg.prototype._label = function () {
             Temps ${this.time / 3600} h`
         })
     })
+}
+
+TSeg.prototype.draw = function () {
+    let currentParent = this.domNode
+    let nextNode = this.domNode.nextElementSibling
+
+    this._generateDom()
+    this._label()
 }
 
 /* Normalize time on efficiency of 1.0 */
@@ -163,7 +178,7 @@ TSeg.prototype.fromObject = function (o) {
         }
         if (o.details.order) { this.data.order = o.details.order }
     }
-    this.saved = true
+    this.saved = performance.now()
     this._label() // trigger label 
     this._generateDom()
     return this
@@ -240,7 +255,7 @@ TSeg.prototype.commit = function () {
                 }).then((response) => {
                     if (response.ok) {
                         response.json().then((data) => {
-                            this.saved = true
+                            this.saved = performance.now()
                             resolve(true)
                         })
                     } else {
@@ -257,7 +272,7 @@ TSeg.prototype.commit = function () {
                 }).then((response) => {
                     if (response.ok) {
                         response.json().then((data) => {
-                            this.saved = true
+                            this.saved = performance.now()
                             this.data.dbId = data.data[0].id
                             resolve(true)
                         })

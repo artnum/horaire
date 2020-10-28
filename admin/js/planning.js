@@ -348,44 +348,50 @@ Planning.prototype.draw = function () {
   this.startDate = startDate
   return new Promise((resolve, reject) => { 
     let days = this.Days ? this.Days : 7
-    if (this.Grid.colLength() < days + 1) {
-      this.Grid.addColumn(this.Grid.colLength() - (days + 1))
-    } else {
-      this.Grid.removeColumn((days + 1) - this.Grid.colLength())
-    }
-    if (this.Grid.rowLength() !== this.Users.data.length + 1) {
-      this.Grid.addRow(this.Grid.rowLength() - (this.Users.data.length + 1))
+
+    let header = document.getElementById('planingHeader')
+    if (!header) {
+      header = document.createElement('DIV')
+      header.id = 'planingHeader'
+      header.classList.add('line', 'header')
+      window.requestAnimationFrame(() => { this.views.planning.insertBefore(header, this.views.planning.firstChild) })
     }
 
-    let header = document.createElement('DIV')
-    header.id = 'planingHeader'
-    header.classList.add('line', 'header')
-    
-    for (let i = 0; i <= days; i++) {
-      let col = document.createElement('div')
-      if (i === 0) {
-        col.id = 'header+head'
-        col.innerHTML = `Semaine n°<span class="number">${startDate.getWeek()}</span>`
-      } else {
-        let x = new Date(startDate.getTime() + ((i - 1) * 86400000))
-        x.setHours(12, 0, 0)
-        col.id = `header+day-${x.toISOString()}`
-        col.innerHTML = `<span class="date">${x.fullDate()}</span>`
-        if (x.getDay() === 0 || x.getDay() === 6) {
-          col.classList.add('weekend')
-        }
-        col.classList.add('day')
+    let colCount = header.children.length
+    if (colCount - 1 < days) {
+      while (colCount - 1 < days) { /* one element more than days */
+        let col = document.createElement('div')
+        col.classList.add('box')
+        header.appendChild(col)
+        colCount++
       }
-      col.classList.add('box')
-      header.appendChild(col)
+    } else {
+      while (colCount -1 > days) {
+        header.removeChild(header.lastElementChild)
+        colCount--
+      }
     }
-    window.requestAnimationFrame(() => {
-      if (document.getElementById(header.id)) {
-        document.getElementById(header.id).parentNode.replaceChild(header, document.getElementById(header.id))
+
+    for (let i = 0; i <= days; i++) {
+      let node = header.children[i]
+      if (i === 0) {
+        node.id = 'header+head'
+        node.innerHTML = `Semaine n°<span class="number">${startDate.getWeek()}</span>`
       } else {
-        this.views.planning.insertBefore(header, this.views.planning.firstChild)
+        let date = new Date(startDate.getTime() + ((i - 1) * 86400000))
+        date.setHours(12, 0, 0)
+        node.id = `header+day-${date.toISOString()}`
+        window.requestAnimationFrame(() => {
+          node.innerHTML =  `<span class="date">${date.fullDate()}</span>` 
+          node.classList.add('day')
+          if (date.getDay() === 0 || date.getDay() === 6) {
+            node.classList.add('weekend')
+          } else {
+            node.classList.remove('weekend')
+          }
+        })
       }
-    })
+    }
 
     this.Users.data.forEach((user) => {
       if (isNaN(parseFloat(user.efficiency)) || parseFloat(user.efficiency) <= 0) { return }
