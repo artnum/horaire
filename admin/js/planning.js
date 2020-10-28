@@ -436,14 +436,19 @@ Planning.prototype.draw = function () {
             while (tseg = tsegs.pop()) {
               let old_tseg = this.current.travail.segment.pop()
               if (old_tseg) {
+                old_tseg.WNode.removeTSeg(old_tseg)
                 old_tseg.copy(tseg)
-                old_tseg.commit()
+                console.log(`commit ${old_tseg.id}`)
+                old_tseg.commit().then(result => {
+                  this.TSegs.add(old_tseg)
+                })
               } else {
-                tseg.commit()
+                this.TSegs.add(tseg)
               }
             }
             /* move use less time (so less segment) than old */
             while (tseg = this.current.travail.segment.pop()) {
+              console.log(`delete ${tseg.id}`)
               tseg.delete()
               tseg.commit()
             }
@@ -695,6 +700,11 @@ Planning.prototype.removeTravail = function () {
 
 Planning.prototype.closeTravail = function () {
   let node = this.current.tnode
+  if (this.current.travail && this.current.travail.fake) {
+    this.current.travail.segment.forEach(tseg => {
+      tseg.nolight()
+    })
+  }
   if (!node) { return }
   window.requestAnimationFrame(() => node.classList.remove('selected'))
   this.current.travail = null
@@ -729,37 +739,6 @@ Planning.prototype.openSegment = function (tseg) {
 Planning.prototype.addToOpenSegment = function (tseg) {
   this.FakeTravail.time += tseg.normTime()
   this.FakeTravail.segment.push(tseg)
-}
-
-Planning.prototype.deleteTSeg = function (tseg) {
-  this._deleteTSeg(tseg, tseg.get('person'), tseg.get('date'), tseg.get('time'))
-  tseg.delete()
-  tseg.commit()
-}
-
-Planning.prototype.moveTSeg = function (tseg, oldPerson, oldDate, oldTime) {
-  this._deleteTSeg(tseg, oldPerson, oldDate, oldTime)
-  this.addTSeg(tseg)
-}
-
-Planning.prototype._deleteTSeg = function (tseg, oldPerson, oldDate, oldTime) {
-  tseg.removeDom()
-  let node = document.getElementById(`${oldPerson}+${oldDate}`)
-  if (node) {
-    this.nodeRemoveTime(node, oldTime)
-    if (this.TSeg[node.id]) {
-      let found = -1
-      for (let i in TSeg[node.id]) {
-        if (this.TSeg[node.id][i].get('id') === tseg.get('id')) {
-          found = i
-          break
-        }
-      }
-      if (found > -1) {
-        this.TSeg[node.id].splice(found, 1)
-      }
-    }
-  }
 }
 
 Planning.prototype.addTSeg = function (tseg) {

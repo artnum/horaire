@@ -84,6 +84,13 @@ TSegs.prototype.add = function (tseg) {
     if (!tseg || !tseg instanceof TSeg) { return }
     if (tseg.id && this.TSegs[tseg.id]) {
         this.TSegs[tseg.id].refresh(tseg)
+        if (tseg.domNode.parentNode === null) {
+            let wnode = WNode.getWNodeById(WNode.idFromTSeg(tseg))
+            wnode.addTSeg(tseg)
+        }
+        if (!tseg.events) {
+            this._installEvents(tseg)   
+        }
         return
     }
     tseg.commit().then(() => {
@@ -140,7 +147,8 @@ TSegs.prototype.resetLight = function () {
 }
 
 TSegs.prototype._installEvents = function (tseg) {
-    tseg.addEventListener('mouseover', event => {
+    tseg.events = true
+    tseg.addEventListener('mousemove', event => {
         if (this.TSegs[event.target.id] === undefined) { return }
         let tseg = this.TSegs[event.target.id]
         if (tseg.selected) { return }
@@ -173,7 +181,9 @@ TSegs.prototype._installEvents = function (tseg) {
         let tseg = this.TSegs[event.target.id]
         if (tseg.selected) { select = false }
         tseg.nolight()
-        if (select) { tseg.light(1) }
+        if (select) { 
+            tseg.light(1) 
+        }
         tseg.selected = select
         this.Planning.openSegment(tseg)
         if (event.shiftKey) {

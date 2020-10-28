@@ -23,6 +23,7 @@ function WNode (personId, date = null) {
         set: (object, property, value) => {
             if (object.hasOwnProperty(property)) {
                 object[property] = value
+                if (property === 'time') { this.showTime() }
                 return true
             }
             switch (property) {
@@ -120,6 +121,13 @@ WNode.prototype._generateDom = function () {
         }
         this.domNode.classList.add('day', 'wnode')
     }
+    this.domNode.appendChild(document.createElement('DIV'))
+    this.showTime()
+}
+
+WNode.prototype.showTime = function () {
+    if (!this.domNode.firstElementChild) { return }
+    window.requestAnimationFrame(() => { this.domNode.firstElementChild.innerHTML = `${this.time / 3600} h` })
 }
 
 WNode.prototype.getId = function () {
@@ -164,6 +172,8 @@ WNode.prototype.fill = function (time) {
         return false
     }
     this.time += time
+    this.domNode.firstElementChild.innerHTML = this.time
+
     return true    
 }
 
@@ -182,6 +192,7 @@ WNode.prototype.leftTime = function () {
 
 WNode.prototype.addTSeg = function (tseg) {
     if (this.TSegsId.indexOf(tseg.id) !== -1) { return } // don't add already added tseg
+    tseg.WNode = this
     this.TSegsId.push(tseg.id)
     if (tseg.order === 0) {
         tseg.order = this.TSegs.push(tseg)
@@ -204,6 +215,14 @@ WNode.prototype.addTSeg = function (tseg) {
     if (before !== undefined) { before = before.domNode}
     this.time += tseg.time
     this.domNode.insertBefore(tseg.domNode, before)
+}
+
+WNode.prototype.removeTSeg = function (tseg) {
+    if (this.TSegsId.indexOf(tseg.id) === -1) { return }
+    tseg.WNode = null
+    this.TSegsId.splice(this.TSegsId.indexOf(tseg.id), 1)
+    this.time -= tseg.time
+    this.domNode.removeChild(tseg.domNode)
 }
 
 /* to extend */
