@@ -17,6 +17,7 @@ body {
     max-height: 100vh;
     overflow-y: auto;
     overflow-x: hidden;    
+    margin-top: var(--kaal-line-height);
 }
 
 #leftPane {
@@ -46,6 +47,13 @@ body {
     font-size: 12px;
     left: calc(100% - 6ch);
     top: calc(100% - 14px);
+}
+
+#planingHeader {
+    position: fixed;
+    width: 78%;
+    top: 0;
+    background-color: white;
 }
 
 .line {

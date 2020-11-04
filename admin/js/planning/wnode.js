@@ -1,11 +1,7 @@
 function WNode (personId, date = null) {
     this.domNode = document.createElement('DIV')
     this.date = date
-    if (date === null) {
-        this.domNode.id = `${personId}+head`
-    } else {
-        this.domNode.id = `${personId}+${date.toISOString().split('T')[0]}`
-    }
+    this.domNode.id = WNode.generateId(personId, date)
     this.data = {
         date: date,
         personId: personId
@@ -55,6 +51,21 @@ function WNode (personId, date = null) {
     return proxy
 }
 
+WNode.generateId = function (personId, date = null) {
+    if (date === null) {
+        return `${personId}+head`
+    } else {
+        return `${personId}+${date.toISOString().split('T')[0]}`
+    }
+}
+
+WNode.redrawAll = function () {
+    if (KAAL.wnodes === undefined) { return }
+    for (const value of Object.values(KAAL.wnodes)) {
+        value.redrawTSeg()
+    }
+}
+
 WNode.idFromTSeg = function (tseg) {
     if (tseg === undefined) { return }
     return `${tseg.person}+${tseg.date}`
@@ -70,12 +81,29 @@ WNode.getWNodeByDomNode = function (domNode) {
 
 WNode.getWNodeById = function (id) {
     if (KAAL.wnodes === undefined) { return null }
+    if (id instanceof WNode) {
+        id = id.getId()
+    }
     for (const value of Object.values(KAAL.wnodes)) {
         if (value.getId() === id) {
             return value
         }
     }
     return null
+}
+
+WNode.keepOnlyActive = function (activeList) {
+    for (const value of Object.values(KAAL.wnodes)) {
+        if (activeList.indexOf(value.getId()) === -1) {
+            value.delete()
+        }
+    }
+}
+
+WNode.prototype.redrawTSeg = function () {
+    this.TSegs.forEach(tseg => {
+        tseg.draw('wnode')
+    })
 }
 
 WNode.prototype.gotoDate = function (date) {
@@ -101,7 +129,7 @@ WNode.prototype._register = function (proxy) {
     if (KAAL.wnodes === undefined) {
         KAAL.wnodes = {}
     }
-    KAAL.wnodes[this.getId()] = proxy
+    KAAL.wnodes[proxy.getId()] = proxy
 }
 
 WNode.prototype._unregister = function () {
@@ -138,7 +166,7 @@ WNode.prototype.showTime = function () {
     } else {
         window.requestAnimationFrame(() => { 
             if (this.domNode.firstElementChild && this.domNode.firstElementChild.classList.contains('usedTime')) {
-                this.domNode.removeChild(this.firstElementChild)
+                this.domNode.removeChild(this.domNode.firstElementChild)
             }
         })
     }
@@ -162,7 +190,9 @@ WNode.prototype.getDomNode = function () {
 }
 
 WNode.prototype.addToDom = function (parent) {
-    window.requestAnimationFrame(() => parent.appendChild(this.getDomNode()))
+    window.requestAnimationFrame(() => {
+        parent.appendChild(this.getDomNode())
+    })
 }
 
 WNode.prototype.appendChild = function (node) {
@@ -222,6 +252,8 @@ WNode.prototype.addTSeg = function (tseg) {
             this.TSegs[nextSlot].order = nextSlot + 1
             this.TSegs[nextSlot].commit()
             this.TSegs[pos] = tseg
+        } else {
+            this.TSegs.push(tseg)
         }
     }
     

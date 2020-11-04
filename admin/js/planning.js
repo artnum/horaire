@@ -393,6 +393,7 @@ Planning.prototype.draw = function () {
       }
     }
 
+    let activeWnodes = []
     this.Users.data.forEach((user) => {
       if (isNaN(parseFloat(user.efficiency)) || parseFloat(user.efficiency) <= 0) { return }
       let div = document.createElement('DIV')
@@ -402,6 +403,7 @@ Planning.prototype.draw = function () {
       let head = null
       for (let i = 0; i <= days; i++) {
         let wnode
+        let newNode = false
         if (i === 0) {
           wnode = new WNode(div.id)
           wnode.innerHTML = `<span class="name">${user.name}</span><br/><span class="efficiency">${user.efficiency}</span>`
@@ -411,8 +413,12 @@ Planning.prototype.draw = function () {
           const date = new Date(startDate.getTime() + ((i - 1) * 86400000))
           date.setHours(12, 0, 0)
 
-          wnode = new WNode(div.id, date)
-          wnode.data.efficiency = parseFloat(user.efficiency)
+          wnode = WNode.getWNodeById(WNode.generateId(div.id, date))
+          if (!wnode) {
+            wnode = new WNode(div.id, date)
+            wnode.data.efficiency = parseFloat(user.efficiency)
+            newNode = true
+          }
           wnode._head = head
           if (head._next === null) {
             head._next = wnode
@@ -423,53 +429,52 @@ Planning.prototype.draw = function () {
             head._previous = wnode
           }
         }
-   
-        wnode.addEventListener('mouseover', event => {
-          this.cleanNodesInList()
-          let dnode = event.target
-          let wnode
-          while (dnode && !(wnode = WNode.getWNodeByDomNode(dnode))) {
-            dnode = dnode.parentNode
-          }
+        activeWnodes.push (wnode.getId())
+          
+        if (newNode) {
+          wnode.addEventListener('mouseover', event => {
+            this.cleanNodesInList()
+            let dnode = event.target
+            let wnode
+            while (dnode && !(wnode = WNode.getWNodeByDomNode(dnode))) {
+              dnode = dnode.parentNode
+            }
 
-          this.placeTravailOnGrid(wnode)
-        })
+            this.placeTravailOnGrid(wnode)
+          })
 
-        wnode.addEventListener('click', event => {
-          if (!this.current.travail) { return }
-          if (this.current.travail.fake) {
-            let tsegs = this.generateTSegForGrid()
-            while (tseg = tsegs.pop()) {
-              let old_tseg = this.current.travail.segment.pop()
-              if (old_tseg) {
-                old_tseg.WNode.removeTSeg(old_tseg)
-                old_tseg.copy(tseg)
-                console.log(`commit ${old_tseg.id}`)
-                old_tseg.commit().then(result => {
-                  this.TSegs.add(old_tseg)
-                })
-              } else {
-                this.TSegs.add(tseg)
+          wnode.addEventListener('click', event => {
+            if (!this.current.travail) { return }
+            if (this.current.travail.fake) {
+              let tsegs = this.generateTSegForGrid()
+              while (tseg = tsegs.pop()) {
+                let old_tseg = this.current.travail.segment.pop()
+                if (old_tseg) {
+                  old_tseg.WNode.removeTSeg(old_tseg)
+                  old_tseg.copy(tseg)
+                  old_tseg.commit().then(result => {
+                    this.TSegs.add(old_tseg)
+                  })
+                } else {
+                  this.TSegs.add(tseg)
+                }
               }
+              /* move use less time (so less segment) than old */
+              while (tseg = this.current.travail.segment.pop()) {
+                tseg.delete()
+                tseg.commit()
+              }
+            } else {
+              this.placeTSegOnGrid()
+              this.removeTravail()
             }
-            /* move use less time (so less segment) than old */
-            while (tseg = this.current.travail.segment.pop()) {
-              console.log(`delete ${tseg.id}`)
-              tseg.delete()
-              tseg.commit()
-            }
-          } else {
-            this.placeTSegOnGrid()
-            this.removeTravail()
-          }
-          this.cleanNodesInList()
-          this.resetCurrent()
-        })
+            this.cleanNodesInList()
+            this.resetCurrent()
+          })
+        }
 
         wnode.addToDom(div)
-      }
-      this.TSegs.draw()
-      
+      }     
        window.requestAnimationFrame(() => {
         if (document.getElementById(div.id)) {
           document.getElementById(div.id).parentNode.replaceChild(div, document.getElementById(div.id))
@@ -478,7 +483,8 @@ Planning.prototype.draw = function () {
         }
       })
     })
-
+    WNode.keepOnlyActive(activeWnodes)
+    WNode.redrawAll()
     this.displayTravail(this.Travaux.data)
   })
 }

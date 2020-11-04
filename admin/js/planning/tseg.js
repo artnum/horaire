@@ -59,16 +59,24 @@ TSeg.prototype._generateDom = function () {
         }
     }
     this.lastDom = performance.now()
-    let node = document.createElement('DIV')
-    this.removeDom()
+    let node
+    if (this.domNode) {
+        node = this.domNode
+    } else {
+        node = document.createElement('DIV')
+        this.domNode = node
+    }
+
     let height = this.time * 100 / KAAL.work.getDay()
-    node.id = this.domId()
-    node.classList.add('travailMark')
-    node.style.maxHeight = `calc(${height}% - 4px)`
-    node.style.minHeight = `calc(${height}% - 4px)`
-    node.style.height = `calc(${height}% - 4px)`
-    node.innerHTML = '&nbsp;'
-    this.domNode = node
+    window.requestAnimationFrame(() => {
+        node.id = this.domId()
+        node.classList.add('travailMark')
+        node.style.maxHeight = `calc(${height}% - 4px)`
+        node.style.minHeight = `calc(${height}% - 4px)`
+        node.style.height = `calc(${height}% - 4px)`
+        node.innerHTML = '&nbsp;'
+    })
+
     return this.domNode
 }
 
@@ -104,9 +112,6 @@ TSeg.prototype._label = function () {
 }
 
 TSeg.prototype.draw = function () {
-    let currentParent = this.domNode
-    let nextNode = this.domNode.nextElementSibling
-
     this._generateDom()
     this._label()
 }

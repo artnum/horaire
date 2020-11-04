@@ -86,7 +86,9 @@ TSegs.prototype.add = function (tseg) {
         this.TSegs[tseg.id].refresh(tseg)
         if (tseg.domNode.parentNode === null) {
             let wnode = WNode.getWNodeById(WNode.idFromTSeg(tseg))
-            wnode.addTSeg(tseg)
+            if (wnode) {
+                wnode.addTSeg(tseg)
+            }
         }
         if (!tseg.events) {
             this._installEvents(tseg)   
