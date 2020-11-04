@@ -275,12 +275,12 @@ try {
             switch (intval($repData['facture_type'])) {
                case 1:
                   $type = 'Créancier';
-                  $amount_ht = floatval($repData['repartition_value']);
+                  $amount_ht = -floatval($repData['repartition_value']);
                   $tva = floatval($repData['repartition_tva']);
                break;
                case 2:
                   $type = 'Débiteur';
-                  $amount_ht = -floatval($repData['repartition_value']);
+                  $amount_ht = floatval($repData['repartition_value']);
                   $tva = floatval($repData['repartition_tva']);
                break;
                case 3:
