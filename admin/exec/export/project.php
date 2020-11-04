@@ -274,13 +274,13 @@ try {
             $type = '';
             switch (intval($repData['facture_type'])) {
                case 1:
-                  $type = 'Débiteur';
-                  $amount_ht = -floatval($repData['repartition_value']);
+                  $type = 'Créancier';
+                  $amount_ht = floatval($repData['repartition_value']);
                   $tva = floatval($repData['repartition_tva']);
                break;
                case 2:
-                  $type = 'Créance';
-                  $amount_ht = floatval($repData['repartition_value']);
+                  $type = 'Débiteur';
+                  $amount_ht = -floatval($repData['repartition_value']);
                   $tva = floatval($repData['repartition_tva']);
                break;
                case 3:
@@ -319,7 +319,7 @@ try {
          $writer->writeSheetRow('Résumé', ['', $k, $v], ['font-style' => 'italic'], ['string', 'string', 'price']);
       }
       $writer->writeSheetRow('Résumé', ['']);
-      $writer->writeSheetRow('Résumé', ['Débiteurs HT', '', '', $amountByType[0]], null, ['string', 'string', 'string', 'price']);
+      $writer->writeSheetRow('Résumé', ['Créanciers HT', '', '', $amountByType[0]], null, ['string', 'string', 'string', 'price']);
       $writer->writeSheetRow('Résumé', ['']);
       $total = $project['workcost'] + $amountByType[0] + $materielMontant;
       $writer->writeSheetRow('Résumé', ['Coûts HT', '', '', $total], ['font-style' => 'bold'], ['string', 'string', 'string', 'price']);
@@ -327,7 +327,7 @@ try {
       $writer->writeSheetRow('Résumé', ['Résultat [CHF]', '', '', $project['price'] - $total], null, ['string', 'string', 'string', '0.00;[RED]-0.00']);
       $writer->writeSheetRow('Résumé', ['Résultat [%]', '', '', floatval($project['price']) === 0.0 ? -1.0 : (($project['price'] - $total) / $project['price'])], null, ['string', 'string', 'string', '0.00 %;[RED]-0.00%']);
       $writer->writeSheetRow('Résumé', ['']);
-      $writer->writeSheetRow('Résumé', ['Créanciers', '', '', $amountByType[1]], null, ['string', 'string', 'string', 'price']);
+      $writer->writeSheetRow('Résumé', ['Débiteurs HT', '', '', $amountByType[1]], null, ['string', 'string', 'string', 'price']);
 
    }
    

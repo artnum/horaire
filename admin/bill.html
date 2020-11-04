@@ -34,8 +34,8 @@
     <fieldset id="detail">
       <legend>Détail facture</legend>
       <label>Type </label> <select name="type">
-        <option value="1">Facture débiteur</option>
-        <option value="2">Facture créancier</option>
+        <option value="2">Facture débiteur</option>
+        <option value="1">Facture créancier</option>
         <option value="3">Note de crédit</option>
         <option value="4">Compensation</option>
       </select></label>
@@ -79,7 +79,7 @@
       <th data-class="client" data-attribute="@../$person displayname|person">Adresse</th>
       <th data-attribute="amount:money" data-sort-type="money">Montant</th>
       <th data-attribute="currency">Devise</th>
-      <th data-class="center" data-attribute="type~1=Facture débiteur,2=Facture créancier,3=Note de crédit,4=Compensation" data-sort-type="int">Type</th>
+      <th data-class="center" data-attribute="type~2=Facture débiteur,1=Facture créancier,3=Note de crédit,4=Compensation" data-sort-type="int">Type</th>
       <th data-class="center" data-attribute="paid~0=non,1=oui">Payée</th>
       <th data-class="center" data-attribute="paiement" data-sort-type="int">Nbre paiements</th>
       <th data-class="center clickable" data-attribute="repartition" data-sort-type="int">Répartitions</th>
@@ -99,6 +99,7 @@
 <script src="../node_modules/artnum/Query.js"></script>
 <script src="../node_modules/artnum/Date.js"></script>
 <script src="../node_modules/artnum/DTable.js"></script>
+<script src="/js/Fetch.js"></script>
 <script src="js/admin.js"></script>
 <script src="js/stores.js"></script>
 <script type="module">
@@ -170,7 +171,30 @@
     })
   }
 
+  function addPaiement (id, dtable) {
+    let url = new URL('../Paiement', window.location)
+    url.searchParams.append('search.facture', id)
+    fetch.addEventListener('query', (url, options) => {
+      if (!fetch.count) {
+        fetch.count = 1
+      } else {
+        fetch.count++
+      }
+      url.searchParams.append('X-Request-Id', `${new Date().getTime()}-${performance.now()}-${fetch.count}`)
+    })
+    let p = fetch(url)
+    Admin.fetchPopup('html_frag/addpaiement.html', 'Ajout paiement', {closable: true, minWidth: '40%'}),then(popup => {
+
+    })
+  } 
+
   const actions = [
+    {
+      html: '<button type="button">Paiement</button>',
+      events: [
+        {name: 'click', callback: (event, dtable) => addPaiement(event.target.dataset.id, dtable)}
+      ]
+    },
     {
       html: '<button type="button">Supprimer</button>',
       events: [
