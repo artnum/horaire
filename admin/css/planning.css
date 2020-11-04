@@ -184,3 +184,25 @@ body {
     border: 3px solid #2a4e83;
     background-color: #cce8ff;
 }
+
+#planingHeader {
+    cursor: grab;
+}
+
+#rightPane.moveleft #planingHeader, #rightPane.moveright #planingHeader {
+    cursor: grabbing;
+}
+
+#rightPane.moveleft #planingHeader .box:first-child {
+    background-color: white;
+    background: linear-gradient(90deg, rgba(255,0,0,0.4) 0%, white 50%);
+}
+
+#rightPane.moveright #planingHeader .box:last-child {
+    background-color: white;
+    background: linear-gradient(90deg, white 50%, rgba(255,0,0,0.4) 100%);
+}
+#rightPane.moveright #planingHeader .box.weekend:last-child {
+    background-color: lightgray;
+    background: linear-gradient(90deg, lightgray 0%, lightgray 50%, rgba(255,0,0,0.4) 100%);
+}

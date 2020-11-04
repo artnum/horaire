@@ -58,6 +58,21 @@ function Planning (options) {
     this.Week = new Date().getWeekNumber()
     this.Year = new Date().getFullYear()
   }
+  this.lastClientX = 0
+  window.addEventListener('mousemove', event => {
+    if (this.scrollX) {
+      if (this.lastClientX === 0) {
+        this.lastClientX = event.clientX
+        return
+      }
+      if (this.lastClientX < event.clientX) {
+        this.move(-1)
+      } else {
+        this.move(+1)
+      }
+      console.log(event)
+    }
+  })
 
   this.resetCurrent()
   this.installUI()
@@ -148,6 +163,24 @@ Planning.prototype.move = function (nDays) {
   if (this.TSegTimeout) {
     clearTimeout(this.TSegTimeout)
   }
+  if (nDays > 0) {
+    window.requestAnimationFrame (() => {
+      this.views.planning.classList.remove('moveleft', 'moveright')
+      this.views.planning.classList.add('moveleft')
+    })
+  } else {
+    window.requestAnimationFrame (() => {
+      this.views.planning.classList.remove('moveleft', 'moveright')
+      this.views.planning.classList.add('moveright')
+    })
+  }
+
+  setTimeout(() => {
+    window.requestAnimationFrame(() => {
+      this.views.planning.classList.remove('moveleft', 'moveright')
+    })
+  }, 750)
+
   this.move.last = performance.now()
   this.startDate = new Date(this.startDate.getTime() + (nDays * 86400000))
   this.TSegTimeout = setTimeout(() => {
@@ -352,6 +385,16 @@ Planning.prototype.draw = function () {
     let header = document.getElementById('planingHeader')
     if (!header) {
       header = document.createElement('DIV')
+      header.addEventListener('mousedown', event => {
+        this.scrollX = true
+        event.preventDefault()
+      })
+      window.addEventListener('mouseup', event => {
+        if (this.scrollX) { 
+          this.scrollX = false 
+          this.lastClientX = 0
+        }
+      })
       header.id = 'planingHeader'
       header.classList.add('line', 'header')
       window.requestAnimationFrame(() => { this.views.planning.insertBefore(header, this.views.planning.firstChild) })
