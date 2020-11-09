@@ -256,7 +256,7 @@
             }
 
             /* nous voulons du hors-taxe */
-            form.amount = form.amount / (1 - form.TVA / 100)
+            form.amount = form.amount / (1 + form.TVA / 100)
             let body = {value: form.amount, tva: form.TVA, project: form.project, facture: factureId}
             fetch(new URL('../Repartition', window.location), {
               method: 'POST',
