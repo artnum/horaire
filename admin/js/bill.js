@@ -765,9 +765,9 @@ export class Facture {
         }
         let totalLeft = amountLeft
         relativeValues.forEach((key) => {
-            let val = round(this.reverseTVA(totalLeft, this.repartition[key][0].num), this.currency)
-            let tva = round(val * this.repartition[key][1] / 100, this.currency)
-            let total = val + tva
+            let total = totalLeft * this.repartition[key][0].num / 100
+            let val = this.reverseTVA(total, this.repartition[key][1])
+            let tva = total - val
             
             amountLeft -= total
             this.Events.dispatchEvent(new CustomEvent('change', {detail: {
@@ -900,7 +900,7 @@ window.onload = () => {
                             if (add) {
                                 node.appendChild(lc)
                             }
-                            lc.innerHTML = `<span class="total">${Values[k].value}</span> <span class="tva">${Values[k].tva}</span>`
+                            lc.innerHTML = `<span class="total">${parseFloat(Values[k].value).toPrecision(4)}</span> <span class="tva">${parseFloat(Values[k].tva).toPrecision(4)}</span>`
                         }) 
                     }
                 } 

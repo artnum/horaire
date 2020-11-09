@@ -156,8 +156,7 @@
     }
     
     fetch(new URL(`../Facture/${id}`, window.location), {
-      method: 'DELETE',
-      headers: new Headers({'X-Request-Id': `${new Date().getTime()}-${id}`})
+      method: 'DELETE'
     }).then(response => {
       if (!response.ok) {
         return
