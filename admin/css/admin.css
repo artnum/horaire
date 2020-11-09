@@ -225,6 +225,10 @@ tr.sub[data-open="1"] {
     box-shadow: 3px 3px 4px 0px var(--title-background-color);
 }
 
+[data-action] {
+    cursor: pointer
+}
+
 .popup {
     filter: none !important;    
     border: 2px var(--title-background-color) solid;

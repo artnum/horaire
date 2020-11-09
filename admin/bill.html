@@ -4,6 +4,7 @@
   <link rel="stylesheet" type="text/css" href="css/admin.css" />
   <link rel="stylesheet" type="text/css" href="css/codebox.css" />
   <link rel="stylesheet" type="text/css" href="css/dtable.css" />
+  <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.min.css" type="text/css" />
   <style type="text/css">
     .client.alt_0 {
       color: darkblue;
@@ -172,67 +173,94 @@
   }
 
   function addPaiement (id, dtable) {
+    let popup = Admin.popup('', 'Paiements', {closable: true, minWidth: '40%', classes: ['paiementListe']})
+    const innerForm = `Date : <input type="text" name="date" value="${(new Date()).fullDate()}"><br>
+                        Montant : <input type="text" name="amount" value=""> (vide si paiement total)<br>
+                      <input type="submit" value="Ajout paiement" /> <input type="submit" name="add-quit" value="Ajout paiement et quitter" />`
+    const subForm = function (form, facture) {
+      let values = Admin.getForm(form)
+      if (values.date !== null) {
+        let amount = values.amount === null ? parseFloat(facture.amount) : parseFloat(values.amount)
+        let date = Date.EUParse(values.date)
+        if (isNaN(date.getTime()) || isNaN(amount)) {
+          return
+        }
+        fetch(new URL('../Paiement', window.location), {
+          method: 'POST',
+          body: JSON.stringify({ facture: facture.id, amount: amount, date: date.toISOString() }),
+        }).then(response => {
+          if (!response.ok) { return }
+          response.json().then(result => {
+            if (result.length > 0) {
+              let node = document.createElement('DIV')
+              node.dataset.paiementId = result.data[0].id
+              node.innerHTML = `${date.fullDate()} - ${parseFloat(amount).toFixed(2)}  <span style="float: right"><i class="far fa-trash-alt"></i></span>`
+              popup.insertBefore(node, popup.firstElementChild)
+              dtable.queryOne(facture.id)
+            }
+          })
+        })
+      }
+      return values
+    }
+
+    const delPaiement = function (node, paiement, facture) {
+      while (node && !node.dataset.paiementId) { node = node.parentNode }
+      if (!node) { return }
+      fetch(new URL(`../Paiement/${paiement.id}`, window.location), {method: 'DELETE'}).then (response => {
+        if (!response.ok) { return }
+        response.json().then(result => {
+          if (result.length === 1) {
+            if (result.data[0][paiement.id]) {
+              window.requestAnimationFrame(() => node.parentNode.removeChild(node))
+              dtable.queryOne(facture.id)
+              let form = document.createElement('FORM')
+            }
+          }
+        })
+      })
+    }
+
     let url = new URL('../Paiement', window.location)
     url.searchParams.append('search.facture', id)
     let p = fetch(url)
     let f = fetch(new URL(`../Facture/${id}`, window.location))
-
-    let popup = Admin.popup('', 'Ajout paiement', {closable: true, minWidth: '40%'})
     Promise.all([p, f]).then(([response1, response2]) => {
       if (!response1.ok || !response2) { return }
       Promise.all([response1.json(), response2.json()]).then(([result1, result2]) => {
         let totalPaid = 0
         let frag = document.createDocumentFragment()
+        if (result2.length !== 1) { return }
+        let facture = result2.data
+
         if (result1.length > 0) {
           for (let i = 0; i < result1.length; i++) {
             let paiement = result1.data[i]
             let node = document.createElement('DIV')
+            node.dataset.paiementId = paiement.id
             totalPaid = parseFloat(paiement.amount)
-            node.innerHTML = `${(new Date(paiement.date)).fullDate()} - ${parseFloat(paiement.amount).toFixed(2)}`
+            node.classList.add('paiement')
+            node.innerHTML = `${(new Date(paiement.date)).fullDate()} - ${parseFloat(paiement.amount).toFixed(2)} <span style="float: right"><i data-action="delete" class="far fa-trash-alt"></i></span>`
+            node.addEventListener('click', event => {
+              if (!event.target.dataset || !event.target.dataset.action) { return }
+              switch (event.target.dataset.action) {
+                case 'delete': return delPaiement(event.target, paiement, facture)
+              }
+            })
             frag.appendChild(node)
           }
         }
 
-        if (result2.length !== 1) { return }
-        let facture = result2.data
-        if (totalPaid !== parseFloat(facture.amount)) {
-          let form = document.createElement('FORM')
-          form.innerHTML = `Date : <input type="text" name="date" value="${(new Date()).fullDate()}"><br>
-                            Montant : <input type="text" name="amount" value=""> (vide si paiement total)<br>
-                            <input type="submit" value="Ajout paiement" />`
-          frag.appendChild(form)
-          form.addEventListener('submit', event => {
-            event.preventDefault()
-
-            let values = Admin.getForm(event.target)
-            if (values.date !== null) {
-              let amount = values.amount === null ? parseFloat(facture.amount) : parseFloat(values.amount)
-              let date = Date.EUParse(values.date)
-              if (isNaN(date.getTime()) || isNaN(amount)) {
-                return
-              }
-              fetch(new URL('../Paiement', window.location), {
-                method: 'POST',
-                body: JSON.stringify({ facture: facture.id, amount: amount, date: date.toISOString() }),
-              }).then(response => {
-                if (!response.ok) { return }
-                response.json().then(result => {
-                  if (result.length > 0) {
-                    let node = document.createElement('DIV')
-                    node.innerHTML = `${date.fullDate()} - ${parseFloat(amount).toFixed(2)}`
-                    popup.insertBefore(node, popup.firstElementChild)
-                    dtable.queryOne(facture.id)
-                  }
-                })
-              })
-            }
-
-          })
-        } else {
-          let message = document.createElement('DIV')
-          message.innerHTML = 'Facture totalement payée'
-          frag.appendChild(message)
-        }
+        let form = document.createElement('FORM')
+        form.innerHTML = innerForm
+        frag.appendChild(form)
+        form.addEventListener('submit', event => {
+          event.preventDefault()
+          let values = subForm(event.target, facture)
+          if (values['add-quit']) {
+            popup.close()
+          }
+        })
 
         popup.appendChild(frag)
       })

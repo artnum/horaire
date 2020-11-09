@@ -95,3 +95,16 @@ div.link.results div {
 .link.results span.type {
     min-width: 28ch;
 }
+
+.paiement {
+    line-height: 2em;
+    font-size: 1.2em;
+}
+
+.paiementListe form {
+    margin-top: 1em;
+    padding-top: 1em;
+    background-color: rgb(245, 245, 245);
+    border-top: 1px solid lightgray;
+
+}

@@ -342,9 +342,15 @@
       popup.insertBefore(titleNode, popup.firstChild)
       let content = document.createElement('DIV')
       content.innerHTML = html
+      if (options.classes && Array.isArray(options.classes)) {
+        options.classes.forEach(c => {
+          content.classList.add(c)
+        })
+      }
+
       popup.appendChild(content)
 
-      popup.addEventListener('close', function (event) {
+      content.close = function (event) {
         window.requestAnimationFrame(() => {
           this.parentNode.removeChild(this)
           if (window.underlay) {
@@ -355,7 +361,9 @@
             document.body.classList.remove('AdminPopupModal')
           }
         })
-      }.bind(popup))
+      }.bind(popup)
+
+      popup.addEventListener('close', content.close)
 
       window.requestAnimationFrame(() => {
         document.body.appendChild(popup)
