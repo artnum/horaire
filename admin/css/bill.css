@@ -101,10 +101,19 @@ div.link.results div {
     font-size: 1.2em;
 }
 
-.paiementListe form {
+.paiementListe form, .repartition form {
     margin-top: 1em;
     padding-top: 1em;
     background-color: rgb(245, 245, 245);
     border-top: 1px solid lightgray;
 
+}
+
+.repartition .header {
+    font-weight: bold;
+}
+
+.repartition .field {
+    display: inline-block;
+    min-width: 12ch;
 }

@@ -171,6 +171,143 @@
     })
   }
 
+  function openRepartition (factureId, dtable) {
+    let popup = Admin.popup('', 'Répartition ', {closable: true, classes: ['repartition']})
+    let url = new URL('../Repartition', window.location)
+    url.searchParams.append('search.facture', factureId)
+    
+    let delRepartition = function (node, repartition, project) {
+      fetch(new URL(`../Repartition/${repartition.id}`, window.location), {method: 'DELETE'}).then(response => {
+        if (!response.ok) { return }
+        response.json().then(result => {
+          if (result.length === 1) {
+            if (result.data[0][repartition.id]) {
+              while (node && node.nodeName !== 'P') { node = node.parentNode }
+              window.requestAnimationFrame(() => node.parentNode.removeChild(node))
+              dtable.queryOne(factureId)
+            }
+          }
+        })
+      })
+    }
+
+    window.requestAnimationFrame(() => {
+      popup.innerHTML = `<p class="header"><span class="field projectReference">Projet</span>
+        <span class="field repartitionValue">Montant</span>
+        <span class="field repartitionTVA">TVA</span>`
+    })
+    let frag = document.createDocumentFragment()
+    fetch(url).then(response => {
+      if (!response.ok) { return }
+      response.json().then(result => {
+        let loadRepartition = []
+        for (let i = 0; i < result.length; i++) {
+          let rep = result.data[i]
+          loadRepartition.push(new Promise((resolve, reject) => {
+            fetch(new URL(`../Project/${rep.project}`, window.location)).then(response => {
+              if (!response.ok) { return }
+              response.json().then(result => {
+                let project = result.data
+                let p = document.createElement('P')
+                if (result.length > 0) {
+                  p.innerHTML = `<span class="field projectReference">${result.data.reference}</span>
+                  <span class="field repartitionValue">${parseFloat(rep.value).toFixed(2)}</span>
+                  <span class="field repartitionTVA">${parseFloat(rep.tva).toFixed(2)}</span>
+                  <i data-action="delete" class="far fa-trash-alt"></i>`
+                } else {
+                  p.innerHTML = `<span class="field projectReference">Projet inconnu</span>
+                  <span class="field repartitionValue">${parseFloat(rep.value).toFixed(2)}</span>
+                  <span class="field repartitionTVA">${parseFloat(rep.tva).toFixed(2)}</span>
+                  <i data-action="delete" class="far fa-trash-alt"></i>`
+                }
+                p.addEventListener('click', event => {
+                  if (!event.target.dataset || !event.target.dataset.action) { return }
+                  switch (event.target.dataset.action) {
+                    case 'delete': return delRepartition(event.target, rep, project)
+                  }
+                })
+                frag.appendChild(p)
+                resolve()
+              }, reason => resolve())  
+            }, reason => resolve())
+          }))
+        }
+        Promise.all(loadRepartition).then(() => {
+          let form = document.createElement('FORM')
+          form.innerHTML = `Projet : <input type="text" name="project"><br>
+                            Montant (TTC): <input type="text" name="amount"><br>
+                            TVA : <input type="text" name="TVA" value="7.7"><br>
+                            <input type="submit" value="Ajouter" />
+                            `
+          let inputs = form.getElementsByTagName('INPUT')
+          for (let i = 0; i < inputs.length; i++) {
+            if (inputs[i].name === 'project') {
+              Select(inputs[i], new STProject('Project'), {realSelect: true, allowFreeText: false})
+            }
+          }
+          form.addEventListener('submit', event => {
+            event.preventDefault()
+            let form = Admin.getForm(event.target)
+            form.TVA = parseFloat(form.TVA)
+            form.amount = parseFloat(form.amount)
+            form.project = parseInt(form.project)
+            if (isNaN(form.TVA) || isNaN(form.amount) || isNaN(form.project)) {
+              return
+            }
+
+            /* nous voulons du hors-taxe */
+            form.amount = form.amount / (1 - form.TVA / 100)
+            let body = {value: form.amount, tva: form.TVA, project: form.project, facture: factureId}
+            fetch(new URL('../Repartition', window.location), {
+              method: 'POST',
+              body: JSON.stringify(body)
+            }).then(response=> {
+              if (!response.ok) { return }
+              response.json().then(result => {
+                if (result.length > 0) {
+                  let getProject = new Promise ((resolve, reject) => {
+                    fetch(`../Project/${form.project}`).then (response => {
+                      if (!response.ok) {
+                        resolve({reference: ''})
+                      }
+                      response.json().then(result => {
+                        if (result.length <= 0) { resolve ({reference: ''}) }
+                        if (Array.isArray(result.data)) {
+                          resolve(result.data[0])
+                        } else {
+                          resolve(result.data)
+                        }
+                      })
+                    })
+                  })
+
+                  getProject.then(project => {
+                    let p = document.createElement('P')
+                    p.innerHTML = `<span class="field projectReference">${project.reference}</span>
+                    <span class="field repartitionValue">${parseFloat(form.amount).toFixed(2)}</span>
+                    <span class="field repartitionTVA">${parseFloat(form.TVA).toFixed(2)}</span>
+                    <i data-action="delete" class="far fa-trash-alt"></i>`
+                    body.id = result.data[0].id
+                    p.addEventListener('click', event => {
+                      if (!event.target.dataset || !event.target.dataset.action) { return }
+                      switch (event.target.dataset.action) {
+                        case 'delete': return delRepartition(event.target, body, project)
+                      }
+                    })
+                    window.requestAnimationFrame(() => popup.insertBefore(p, event.target))
+                    dtable.queryOne(factureId)
+                  })
+                }
+              })
+            })
+          })
+          frag.appendChild(form)
+          window.requestAnimationFrame(() => popup.appendChild(frag))
+        })
+      })
+    })
+  }
+
   function addPaiement (id, dtable) {
     let popup = Admin.popup('', 'Paiements', {closable: true, minWidth: '40%', classes: ['paiementListe']})
     const innerForm = `Date : <input type="text" name="date" value="${(new Date()).fullDate()}"><br>
@@ -274,6 +411,12 @@
       ]
     },
     {
+      html: '<button type="button">Répartition</button>',
+      events: [
+        {name: 'click', callback: (event, dtable) => openRepartition(event.target.dataset.id, dtable)}
+      ]
+    },
+    {
       html: '<button type="button">Supprimer</button>',
       events: [
         {name: 'click', callback: (event, dtable) => delBill(event.target.dataset.id, dtable) }
@@ -282,37 +425,6 @@
   ]
   const facture = new Artnum.DTable({table: document.getElementById('facture'), actions: actions})
   facture.transliterate = transliterate
-  facture.addEventListener('click', (event) => {
-    if (!event.detail || !event.detail.attribute) { return }
-    switch (event.detail.attribute) {
-      case 'repartition':
-        let popup = Admin.popup('', 'Répartition ', {closable: true})
-        let id = event.detail.entries[0].id
-        let url = new URL('../Repartition', window.location)
-        url.searchParams.append('search.facture', id)
-        fetch(url).then(response => {
-          if (!response.ok) { return }
-          response.json().then(result => {
-            for (let i = 0; i < result.length; i++) {
-              let rep = result.data[i]
-              fetch(new URL(`../Project/${rep.project}`, window.location)).then(response => {
-                if (!response.ok) { return }
-                response.json().then(result => {
-                  let p = document.createElement('P')
-                  if (result.length > 0) {
-                    p.innerHTML = `${result.data.reference} : ${rep.value}, tva ${rep.tva}`
-                  } else {
-                    p.innerHTML = `Projet inconnu : ${rep.value}, tva ${rep.tva}`
-                  }
-                  popup.appendChild(p)
-                })  
-              })
-            }
-          })
-        })
-      break
-    }
-  })
 
   function linkTo () {
     Admin.fetchPopup('html_frag/linkbill.html', 'Lier facture', { closable: true, minWidth: '40%' }).then(popup => {
