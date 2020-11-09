@@ -310,20 +310,15 @@
       
       if (options.modal) {
         let underlay = document.createElement('DIV')
-        underlay.style.position = 'absolute'
-        underlay.style.width = '100%'
-        underlay.style.height = '100%'
-        underlay.style.backgrounColor = 'transparent'
-        underlay.style.left = '0'
-        underlay.style.top = '0'
-        underlay.style.zIndex = '9900'
-        
+        underlay.id = 'ModalUnderlay'        
         window.underlay = underlay
-        window.requestAnimationFrame(() => document.body.appendChild(underlay))
+        window.requestAnimationFrame(() => {
+          document.body.appendChild(underlay)
+          document.body.classList.add('AdminPopupModal')
+        })
       }
 
       let popup = document.createElement('DIV')
-      popup.innerHTML = html
       popup.style.zIndex = '9999'
       let titleNode = document.createElement('SPAN')
       titleNode.innerHTML = title
@@ -345,6 +340,10 @@
       }
 
       popup.insertBefore(titleNode, popup.firstChild)
+      let content = document.createElement('DIV')
+      content.innerHTML = html
+      popup.appendChild(content)
+
       popup.addEventListener('close', function (event) {
         window.requestAnimationFrame(() => {
           this.parentNode.removeChild(this)
@@ -357,13 +356,11 @@
           }
         })
       }.bind(popup))
+
       window.requestAnimationFrame(() => {
         document.body.appendChild(popup)
-        if (options.modal) {
-          document.body.classList.add('AdminPopupModal')
-        }
       })
-      return popup
+      return content
     },
     parseDuration: function (text, to = 's') {
       const exp = /([0-9]+(?:[\.,][0-9]+)?)\s*([jJsSmMhH]?).*/

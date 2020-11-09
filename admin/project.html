@@ -245,9 +245,7 @@ function changeState (event) {
          }
        })
      })
-     
-     window.requestAnimationFrame(() => document.body.appendChild(popup))
-   })
+  })
  }
  async function addProject (event) {
    var form = event.target
@@ -601,7 +599,6 @@ async function evCancelEdit (event) {
      
      while (tbody && tbody.nodeName !== 'TBODY') { tbody = tbody.nextElementSibling }
      for (let i = tbody.firstElementChild; i; i = i.nextElementSibling) {
-       console.log(i.dataset.id, node)
        if (node === i.dataset.id) {
          node = i
          break
