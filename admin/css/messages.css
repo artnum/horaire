@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=B612&display=swap');
+
+#KAALGeneralMessageBox {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    min-width: 100%;
+}
+
+#KAALGeneralMessageBox:empty {
+    display: none;
+}
+
+#KAALGeneralMessageBox .message {
+    min-width: calc(100% - 12px);
+    font-size: 14px;
+    display: block;
+    border: 2px solid transparent;
+    margin: 2px;
+    font-family: 'B612', sans-serif;
+    padding: 2px;
+}
+
+#KAALGeneralMessageBox .message.error {
+    border-color: red;
+    background-color: hsla(0, 100%, 75%, 1);
+    color: hsla(0, 100%, 5%, 1);
+}
+
+#KAALGeneralMessageBox .message.info {
+    border-color: green;
+    background-color: hsla(135, 100%, 75%, 1);
+    color: hsla(135, 100%, 5%, 1);
+}
+
+#KAALGeneralMessageBox .message.transaction {
+    border-color: blue;
+    background-color: hsla(225, 100%, 75%, 1);
+    color: hsla(225, 100%, 5%, 1);
+}
+
+#KAALGeneralMessageBox .message.warning {
+    border-color: orange;
+    background-color: hsla(45, 100%, 75%, 1);
+    color: hsla(45, 100%, 5%, 1);
+}

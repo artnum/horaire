@@ -82,6 +82,7 @@
       <th data-attribute="currency">Devise</th>
       <th data-class="center" data-attribute="type~2=Facture débiteur,1=Facture créancier,3=Note de crédit,4=Compensation" data-sort-type="int">Type</th>
       <th data-class="center" data-attribute="paid~0=non,1=oui">Payée</th>
+      <th data-class="center" data-attribute="rappel" data-sort-type="int" data-sort-name="rappel">Nbre de rappels</th>
       <th data-class="center" data-attribute="paiement" data-sort-type="int">Nbre paiements</th>
       <th data-class="center clickable" data-attribute="repartition" data-sort-type="int">Répartitions</th>
     </tr></thead>
@@ -90,6 +91,7 @@
   </table>
 </body>
 <script src="../conf/kaal.js"></script>
+<script src="js/kaal.js"></script>
 <script src="js/fetch.js"></script>
 <script type="module" src="js/bill.js"></script>
 <script src="../node_modules/sjcl/sjcl.js"></script>
@@ -167,6 +169,59 @@
             dtable.queryOne(id)
           }
         }
+      })
+    })
+  }
+
+  function addRappelSimple (factureId, dtable) {
+    let kaal = KAAL.transaction('Ajout d\'un rappel')
+    const fakeFacture = {
+      reference: `${factureId}-${(new Date()).getTime()}`,
+      amount: 0.0,
+      date: new Date().toISOString(),
+      indate: new Date().toISOString(),
+      duedate: new Date()
+
+    }
+
+    fakeFacture.duedate.setTime(new Date().getTime() + 30 * 864000)
+    fakeFacture.duedate = fakeFacture.duedate.toISOString()
+    
+    fetch(new URL(`Facture/${factureId}`, KAAL.getBase())).then(response => {
+      if (!response.ok) { kaal.error('Facture inexistante'); return }
+      response.json().then(result => {
+        if (result.length <= 0) { kaal.error('Facture inexistante'); return }
+        let f = Object.assign(Array.isArray(result.data) ? result.data[0] : result.data, fakeFacture)
+        delete f.id
+        delete f.repartition
+        delete f.paiement
+        delete f.paid
+        delete f.deleted
+        delete f.rappel
+        fetch(new URL('Facture', KAAL.getBase()), {
+          method: 'POST',
+          body: JSON.stringify(f)
+        }).then(response => {
+          if (!response.ok) { kaal.error('Ajout du rappel échoué'); return }
+          response.json().then(result => {
+            if (result.length <= 0) { kaal.error('Ajout du rappel échouché'); return}
+            let rappelId = result.data[0].id
+            fetch(new URL('FactureLien', KAAL.getBase()), {
+              method: 'POST',
+              body: JSON.stringify({
+                source: factureId,
+                destination: rappelId,
+                type: 2
+              })
+            }).then(response => {
+              if (!response.ok) { kaal.error('Ajout du rappel échouché'); return }
+              response.json().then(result => {
+                dtable.queryOne(factureId)
+                kaal.info('Rappel ajouté')
+              })
+            })
+          })
+        })
       })
     })
   }
@@ -417,6 +472,12 @@
       ]
     },
     {
+      html: '<button type="button">Ajout rappel</button>',
+      events: [
+        {name: 'click', callback: (event, dtable) => addRappelSimple(event.target.dataset.id, dtable)}
+      ]
+    },
+    {
       html: '<button type="button">Supprimer</button>',
       events: [
         {name: 'click', callback: (event, dtable) => delBill(event.target.dataset.id, dtable) }
@@ -425,6 +486,21 @@
   ]
   const facture = new Artnum.DTable({table: document.getElementById('facture'), actions: actions})
   facture.transliterate = transliterate
+
+  facture.addEventListener('click', event => {
+  })
+
+  facture.postprocess = (tr) => {
+    for (let td = tr.firstElementChild; td; td = td.nextElementSibling) {
+      if (td.dataset.sortName === 'rappel') {
+        if (parseInt(td.dataset.sortValue) > 0) {
+          tr.classList.add('late')
+          return
+        }
+      }
+    }
+  }
+
 
   function linkTo () {
     Admin.fetchPopup('html_frag/linkbill.html', 'Lier facture', { closable: true, minWidth: '40%' }).then(popup => {

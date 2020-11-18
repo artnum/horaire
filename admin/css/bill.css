@@ -117,3 +117,8 @@ div.link.results div {
     display: inline-block;
     min-width: 12ch;
 }
+
+tr.late {
+    color: hsla(0, 100%, 30%, 1);
+    background-color: hsla(0, 100%, 90%, 1);
+}
