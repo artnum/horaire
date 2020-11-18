@@ -736,10 +736,9 @@ export class Facture {
                 relativeValues.push(k)
             } else {
                 if (Number.isFinite(this.repartition[k][0].num)) {
-                    let val = round(this.repartition[k][0].num, this.currency)
-                    let tva = round(val * this.repartition[k][1] / 100, this.currency)
-                    let total = round(val + tva, this.currency)
-                    
+                    let val = parseFloat(round(parseFloat(this.repartition[k][0].num), this.currency))
+                    let tva = parseFloat(round(val * parseFloat(this.repartition[k][1]) / 100, this.currency))
+                    let total = round(val + tva)
                     amountLeft -= total
                     this.Events.dispatchEvent(new CustomEvent('change', {detail: {
                         op: 'calculatedValue',
