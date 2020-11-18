@@ -1,10 +1,48 @@
 <?PHP
-define('DB_PATH', 'sqlite:../../../db/horaire.sqlite3');
+require('artnum/autoload.php');
+require('../../../lib/ini.php');
+require('../../../lib/dbs.php');
+require('../../../lib/urldn.php');
 
 require('PHP_XLSXWriter/xlsxwriter.class.php');
 
 $project = 'tous';
-$db = null;
+
+$ini_conf = load_ini_configuration();
+$db = init_pdo($ini_conf);
+if (is_null($db)) {
+  throw new Exception('Storage database not reachable');
+  exit(0);
+}
+
+$abServers = explode(',', $ini_conf['addressbook']['servers']);
+if (count($abServers) <= 0) {
+  throw new Exception('Addressbook not configured');
+  exit(0);
+}
+$ldapServers = array();
+foreach($abServers as $server) {
+  $s = sprintf('ab-%s', trim($server));
+  if (!empty($ini_conf[$s]) && !empty($ini_conf[$s]['uri'])) {
+    $ldapServers[] = array(
+      'uri' => $ini_conf[$s]['uri'],
+      'ro' => !empty($ini_conf[$s]['read-only']) ? boolval($ini_conf[$s]['read-only']) : true,
+      'dn' => !empty($ini_conf[$s]['username']) ? $ini_conf[$s]['username'] : NULL,
+      'password' => !empty($ini_conf[$s]['password']) ? $ini_conf[$s]['password'] : NULL
+    );
+  }
+}
+
+if (count($ldapServers) <= 0) {
+  throw new Exception('Addressbook not configured');
+  exit(0);
+}
+
+$ldap_db = new artnum\LDAPDB(
+   $ldapServers,
+   !empty($ini_conf['addressbook']['base']) ? $ini_conf['addressbook']['base'] : NULL
+ );
+
 $allProjectsExport = false;
 if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
    $query = 'SELECT * FROM project
@@ -20,8 +58,6 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       WHERE quantity_project = :pid';
 
    try {
-      $db = new PDO(DB_PATH);
-      $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
       $st = $db->prepare($query);
       $st->bindValue(':pid', $_GET['pid'], PDO::PARAM_INT);
    } catch (Exception $e) {
@@ -262,7 +298,7 @@ try {
    $factureAmount = 0;
    $amountByType = [0, 0, 0, 0];
    if (!$allProjectsExport) {
-      $SheetFacture['header'] = ['N° de facture' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string' ];
+      $SheetFacture['header'] = ['N° de facture' => 'string', 'Personne/société' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string' ];
       $repSt = $db->prepare('SELECT * FROM "repartition" LEFT JOIN "facture" ON "facture_id" = "repartition_facture" WHERE "repartition_project" = :id AND "facture_deleted" = 0');
       $repSt->bindValue(':id', $row['project_id'], PDO::PARAM_INT);
       if ($repSt->execute()) {
@@ -295,9 +331,31 @@ try {
                break;
 
             }
+
+            $ldap = $ldap_db->_con();
+            if ($ldap) {
+               $res = ldap_read($ldap, url2dn($repData['facture_person'], $ldap_db->getBase()), '(objectclass=*)', ['displayname', 'givenname', 'sn', 'o']);
+               if ($res) {
+                  $entries = ldap_get_entries($ldap, $res);
+                  if ($entries['count'] > 0) {
+                     $entry = $entries[0];
+                     if ($entry['displayname']['count'] > 0) {
+                        $repData['facture_person'] = trim($entry['displayname'][0]);
+                     } else if ($entry['o']['count'] > 0) {
+                        $repData['facture_person'] = trim($entry['o'][0]);
+                     } else if ($entry['givenname']['count'] > 0 || $entry['sn']['count'] > 0) {
+                        $name = $entry['givenname']['count'] > 0 ? $entry['givenname'][0] : '';
+                        $name .= $name !== '' ? ' ' : '';
+                        $name .= $entry['sn']['count'] > 0 ? $entry['sn'][0] : '';
+                        $repData['facture_person'] = trim($name);
+                     }
+                  }
+               }
+            }
+
             $factureAmount += $amount_ht;
             $amountByType[intval($repData['facture_type'])-1] += abs($amount_ht);
-            $SheetFacture['content'][] = [$reference, $amount_ht, $tva, '=B'.($line+1). '+(B' . ($line+1) . '*C' . ($line+1) .'%)' , $type];
+            $SheetFacture['content'][] = [$reference, $repData['facture_person'], $amount_ht, $tva, '=C'.($line+1). '+(C' . ($line+1) . '*D' . ($line+1) .'%)' , $type];
 
             $line++;
          }
