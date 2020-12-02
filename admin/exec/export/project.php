@@ -98,7 +98,6 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
   
    $query_items = null;
    try {
-      $db = new PDO(DB_PATH);
       $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
       $st = $db->prepare($query);
    } catch (Exception $e) {
@@ -321,13 +320,14 @@ try {
                break;
                case 3:
                   $type = 'Note de crédit';
-                  $amount_ht = floatval($repData['repartition_value']);
-                  $tva = floatval($repData['repartition_tva']);
-               break;
                case 4:
-                  $type = 'Compensation';
+                  if ($type === '') { $type = 'Compensation'; }
+
                   $amount_ht = floatval($repData['repartition_value']);
-                  $tva = floatval($repData['repartition_tva']);
+                  $tva = floatval($repData['repartition_tva']);               
+                  
+                  /*$relationSt = $db->prepare('SELECT * FROM facture WHERE facture_id = (SELECT factureLien_source FROM factureLien WHERE factureLien_destination = :fid)');
+                  $relationSt->bindParam(':fid', $repDAta[''])*/
                break;
 
             }
