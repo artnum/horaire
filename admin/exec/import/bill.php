@@ -35,6 +35,15 @@ if (count($ldapServers) <= 0) {
   exit(0);
 }
 
+if (empty($_FILES['gfimport'])) {
+    throw new Exception('No import file');
+    exit(0);
+}
+if (!is_readable($_FILES['gfimport']['tmp_name'])) {
+    throw new Exception('No import file');
+    exit(0);
+}
+
 define('ID_CELL', 0);
 define('DATE_CELL', 1);
 define('REF_CELL', 2);
@@ -55,7 +64,7 @@ $ldap_db = new artnum\LDAPDB(
 
 $Reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
 $Reader->setReadDataOnly(true);
-$SS = $Reader->load('/tmp/test2.xlsx');
+$SS = $Reader->load($_FILES['gfimport']['tmp_name']);
 
 $AS = $SS->getActiveSheet();
 $today = new DateTime();
@@ -185,5 +194,5 @@ for ($i = 10; $i < 5101; $i++) { // max size
     }
 }
 
-echo json_encode($out, JSON_PRETTY_PRINT);
+echo json_encode($out);
 ?>

@@ -71,6 +71,8 @@
     <input type="submit" value="Ajouter" />
   </form>
   <h2>Factures enregistrées</h2>
+  <div style="font-weight: bold; font-size: 16pt;"><a href="exec/export/bill.php" target="_blank">Exportation pour paiment</a></div>
+  <div><form method="POST" action="exec/import/bill.php" enctype="multipart/form-data"><input type="file" name="gfimport"><input type="submit" value="Reimportation"></form></div>
   <table id="facture" data-source="Facture" data-options="{}" data-entry-id="id">
     <thead class="darkbg"><tr>
       <th data-attribute="indate:date">Date d'entrée</th>
@@ -501,7 +503,6 @@
     }
   }
 
-
   function linkTo () {
     Admin.fetchPopup('html_frag/linkbill.html', 'Lier facture', { closable: true, minWidth: '40%' }).then(popup => {
       popup.addEventListener('submit', event => {
@@ -534,11 +535,11 @@
                               }
                               resolve(result.data)
                             } else {
-                              reject(new Error('Contact introuvable'))
+                              //reject(new Error('Contact introuvable'))
                             }
                           }, reason => reject(reason))
-                        } else {
-                          reject(new Error('Contact introuvable'))
+                        } else {  
+                          //reject(new Error('Contact introuvable'))
                         }
                       }, reason => reject(reason))
                     }))
@@ -600,7 +601,6 @@
                     })
                   })
                 
-
                  let node = resultDiv.firstElementChild
                   while (node) {
                     let current = node
