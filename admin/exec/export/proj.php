@@ -43,30 +43,45 @@ $ldap_db = new artnum\LDAPDB(
    !empty($ini_conf['addressbook']['base']) ? $ini_conf['addressbook']['base'] : NULL
  );
 
-if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
-   $query = 'SELECT * FROM project
-         LEFT JOIN htime ON htime.htime_project = project.project_id
-         LEFT JOIN person ON htime.htime_person = person.person_id
-         LEFT JOIN process ON htime.htime_process = process.process_id
-         LEFT JOIN travail ON htime.htime_travail = travail.travail_id
-      WHERE project_id=:pid AND htime.htime_deleted IS NULL';
-   $query_items = 'SELECT * FROM quantity
-         LEFT JOIN item ON item.item_id = quantity.quantity_item
-         LEFT JOIN process ON process.process_id = quantity.quantity_process
-         LEFT JOIN person ON person.person_id = quantity.quantity_person
-      WHERE quantity_project = :pid';
 
-   try {
-      $st = $db->prepare($query);
-      $st->bindValue(':pid', $_GET['pid'], PDO::PARAM_INT);
-   } catch (Exception $e) {
-      die($e->getMessage());
+$query = 'SELECT * FROM project
+        LEFT JOIN htime ON htime.htime_project = project.project_id
+        LEFT JOIN person ON htime.htime_person = person.person_id
+        LEFT JOIN process ON htime.htime_process = process.process_id
+        LEFT JOIN travail ON htime.htime_travail = travail.travail_id
+        WHERE htime.htime_deleted IS NULL';
+
+if (isset($_GET['state'])) {
+   switch (strtolower($_GET['state'])) {
+      case 'all': break;
+      case 'open':
+      $project_name = 'Tous les projets ouverts';
+      $query .= ' AND project.project_deleted IS NULL AND project.project_closed IS NULL';
+      break;
+      case 'closed':
+      $project_name = 'Tous les projets clos';
+      $query .= ' AND project.project_deleted IS NULL AND project.project_closed IS NOT NULL';
+      break;
+      case 'alive':
+      $project_name = 'Tous les projets non supprimés';
+      $query .= ' AND project.project_deleted IS NULL';
+      break;
+      case 'deleted':
+      $project_name = 'Tous les projets supprimés';
+      $query .= ' AND project.project_deleted IS NOT NULL';
+      break;
    }
-   $project_name = '';
-} else {
-   header('Location: proj.php');
-   exit(0);
 }
+
+
+$query_items = null;
+try {
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $st = $db->prepare($query);
+} catch (Exception $e) {
+    die($e->getMessage());
+}
+
 
 try {
    $st->execute();
@@ -92,12 +107,24 @@ try {
    $per_process = array();
    $per_person = array();
    /* Entrées */
+   $project_name = '';
    foreach ($values as $row) {
       if ($project_name === '') {
          $project_name = $row['project_reference'] . ' - ' . $row['project_name'];
       }
       if (!isset($per_project[$row['project_reference']])) {
-         $per_project[$row['project_reference']] = array('reference' => $row['project_reference'], 'name' => $row['project_name'], 'price' => $row['project_price'], 'firstdate' => null, 'lastdate' => null, 'time' => 0, 'workcost' => 0); 
+         $per_project[$row['project_reference']] = array(
+            'reference' => $row['project_reference'], 
+            'name' => $row['project_name'], 
+            'price' => $row['project_price'], 
+            'firstdate' => null, 
+            'lastdate' => null, 
+            'time' => 0, 
+            'workcost' => 0, 
+            'id' => $row['project_id'],
+            'closed' => $row['project_closed'],
+            'created' => new DateTime("@$row[project_created]")
+         ); 
       }
       if (!isset($per_process[$row['process_name']])) {
          $per_process[$row['process_name']] = [0, 0];
@@ -182,21 +209,97 @@ try {
         $per_project[$row['project_reference']]['lastdate'] = $datetime; 
       } 
    }
-  uasort($per_project, function ($a, $b) {
-    if (ctype_digit($a['reference']) && ctype_digit($b['reference'])) {
-      return intval($a['reference']) - intval($b['reference']);
-    }
-    if (ctype_digit($a['reference']) && !ctype_digit($b['reference'])) {
-      return -1;
-    }
-    if (!ctype_digit($a['reference']) && ctype_digit($b['reference'])) {
-      return 1;
-    }
-    return strcmp($a['reference'], $b['reference']);
-  });
+
+   uasort($per_project, function ($a, $b) {
+      if (ctype_digit($a['reference']) && ctype_digit($b['reference'])) {
+         return intval($a['reference']) - intval($b['reference']);
+      }
+      if (ctype_digit($a['reference']) && !ctype_digit($b['reference'])) {
+         return -1;
+      }
+      if (!ctype_digit($a['reference']) && ctype_digit($b['reference'])) {
+         return 1;
+      }
+      return strcmp($a['reference'], $b['reference']);
+   });
+     /* Par projet */
   
-   $project = current($per_project);
+   $writer->writeSheetHeader('Par projet', [
+      'Reference' => 'string', 
+      'Nom' => 'string', 
+      'Chef projet' => 'string',
+      'Heure [h]' => '0.00', 
+      'Travail' => 'price',
+      'Créancier HT' => 'price',
+      'Coût HT' => 'price',
+      'Prix vendu' => 'price',
+      'Bénéfice [CHF]' => 'price',
+      'Bénéfice [%]' => '0.0%',
+      'Débiteur HT' => 'price',
+      'État' => 'string',
+      'Ouverture' => 'date',
+      'Première entrée' => 'date', 
+      'Dernière entrée' => 'date', 
+   ], ['widths' => [ 10, 40, 20 ]]);
+   foreach ($per_project as $project) {
+      $amount = [ 'creancier' => 0.0, 'debiteur' => 0.0];
+      $repSt = $db->prepare('SELECT project_id, project_reference, facture_type, SUM(repartition_value) AS total
+         FROM repartition 
+         LEFT JOIN facture ON facture_id = repartition_facture 
+         LEFT JOIN project ON project_id = repartition_project  
+         WHERE project_id = :id GROUP BY facture_type');
+      $repSt->bindValue(':id', $project['id'], PDO::PARAM_INT);
+      if ($repSt->execute()) {
+         while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
+            switch (intval($repData['facture_type'])) {
+               case 1:
+                  $amount['creancier'] += floatval($repData['total']);
+               break;
+               case 2:
+                  $amount['debiteur'] = +floatval($repData['total']);
+               break;
+               case 3:
+               case 4:
+                  break;
+
+            }
+         }
+      }
+      $project['total_cost'] = ($project['workcost'] + $amount['creancier']);
+      $writer->writeSheetRow('Par projet', [
+         $project['reference'], 
+         $project['name'],
+         '',
+         $project['time'] / 3600,
+         $project['workcost'],
+         $amount['creancier'],
+         $project['total_cost'],
+         $project['price'],
+         $project['price'] - $project['total_cost'],
+         ($project['total_cost'] != 0 && $project['price'] != 0) ? (($project['price'] - $project['total_cost']) / $project['price']) : 0,
+         $amount['debiteur'],
+         $project['closed'] ? 'Fermé' : 'Ouvert',
+         $project['created']->format('Y-m-d'),
+         !is_null($project['firstdate']) ? $project['firstdate']->format('Y-m-d') : '',
+         !is_null($project['lastdate']) ? $project['lastdate']->format('Y-m-d') : ''
+      ]);
+   }
    
+
+   $writer->writeSheetRow('Par projet', array('', ''));
+   $rc = $writer->countSheetRows('Par projet');
+   $writer->writeSheetRow('Par projet', [
+      'Total', 
+      '', 
+      '', 
+      '', 
+      '=SUM(E2:E' . ($rc - 1) . ')', 
+      '=SUM(F2:F' . ($rc - 1) . ')',
+      '=SUM(G2:G' . ($rc - 1) . ')', 
+      '=SUM(H2:H' . ($rc - 1) . ')', 
+      '=SUM(I2:I' . ($rc - 1) . ')', 
+   ]);
+  
    /* Par processus */
    $SheetProcessus = ['header' => [], 'content' => []];
    $SheetProcessus['header'] = ['Process' => 'string', 'Temps [h]' => '0.00', 'Coût' => 'price'];
@@ -233,103 +336,7 @@ try {
          $SheetMateriel['content'][] = ['','','','','','',''];
          $SheetMateriel['content'][] = ['', '', '', '', '', '', '=SUM(G2:G' . $line .  ')'];
       }
-   } 
-
-   /* Facture, unqiuement par projet */
-   $factureCount = 0;
-   $SheetFacture = ['header' => [], 'content' => []];
-   $factureAmount = 0;
-   $amountByType = [0, 0, 0, 0];
-   
-   $SheetFacture['header'] = ['N° de facture' => 'string', 'Personne/société' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string' ];
-   $repSt = $db->prepare('SELECT * FROM "repartition" LEFT JOIN "facture" ON "facture_id" = "repartition_facture" WHERE "repartition_project" = :id AND "facture_deleted" = 0');
-   $repSt->bindValue(':id', $row['project_id'], PDO::PARAM_INT);
-   if ($repSt->execute()) {
-      $line = 1;
-      while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
-         $reference = strval($repData['facture_reference']);
-         $amount_ht = 0;
-         $tva = 7.7;
-         $type = '';
-         switch (intval($repData['facture_type'])) {
-            case 1:
-               $type = 'Créancier';
-               $amount_ht = -floatval($repData['repartition_value']);
-               $tva = floatval($repData['repartition_tva']);
-            break;
-            case 2:
-               $type = 'Débiteur';
-               $amount_ht = floatval($repData['repartition_value']);
-               $tva = floatval($repData['repartition_tva']);
-            break;
-            case 3:
-               $type = 'Note de crédit';
-            case 4:
-               if ($type === '') { $type = 'Compensation'; }
-
-               $amount_ht = floatval($repData['repartition_value']);
-               $tva = floatval($repData['repartition_tva']);               
-               
-               /*$relationSt = $db->prepare('SELECT * FROM facture WHERE facture_id = (SELECT factureLien_source FROM factureLien WHERE factureLien_destination = :fid)');
-               $relationSt->bindParam(':fid', $repDAta[''])*/
-            break;
-
-         }
-
-         $ldap = $ldap_db->_con();
-         if ($ldap) {
-            $res = ldap_read($ldap, url2dn($repData['facture_person'], $ldap_db->getBase()), '(objectclass=*)', ['displayname', 'givenname', 'sn', 'o']);
-            if ($res) {
-               $entries = ldap_get_entries($ldap, $res);
-               if ($entries['count'] > 0) {
-                  $entry = $entries[0];
-                  if ($entry['displayname']['count'] > 0) {
-                     $repData['facture_person'] = trim($entry['displayname'][0]);
-                  } else if ($entry['o']['count'] > 0) {
-                     $repData['facture_person'] = trim($entry['o'][0]);
-                  } else if ($entry['givenname']['count'] > 0 || $entry['sn']['count'] > 0) {
-                     $name = $entry['givenname']['count'] > 0 ? $entry['givenname'][0] : '';
-                     $name .= $name !== '' ? ' ' : '';
-                     $name .= $entry['sn']['count'] > 0 ? $entry['sn'][0] : '';
-                     $repData['facture_person'] = trim($name);
-                  }
-               }
-            }
-         }
-
-         $factureAmount += $amount_ht;
-         $amountByType[intval($repData['facture_type'])-1] += abs($amount_ht);
-         $SheetFacture['content'][] = [$reference, $repData['facture_person'], $amount_ht, $tva, '=C'.($line+1). '+(C' . ($line+1) . '*D' . ($line+1) .'%)' , $type];
-
-         $line++;
-      }
-      $SheetFacture['content'][] = ['', '', '', ''];
-      $SheetFacture['content'][] = ['Totaux', '=SUM(B2:B' . $line .  ')', '', '=SUM(D2:D' . $line .  ')']; 
    }
-
-
-   $writer->writeSheetRow('Résumé', ['Projet', $project['reference']], ['font-style' => 'bold']);
-   $writer->writeSheetRow('Résumé', ['', $project['name']]);
-   $writer->writeSheetRow('Résumé', ['']);
-   $writer->writeSheetRow('Résumé', ['Matériel', '', '', $materielMontant], null, ['string', 'string', 'string', 'price']);
-   $writer->writeSheetRow('Résumé', ['']);
-   $writer->writeSheetRow('Résumé', ['Main d\'œuvre', '', '', $project['workcost']], null, ['string', 'string', 'string', 'price']);
-   $writer->writeSheetRow('Résumé', ['dont'], ['font-style' => 'italic']);
-   
-   foreach ($processus as $k => $v) {
-      $writer->writeSheetRow('Résumé', ['', $k, $v], ['font-style' => 'italic'], ['string', 'string', 'price']);
-   }
-   $writer->writeSheetRow('Résumé', ['']);
-   $writer->writeSheetRow('Résumé', ['Créanciers HT', '', '', $amountByType[0]], null, ['string', 'string', 'string', 'price']);
-   $writer->writeSheetRow('Résumé', ['']);
-   $total = $project['workcost'] + $amountByType[0] + $materielMontant;
-   $writer->writeSheetRow('Résumé', ['Coûts HT', '', '', $total], ['font-style' => 'bold'], ['string', 'string', 'string', 'price']);
-   $writer->writeSheetRow('Résumé', ['Prix Vendu', '', '', $project['price']], null, ['string', 'string', 'string', 'price']);
-   $writer->writeSheetRow('Résumé', ['Résultat [CHF]', '', '', $project['price'] - $total], null, ['string', 'string', 'string', '0.00;[RED]-0.00']);
-   $writer->writeSheetRow('Résumé', ['Résultat [%]', '', '', floatval($project['price']) === 0.0 ? -1.0 : (($project['price'] - $total) / $project['price'])], null, ['string', 'string', 'string', '0.00 %;[RED]-0.00%']);
-   $writer->writeSheetRow('Résumé', ['']);
-   $writer->writeSheetRow('Résumé', ['Débiteurs HT', '', '', $amountByType[1]], null, ['string', 'string', 'string', 'price']);
-
 
    
    $writer->writeSheetHeader('Par processus', $SheetProcessus['header'], ['widths'=>[25,10, 10]]);
@@ -353,13 +360,7 @@ try {
    $rc = $writer->countSheetRows('Par personne');
    $writer->writeSheetRow('Par personne', array('Total', '=SUM(B2:B' . ($rc - 1) . ')'));
 
-   
-   $writer->writeSheetHeader('Factures', $SheetFacture['header']);
-   foreach ($SheetFacture['content'] as $row) {
-      $writer->writeSheetRow('Factures', $row);
-   }
-
-  /* Toutes les entrées */
+   /* Toutes les entrées */
   $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process/Bon' => 'string', 'Jour' => 'date', 'Temps [h]' => '0.00', 'Prix horaire' => '0.00', 'Prix' => 'price', 'Personne' => 'string', 'Terminé' => 'datetime', 'Remarque' => 'string'), array('widths'=>[10, 40, 15, 15, 10, 15, 15, 100]));
   foreach($per_entry as $entry) {
       $writer->writeSheetRow('Entrées', array($entry[0], $entry[1], $entry[2], $entry[3], $entry[4], $entry[8], $entry[9], $entry[5], $entry[6], $entry[7]));
@@ -369,7 +370,7 @@ try {
    $rc = $writer->countSheetRows('Entrées');
    $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', '=AVERAGE(F2:F' . ($rc - 1) . ')', '=SUM(G2:G' . ($rc - 1) . ')'));
 
-   $project_name = date('Y-m-d') . ' ' . $project_name;
+   $project_name = date('Y-m-d') . ' - Tous les projets';
    $writer->setTitle($project_name);
    if (method_exists($writer, 'setHeaderFooter')) {
       if (count($per_project) === 1) {
