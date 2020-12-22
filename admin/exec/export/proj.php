@@ -298,6 +298,8 @@ try {
       '=SUM(G2:G' . ($rc - 1) . ')', 
       '=SUM(H2:H' . ($rc - 1) . ')', 
       '=SUM(I2:I' . ($rc - 1) . ')', 
+      '',
+      '=SUM(K2:K' . ($rc - 1) . ')',
    ]);
   
    /* Par processus */
