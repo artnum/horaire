@@ -390,3 +390,9 @@ span.addMore:before {
     font-weight: bold;
     margin-bottom: 1ex;
 }
+
+fieldset.half {
+    max-width: 48%;
+    min-width: 48%;
+    float: left;
+}

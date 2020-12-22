@@ -44,10 +44,11 @@ $ldap_db = new artnum\LDAPDB(
  );
 
 if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
-   $query = 'SELECT * FROM project
+   $query = 'SELECT *, p2.person_name AS project_manager  FROM project
          LEFT JOIN htime ON htime.htime_project = project.project_id
          LEFT JOIN person ON htime.htime_person = person.person_id
          LEFT JOIN process ON htime.htime_process = process.process_id
+         LEFT JOIN person AS p2 ON project.project_manager = p2.person_id
          LEFT JOIN travail ON htime.htime_travail = travail.travail_id
       WHERE project_id=:pid AND htime.htime_deleted IS NULL';
    $query_items = 'SELECT * FROM quantity
@@ -97,7 +98,7 @@ try {
          $project_name = $row['project_reference'] . ' - ' . $row['project_name'];
       }
       if (!isset($per_project[$row['project_reference']])) {
-         $per_project[$row['project_reference']] = array('reference' => $row['project_reference'], 'name' => $row['project_name'], 'price' => $row['project_price'], 'firstdate' => null, 'lastdate' => null, 'time' => 0, 'workcost' => 0); 
+         $per_project[$row['project_reference']] = array('reference' => $row['project_reference'], 'name' => $row['project_name'], 'price' => $row['project_price'], 'firstdate' => null, 'lastdate' => null, 'time' => 0, 'workcost' => 0, 'manager' => $row['project_manager']); 
       }
       if (!isset($per_process[$row['process_name']])) {
          $per_process[$row['process_name']] = [0, 0];
@@ -309,6 +310,8 @@ try {
 
 
    $writer->writeSheetRow('Résumé', ['Projet', $project['reference']], ['font-style' => 'bold']);
+   $writer->writeSheetRow('Résumé', ['Responsable', $project['manager']]);
+   $writer->writeSheetRow('Résumé', ['']);
    $writer->writeSheetRow('Résumé', ['', $project['name']]);
    $writer->writeSheetRow('Résumé', ['']);
    $writer->writeSheetRow('Résumé', ['Matériel', '', '', $materielMontant], null, ['string', 'string', 'string', 'price']);

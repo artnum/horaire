@@ -44,11 +44,12 @@ $ldap_db = new artnum\LDAPDB(
  );
 
 
-$query = 'SELECT * FROM project
+$query = 'SELECT *, p2.person_name AS project_manager FROM project
         LEFT JOIN htime ON htime.htime_project = project.project_id
         LEFT JOIN person ON htime.htime_person = person.person_id
         LEFT JOIN process ON htime.htime_process = process.process_id
         LEFT JOIN travail ON htime.htime_travail = travail.travail_id
+        LEFT JOIN person AS p2 ON project.project_manager = p2.person_id
         WHERE htime.htime_deleted IS NULL';
 
 if (isset($_GET['state'])) {
@@ -123,7 +124,8 @@ try {
             'workcost' => 0, 
             'id' => $row['project_id'],
             'closed' => $row['project_closed'],
-            'created' => new DateTime("@$row[project_created]")
+            'created' => new DateTime("@$row[project_created]"),
+            'manager' => $row['project_manager']
          ); 
       }
       if (!isset($per_process[$row['process_name']])) {
@@ -246,7 +248,7 @@ try {
       $repSt = $db->prepare('SELECT project_id, project_reference, facture_type, SUM(repartition_value) AS total
          FROM repartition 
          LEFT JOIN facture ON facture_id = repartition_facture 
-         LEFT JOIN project ON project_id = repartition_project  
+         LEFT JOIN project ON project_id = repartition_project 
          WHERE project_id = :id GROUP BY facture_type');
       $repSt->bindValue(':id', $project['id'], PDO::PARAM_INT);
       if ($repSt->execute()) {
@@ -269,7 +271,7 @@ try {
       $writer->writeSheetRow('Par projet', [
          $project['reference'], 
          $project['name'],
-         '',
+         $project['manager'],
          $project['time'] / 3600,
          $project['workcost'],
          $amount['creancier'],

@@ -7,30 +7,22 @@
   <link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
 </head>
 <body>
-<!--  <nav><ul><li><a href="index.html">Home</a></li>
-      <li><a href="process.html">Processus</a></li>
-      <li><a href="user.html">Utilisateurs</a></li>
-      <li><a href="time.html">Temps</a></li>
-    </ul>
-  </nav>
-//-->
   <main id="project">
   <h1>Projets</h1>
   <h2>Nouveau projet</h2>
   <form>
-    <fieldset name="general" id="general">
+    <fieldset name="general" id="general" class="half">
       <legend>Général</legend>
       <label for="reference">Numéro de chantier : </label><input name="reference" type="text" id="reference" /><br />
       <br /><label for="year">Année : </label><input id="inYear" name="year" type="text" /><br>
       <label for="name">Nom : </label><input name="name" type="text" /><br>
       <label for="price">Prix de vente : </label><input name="price" type="text" /><br>
+      <label for="manager">Chef projet : </label><input name="manager" type="text" id="manager" /><br>
       <label for="uncount">Heures non-comptabilisées : </label><input name="uncount" type="checkbox" /><br>
     </fieldset>
-    <fieldset name="client" id="client">
+    <fieldset name="client" id="client" class="half">
       <legend>Client</legend>
     </fieldset>
-<!--    <label for="end">Date de fin : </label><input name="name" type="date" /><br>
-//-->
     <input type="submit" value="Ajouter"/><button type="submit" id="rDef"></button><button type="submit" id="rYear"></button><br>
   </form>
   <h2>Projets existants</h2>
@@ -39,7 +31,7 @@
   <input type="radio" onchange="changeState(event)" id="stateAny" name="state"><label for="stateAny">Tous</label>
   <input type="button" onclick="exportAll()" value="Tout exporter"></input>
   <table id="projects" data-source="Project">
-    <thead class="darkbg"><tr><th data-sort-type="string">Référence</th><th>Nom</th></th><th data-sort-type="no">Action</th></tr></thead>
+    <thead class="darkbg"><tr><th data-sort-type="string">Référence</th><th>Nom</th><th>Responsable</th></th><th data-sort-type="no">Action</th></tr></thead>
     <tbody>
     </tbody>
   </table>
@@ -51,7 +43,11 @@
 <script src="../node_modules/artnum/Path.js"></script>
 <script src="../node_modules/artnum/Query.js"></script>
 <script src="../node_modules/artnum/DTable.js"></script>
+<script src="/js/Select.js"></script>
+<script src="../node_modules/popper.js/dist/umd/popper.min.js"></script>
 <script src="js/admin.js"></script>
+<script src="js/string.js"></script>
+<script src="js/store/user.js"></script>
 <script type="module">
   import { Address } from './js/address.js'
   const address = new Address(document.getElementById('client'))
@@ -299,7 +295,8 @@ function changeState (event) {
         uncount: oform.uncount? 1 : 0, 
         year: oform.year,
         price: parseFloat(oform.price),
-        client: client
+        client: client,
+        manager: document.getElementById('manager').dataset.value
       }}).then(function (result) {
      if (!result.success && result.length < 1) {
        alert('Erreur de création du projet')
@@ -422,10 +419,12 @@ async function evCancelEdit (event) {
       <input type="hidden" value="${project.id}" name="project" />
       <label for="reference">Numéro de chantier : </label><input name="reference" type="text" value="${project.reference}" />
       <label for="name">Nom : </label><input name="name" type="text" value="${project.name}"/><br>
-      <label for="price">Vendu : </label><input name="price" type="text" value="${project.price}"/><br>
+      <label for="price">Vendu : </label><input name="price" type="text" value="${project.price}"/>
+      <label for="price">Vendu : </label><input name="manager" type="text" value="${project.manager === null ? '' : project.manager}"/><br>
       <button type="submit">Sauver</button><button type="reset">Annuler</button>
      </form>`, `Projet ${project.reference} - ${project.name}`)
      let form = popup.getElementsByTagName('FORM')[0]
+     let managerSelect = new Select(popup.querySelector('input[name="manager"]'), new UserStore(`${KAAL.getBase()}/Person`, 128), {realSelect: true, allowFreeText: false})
      form.addEventListener('reset', (event) => {
        let p = event.target
        while (p && !p.classList.contains('popup')) { p = p.parentNode }
@@ -434,7 +433,7 @@ async function evCancelEdit (event) {
      form.addEventListener('submit', (event) => {
        event.preventDefault()
        let content = window.Admin.getForm(event.target)
-       Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`), {method: 'PUT', body: {id: content.project, name: content.name, reference: content.reference, price: content.price}}).then((result) => {
+       Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`), {method: 'PUT', body: {id: content.project, name: content.name, reference: content.reference, price: content.price, manager: managerSelect.value}}).then((result) => {
          if (result.success) {
            Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`)).then((result) => {
              if (result.success) {
@@ -484,6 +483,16 @@ async function evCancelEdit (event) {
        }
        
        let qTravail = Artnum.Query.exec(Artnum.Path.url('Travail', {params: {'search.project': entry.id, 'search.plan': '0'}}))
+       let qManager = new Promise((resolve, reject) => {
+         fetch (new URL(`${KAAL.getBase()}/Person/${entry.manager}`)).then(response => {
+            if (!response.ok) { resolve(''); return}
+            response.json().then(result => {
+              if (result.length !== 1) { resolve(''); return}
+              Array.isArray(result.data) ? resolve(result.data[0].name) : resolve(result.data.name)
+            })
+          })
+       })
+       
        let exportButton = document.createElement('BUTTON')
        exportButton.setAttribute('type', 'button')
        exportButton.addEventListener('click', function (event) {
@@ -535,14 +544,15 @@ async function evCancelEdit (event) {
        newTravail.innerHTML = 'Ajout travail'
        newTravail.addEventListener('click', newTravailEvent)
        
-       qTravail.then((travaux) => {
+       Promise.all([qTravail, qManager]).then(([travaux, manager]) => {
          let frag = document.createDocumentFragment()
          let tr = document.createElement('TR')
          frag.appendChild(tr)
          
          tr.setAttribute('data-id', entry.id)
          tr.innerHTML = `<td data-name="reference" data-sort-value="${entry.reference}"  data-filter-value="${entry.reference}">${travaux.length > 0 ? '<span>&#9205;</span> ' : ''}${(entry.reference ? entry.reference : '')}</td>
-                         <td data-name="name" data-type="text">${(entry.name ? entry.name : '')}</td>`
+                         <td data-name="name" data-type="text">${(entry.name ? entry.name : '')}</td>
+                         <td data-name="manager" data-sort-value="${entry.manager !== null ? entry.manager : -1}" data-filter-value="${entry.manager !== null ? entry.manager : -1}">${manager}</td>`
          if (travaux.length > 0) {
            tr.classList.add('extensible')
            let subTable = document.createElement('TABLE')
@@ -566,7 +576,7 @@ async function evCancelEdit (event) {
            sub.dataset.sortIgnore = true
            sub.setAttribute('data-parent-id', entry.id)
            sub.classList.add('sub')
-           sub.innerHTML = '<td colspan="3"></td>'
+           sub.innerHTML = '<td colspan="4"></td>'
            sub.firstElementChild.appendChild(subTable)
            frag.appendChild(sub)
          }
@@ -667,6 +677,7 @@ async function evCancelEdit (event) {
 
  var t = null
  async function load () {
+   let managerSelect = new Select(document.getElementById('manager'), new UserStore(`${KAAL.getBase()}/Person`, 128), {allowFreeText: false, realSelect: true})
    document.getElementById('rDef').addEventListener('click', genRef)
    document.getElementById('rYear').addEventListener('click', genRef)
    document.getElementById('inYear').value = String((new Date()).getFullYear())
