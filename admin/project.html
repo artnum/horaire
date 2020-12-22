@@ -484,6 +484,7 @@ async function evCancelEdit (event) {
        
        let qTravail = Artnum.Query.exec(Artnum.Path.url('Travail', {params: {'search.project': entry.id, 'search.plan': '0'}}))
        let qManager = new Promise((resolve, reject) => {
+         if (!entry.manager) { resolve(''); return}
          fetch (new URL(`${KAAL.getBase()}/Person/${entry.manager}`)).then(response => {
             if (!response.ok) { resolve(''); return}
             response.json().then(result => {
