@@ -44,11 +44,10 @@ $ldap_db = new artnum\LDAPDB(
  );
 
 if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
-   $query = 'SELECT *, p2.person_name AS project_manager  FROM project
+   $query = 'SELECT * FROM project
          LEFT JOIN htime ON htime.htime_project = project.project_id
          LEFT JOIN person ON htime.htime_person = person.person_id
          LEFT JOIN process ON htime.htime_process = process.process_id
-         LEFT JOIN person AS p2 ON project.project_manager = p2.person_id
          LEFT JOIN travail ON htime.htime_travail = travail.travail_id
       WHERE project_id=:pid AND htime.htime_deleted IS NULL';
    $query_items = 'SELECT * FROM quantity
@@ -56,7 +55,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
          LEFT JOIN process ON process.process_id = quantity.quantity_process
          LEFT JOIN person ON person.person_id = quantity.quantity_person
       WHERE quantity_project = :pid';
-
+   $query_manager = 'SELECT person_name FROM project LEFT JOIN person ON project_manager = person_id WHERE project_id = :pid';
    try {
       $st = $db->prepare($query);
       $st->bindValue(':pid', $_GET['pid'], PDO::PARAM_INT);
@@ -92,13 +91,26 @@ try {
    $per_project = array();
    $per_process = array();
    $per_person = array();
+   $manager = '';
+   try {
+      $stmanager = $db->prepare($query_manager);
+      $stmanager->bindValue(':pid', $_GET['pid'], PDO::PARAM_INT);
+      if ($stmanager->execute()) {
+         $m = $stmanager->fetch(PDO::FETCH_ASSOC);
+         if ($m && !empty($m['person_name'])) {
+            $manager = $m['person_name'];
+         }
+      }
+   } catch (Exception $e) {
+
+   }
    /* Entrées */
    foreach ($values as $row) {
       if ($project_name === '') {
          $project_name = $row['project_reference'] . ' - ' . $row['project_name'];
       }
       if (!isset($per_project[$row['project_reference']])) {
-         $per_project[$row['project_reference']] = array('reference' => $row['project_reference'], 'name' => $row['project_name'], 'price' => $row['project_price'], 'firstdate' => null, 'lastdate' => null, 'time' => 0, 'workcost' => 0, 'manager' => $row['project_manager']); 
+         $per_project[$row['project_reference']] = array('reference' => $row['project_reference'], 'name' => $row['project_name'], 'price' => $row['project_price'], 'firstdate' => null, 'lastdate' => null, 'time' => 0, 'workcost' => 0, 'manager' => $manager); 
       }
       if (!isset($per_process[$row['process_name']])) {
          $per_process[$row['process_name']] = [0, 0];
@@ -279,7 +291,7 @@ try {
 
          $ldap = $ldap_db->_con();
          if ($ldap) {
-            $res = ldap_read($ldap, url2dn($repData['facture_person'], $ldap_db->getBase()), '(objectclass=*)', ['displayname', 'givenname', 'sn', 'o']);
+            $res = @ldap_read($ldap, url2dn($repData['facture_person'], $ldap_db->getBase()), '(objectclass=*)', ['displayname', 'givenname', 'sn', 'o']);
             if ($res) {
                $entries = ldap_get_entries($ldap, $res);
                if ($entries['count'] > 0) {
