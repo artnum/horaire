@@ -10,7 +10,7 @@ function highlight (val, txt, open = '<span class="match">', close = '</span>') 
   return txt
 }
 
-const STProcess = function (store) {
+function STProcess(store) {
   this.Store = store
 }
 STProcess.prototype.get = function (id) {
@@ -59,8 +59,9 @@ STProcess.prototype.getIdentity = function (object) {
   return object.uid ? object.uid : object.id
 }
 
-const STProject = function (store) {
+function STProject (store, closed = false) {
   this.Store = store
+  this.closed = closed
 }
 
 STProject.prototype.get = function (id) {
@@ -85,9 +86,12 @@ STProject.prototype.query = function (txt) {
     let params = {
       'search.reference': `~${searchTerm}%`,
       'search.name': `~%${searchTerm}%`,
-      'search._rules': '(reference OR name) AND deleted AND closed',
-      'search.deleted': '-',
-      'search.closed': '-'
+      'search._rules': '(reference OR name) AND deleted',
+      'search.deleted': '-'
+    }
+    if (!this.closed) {
+      params['search.closed'] = '-'
+      params['search._rules'] = '(reference OR name) AND deleted AND closed'
     }
     Artnum.Query.exec(Artnum.Path.url(`${this.Store}`, {params: params})).then((results) => {
       if (results.success && results.length) {

@@ -62,6 +62,9 @@
 <script src="js/admin.js"></script>
 <script src="js/stores.js"></script>
 <script>
+  const stProject = new STProject('Project', true)
+
+
 function submitForm (event, doExport = false) {
    event.preventDefault()
 
@@ -266,7 +269,7 @@ function editEntry (event) {
            body.project = td.getElementsByTagName('INPUT')[0].dataset.value
          } else {
            let project = document.createElement('INPUT')
-           let s = Select(project, new STProject('Project'), {realSelect: true, allowFreeText: false})
+           let s = Select(project, stProject, {realSelect: true, allowFreeText: false})
            project.addEventListener('keyup', onEnterEscapeKey)
            s.value = td.dataset.id
            window.requestAnimationFrame(() => {
@@ -400,7 +403,7 @@ window.onload = function (event) {
     }
    var t = new Artnum.DTable({table: 'results', sortOnly: true})
    /* <select data-source="Project" data-options='{label: "$reference - $name", id: "id", parameters: {"search.closed": "-", "search.deleted": "-"}}' name="project"></select> */
-   Select(document.getElementById('selectProject'), new STProject('Project'), {realSelect: true, allowFreeText: false})
+   Select(document.getElementById('selectProject'), stProject, {realSelect: true, allowFreeText: false})
 }
 </script>
 </html>
