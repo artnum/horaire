@@ -16,7 +16,7 @@
       <label for="reference">Numéro de chantier : </label><input name="reference" type="text" id="reference" /><br />
       <br /><label for="year">Année : </label><input id="inYear" name="year" type="text" /><br>
       <label for="name">Nom : </label><input name="name" type="text" /><br>
-      <label for="price">Prix de vente : </label><input name="price" type="text" /><br>
+      <label for="price">Prix de vente HT : </label><input name="price" type="text" /><br>
       <label for="manager">Chef projet : </label><input name="manager" type="text" id="manager" /><br>
       <label for="uncount">Heures non-comptabilisées : </label><input name="uncount" type="checkbox" /><br>
     </fieldset>
@@ -419,8 +419,8 @@ async function evCancelEdit (event) {
       <input type="hidden" value="${project.id}" name="project" />
       <label for="reference">Numéro de chantier : </label><input name="reference" type="text" value="${project.reference}" />
       <label for="name">Nom : </label><input name="name" type="text" value="${project.name}"/><br>
-      <label for="price">Vendu : </label><input name="price" type="text" value="${project.price}"/>
-      <label for="price">Vendu : </label><input name="manager" type="text" value="${project.manager === null ? '' : project.manager}"/><br>
+      <label for="price">Prix de vente HT : </label><input name="price" type="text" value="${project.price}"/>
+      <label for="price">Chef de projet : </label><input name="manager" type="text" value="${project.manager === null ? '' : project.manager}"/><br>
       <button type="submit">Sauver</button><button type="reset">Annuler</button>
      </form>`, `Projet ${project.reference} - ${project.name}`)
      let form = popup.getElementsByTagName('FORM')[0]
