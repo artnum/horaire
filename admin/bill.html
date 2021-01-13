@@ -73,6 +73,14 @@
   <h2>Factures enregistrées</h2>
   <div style="font-weight: bold; font-size: 16pt;"><a href="exec/export/bill.php" target="_blank">Exportation pour paiment</a></div>
   <div><form method="POST" action="exec/import/bill.php" enctype="multipart/form-data"><input type="file" name="gfimport"><input type="submit" value="Reimportation"></form></div>
+  <br>
+  <label><input type="radio" onchange="factureCre()" checked="checked"  name="type"> Créancier</label>
+  <label><input type="radio" onchange="factureDeb()" name="type"> Débiteur</label>
+  <label><input type="radio" onchange="factureAll2()" name="type"> Toute</label>
+  <br>
+  <label><input type="radio" onchange="factureUnpaid()" checked="checked"  name="state"> Ouverte</label>
+  <label><input type="radio" onchange="facturePaid()" name="state"> Payée</label>
+  <label><input type="radio" onchange="factureAll()" name="state"> Toute</label>
   <table id="facture" data-source="Facture" data-options="{}" data-entry-id="id">
     <thead class="darkbg"><tr>
       <th data-attribute="indate:date">Date d'entrée</th>
@@ -82,8 +90,8 @@
       <th data-class="client" data-attribute="@../$person displayname|person">Adresse</th>
       <th data-attribute="amount:money" data-sort-type="money">Montant</th>
       <th data-attribute="currency">Devise</th>
-      <th data-class="center" data-attribute="type~2=Facture débiteur,1=Facture créancier,3=Note de crédit,4=Compensation" data-sort-type="int">Type</th>
-      <th data-class="center" data-attribute="paid~0=non,1=oui">Payée</th>
+      <th data-class="center" data-sort-name="type" data-attribute="type~2=Facture débiteur,1=Facture créancier,3=Note de crédit,4=Compensation" data-sort-type="int">Type</th>
+      <th data-class="center" data-sort-name="payee" data-attribute="paid~0=non,1=oui">Payée</th>
       <th data-class="center" data-attribute="rappel" data-sort-type="int" data-sort-name="rappel">Nbre de rappels</th>
       <th data-class="center" data-attribute="paiement" data-sort-type="int">Nbre paiements</th>
       <th data-class="center clickable" data-attribute="repartition" data-sort-type="int">Répartitions</th>
@@ -489,9 +497,6 @@
   const facture = new Artnum.DTable({table: document.getElementById('facture'), actions: actions})
   facture.transliterate = transliterate
 
-  facture.addEventListener('click', event => {
-  })
-
   facture.postprocess = (tr) => {
     for (let td = tr.firstElementChild; td; td = td.nextElementSibling) {
       if (td.dataset.sortName === 'rappel') {
@@ -502,6 +507,32 @@
       }
     }
   }
+
+  function facturePaid () {
+    facture.setFilter('payee', 'oui')
+  }
+
+  function factureUnpaid() {
+    facture.setFilter('payee', 'non')
+  }
+
+  function factureAll() {
+    facture.clearFilter('payee')
+  }
+
+  function factureCre() {
+    facture.setFilter('type', 'créancier')
+  }
+
+  function factureDeb() {
+    facture.setFilter('type', 'débiteur')
+  }
+  function factureAll2() {
+    facture.clearFilter('type')
+  }
+
+  factureUnpaid()
+  factureCre()
 
   function linkTo () {
     Admin.fetchPopup('html_frag/linkbill.html', 'Lier facture', { closable: true, minWidth: '40%' }).then(popup => {
