@@ -469,11 +469,9 @@ async function evCancelEdit (event) {
        newNextRef = parseInt(newNextRef.join(''))
 
        if (reference === '') {
-         if(References.default < newNextRef + 1) {
-           if (Math.trunc(newNextRef / 100) === Math.trunc(new Date().getFullYear() / 100)) {
-              References.default = newNextRef + 1
-              document.getElementById('rDef').innerHTML = `Ajouter projet ${newNextRef + 1}`
-            }
+         if(parseInt(References.default) < newNextRef + 1) {
+            References.default = newNextRef + 1
+            document.getElementById('rDef').innerHTML = `Ajouter projet ${newNextRef + 1}`
          }
        } else {
          if (RYName === reference.substring(0, RYName.length) && References.RYName < newNextRef + 1) {
