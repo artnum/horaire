@@ -25,6 +25,7 @@ UserStore.prototype.query = function(value) {
         let url = new URL(this.base)   
         url.searchParams.append('search.name', `~${value}%`)
         url.searchParams.append('search.disabled', 0)
+        url.searchParams.append('search.deleted', '-')
         fetch(url).then(response => {
             if (!response.ok) { resolve(entries); return; }
             response.json().then(result => {
