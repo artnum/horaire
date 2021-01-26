@@ -126,3 +126,9 @@ tr.late {
 ul.inprogress {
     color: lightgray;
 }
+
+div.popup.import {
+    max-height: 80%;
+    overflow-y: auto;
+    min-width: 480px;;
+}

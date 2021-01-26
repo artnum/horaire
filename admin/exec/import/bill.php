@@ -92,6 +92,11 @@ function add_repartition ($row, $factureID, $fdb) {
     }
 }
 
+function cmp ($a, $b) {
+    if ($a[1] === $b[1]) { return 0; }
+    return ($a[1] < $b[1]) ? -1 : 1;
+}
+
 function guess_client ($client, $cdb) {
     $proximity = [];
     $conn = $cdb->readable();
@@ -108,15 +113,17 @@ function guess_client ($client, $cdb) {
                 }
             }
             $filter = '(|' . $filter . ')';
-            $res = ldap_search($conn, $cdb->getBase(), $filter, ['dn', 'displayname', 'cn', 'o']);
+            $res = ldap_search($conn, $cdb->getBase(), $filter, ['dn', 'displayname', 'cn', 'o', 'l']);
             if ($res) {
                 for ($entry = ldap_first_entry($conn, $res); $entry; $entry = ldap_next_entry($conn, $entry)) {
                     $dn = ldap_get_dn($conn, $entry);
                     $rdn = explode(',', $dn);
                     $urldn = 'Contact/' . rawurlencode($rdn[0]);
+                    $e = [];
                     foreach (['displayname', 'cn', 'o'] as $attr) {
                         $val = @ldap_get_values($conn, $entry, $attr);
                         if ($val === false) { continue; } // attribute not available
+                        $e[$attr] = $val[0];
                         $text = '';
                         $max = 0;
                         for ($i = 0; $i < $val['count']; $i++) {
@@ -134,10 +141,14 @@ function guess_client ($client, $cdb) {
                             }
                         }
                     }
+                    $val = @ldap_get_values($conn, $entry, 'l');
+                    if ($val !== false) { $e['l'] = $val[0]; }
+                    $proximity[$urldn][0] = join(', ', $e);
                 }
             }
         }
     } 
+    usort($proximity, 'cmp');
     return $proximity;
 }
 
@@ -169,12 +180,13 @@ function add_bill ($rowId, $row, $fdb, $cdb) {
     } else {
         $proximity = guess_client($client, $cdb);
         if (count($proximity) === 0) {
-            $out['options'] = ['client' => false];
+            $out['options'] = ['client' => false, 'proximity' => [], 'original' => $client];
         } else if(count($proximity) === 1) {
             reset($proximity); // first key because only one
             $dbclient = key($proximity);
+            $out['options'] = ['client' => true, 'proximity' => $proximity, 'original' => $client];
         } else {
-            $out['options'] = ['client' => false, 'proximity' => $proximity];
+            $out['options'] = ['client' => false, 'proximity' => $proximity, 'original' => $client];
         }
     }
 
@@ -236,6 +248,7 @@ function add_bill ($rowId, $row, $fdb, $cdb) {
         $stmt->bindValue(':amo', $amount, PDO::PARAM_STR);
         $stmt->bindValue(':typ', $type, PDO::PARAM_INT);
     }
+    $out['reference'] = $ref;
     if($stmt->execute()) {
         $out['success'] = true;
         $lid = $fdb->query('SELECT MAX("facture_id") FROM "facture"');
@@ -316,16 +329,20 @@ for ($i = 10; $i < 5101; $i++) { // max size
                 $out[$i] = ['type' => 'facture', 'id' => $id[1], 'op' => 'delete', 'success' => false];
             }
         }
+        $out[$i]['reference'] = empty($row[REF_CELL]) ? $row[CLIENT_CELL] : $row[REF_CELL];
 
         /* client starts with / when we want to replace current */
         if (strpos($row[CLIENT_CELL], '/') === 0) {
             $proximity = guess_client(substr($row[CLIENT_CELL], 1), $ldap_db);
-            if (count($proximity) === 1) {
+            if (count($proximity) === 0) {
+                $out[$i]['options'] = ['client' => false, 'proximity' => [], 'original' => substr($row[CLIENT_CELL], 1)];
+            } else if (count($proximity) === 1) {
                 reset($proximity);
                 $up[] = ['facture_person', key($proximity), PDO::PARAM_STR];
                 $st_up[] = 'facture_person = :facture_person';
+                $out[$i]['options'] = ['client' => true, 'proximity' => $proximity, 'original' => substr($row[CLIENT_CELL], 1)];
             } else if (count($proximity) > 1) {
-                $out[$i]['options'] = ['client' => false, 'proximity' => $proximity];
+                $out[$i]['options'] = ['client' => false, 'proximity' => $proximity, 'original' => substr($row[CLIENT_CELL], 1)];
             }
         }
 

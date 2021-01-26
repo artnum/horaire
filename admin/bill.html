@@ -121,7 +121,7 @@
 </script>
 <script>
   function doImport(event) {
-    let resDiv = Admin.popup('', 'Importation', {closable: true})
+    let resDiv = Admin.popup('', 'Importation', {closable: true, supClasses: ['import']})
     event.preventDefault();
     let fd = new FormData(event.target)
     fetch(new URL(`${KAAL.getBase()}/admin/exec/import/bill.php`), {method: 'POST', body: fd}).then(response => {
@@ -141,35 +141,42 @@
               let d = document.createElement('DIV')
               switch (op.type) {
                 case 'facture':
-                  d.innerHTML = `Facture ${op.id} ${opname} ${op.success ? 'ok' : 'échec'}`
-                  if (op.options) {
+                  d.innerHTML = `Facture ${op.reference}`
+                  if (!op.options) {
+                    d.innerHTML += ` ${op.success ? 'ok' : 'échec'}`
+                  } else {
                     if (op.options.client) {
-                      d.innerHTML += ` client trouvé`
+                      d.innerHTML += ` ${op.success ? 'ok' : 'échec'}, client trouvé pour "${op.options.original}"`
                     } else {
-                      let ul = document.createElement('ul')
-                      ul.dataset.id = op.id                        
-                      for (let k in op.options.proximity) {
-                        let e = op.options.proximity[k]
-                        ul.innerHTML += `<li data-id="${k}"><a href="#">${e[0]}</a> à ${Math.round(e[1])}% de ressemblance</li>`
-                      }
-                      d.appendChild(ul)
-                      d.addEventListener('click', (event) => {
-                        let li = event.target
-                        while (li && li.nodeName !== 'LI') { li = li.parentNode }
-                        if (!li) { return }
-                        let ul = li
-                        while (ul && ul.nodeName !== 'UL') { ul = ul.parentNode }
-                        if (!ul) { return }
-                        ul.classList.add('inprogress')
-                        fetch(new URL(`${KAAL.getBase()}/Facture/${ul.dataset.id}`), {method: 'PATCH', body: JSON.stringify({
-                          id: ul.dataset.id,
-                          person: li.dataset.id
-                        })}).then(response => {
-                          if (response.ok) {
-                            ul.parentNode.removeChild(ul)
-                          }
+                      if (op.options.proximity.length <= 0) {
+                        d.innerHTML += ` ${op.success ? 'ok' : 'échec'}, aucun client trouvé pour "${op.options.original}"`
+                      } else {
+                        d.innerHTML += ` ${op.success ? 'ok' : 'échec'}, choisir client pour "${op.options.original}"`
+                        let ul = document.createElement('ul')
+                        ul.dataset.id = op.id                        
+                        for (let k in op.options.proximity) {
+                          let e = op.options.proximity[k]
+                          ul.innerHTML += `<li data-id="${k}"><a href="#">${e[0]}</a></li>`
+                        }
+                        d.appendChild(ul)
+                        d.addEventListener('click', (event) => {
+                          let li = event.target
+                          while (li && li.nodeName !== 'LI') { li = li.parentNode }
+                          if (!li) { return }
+                          let ul = li
+                          while (ul && ul.nodeName !== 'UL') { ul = ul.parentNode }
+                          if (!ul) { return }
+                          ul.classList.add('inprogress')
+                          fetch(new URL(`${KAAL.getBase()}/Facture/${ul.dataset.id}`), {method: 'PATCH', body: JSON.stringify({
+                            id: ul.dataset.id,
+                            person: li.dataset.id
+                          })}).then(response => {
+                            if (response.ok) {
+                              ul.parentNode.removeChild(ul)
+                            }
+                          })
                         })
-                      })
+                      }
                     }
                   }
                 
