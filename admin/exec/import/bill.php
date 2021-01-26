@@ -179,7 +179,7 @@ function add_bill ($rowId, $row, $fdb, $cdb) {
     }
     $indate = new DateTime();
     $amount = 0;
-    if (is_float($row[AMOUNT_CELL])) {
+    if (!empty($row[AMOUNT_CELL])) {
         $amount = floatval($row[AMOUNT_CELL]);
     }
     $type = 1; // actually only supporterd
