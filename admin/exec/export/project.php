@@ -254,7 +254,7 @@ try {
    $factureAmount = 0;
    $amountByType = [0, 0, 0, 0];
    
-   $SheetFacture['header'] = ['N° de facture' => 'string', 'Personne/société' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string' ];
+   $SheetFacture['header'] = ['N° de facture' => 'string', 'Date' => 'date', 'Personne/société' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string' ];
    $repSt = $db->prepare('SELECT * FROM "repartition" LEFT JOIN "facture" ON "facture_id" = "repartition_facture" WHERE "repartition_project" = :id AND "facture_deleted" = 0');
    $repSt->bindValue(':id', $row['project_id'], PDO::PARAM_INT);
    if ($repSt->execute()) {
@@ -264,6 +264,7 @@ try {
          $amount_ht = 0;
          $tva = 7.7;
          $type = '';
+         $date = new DateTime($repData['facture_date']);
          switch (intval($repData['facture_type'])) {
             case 1:
                $type = 'Créancier';
@@ -296,6 +297,12 @@ try {
                $entries = ldap_get_entries($ldap, $res);
                if ($entries['count'] > 0) {
                   $entry = $entries[0];
+                  
+                  if (!isset($entry['displayname'])) { $entry['displayname'] = ['count' => 0]; }
+                  if (!isset($entry['o'])) { $entry['o'] = ['count' => 0]; }
+                  if (!isset($entry['sn'])) { $entry['sn'] = ['count' => 0]; }
+                  if (!isset($entry['givenname'])) { $entry['givenname'] = ['count' => 0]; }
+
                   if ($entry['displayname']['count'] > 0) {
                      $repData['facture_person'] = trim($entry['displayname'][0]);
                   } else if ($entry['o']['count'] > 0) {
@@ -312,12 +319,12 @@ try {
 
          $factureAmount += $amount_ht;
          $amountByType[intval($repData['facture_type'])-1] += abs($amount_ht);
-         $SheetFacture['content'][] = [$reference, $repData['facture_person'], $amount_ht, $tva, '=C'.($line+1). '+(C' . ($line+1) . '*D' . ($line+1) .'%)' , $type];
+         $SheetFacture['content'][] = [$reference, $date->format('Y-m-d'), $repData['facture_person'], $amount_ht, $tva, '=D'.($line+1). '+(D' . ($line+1) . '*E' . ($line+1) .'%)' , $type];
 
          $line++;
       }
       $SheetFacture['content'][] = ['', '', '', ''];
-      $SheetFacture['content'][] = ['Totaux', '=SUM(B2:B' . $line .  ')', '', '=SUM(D2:D' . $line .  ')']; 
+      $SheetFacture['content'][] = ['Totaux', '', '', '=SUM(D2:D' . $line .  ')', '', '=SUM(F2:F' . $line .  ')']; 
    }
 
 
