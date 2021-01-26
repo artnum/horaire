@@ -166,7 +166,6 @@
                             li.innerHTML = ' ... plus .... '
                             ul.appendChild(li)
                             li.addEventListener('click', event => {
-                              console.log(event)
                               let n = event.target
                               event.stopPropagation()
                               event.preventDefault()
@@ -177,6 +176,24 @@
                                 i = i.nextElementSibling
                               }
                             })
+                          } else {
+                            li.addEventListener('click', (event) => {
+                              let li = event.target
+                              while (li && li.nodeName !== 'LI') { li = li.parentNode }
+                              if (!li) { return }
+                              let ul = li
+                              while (ul && ul.nodeName !== 'UL') { ul = ul.parentNode }
+                              if (!ul) { return }
+                              ul.classList.add('inprogress')
+                              fetch(new URL(`${KAAL.getBase()}/Facture/${ul.dataset.id}`), {method: 'PATCH', body: JSON.stringify({
+                                id: ul.dataset.id,
+                                person: li.dataset.id
+                              })}).then(response => {
+                                if (response.ok) {
+                                  ul.parentNode.removeChild(ul)
+                                }
+                              })
+                            })
                           }
                           if (i > 9) { 
                             li.classList.add('more')
@@ -184,23 +201,6 @@
                           i++
                         }
                         d.appendChild(ul)
-                        d.addEventListener('click', (event) => {
-                          let li = event.target
-                          while (li && li.nodeName !== 'LI') { li = li.parentNode }
-                          if (!li) { return }
-                          let ul = li
-                          while (ul && ul.nodeName !== 'UL') { ul = ul.parentNode }
-                          if (!ul) { return }
-                          ul.classList.add('inprogress')
-                          fetch(new URL(`${KAAL.getBase()}/Facture/${ul.dataset.id}`), {method: 'PATCH', body: JSON.stringify({
-                            id: ul.dataset.id,
-                            person: li.dataset.id
-                          })}).then(response => {
-                            if (response.ok) {
-                              ul.parentNode.removeChild(ul)
-                            }
-                          })
-                        })
                       }
                     }
                   }

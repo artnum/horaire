@@ -148,7 +148,7 @@ function guess_client ($client, $cdb) {
             }
         }
     } 
-    usort($proximity, 'cmp');
+    uasort($proximity, 'cmp');
     return $proximity;
 }
 
