@@ -132,3 +132,7 @@ div.popup.import {
     overflow-y: auto;
     min-width: 480px;;
 }
+
+div.popup.import li.more {
+    display: none;
+}

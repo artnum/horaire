@@ -107,9 +107,9 @@ function guess_client ($client, $cdb) {
             for($i = 0; $i < count($matches[1]); $i++) {
                 $word = $matches[1][$i];
                 $ascii = iconv('UTF-8', 'ASCII//TRANSLIT', $word);
-                $filter .= sprintf('(|(displayname=%s*)(o=%s*)(cn=%s*))', $word, $word, $word);
+                $filter .= sprintf('(|(displayname=*%s*)(o=*%s*)(cn=*%s*))', $word, $word, $word);
                 if ($word !== $ascii) {
-                    $filter .= sprintf('(|(displayname=%s*)(o=%s*)(cn=%s*))', $ascii, $ascii, $ascii);
+                    $filter .= sprintf('(|(displayname=*%s*)(o=*%s*)(cn=*%s*))', $ascii, $ascii, $ascii);
                 }
             }
             $filter = '(|' . $filter . ')';

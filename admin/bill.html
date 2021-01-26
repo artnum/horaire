@@ -153,10 +153,34 @@
                       } else {
                         d.innerHTML += ` ${op.success ? 'ok' : 'échec'}, choisir client pour "${op.options.original}"`
                         let ul = document.createElement('ul')
-                        ul.dataset.id = op.id                        
+                        ul.dataset.id = op.id
+                        let i = 0                   
                         for (let k in op.options.proximity) {
                           let e = op.options.proximity[k]
-                          ul.innerHTML += `<li data-id="${k}"><a href="#">${e[0]}</a></li>`
+                          let li = document.createElement('LI')
+                          li.innerHTML = `<li data-id="${k}"><a href="#">${e[0]}</a>`
+                          ul.appendChild(li)
+                          if (i === 9) {
+                            let li = document.createElement('LI')
+                            li.innerHTML = ' ... plus .... '
+                            ul.appendChild(li)
+                            li.addEventListener('click', event => {
+                              console.log(event)
+                              let n = event.target
+                              event.stopPropagation()
+                              event.preventDefault()
+                              let i = n.nextElementSibling
+                              n.parentNode.removeChild(n)
+                              while (i) {
+                                i.classList.remove('more')
+                                i = i.nextElementSibling
+                              }
+                            })
+                          }
+                          if (i > 9) { 
+                            li.classList.add('more')
+                          }
+                          i++
                         }
                         d.appendChild(ul)
                         d.addEventListener('click', (event) => {
