@@ -92,6 +92,55 @@ function add_repartition ($row, $factureID, $fdb) {
     }
 }
 
+function guess_client ($client, $cdb) {
+    $proximity = [];
+    $conn = $cdb->readable();
+    if (!$conn) { return $proximity; }
+    if(preg_match_all('/([^\s]+)/', $client, $matches)) {
+        if (!empty($matches[1])) {
+            $filter = '';
+            for($i = 0; $i < count($matches[1]); $i++) {
+                $word = $matches[1][$i];
+                $ascii = iconv('UTF-8', 'ASCII//TRANSLIT', $word);
+                $filter .= sprintf('(|(displayname=%s*)(o=%s*)(cn=%s*))', $word, $word, $word);
+                if ($word !== $ascii) {
+                    $filter .= sprintf('(|(displayname=%s*)(o=%s*)(cn=%s*))', $ascii, $ascii, $ascii);
+                }
+            }
+            $filter = '(|' . $filter . ')';
+            $res = ldap_search($conn, $cdb->getBase(), $filter, ['dn', 'displayname', 'cn', 'o']);
+            if ($res) {
+                for ($entry = ldap_first_entry($conn, $res); $entry; $entry = ldap_next_entry($conn, $entry)) {
+                    $dn = ldap_get_dn($conn, $entry);
+                    $rdn = explode(',', $dn);
+                    $urldn = 'Contact/' . rawurlencode($rdn[0]);
+                    foreach (['displayname', 'cn', 'o'] as $attr) {
+                        $val = @ldap_get_values($conn, $entry, $attr);
+                        if ($val === false) { continue; } // attribute not available
+                        $text = '';
+                        $max = 0;
+                        for ($i = 0; $i < $val['count']; $i++) {
+                            similar_text($val[$i], $client, $perc);
+                            if ($max < $perc) {
+                                $max = $perc;
+                                $text = $val[$i];
+                            }
+                        }
+                        if (!isset($proximity[$urldn])) {
+                            $proximity[$urldn] = [$text, $max];
+                        } else {
+                            if ($proximity[$urldn][1] > $perc) {
+                                $proximity[$urldn] = [$text, $max];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } 
+    return $proximity;
+}
+
 function add_bill ($rowId, $row, $fdb, $cdb) {
     global $FactureIDMap;
     $newId = null;
@@ -118,55 +167,14 @@ function add_bill ($rowId, $row, $fdb, $cdb) {
     if (empty($client)) {
         $out['options'] = ['client' => false];
     } else {
-        $conn = $cdb->readable();
-        if (!$conn) { $out['options'] = ['client' => false]; } 
-        else {
-            if(preg_match_all('/([^\s]+)/', $client, $matches)) {
-                if (!empty($matches[1])) {
-                    $filter = '';
-                    for($i = 0; $i < count($matches[1]); $i++) {
-                        $word = $matches[1][$i];
-                        $filter .= sprintf('(|(displayname=%s*)(o=%s*)(cn=%s*))', $word, $word, $word);
-                    }
-                    $filter = '(|' . $filter . ')';
-                    $res = ldap_search($conn, $cdb->getBase(), $filter, ['dn', 'displayname', 'cn', 'o']);
-                    if ($res) {
-                        $proximity = [];
-                        for ($entry = ldap_first_entry($conn, $res); $entry; $entry = ldap_next_entry($conn, $entry)) {
-                            $dn = ldap_get_dn($conn, $entry);
-                            $rdn = explode(',', $dn);
-                            $urldn = 'Contact/' . rawurlencode($rdn[0]);
-                            foreach (['displayname', 'cn', 'o'] as $attr) {
-                                $val = @ldap_get_values($conn, $entry, $attr);
-                                if ($val === false) { continue; } // attribute not available
-                                $text = '';
-                                $max = 0;
-                                for ($i = 0; $i < $val['count']; $i++) {
-                                    similar_text($val[$i], $row[CLIENT_CELL], $perc);
-                                    if ($max < $perc) {
-                                        $max = $perc;
-                                        $text = $val[$i];
-                                    }
-                                }
-                                if ($max < 50) { continue; } // skip text less than 50% similar
-                                if (!isset($proximity[$urldn])) {
-                                    $proximity[$urldn] = [$text, $max];
-                                } else {
-                                    if ($proximity[$urldn][1] > $perc) {
-                                        $proximity[$urldn] = [$text, $max];
-                                    }
-                                }
-                            }
-                        }
-                        if (count($proximity) === 1) {
-                            reset($proximity); // first key because only one
-                            $dbclient = key($proximity);
-                        } else {
-                            $out['options'] = ['client' => false, 'proximity' => $proximity];
-                        }
-                    }
-                }
-            }
+        $proximity = guess_client($client, $cdb);
+        if (count($proximity) === 0) {
+            $out['options'] = ['client' => false];
+        } else if(count($proximity) === 1) {
+            reset($proximity); // first key because only one
+            $dbclient = key($proximity);
+        } else {
+            $out['options'] = ['client' => false, 'proximity' => $proximity];
         }
     }
 
@@ -308,6 +316,19 @@ for ($i = 10; $i < 5101; $i++) { // max size
                 $out[$i] = ['type' => 'facture', 'id' => $id[1], 'op' => 'delete', 'success' => false];
             }
         }
+
+        /* client starts with / when we want to replace current */
+        if (strpos($row[CLIENT_CELL], '/') === 0) {
+            $proximity = guess_client(substr($row[CLIENT_CELL], 1), $ldap_db);
+            if (count($proximity) === 1) {
+                reset($proximity);
+                $up[] = ['facture_person', key($proximity), PDO::PARAM_STR];
+                $st_up[] = 'facture_person = :facture_person';
+            } else if (count($proximity) > 1) {
+                $out[$i]['options'] = ['client' => false, 'proximity' => $proximity];
+            }
+        }
+
         if (!empty($up)) {
             try {
                 $stmt = $db->prepare('UPDATE facture SET ' . implode(', ', $st_up) . ' WHERE facture_id = :id');

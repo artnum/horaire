@@ -142,38 +142,37 @@
               switch (op.type) {
                 case 'facture':
                   d.innerHTML = `Facture ${op.id} ${opname} ${op.success ? 'ok' : 'échec'}`
-                  if (op.op === 'add') {
-                    if (op.options) {
-                      if (op.options.client) {
-                        d.innerHTML += ` client trouvé`
-                      } else {
-                        let ul = document.createElement('ul')
-                        ul.dataset.id = op.id                        
-                        for (let k in op.options.proximity) {
-                          let e = op.options.proximity[k]
-                          ul.innerHTML += `<li data-id="${k}"><a href="#">${e[0]}</a> à ${Math.round(e[1])}% de ressemblance</li>`
-                        }
-                        d.appendChild(ul)
-                        d.addEventListener('click', (event) => {
-                          let li = event.target
-                          while (li && li.nodeName !== 'LI') { li = li.parentNode }
-                          if (!li) { return }
-                          let ul = li
-                          while (ul && ul.nodeName !== 'UL') { ul = ul.parentNode }
-                          if (!ul) { return }
-                          ul.classList.add('inprogress')
-                          fetch(new URL(`${KAAL.getBase()}/Facture/${ul.dataset.id}`), {method: 'PATCH', body: JSON.stringify({
-                            id: ul.dataset.id,
-                            person: li.dataset.id
-                          })}).then(response => {
-                            if (response.ok) {
-                              ul.parentNode.removeChild(ul)
-                            }
-                          })
-                        })
+                  if (op.options) {
+                    if (op.options.client) {
+                      d.innerHTML += ` client trouvé`
+                    } else {
+                      let ul = document.createElement('ul')
+                      ul.dataset.id = op.id                        
+                      for (let k in op.options.proximity) {
+                        let e = op.options.proximity[k]
+                        ul.innerHTML += `<li data-id="${k}"><a href="#">${e[0]}</a> à ${Math.round(e[1])}% de ressemblance</li>`
                       }
+                      d.appendChild(ul)
+                      d.addEventListener('click', (event) => {
+                        let li = event.target
+                        while (li && li.nodeName !== 'LI') { li = li.parentNode }
+                        if (!li) { return }
+                        let ul = li
+                        while (ul && ul.nodeName !== 'UL') { ul = ul.parentNode }
+                        if (!ul) { return }
+                        ul.classList.add('inprogress')
+                        fetch(new URL(`${KAAL.getBase()}/Facture/${ul.dataset.id}`), {method: 'PATCH', body: JSON.stringify({
+                          id: ul.dataset.id,
+                          person: li.dataset.id
+                        })}).then(response => {
+                          if (response.ok) {
+                            ul.parentNode.removeChild(ul)
+                          }
+                        })
+                      })
                     }
                   }
+                
                   break
                 case 'repartition':                  
                   d.innerHTML = `Répartition ${opname} ${op.success ? 'ok' : op.msg} `
