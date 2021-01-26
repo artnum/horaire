@@ -339,6 +339,12 @@
         popup.style.minWidth = options.minWidth
       }
 
+      if (options.supClasses && Array.isArray(options.supClasses)) {
+        options.supClasses.forEach (c => {
+          popup.classList.add(c)
+        })
+      }
+
       popup.insertBefore(titleNode, popup.firstChild)
       let content = document.createElement('DIV')
       content.innerHTML = html

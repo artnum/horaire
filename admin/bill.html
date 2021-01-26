@@ -158,7 +158,8 @@
                         for (let k in op.options.proximity) {
                           let e = op.options.proximity[k]
                           let li = document.createElement('LI')
-                          li.innerHTML = `<li data-id="${k}"><a href="#">${e[0]}</a>`
+                          li.innerHTML = `<a href="#">${e[0]}</a>`
+                          li.dataset.id = k
                           ul.appendChild(li)
                           if (i === 9) {
                             let li = document.createElement('LI')
