@@ -48,6 +48,7 @@ define('ID_CELL', 0);
 define('DATE_CELL', 1);
 define('REF_CELL', 2);
 define('PROJECT_CELL', 3);
+define('CLIENT_CELL', 4);
 define('TERM_CELL', 5);
 define('AMOUNT_CELL', 6);
 define('REP_CELL', 7);
@@ -57,6 +58,189 @@ define('PAY1_CELL', 12);
 define('PAY2_CELL', 13);
 define('PAY3_CELL', 14);
 define('PAY4_CELL', 15);
+
+$FactureIDMap = [];
+
+function add_repartition ($row, $factureID, $fdb) {
+    $project = $row[PROJECT_CELL];
+
+    $req = 'SELECT "project_id" FROM "project" WHERE "project_reference" LIKE :prj';
+    $stmt = $fdb->prepare($req);
+    $stmt->bindParam(':prj', $project, PDO::PARAM_STR);
+    if($stmt->execute()) {
+        $project = $stmt->fetch();
+        if ($project) {
+            $tva = floatval($row[AMOUNT_CELL]);
+            $amount = floatval($row[REP_CELL]);
+            $id = $project[0];
+            if (empty($tva)) { $tva = 7.7; }
+            if (empty($amount)) { return 1; }
+            
+            $req = 'INSERT INTO "repartition" ("repartition_facture", "repartition_project", "repartition_value", "repartition_tva") VALUES (:fact, :prj, :val, :tva)';
+            $stmt = $fdb->prepare($req);
+            $stmt->bindParam(':fact', $factureID, PDO::PARAM_INT);
+            $stmt->bindParam(':prj', $id, PDO::PARAM_INT);
+            $stmt->bindParam(':val', $amount, PDO::PARAM_STR);
+            $stmt->bindParam(':tva', $tva, PDO::PARAM_STR);
+            if($stmt->execute()) {
+                return 0;
+            } else {
+                error_log(sprintf('"%s": %s', $stmt->errorInfo()[2], $row[PROJECT_CELL]));
+                return 2;
+            }
+        }
+    }
+}
+
+function add_bill ($rowId, $row, $fdb, $cdb) {
+    global $FactureIDMap;
+    $newId = null;
+    $out = ['type' => 'facture', 'id' => $newId, 'op' => 'add', 'success' => false];
+
+    if (!empty($row[REP_CELL]) && !empty($row[PROJECT_CELL]) && !empty($FactureIDMap[$row[REF_CELL]])) {
+        if(($ret = add_repartition($row, $FactureIDMap[$row[REF_CELL]], $fdb)) === 0) {
+            return ['type' => 'repartition', 'op' => 'add', 'success' => true];
+        } else {
+            return ['type' => 'repartition', 'op' => 'add', 'success' => false, 'msg' => $ret === 1 ? 'Projet inconnu' : 'Erreur db' ];
+        }
+    }
+
+    if (
+        empty($row[DATE_CELL]) &&
+        empty($row[REF_CELL]) &&
+        empty($row[AMOUNT_CELL])
+    )  {
+        return false;
+    }
+
+    $client = $row[CLIENT_CELL];
+    $dbclient = null;
+    if (empty($client)) {
+        $out['options'] = ['client' => false];
+    } else {
+        $conn = $cdb->readable();
+        if (!$conn) { $out['options'] = ['client' => false]; } 
+        else {
+            if(preg_match_all('/([^\s]+)/', $client, $matches)) {
+                if (!empty($matches[1])) {
+                    $filter = '';
+                    for($i = 0; $i < count($matches[1]); $i++) {
+                        $word = $matches[1][$i];
+                        $filter .= sprintf('(|(displayname=%s*)(o=%s*)(cn=%s*))', $word, $word, $word);
+                    }
+                    $filter = '(|' . $filter . ')';
+                    $res = ldap_search($conn, $cdb->getBase(), $filter, ['dn', 'displayname', 'cn', 'o']);
+                    if ($res) {
+                        $proximity = [];
+                        for ($entry = ldap_first_entry($conn, $res); $entry; $entry = ldap_next_entry($conn, $entry)) {
+                            $dn = ldap_get_dn($conn, $entry);
+                            $rdn = explode(',', $dn);
+                            $urldn = 'Contact/' . rawurlencode($rdn[0]);
+                            foreach (['displayname', 'cn', 'o'] as $attr) {
+                                $val = @ldap_get_values($conn, $entry, $attr);
+                                if ($val === false) { continue; } // attribute not available
+                                $text = '';
+                                $max = 0;
+                                for ($i = 0; $i < $val['count']; $i++) {
+                                    similar_text($val[$i], $row[CLIENT_CELL], $perc);
+                                    if ($max < $perc) {
+                                        $max = $perc;
+                                        $text = $val[$i];
+                                    }
+                                }
+                                if ($max < 50) { continue; } // skip text less than 50% similar
+                                if (!isset($proximity[$urldn])) {
+                                    $proximity[$urldn] = [$text, $max];
+                                } else {
+                                    if ($proximity[$urldn][1] > $perc) {
+                                        $proximity[$urldn] = [$text, $max];
+                                    }
+                                }
+                            }
+                        }
+                        if (count($proximity) === 1) {
+                            reset($proximity); // first key because only one
+                            $dbclient = key($proximity);
+                        } else {
+                            $out['options'] = ['client' => false, 'proximity' => $proximity];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    $date = \artnum\Date::parse($row[DATE_CELL]);
+    $due = new DateTime();
+    if (is_numeric($row[TERM_CELL])) {
+        $due->add(new DateInterval('P' . $row[TERM_CELL] . 'D'));
+    } else {
+        $due->add(new DateInterval('P30D'));
+    }
+    $indate = new DateTime();
+    $amount = 0;
+    if (is_float($row[AMOUNT_CELL])) {
+        $amount = floatval($row[AMOUNT_CELL]);
+    }
+    $type = 1; // actually only supporterd
+    $ref = $row[REF_CELL];
+    $currency = 'CHF';
+    switch (strtolower($row[CURRENCY_CELL])) {
+        default:
+        case 'chf':
+        case 'sfr':
+        case 'fr':
+        case 'francs':
+        case 'franc':
+            break;
+        case 'euro':
+        case '€':
+        case 'eur':
+            $currency = 'EUR';
+            break;
+    }
+
+    $stmt;
+    $fdb->beginTransaction();
+    if ($dbclient === null) {
+        $stmt = $fdb->prepare('INSERT INTO "facture" 
+            ("facture_reference", "facture_currency", "facture_person", "facture_date", "facture_duedate", "facture_indate", "facture_amount", "facture_type")
+            VALUES (:ref, :curr, \'\', :dat, :due, :ind, :amo, :typ)
+        ');
+        $stmt->bindValue(':ref', $ref, PDO::PARAM_STR);
+        $stmt->bindValue(':curr', $currency, PDO::PARAM_STR);
+        $stmt->bindValue(':dat', $date->format('c'), PDO::PARAM_STR);
+        $stmt->bindValue(':due', $due->format('c'), PDO::PARAM_STR);
+        $stmt->bindValue(':ind', $indate->format('c'), PDO::PARAM_STR);
+        $stmt->bindValue(':amo', $amount, PDO::PARAM_STR);
+        $stmt->bindValue(':typ', $type, PDO::PARAM_INT);
+    } else {
+        $stmt = $fdb->prepare('INSERT INTO "facture" 
+            ("facture_reference", "facture_currency", "facture_person", "facture_date", "facture_duedate", "facture_indate", "facture_amount", "facture_type")
+            VALUES (:ref, :curr, :per, :dat, :due, :ind, :amo, :typ)
+        ');
+        $stmt->bindValue(':ref', $ref, PDO::PARAM_STR);
+        $stmt->bindValue(':curr', $currency, PDO::PARAM_STR);
+        $stmt->bindValue(':per', $dbclient, PDO::PARAM_STR);
+        $stmt->bindValue(':dat', $date->format('c'), PDO::PARAM_STR);
+        $stmt->bindValue(':due', $due->format('c'), PDO::PARAM_STR);
+        $stmt->bindValue(':ind', $indate->format('c'), PDO::PARAM_STR);
+        $stmt->bindValue(':amo', $amount, PDO::PARAM_STR);
+        $stmt->bindValue(':typ', $type, PDO::PARAM_INT);
+    }
+    if($stmt->execute()) {
+        $out['success'] = true;
+        $lid = $fdb->query('SELECT MAX("facture_id") FROM "facture"');
+        $lid = $lid->fetch(PDO::FETCH_NUM);
+        $out['id'] = $lid[0];
+        $FactureIDMap[$ref] = $out['id'];
+        $fdb->commit();
+    } else {
+        $fdb->rollBack();
+    }
+    return $out;
+}
+
 $ldap_db = new artnum\LDAPDB(
    $ldapServers,
    !empty($ini_conf['addressbook']['base']) ? $ini_conf['addressbook']['base'] : NULL
@@ -72,11 +256,22 @@ $todayStr = $today->format('c');
 $todayInt = $today->format('U');
 
 $out = [];
+$empty = 0;
 for ($i = 10; $i < 5101; $i++) { // max size
     $row = $AS->rangeToArray("A$i:R$i", null, false, false, false)[0];
 
-    /* we stop at first empty id */
-    if (empty($row[ID_CELL])) { break; }
+    /* empty ID is add ... if more than three in a row, stop importation we reach the end */
+    if (empty($row[ID_CELL])) { 
+        $out[$i] = add_bill($i, $row, $db, $ldap_db);
+        if (!$out[$i]) {
+            $out[$i] = ['type' => 'none'];
+            $empty++;
+        } else {
+            $empty = 0;
+        }
+        if ($empty > 3) { break; }
+        continue;
+    }
 
     $id = explode(':', $row[ID_CELL]);
     if (trim($id[0]) === 'F') {
@@ -120,12 +315,12 @@ for ($i = 10; $i < 5101; $i++) { // max size
                     $stmt->bindParam(':' . $v[0], $v[1], $v[2]);
                 }
                 $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
-                $stmt->execute();
+                $out[$i]['success'] = $stmt->execute();
             } catch(Exception $e) {
                 $out[$i]['success'] = false;
             }
         } else {
-            unset($out[$i]); // nothing done 
+            $out[$i] = ['type' => 'none'];
         }
 
         $total_paid = 0;

@@ -72,7 +72,7 @@
   </form>
   <h2>Factures enregistrées</h2>
   <div style="font-weight: bold; font-size: 16pt;"><a href="exec/export/bill.php" target="_blank">Exportation pour paiment</a></div>
-  <div><form method="POST" action="exec/import/bill.php" enctype="multipart/form-data"><input type="file" name="gfimport"><input type="submit" value="Reimportation"></form></div>
+  <div><form method="POST" onsubmit="doImport(event)" action="exec/import/bill.php" enctype="multipart/form-data"><input type="file" name="gfimport"><input type="submit" value="Reimportation"></form></div>
   <br>
   <label><input type="radio" onchange="factureCre()" checked="checked"  name="type"> Créancier</label>
   <label><input type="radio" onchange="factureDeb()" name="type"> Débiteur</label>
@@ -112,7 +112,7 @@
 <script src="../node_modules/artnum/Select.js"></script>
 <script src="../node_modules/artnum/Query.js"></script>
 <script src="../node_modules/artnum/Date.js"></script>
-<script src="../node_modules/artnum/DTable.js"></script>
+<script src="/js/DTable.js"></script>
 <script src="js/admin.js"></script>
 <script src="js/stores.js"></script>
 <script type="module">
@@ -120,6 +120,71 @@
   const address = new Address(document.getElementById('address'))
 </script>
 <script>
+  function doImport(event) {
+    let resDiv = Admin.popup('', 'Importation', {closable: true})
+    event.preventDefault();
+    let fd = new FormData(event.target)
+    fetch(new URL(`${KAAL.getBase()}/admin/exec/import/bill.php`), {method: 'POST', body: fd}).then(response => {
+      if (!response.ok) {
+        KAAL.error('Erreur d\'envoi du fichier')
+      } else {
+        response.json().then(result => {
+            for (let i in result) {
+              let op = result[i]
+              if (op.type === 'none') { continue; } // nothing done
+              let opname = ''
+              switch (op.op) {
+                case 'update': opname = 'Mise à jour'; break
+                case 'add': opname = 'Ajout'; break
+                case 'delete': opname = 'Suppression'; break
+              }
+              let d = document.createElement('DIV')
+              switch (op.type) {
+                case 'facture':
+                  d.innerHTML = `Facture ${op.id} ${opname} ${op.success ? 'ok' : 'échec'}`
+                  if (op.op === 'add') {
+                    if (op.options) {
+                      if (op.options.client) {
+                        d.innerHTML += ` client trouvé`
+                      } else {
+                        let ul = document.createElement('ul')
+                        ul.dataset.id = op.id                        
+                        for (let k in op.options.proximity) {
+                          let e = op.options.proximity[k]
+                          ul.innerHTML += `<li data-id="${k}"><a href="#">${e[0]}</a> à ${Math.round(e[1])}% de ressemblance</li>`
+                        }
+                        d.appendChild(ul)
+                        d.addEventListener('click', (event) => {
+                          let li = event.target
+                          while (li && li.nodeName !== 'LI') { li = li.parentNode }
+                          if (!li) { return }
+                          let ul = li
+                          while (ul && ul.nodeName !== 'UL') { ul = ul.parentNode }
+                          if (!ul) { return }
+                          ul.classList.add('inprogress')
+                          fetch(new URL(`${KAAL.getBase()}/Facture/${ul.dataset.id}`), {method: 'PATCH', body: JSON.stringify({
+                            id: ul.dataset.id,
+                            person: li.dataset.id
+                          })}).then(response => {
+                            if (response.ok) {
+                              ul.parentNode.removeChild(ul)
+                            }
+                          })
+                        })
+                      }
+                    }
+                  }
+                  break
+                case 'repartition':                  
+                  d.innerHTML = `Répartition ${opname} ${op.success ? 'ok' : op.msg} `
+                  break
+              }
+              resDiv.appendChild(d)
+            }
+        })
+      }
+    })
+  }
   function SearchBill (param, term) {
     return new Promise((resovle, reject) => {
       let url = new URL('../Facture', window.location)
