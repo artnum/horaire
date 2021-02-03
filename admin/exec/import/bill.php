@@ -181,6 +181,8 @@ function add_bill ($rowId, $row, $fdb, $cdb) {
         $proximity = guess_client($client, $cdb);
         if (count($proximity) === 0) {
             $out['options'] = ['client' => false, 'proximity' => [], 'original' => $client];
+            // if none is found, use the textual client as it can be changed later
+            $dbclient = $client;
         } else if(count($proximity) === 1) {
             reset($proximity); // first key because only one
             $dbclient = key($proximity);
@@ -336,6 +338,9 @@ for ($i = 10; $i < 5101; $i++) { // max size
             $proximity = guess_client(substr($row[CLIENT_CELL], 1), $ldap_db);
             if (count($proximity) === 0) {
                 $out[$i]['options'] = ['client' => false, 'proximity' => [], 'original' => substr($row[CLIENT_CELL], 1)];
+                // when not found, we set the textual client as it can be changed later
+                $up[] = ['facture_person', substr($row[CLIENT_CELL], 1), PDO::PARAM_STR];
+                $st_up[] = 'facture_person = :facture_person';
             } else if (count($proximity) === 1) {
                 reset($proximity);
                 $up[] = ['facture_person', key($proximity), PDO::PARAM_STR];
