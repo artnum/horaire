@@ -44,12 +44,11 @@ $ldap_db = new artnum\LDAPDB(
  );
 
 
-$query = 'SELECT *, p2.person_name AS project_manager FROM project
+$query = 'SELECT * FROM project
         LEFT JOIN htime ON htime.htime_project = project.project_id
         LEFT JOIN person ON htime.htime_person = person.person_id
         LEFT JOIN process ON htime.htime_process = process.process_id
         LEFT JOIN travail ON htime.htime_travail = travail.travail_id
-        LEFT JOIN person AS p2 ON project.project_manager = p2.person_id
         WHERE htime.htime_deleted IS NULL';
 
 if (isset($_GET['state'])) {
@@ -110,6 +109,20 @@ try {
    /* Entrées */
    foreach ($values as $row) {
       if (!isset($per_project[$row['project_id']])) {
+         if ($row['project_manager']) {
+            try {
+               $stmt = $db->prepare('SELECT "person_name" FROM "person" WHERE "person_id" = :manager');
+               $stmt->bindParam(':manager', $row['project_manager'], PDO::PARAM_INT);
+               $stmt->execute();
+               $manager = $stmt->fetch();
+               if ($manager[0]) {
+                  $row['project_manager'] = $manager[0];
+               }
+            } catch (Exception $e) {
+               $row['project_manager'] = '';
+            }
+
+         }
          $per_project[$row['project_id']] = array(
             'reference' => $row['project_reference'], 
             'name' => $row['project_name'], 
