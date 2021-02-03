@@ -16,6 +16,16 @@ class ProjectModel extends artnum\SQL {
     $this->conf('ignored', array('year'));
   }
   function _write($arg, $id = NULL) {
+    /* for some unknown reason, it appears that users could create multiple entry with same reference
+     * so this should avoid some case in hope it fixes the bug
+     */
+    $exist = $this->listing(['search' => ['reference' => $arg['reference']]]);
+    if ($exist->getCount() > 0) {
+      $result = new artnum\JStore\Result();
+      $result->addError('Reference exists');
+      return $result;
+    }
+    
     $hook_succeed = false;
     if (!$this->conf('hook-path')) {
       $hook_succeed = true;
