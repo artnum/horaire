@@ -64,7 +64,7 @@ $FactureIDMap = [];
 function add_repartition ($row, $factureID, $fdb) {
     $project = $row[PROJECT_CELL];
 
-    $req = 'SELECT "project_id" FROM "project" WHERE "project_reference" LIKE :prj';
+    $req = 'SELECT "project_id" FROM "project" WHERE "project_reference" LIKE :prj AND "project_deleted" IS NULL';
     $stmt = $fdb->prepare($req);
     $stmt->bindParam(':prj', $project, PDO::PARAM_STR);
     if($stmt->execute()) {
@@ -312,8 +312,11 @@ for ($i = 10; $i < 5101; $i++) { // max size
                 $st_up[] = 'facture_deleted = :facture_deleted';
             }
             if (strval($facture['facture_reference']) !== strval($row[REF_CELL])) {
+                $FactureIDMap[$row[REF_CELL]] = $id[1];
                 $up[] = ['facture_reference', $row[REF_CELL], PDO::PARAM_STR];
                 $st_up[] = 'facture_reference = :facture_reference';
+            } else {
+                $FactureIDMap[$facture['facture_reference']] = $id[1];
             }
             if ($facture['facture_currency'] !== strtolower($row[CURRENCY_CELL])) {
                 $up[] = ['facture_currency', $row[CURRENCY_CELL], PDO::PARAM_STR];
