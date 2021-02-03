@@ -77,12 +77,12 @@ function genRef (event) {
  
 function exportAll () {
    if (!searchParams['search.closed']) {   
-     window.open(Artnum.Path.url('admin/exec/export/project.php', {params: {state: 'alive'}}))
+     window.open(Artnum.Path.url('admin/exec/export/proj.php', {params: {state: 'alive'}}))
    } else {
      if (searchParams['search.closed'] === '-') {
-       window.open(Artnum.Path.url('admin/exec/export/project.php', {params: {state: 'open'}}))
+       window.open(Artnum.Path.url('admin/exec/export/proj.php', {params: {state: 'open'}}))
      } else {
-       window.open(Artnum.Path.url('admin/exec/export/project.php', {params: {state: 'closed'}}))
+       window.open(Artnum.Path.url('admin/exec/export/proj.php', {params: {state: 'closed'}}))
      }
    }
 }
@@ -243,7 +243,11 @@ function changeState (event) {
      })
   })
  }
+ 
+ var addRunning = false
  async function addProject (event) {
+   if (addRunning) { return } // avoid dblclick
+   addRunning = true
    var form = event.target
    for (; form.nodeName !== 'FORM'; form = form.parentNode);
    Admin.setFormInputInvalid(form, '*', 'error', true)
@@ -279,16 +283,16 @@ function changeState (event) {
     Admin.setFormInputInvalid(form, 'price', 'Prix de vente invalide')
     errors = true
   }
-   if (errors) { return }
+   if (errors) { addRunning = false; return }
    
    let client = ''
    if (document.getElementById('client') && document.getElementById('client').dataset.id) {
      client = `Contact/${document.getElementById('client').dataset.id}` 
    }
 
-   Artnum.Query.exec(
-     Artnum.Path.url('Project'),
-     {method: 'POST', 
+  Artnum.Query.exec(
+    Artnum.Path.url('Project'),
+    {method: 'POST', 
       body: {
         name: oform.name,
         reference: (oform.reference ? oform.reference : null), 
@@ -298,24 +302,27 @@ function changeState (event) {
         client: client,
         manager: document.getElementById('manager').dataset.value
       }}).then(function (result) {
-     if (!result.success && result.length < 1) {
-       alert('Erreur de création du projet')
-     } else {
-       let pId = result.data[0].id
-       Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`)).then(function (result) {
-         if (result.success && result.length === 1) {
-           newEntry(result.data).then((tr) => {
-             replaceAddEntry(tr, pId)
-             newTravailPopup({project: pId, first: true})
-           })
-           Admin.setFormInputValue(form, 'reference')
-           Admin.setFormInputValue(form, 'name')
-         } else {
-           alert('Erreur création du projet')
-         }
-       })
-     }
-   })   
+    if (!result.success && result.length < 1) {
+      addRunning = false
+      alert('Erreur de création du projet')
+    } else {
+      let pId = result.data[0].id
+      Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`)).then(function (result) {
+        if (result.success && result.length === 1) {
+          newEntry(result.data).then((tr) => {
+            replaceAddEntry(tr, pId)
+            newTravailPopup({project: pId, first: true})
+            addRunning = false
+          })
+          Admin.setFormInputValue(form, 'reference')
+          Admin.setFormInputValue(form, 'name')
+        } else {
+          alert('Erreur création du projet')
+          addRunning = false
+        }
+      })
+    }
+  })
  }
 
  async function handleTravailButton (event) {
