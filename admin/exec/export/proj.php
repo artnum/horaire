@@ -108,13 +108,9 @@ try {
    $per_process = array();
    $per_person = array();
    /* Entrées */
-   $project_name = '';
    foreach ($values as $row) {
-      if ($project_name === '') {
-         $project_name = $row['project_reference'] . ' - ' . $row['project_name'];
-      }
-      if (!isset($per_project[$row['project_reference']])) {
-         $per_project[$row['project_reference']] = array(
+      if (!isset($per_project[$row['project_id']])) {
+         $per_project[$row['project_id']] = array(
             'reference' => $row['project_reference'], 
             'name' => $row['project_name'], 
             'price' => $row['project_price'], 
@@ -198,17 +194,17 @@ try {
       $per_process[$row['process_name']][1] += $price * $hours;
       $per_person[$row['person_name']] += $row['htime_value'];
      
-      $per_project[$row['project_reference']]['time'] += $row['htime_value'];
-      $per_project[$row['project_reference']]['workcost'] += ($hours * $price);
+      $per_project[$row['project_id']]['time'] += $row['htime_value'];
+      $per_project[$row['project_id']]['workcost'] += ($hours * $price);
 
-      if (is_null($per_project[$row['project_reference']]['firstdate'])) { $per_project[$row['project_reference']]['firstdate'] = $datetime; }
-      if (is_null($per_project[$row['project_reference']]['lastdate'])) { $per_project[$row['project_reference']]['lastdate'] = $datetime; }
+      if (is_null($per_project[$row['project_id']]['firstdate'])) { $per_project[$row['project_id']]['firstdate'] = $datetime; }
+      if (is_null($per_project[$row['project_id']]['lastdate'])) { $per_project[$row['project_id']]['lastdate'] = $datetime; }
 
-      if ($datetime->getTimestamp() < $per_project[$row['project_reference']]['firstdate']->getTimestamp()) {
-        $per_project[$row['project_reference']]['firstdate'] = $datetime; 
+      if ($datetime->getTimestamp() < $per_project[$row['project_id']]['firstdate']->getTimestamp()) {
+        $per_project[$row['project_id']]['firstdate'] = $datetime; 
       }
-      if ($datetime->getTimestamp() > $per_project[$row['project_reference']]['lastdate']->getTimestamp()) {
-        $per_project[$row['project_reference']]['lastdate'] = $datetime; 
+      if ($datetime->getTimestamp() > $per_project[$row['project_id']]['lastdate']->getTimestamp()) {
+        $per_project[$row['project_id']]['lastdate'] = $datetime; 
       } 
    }
 
@@ -374,7 +370,11 @@ try {
    $rc = $writer->countSheetRows('Entrées');
    $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', '=AVERAGE(F2:F' . ($rc - 1) . ')', '=SUM(G2:G' . ($rc - 1) . ')'));
 
-   $project_name = date('Y-m-d') . ' - Tous les projets';
+   if (!empty($project_name)) {
+      $project_name = date('Y-m-d') . ' - ' . $project_name;
+   } else {
+      $project_name = date('Y-m-d') . ' - Tous les projets';
+   }
    $writer->setTitle($project_name);
    if (method_exists($writer, 'setHeaderFooter')) {
       if (count($per_project) === 1) {
