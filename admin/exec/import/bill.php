@@ -73,15 +73,16 @@ function add_repartition ($row, $factureID, $fdb, $sameline = false) {
         if ($project) {
             if (!$sameline) {
                 $tva = empty($row[TVA_CELL]) ? 7.7 : floatval($row[TVA_CELL]);
-                $amount = floatval($row[REP_CELL]);
+                $amount = empty($row[REP_CELL]) ? floatval($row[AMOUNT_CELL]) : floatval($row[REP_CELL]);
             } else {
                 $amount = empty($row[REP_CELL]) ? floatval($row[AMOUNT_CELL]) : floatval($row[REP_CELL]);
                 $tva = empty($row[TVA_CELL]) ? 7.7 : floatval($row[TVA_CELL]);
-                $amount = round($amount / (1 + $tva / 100), 4); // calc back tva
             }
             $id = $project[0];
             if (empty($tva)) { $tva = 7.7; }
             if (empty($amount)) { return 1; }
+            
+            $amount = round($amount / (1 + $tva / 100), 4); // calc back tva
             
             $req = 'INSERT INTO "repartition" ("repartition_facture", "repartition_project", "repartition_value", "repartition_tva") VALUES (:fact, :prj, :val, :tva)';
             $stmt = $fdb->prepare($req);
@@ -101,7 +102,7 @@ function add_repartition ($row, $factureID, $fdb, $sameline = false) {
 
 function cmp ($a, $b) {
     if ($a[1] === $b[1]) { return 0; }
-    return ($a[1] < $b[1]) ? -1 : 1;
+    return ($a[1] < $b[1]) ? 1 : -1;
 }
 
 function guess_client ($client, $cdb) {
@@ -287,11 +288,13 @@ $todayInt = $today->format('U');
 $out = [];
 $empty = 0;
 $offset = 0;
+$currentCount = 0;
 foreach (['Créanciers', 'Débiteurs'] as $sheetname) {
     $AS = $SS->getSheetByName($sheetname);
-    $offset = count($out);
+    $offset = $currentCount + 1;
     $type = $sheetname === 'Créanciers' ? 1 : 2;
     for ($i = 10; $i < 5101; $i++) { // max size
+        $currentCount = $i;
         $row = $AS->rangeToArray("A$i:S$i", null, false, false, false)[0];
 
         /* empty ID is add ... if more than three in a row, stop importation we reach the end */
@@ -409,6 +412,12 @@ foreach (['Créanciers', 'Débiteurs'] as $sheetname) {
                     $out[$i + 5101 + $offset] = ['type' => 'facture', 'id' => $id[1], 'op' => 'update', 'success' => true];
                 } catch (Exception $e) {
                     $out[$i + 5101 + $offset] = ['type' => 'facture', 'id' => $id[1], 'op' => 'update', 'success' => false];;
+                }
+            }
+
+            if (!empty($row[PROJECT_CELL])) {
+                if (add_repartition($row, $id[1], $db, true) !== 0){
+                    $out[$i + $offset]['repartition'] = false;
                 }
             }
         } else {
