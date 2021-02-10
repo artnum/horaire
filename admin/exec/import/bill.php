@@ -61,7 +61,7 @@ define('PAY4_CELL', 15);
 
 $FactureIDMap = [];
 
-function add_repartition ($row, $factureID, $fdb) {
+function add_repartition ($row, $factureID, $fdb, $sameline = false) {
     $project = $row[PROJECT_CELL];
 
     $req = 'SELECT "project_id" FROM "project" WHERE "project_reference" LIKE :prj AND "project_deleted" IS NULL';
@@ -70,8 +70,15 @@ function add_repartition ($row, $factureID, $fdb) {
     if($stmt->execute()) {
         $project = $stmt->fetch();
         if ($project) {
-            $tva = floatval($row[AMOUNT_CELL]);
-            $amount = floatval($row[REP_CELL]);
+            if (!$sameline) {
+                $tva = floatval($row[AMOUNT_CELL]);
+                $amount = floatval($row[REP_CELL]);
+            } else {
+                $repcell = explode('/', $row[REP_CELL], 2);
+                $amount = floatval($repcell[0]);
+                $tva = empty($repcell[1]) ? 7.7 : floatval($repcell[1]);
+                $amount = round($amount / (1 + $tva / 100), 4); // calc back tva
+            }
             $id = $project[0];
             if (empty($tva)) { $tva = 7.7; }
             if (empty($amount)) { return 1; }
@@ -291,6 +298,11 @@ for ($i = 10; $i < 5101; $i++) { // max size
             $empty++;
         } else {
             $empty = 0;
+            if (!empty($row[REP_CELL])) {
+                if (add_repartition($row, $out[$i]['id'], $db, true) != 0) {
+                    $out[$i]['repartion'] = false;
+                }
+            }
         }
         if ($empty > 3) { break; }
         continue;
