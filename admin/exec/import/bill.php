@@ -52,12 +52,13 @@ define('CLIENT_CELL', 4);
 define('TERM_CELL', 5);
 define('AMOUNT_CELL', 6);
 define('REP_CELL', 7);
+define('TVA_CELL', 9);
 define('CURRENCY_CELL', 8);
-define('DEL_CELL', 17);
-define('PAY1_CELL', 12);
-define('PAY2_CELL', 13);
-define('PAY3_CELL', 14);
-define('PAY4_CELL', 15);
+define('DEL_CELL', 18);
+define('PAY1_CELL', 13);
+define('PAY2_CELL', 14);
+define('PAY3_CELL', 15);
+define('PAY4_CELL', 16);
 
 $FactureIDMap = [];
 
@@ -71,12 +72,11 @@ function add_repartition ($row, $factureID, $fdb, $sameline = false) {
         $project = $stmt->fetch();
         if ($project) {
             if (!$sameline) {
-                $tva = floatval($row[AMOUNT_CELL]);
+                $tva = empty($row[TVA_CELL]) ? 7.7 : floatval($row[TVA_CELL]);
                 $amount = floatval($row[REP_CELL]);
             } else {
-                $repcell = explode('/', $row[REP_CELL], 2);
-                $amount = floatval($repcell[0]);
-                $tva = empty($repcell[1]) ? 7.7 : floatval($repcell[1]);
+                $amount = empty($row[REP_CELL]) ? floatval($row[AMOUNT_CELL]) : floatval($row[REP_CELL]);
+                $tva = empty($row[TVA_CELL]) ? 7.7 : floatval($row[TVA_CELL]);
                 $amount = round($amount / (1 + $tva / 100), 4); // calc back tva
             }
             $id = $project[0];
@@ -159,7 +159,7 @@ function guess_client ($client, $cdb) {
     return $proximity;
 }
 
-function add_bill ($rowId, $row, $fdb, $cdb) {
+function add_bill ($rowId, $row, $fdb, $cdb, $type) {
     global $FactureIDMap;
     $newId = null;
     $out = ['type' => 'facture', 'id' => $newId, 'op' => 'add', 'success' => false];
@@ -211,7 +211,6 @@ function add_bill ($rowId, $row, $fdb, $cdb) {
     if (!empty($row[AMOUNT_CELL])) {
         $amount = floatval($row[AMOUNT_CELL]);
     }
-    $type = 1; // actually only supporterd
     $ref = $row[REF_CELL];
     $currency = 'CHF';
     switch (strtolower($row[CURRENCY_CELL])) {
@@ -287,165 +286,170 @@ $todayInt = $today->format('U');
 
 $out = [];
 $empty = 0;
-for ($i = 10; $i < 5101; $i++) { // max size
-    $row = $AS->rangeToArray("A$i:R$i", null, false, false, false)[0];
+$offset = 0;
+foreach (['Créanciers', 'Débiteurs'] as $sheetname) {
+    $AS = $SS->getSheetByName($sheetname);
+    $offset = count($out);
+    $type = $sheetname === 'Créanciers' ? 1 : 2;
+    for ($i = 10; $i < 5101; $i++) { // max size
+        $row = $AS->rangeToArray("A$i:S$i", null, false, false, false)[0];
 
-    /* empty ID is add ... if more than three in a row, stop importation we reach the end */
-    if (empty($row[ID_CELL])) { 
-        $out[$i] = add_bill($i, $row, $db, $ldap_db);
-        if (!$out[$i]) {
-            $out[$i] = ['type' => 'none'];
-            $empty++;
-        } else {
-            $empty = 0;
-            if (!empty($row[REP_CELL])) {
-                if (add_repartition($row, $out[$i]['id'], $db, true) != 0) {
-                    $out[$i]['repartion'] = false;
-                }
-            }
-        }
-        if ($empty > 3) { break; }
-        continue;
-    }
-
-    $id = explode(':', $row[ID_CELL]);
-    if (trim($id[0]) === 'F') {
-        // facture
-        $stmt = $db->prepare('SELECT *,COALESCE((SELECT CAST(SUM("paiement_amount") AS FLOAT) FROM "paiement" WHERE "paiement_facture" = "facture_id"),0.0) AS facture_paid FROM facture WHERE facture_id = :id');
-        $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
-        $stmt->execute();
-        $facture = $stmt->fetch();
-        
-        $up = [];
-        $st_up = [];
-        if (empty(trim($row[DEL_CELL]))) {
-            if (intval($facture['facture_deleted']) !== 0) { 
-                $up[] = ['facture_deleted', 0, PDO::PARAM_INT];
-                $st_up[] = 'facture_deleted = :facture_deleted';
-            }
-            if (strval($facture['facture_reference']) !== strval($row[REF_CELL])) {
-                $FactureIDMap[$row[REF_CELL]] = $id[1];
-                $up[] = ['facture_reference', $row[REF_CELL], PDO::PARAM_STR];
-                $st_up[] = 'facture_reference = :facture_reference';
+        /* empty ID is add ... if more than three in a row, stop importation we reach the end */
+        if (empty($row[ID_CELL])) { 
+            $out[$i + $offset] = add_bill($i, $row, $db, $ldap_db, $type);
+            if (!$out[$i + $offset]) {
+                $out[$i + $offset] = ['type' => 'none'];
+                $empty++;
             } else {
-                $FactureIDMap[$facture['facture_reference']] = $id[1];
-            }
-            if ($facture['facture_currency'] !== strtolower($row[CURRENCY_CELL])) {
-                $up[] = ['facture_currency', $row[CURRENCY_CELL], PDO::PARAM_STR];
-                $st_up[] = 'facture_currency = :facture_currency';
-            }
-            if (floatval($facture['facture_amount']) !== floatval($row[AMOUNT_CELL])) {
-                $up[] = ['facture_amount', strval(floatval($row[AMOUNT_CELL])), PDO::PARAM_STR];
-                $st_up[] = 'facture_amount = :facture_amount';
-            }
-            $out[$i] = ['type' => 'facture', 'id' => $id[1], 'op' => 'update', 'success' => false];
-        } else {
-            if (intval($facture['facture_deleted']) === 0) { 
-                $up[] = ['facture_deleted', $todayInt, PDO::PARAM_INT];
-                $st_up[] = 'facture_deleted = :facture_deleted';
-                $out[$i] = ['type' => 'facture', 'id' => $id[1], 'op' => 'delete', 'success' => false];
-            }
-        }
-        $out[$i]['reference'] = empty($row[REF_CELL]) ? $row[CLIENT_CELL] : $row[REF_CELL];
-
-        /* client starts with / when we want to replace current */
-        if (strpos($row[CLIENT_CELL], '/') === 0) {
-            $proximity = guess_client(substr($row[CLIENT_CELL], 1), $ldap_db);
-            if (count($proximity) === 0) {
-                $out[$i]['options'] = ['client' => false, 'proximity' => [], 'original' => substr($row[CLIENT_CELL], 1)];
-                // when not found, we set the textual client as it can be changed later
-                $up[] = ['facture_person', substr($row[CLIENT_CELL], 1), PDO::PARAM_STR];
-                $st_up[] = 'facture_person = :facture_person';
-            } else if (count($proximity) === 1) {
-                reset($proximity);
-                $up[] = ['facture_person', key($proximity), PDO::PARAM_STR];
-                $st_up[] = 'facture_person = :facture_person';
-                $out[$i]['options'] = ['client' => true, 'proximity' => $proximity, 'original' => substr($row[CLIENT_CELL], 1)];
-            } else if (count($proximity) > 1) {
-                $out[$i]['options'] = ['client' => false, 'proximity' => $proximity, 'original' => substr($row[CLIENT_CELL], 1)];
-            }
-        }
-
-        if (!empty($up)) {
-            try {
-                $stmt = $db->prepare('UPDATE facture SET ' . implode(', ', $st_up) . ' WHERE facture_id = :id');
-                foreach ($up as $v) {
-                    $stmt->bindParam(':' . $v[0], $v[1], $v[2]);
-                }
-                $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
-                $out[$i]['success'] = $stmt->execute();
-            } catch(Exception $e) {
-                $out[$i]['success'] = false;
-            }
-        } else {
-            $out[$i] = ['type' => 'none'];
-        }
-
-        $total_paid = 0;
-        foreach ([PAY1_CELL, PAY2_CELL, PAY3_CELL, PAY4_CELL] as $pcell) {
-            $val = trim($row[$pcell]);
-            if (!empty($val)) {
-                if (is_numeric($val)) {
-                    $total_paid += floatval($val);
-                } else {
-                    $total_paid = floatval($facture['facture_amount']) - floatval($facture['facture_paid']);
+                $empty = 0;
+                if ($out[$i + $offset]['type'] === 'facture' && (!empty($row[REP_CELL]) || !empty($row[PROJECT_CELL]))) {
+                    if (add_repartition($row, $out[$i + $offset]['id'], $db, true) != 0) {
+                        $out[$i + $offset]['repartition'] = false;
+                    }
                 }
             }
+            if ($empty > 3) { break; }
+            continue;
         }
-        if ($total_paid > floatval($facture['facture_amount']) - floatval($facture['facture_paid'])) {
-            $total_paid = floatval($facture['facture_amount']) - floatval($facture['facture_paid']);
-        }
-        if ($total_paid > 0) {
-            try {
-                $stmt = $db->prepare('INSERT INTO paiement (paiement_facture, paiement_date, paiement_amount) VALUES (:id, :date, :amount);');
-                $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
-                $stmt->bindParam(':date', $todayStr, PDO::PARAM_STR);
-                $stmt->bindParam(':amount', strval($total_paid), PDO::PARAM_STR);
-                $stmt->execute();
-                $out[$i + 5101] = ['type' => 'facture', 'id' => $id[1], 'op' => 'update', 'success' => true];
-            } catch (Exception $e) {
-                $out[$i + 5101] = ['type' => 'facture', 'id' => $id[1], 'op' => 'update', 'success' => false];;
-            }
-        }
-    } else {
-        try {
-            $stmt = $db->prepare('SELECT * FROM repartition WHERE repartition_id = :id');
+
+        $id = explode(':', $row[ID_CELL]);
+        if (trim($id[0]) === 'F') {
+            // facture
+            $stmt = $db->prepare('SELECT *,COALESCE((SELECT CAST(SUM("paiement_amount") AS FLOAT) FROM "paiement" WHERE "paiement_facture" = "facture_id"),0.0) AS facture_paid FROM facture WHERE facture_id = :id');
             $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
             $stmt->execute();
-            $repartition = $stmt->fetch();
-            if ($repartition) {
-                if (!empty(trim($row[DEL_CELL]))) {
-                    try {
-                        $stmt = $db->prepare('DELETE FROM repartition WHERE repartition_id = :id');
-                        $stmt->bindParam(':id', $id[1], PDO::PARAM_STR);
-                        $stmt->execute();
-                        $out[$i] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'delete', 'success' => true];
-                    } catch (Exception $e) {
-                        $out[$i] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'delete', 'success' => false];
-                    }
+            $facture = $stmt->fetch();
+            
+            $up = [];
+            $st_up = [];
+            if (empty(trim($row[DEL_CELL]))) {
+                if (intval($facture['facture_deleted']) !== 0) { 
+                    $up[] = ['facture_deleted', 0, PDO::PARAM_INT];
+                    $st_up[] = 'facture_deleted = :facture_deleted';
+                }
+                if (strval($facture['facture_reference']) !== strval($row[REF_CELL])) {
+                    $FactureIDMap[$row[REF_CELL]] = $id[1];
+                    $up[] = ['facture_reference', $row[REF_CELL], PDO::PARAM_STR];
+                    $st_up[] = 'facture_reference = :facture_reference';
                 } else {
-                    $amount = floatval($repartition['repartition_value']) + (floatval($repartition['repartition_value']) * floatval($repartition['repartition_tva']) / 100);
-                    if (abs(floatval($row[REP_CELL])- floatval($amount)) >= 0.0000001) {
-                        echo abs(floatval($row[REP_CELL])- floatval($amount)) . '<br>' . "\n";
+                    $FactureIDMap[$facture['facture_reference']] = $id[1];
+                }
+                if ($facture['facture_currency'] !== strtolower($row[CURRENCY_CELL])) {
+                    $up[] = ['facture_currency', $row[CURRENCY_CELL], PDO::PARAM_STR];
+                    $st_up[] = 'facture_currency = :facture_currency';
+                }
+                if (floatval($facture['facture_amount']) !== floatval($row[AMOUNT_CELL])) {
+                    $up[] = ['facture_amount', strval(floatval($row[AMOUNT_CELL])), PDO::PARAM_STR];
+                    $st_up[] = 'facture_amount = :facture_amount';
+                }
+                $out[$i + $offset] = ['type' => 'facture', 'id' => $id[1], 'op' => 'update', 'success' => false];
+            } else {
+                if (intval($facture['facture_deleted']) === 0) { 
+                    $up[] = ['facture_deleted', $todayInt, PDO::PARAM_INT];
+                    $st_up[] = 'facture_deleted = :facture_deleted';
+                    $out[$i + $offset] = ['type' => 'facture', 'id' => $id[1], 'op' => 'delete', 'success' => false];
+                }
+            }
+            $out[$i + $offset]['reference'] = empty($row[REF_CELL]) ? $row[CLIENT_CELL] : $row[REF_CELL];
+
+            /* client starts with / when we want to replace current */
+            if (strpos($row[CLIENT_CELL], '/') === 0) {
+                $proximity = guess_client(substr($row[CLIENT_CELL], 1), $ldap_db);
+                if (count($proximity) === 0) {
+                    $out[$i + $offset]['options'] = ['client' => false, 'proximity' => [], 'original' => substr($row[CLIENT_CELL], 1)];
+                    // when not found, we set the textual client as it can be changed later
+                    $up[] = ['facture_person', substr($row[CLIENT_CELL], 1), PDO::PARAM_STR];
+                    $st_up[] = 'facture_person = :facture_person';
+                } else if (count($proximity) === 1) {
+                    reset($proximity);
+                    $up[] = ['facture_person', key($proximity), PDO::PARAM_STR];
+                    $st_up[] = 'facture_person = :facture_person';
+                    $out[$i + $offset]['options'] = ['client' => true, 'proximity' => $proximity, 'original' => substr($row[CLIENT_CELL], 1)];
+                } else if (count($proximity) > 1) {
+                    $out[$i + $offset]['options'] = ['client' => false, 'proximity' => $proximity, 'original' => substr($row[CLIENT_CELL], 1)];
+                }
+            }
+
+            if (!empty($up)) {
+                try {
+                    $stmt = $db->prepare('UPDATE facture SET ' . implode(', ', $st_up) . ' WHERE facture_id = :id');
+                    foreach ($up as $v) {
+                        $stmt->bindParam(':' . $v[0], $v[1], $v[2]);
+                    }
+                    $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
+                    $out[$i + $offset]['success'] = $stmt->execute();
+                } catch(Exception $e) {
+                    $out[$i + $offset]['success'] = false;
+                }
+            } else {
+                $out[$i + $offset] = ['type' => 'none'];
+            }
+
+            $total_paid = 0;
+            foreach ([PAY1_CELL, PAY2_CELL, PAY3_CELL, PAY4_CELL] as $pcell) {
+                $val = trim($row[$pcell]);
+                if (!empty($val)) {
+                    if (is_numeric($val)) {
+                        $total_paid += floatval($val);
+                    } else {
+                        $total_paid = floatval($facture['facture_amount']) - floatval($facture['facture_paid']);
+                    }
+                }
+            }
+            if ($total_paid > floatval($facture['facture_amount']) - floatval($facture['facture_paid'])) {
+                $total_paid = floatval($facture['facture_amount']) - floatval($facture['facture_paid']);
+            }
+            if ($total_paid > 0) {
+                try {
+                    $stmt = $db->prepare('INSERT INTO paiement (paiement_facture, paiement_date, paiement_amount) VALUES (:id, :date, :amount);');
+                    $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
+                    $stmt->bindParam(':date', $todayStr, PDO::PARAM_STR);
+                    $stmt->bindParam(':amount', strval($total_paid), PDO::PARAM_STR);
+                    $stmt->execute();
+                    $out[$i + 5101 + $offset] = ['type' => 'facture', 'id' => $id[1], 'op' => 'update', 'success' => true];
+                } catch (Exception $e) {
+                    $out[$i + 5101 + $offset] = ['type' => 'facture', 'id' => $id[1], 'op' => 'update', 'success' => false];;
+                }
+            }
+        } else {
+            try {
+                $stmt = $db->prepare('SELECT * FROM repartition WHERE repartition_id = :id');
+                $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
+                $stmt->execute();
+                $repartition = $stmt->fetch();
+                if ($repartition) {
+                    if (!empty(trim($row[DEL_CELL]))) {
                         try {
-                            /* stored in db without tva so calculate amount without tva  */
-                            $amount = floatval($row[REP_CELL])  / (1 + $repartition['repartition_tva'] / 100);
-                            $stmt = $db->prepare('UPDATE repartition SET repartition_value = :amount WHERE repartition_id = :id');
-                            $stmt->bindParam(':amount', strval($amount), PDO::PARAM_STR);
-                            $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
+                            $stmt = $db->prepare('DELETE FROM repartition WHERE repartition_id = :id');
+                            $stmt->bindParam(':id', $id[1], PDO::PARAM_STR);
                             $stmt->execute();
-                            $out[$i] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'update', 'success' => true];
+                            $out[$i + $offset] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'delete', 'success' => true];
                         } catch (Exception $e) {
-                            $out[$i] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'update', 'success' => false];
+                            $out[$i + $offset] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'delete', 'success' => false];
+                        }
+                    } else {
+                        $amount = floatval($repartition['repartition_value']) + (floatval($repartition['repartition_value']) * floatval($repartition['repartition_tva']) / 100);
+                        if (abs(floatval($row[REP_CELL])- floatval($amount)) >= 0.0000001) {
+                            echo abs(floatval($row[REP_CELL])- floatval($amount)) . '<br>' . "\n";
+                            try {
+                                /* stored in db without tva so calculate amount without tva  */
+                                $amount = floatval($row[REP_CELL])  / (1 + $repartition['repartition_tva'] / 100);
+                                $stmt = $db->prepare('UPDATE repartition SET repartition_value = :amount WHERE repartition_id = :id');
+                                $stmt->bindParam(':amount', strval($amount), PDO::PARAM_STR);
+                                $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
+                                $stmt->execute();
+                                $out[$i + $offset] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'update', 'success' => true];
+                            } catch (Exception $e) {
+                                $out[$i + $offset] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'update', 'success' => false];
+                            }
                         }
                     }
                 }
+            } catch (Exception $e) {
+                $out[$i + $offset] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'select', 'success' => false];
             }
-        } catch (Exception $e) {
-            $out[$i] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'select', 'success' => false];
         }
     }
 }
-
 echo json_encode($out);
 ?>
