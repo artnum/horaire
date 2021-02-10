@@ -437,19 +437,35 @@ foreach (['Créanciers', 'Débiteurs'] as $sheetname) {
                             $out[$i + $offset] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'delete', 'success' => false];
                         }
                     } else {
-                        $amount = floatval($repartition['repartition_value']) + (floatval($repartition['repartition_value']) * floatval($repartition['repartition_tva']) / 100);
-                        if (abs(floatval($row[REP_CELL])- floatval($amount)) >= 0.0000001) {
-                            echo abs(floatval($row[REP_CELL])- floatval($amount)) . '<br>' . "\n";
+                        if (abs(floatval($row[TVA_CELL]) - floatval($repartition['repartition_tva'])) >= 0.001) {
                             try {
-                                /* stored in db without tva so calculate amount without tva  */
-                                $amount = floatval($row[REP_CELL])  / (1 + $repartition['repartition_tva'] / 100);
-                                $stmt = $db->prepare('UPDATE repartition SET repartition_value = :amount WHERE repartition_id = :id');
-                                $stmt->bindParam(':amount', strval($amount), PDO::PARAM_STR);
+                                /* tva update amount for obvious reason */                                
+                                $tva = floatval($row[TVA_CELL]);
+                                $amount =  floatval($row[REP_CELL]) / (1 + ($tva / 100));
+                                $stmt = $db->prepare('UPDATE repartition SET repartition_tva = :tva, repartition_value = :amount WHERE repartition_id = :id');
+                                $stmt->bindParam(':tva', strval($tva), PDO::PARAM_STR);
                                 $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
+                                $stmt->bindParam(':amount', strval($amount), PDO::PARAM_STR);
                                 $stmt->execute();
                                 $out[$i + $offset] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'update', 'success' => true];
                             } catch (Exception $e) {
                                 $out[$i + $offset] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'update', 'success' => false];
+                            }
+                        } else {
+                            /* update amount with old tva */
+                            $oldamount = floatval($repartition['repartition_value']) + (floatval($repartition['repartition_value']) * floatval($repartition['repartition_tva']) / 100);
+                            if (abs(floatval($row[REP_CELL]) - floatval($oldamount)) >= 0.0000001) {
+                                try {
+                                    $amount = floatval($row[REP_CELL]) / (1 + (floatval($repartition['repartition_tva']) / 100));
+                                    /* stored in db without tva so calculate amount without tva  */
+                                    $stmt = $db->prepare('UPDATE repartition SET repartition_value = :amount WHERE repartition_id = :id');
+                                    $stmt->bindParam(':amount', strval($amount), PDO::PARAM_STR);
+                                    $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
+                                    $stmt->execute();
+                                    $out[$i + $offset] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'update', 'success' => true];
+                                } catch (Exception $e) {
+                                    $out[$i + $offset] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'update', 'success' => false];
+                                }
                             }
                         }
                     }
