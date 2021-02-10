@@ -21,9 +21,18 @@ class ProjectModel extends artnum\SQL {
      */
     $exist = $this->listing(['search' => ['reference' => $arg['reference']]]);
     if ($exist->getCount() > 0) {
-      $result = new artnum\JStore\Result();
-      $result->addError('Reference exists');
-      return $result;
+      if ($arg['id']) {
+          $item = $exist->getItem(0);
+          if (intval($item['id']) !== intval($arg['id'])) {
+            $result = new artnum\JStore\Result();
+            $result->addError('Reference exists');
+            return $result;
+          }
+      } else {
+        $result = new artnum\JStore\Result();
+        $result->addError('Reference exists');
+        return $result;
+      }
     }
     
     $hook_succeed = false;
