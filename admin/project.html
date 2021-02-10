@@ -48,6 +48,7 @@
 <script src="js/admin.js"></script>
 <script src="js/string.js"></script>
 <script src="js/store/user.js"></script>
+<script src="js/addr.js" type="module"></script>
 <script type="module">
   import { Address } from './js/address.js'
   const address = new Address(document.getElementById('client'))
@@ -428,9 +429,21 @@ async function evCancelEdit (event) {
       <label for="name">Nom : </label><input name="name" type="text" value="${project.name}"/><br>
       <label for="price">Prix de vente HT : </label><input name="price" type="text" value="${project.price}"/>
       <label for="price">Chef de projet : </label><input name="manager" type="text" value="${project.manager === null ? '' : project.manager}"/><br>
+      <fieldset name="address"><legend>Adresse</legend></fieldset>
       <button type="submit">Sauver</button><button type="reset">Annuler</button>
      </form>`, `Projet ${project.reference} - ${project.name}`)
      let form = popup.getElementsByTagName('FORM')[0]
+     let fs = form.getElementsByTagName('FIELDSET')
+     let addr
+     for (let i = 0; i < fs.length; i++) {
+      if (fs[i].getAttribute('name') === 'address') {
+        addr = new window.Addr(fs[i])
+        break
+      }
+     }
+
+     addr.
+
      let managerSelect = new Select(popup.querySelector('input[name="manager"]'), new UserStore(`${KAAL.getBase()}/Person`, 128), {realSelect: true, allowFreeText: false})
      form.addEventListener('reset', (event) => {
        let p = event.target
