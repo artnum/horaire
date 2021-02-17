@@ -53,6 +53,7 @@ define('TERM_CELL', 5);
 define('AMOUNT_CELL', 6);
 define('REP_CELL', 7);
 define('TVA_CELL', 9);
+define('RAPP_CELL', 10);
 define('CURRENCY_CELL', 8);
 define('DEL_CELL', 18);
 define('PAY1_CELL', 13);
@@ -271,6 +272,40 @@ function add_bill ($rowId, $row, $fdb, $cdb, $type) {
     return $out;
 }
 
+function add_rappel ($factureId, $rappelCount, $factureDb) {
+    $now = (new DateTime())->format('c');
+    if (empty($rappelCount) && !($rappelCount === 0)) { return false; }
+    if (!is_numeric($rappelCount)) { return false; }
+    if (intval($rappelCount) < 0) { return false;}
+    try {
+        $stmt = $factureDb->prepare('SELECT COUNT("rappel_id") AS "rappels" FROM "rappel" WHERE "rappel_facture" = :facture');
+        $stmt->bindParam(':facture', $factureId, PDO::PARAM_INT);
+        $stmt->execute();
+        $rappel = $stmt->fetch();
+
+        $factureDb->beginTransaction();
+        if (intval($rappel['rappels']) < intval($rappelCount)) {
+            for ($i = intval($rappel['rappels']); $i < intval($rappelCount); $i++) {
+                $stmt = $factureDb->prepare('INSERT INTO "rappel" ("rappel_facture", "rappel_date") VALUES (:facture, :today)');
+                $stmt->bindParam(':facture', $factureId, PDO::PARAM_INT);
+                $stmt->bindParam(':today', $now, PDO::PARAM_STR);
+                $stmt->execute();
+            }
+        } else if(intval($rappel['rappels']) > intval($rappelCount)) {
+            $delta = intval($rappel['rappels']) - intval($rappelCount);
+            $stmt = $factureDb->prepare('DELETE FROM "rappel" WHERE "rappel_facture" = :facture LIMIT :delta');
+            $stmt->bindParam(':facture', $factureId, PDO::PARAM_INT);
+            $stmt->bindParam(':delta', $delta, PDO::PARAM_INT);
+            $stmt->execute();
+        }
+        $factureDb->commit();
+        return true;
+    } catch (Exception $e) {
+        $factureDb->rollback();
+        return false;
+    }
+}
+
 $ldap_db = new artnum\LDAPDB(
    $ldapServers,
    !empty($ini_conf['addressbook']['base']) ? $ini_conf['addressbook']['base'] : NULL
@@ -305,6 +340,7 @@ foreach (['Créanciers', 'Débiteurs'] as $sheetname) {
                 $empty++;
             } else {
                 $empty = 0;
+                add_rappel($out[$i + $offset]['id'], $row[RAPP_CELL], $db);
                 if ($out[$i + $offset]['type'] === 'facture' && (!empty($row[REP_CELL]) || !empty($row[PROJECT_CELL]))) {
                     if (add_repartition($row, $out[$i + $offset]['id'], $db, true) != 0) {
                         $out[$i + $offset]['repartition'] = false;
@@ -370,6 +406,9 @@ foreach (['Créanciers', 'Débiteurs'] as $sheetname) {
                     $out[$i + $offset]['options'] = ['client' => true, 'proximity' => $proximity, 'original' => substr($row[CLIENT_CELL], 1)];
                 } else if (count($proximity) > 1) {
                     $out[$i + $offset]['options'] = ['client' => false, 'proximity' => $proximity, 'original' => substr($row[CLIENT_CELL], 1)];
+                    /* add raw value. if user select in the returned list, it will replace this one  */
+                    $up[] = ['facture_person', substr($row[CLIENT_CELL], 1), PDO::PARAM_STR];
+                    $st_up[] = 'facture_person = :facture_person';
                 }
             }
 
@@ -420,6 +459,7 @@ foreach (['Créanciers', 'Débiteurs'] as $sheetname) {
                     $out[$i + $offset]['repartition'] = false;
                 }
             }
+            add_rappel($id[1], $row[RAPP_CELL], $db);
         } else {
             try {
                 $stmt = $db->prepare('SELECT * FROM repartition WHERE repartition_id = :id');

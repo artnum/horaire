@@ -129,6 +129,7 @@
         KAAL.error('Erreur d\'envoi du fichier')
       } else {
         response.json().then(result => {
+            resDiv.innerHTML = '<div>Importation effectuée ...</div>'
             for (let i in result) {
               let op = result[i]
               if (op.type === 'none') { continue; } // nothing done
@@ -151,6 +152,7 @@
                       if (op.options.proximity.length <= 0) {
                         d.innerHTML += ` ${op.success ? 'ok' : 'échec'}, aucun client trouvé pour "${op.options.original}"`
                       } else {
+                        d.dataset.addMe = true
                         d.innerHTML += ` ${op.success ? 'ok' : 'échec'}, choisir client pour "${op.options.original}"`
                         let ul = document.createElement('ul')
                         ul.dataset.id = op.id
@@ -161,7 +163,7 @@
                           li.innerHTML = `<a href="#">${e[0]}</a>`
                           li.dataset.id = k
                           ul.appendChild(li)
-                          if (i === 9) {
+                          if (i === 10) {
                             let li = document.createElement('LI')
                             li.innerHTML = ' ... plus .... '
                             ul.appendChild(li)
@@ -195,7 +197,7 @@
                               })
                             })
                           }
-                          if (i > 9) { 
+                          if (i > 10) { 
                             li.classList.add('more')
                           }
                           i++
@@ -210,7 +212,9 @@
                   d.innerHTML = `Répartition ${opname} ${op.success ? 'ok' : op.msg} `
                   break
               }
-              resDiv.appendChild(d)
+              if (d.dataset.addMe) {
+                 resDiv.appendChild(d)
+              }
             }
         })
       }
@@ -580,7 +584,8 @@
     {
       html: '<button type="button">Ajout rappel</button>',
       events: [
-        {name: 'click', callback: (event, dtable) => addRappelSimple(event.target.dataset.id, dtable)}
+        //{name: 'click', callback: (event, dtable) => addRappelSimple(event.target.dataset.id, dtable)}
+        {name: 'click', callback: (event, dtable) => {}}
       ]
     },
     {
