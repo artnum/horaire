@@ -56,13 +56,19 @@ foreach(['Créanciers', 'Débiteurs'] as $sheetname) {
     $overDue = $now->diff($dateDue);
     
 
-    $rappelStmt = $db->prepare('SELECT * FROM facture WHERE facture_id IN (SELECT factureLien_source FROM factureLien WHERE factureLien_destination =:fid AND factureLien_type > 1) AND facture_deleted = 0');
+    /*$rappelStmt = $db->prepare('SELECT * FROM facture WHERE facture_id IN (SELECT factureLien_source FROM factureLien WHERE factureLien_destination =:fid AND factureLien_type > 1) AND facture_deleted = 0');
     $rappelStmt->bindParam(':fid', $row['facture_id'], \PDO::PARAM_INT);
     $rappelStmt->execute();
     $rappel = 0;
     while ($rappelStmt->fetch() !== FALSE) {
-      $rappel++;
-    }
+      $rappel++;<
+    }*/
+    
+    $rappelStmt = $db->prepare('SELECT COUNT("rappel_id") AS "rappels" FROM "rappel" WHERE "rappel_facture" = :facture');
+    $rappelStmt->bindParam(':facture', $row['facture_id'], PDO::PARAM_INT);
+    $rappelStmt->execute();
+    $rrappel = $rappelStmt->fetch();
+    $rappel = $rrappel['rappels'];
 
     $xlsSheet->setCellValue("A$xlsRow", 'F:' . $row['facture_id']);
     $xlsSheet->setCellValue("B$xlsRow", $dateBill);
@@ -104,7 +110,19 @@ foreach(['Créanciers', 'Débiteurs'] as $sheetname) {
 
     $xlsSheet->setCellValue("I$xlsRow", strtoupper($row['facture_currency']));
     $xlsSheet->setCellValue("K$xlsRow", intval($rappel));
-
+    $fill = $xlsSheet->getStyle("K$xlsRow")->getFill();
+    if (intval($rappel) === 1) {
+      $fill->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID); 
+      $fill->getStartColor()->setARGB('FFFCFF50');
+    }
+    if (intval($rappel) === 2) {
+      $fill->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID); 
+      $fill->getStartColor()->setARGB('FFFF9A4D');
+    }
+    if (intval($rappel) > 2) {
+      $fill->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID); 
+      $fill->getStartColor()->setARGB('FFFF4D4D');
+    }
     $xlsSheet->setCellValue("L$xlsRow", intval($overDue->format('%r%a')));
 
     $xlsRow++;
@@ -128,16 +146,18 @@ foreach(['Créanciers', 'Débiteurs'] as $sheetname) {
 
       $xlsSheet->setCellValue("I$xlsRow", strtoupper($row['facture_currency']));
       $xlsSheet->setCellValue("J$xlsRow", floatval($repRow['repartition_tva']));
-      $xlsSheet->setCellValue("K$xlsRow", intval($rappel));
+      $xlsSheet->setCellValue("K$xlsRow", '');
       $xlsSheet->setCellValue("L$xlsRow", intval($overDue->format('%r%a')));
       $xlsRow++;
     }
   }
 }
+
+$SS->setActiveSheetIndexByName('Créanciers');
 $SSWriter = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($SS, 'Xlsx');
 $SSWriter->setPreCalculateFormulas(false);
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-header('Content-Disposition: attachment;filename="GD-' . $now->format('c') . '.xlsx"');
+header('Content-Disposition: attachment;filename="GF-' . $now->format('c') . '.xlsx"');
 header('Cache-Control: max-age=0');
 $SSWriter->save('php://output');
 ?>

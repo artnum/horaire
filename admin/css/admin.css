@@ -396,3 +396,16 @@ fieldset.half {
     min-width: 48%;
     float: left;
 }
+
+.popup.import {
+    min-height: 520px;
+    max-height: 520px;
+    min-width: 360px;
+    max-width: 360px;
+
+}
+.popup.import > div {
+    overflow-y: scroll;
+    min-height: 480px;;
+    max-height: 480px;;
+}
