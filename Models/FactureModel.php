@@ -1,7 +1,8 @@
 <?PHP
    class FactureModel extends artnum\SQL {
       function __construct($db, $config) {
-         parent::__construct($db, 'facture', 'facture_id', $config);
+        $this->kconfig = $config;
+         parent::__construct($db, 'facture', 'facture_id', []);
          $this->conf('auto-increment', true);
          $this->conf('force-type', ['amount' => 'str']);
          $this->set_req('get', 'SELECT 

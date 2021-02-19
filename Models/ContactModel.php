@@ -1,13 +1,34 @@
 <?PHP
 class ContactModel extends artnum\LDAP {
   function __construct($db, $config)  {
-    parent::__construct($db, null, array('objectclass', 'givenname', 'sn', 'displayname', 'mail', 'telephonenumber', 'o', 'mobile', 'l', 'postalcode', 'c', 'postaladdress', 'uid'), $config);
+    $this->kconf = $config;
+    parent::__construct($db, $this->kconf->get('trees.contacts'), array('objectclass', 'givenname', 'sn', 'displayname', 'mail', 'telephonenumber', 'o', 'mobile', 'l', 'postalcode', 'c', 'postaladdress', 'uid'), []);
     $this->conf('rdnAttr', 'uid');
+    $this->conf('objectclass', function (&$entry) {
+      $defaultClass = [
+        'inetOrgPerson',
+        'iroAdditionalUserInfo',
+        'contactPerson'
+      ];
+      if (!empty($entry['type'])) {
+        if ($entry['type'] !== 'person') {
+          $defaultClass = [
+            'organization',
+            'iroOrganizationExtended',
+            'contactPerson'
+          ];
+        }
+        unset ($entry['type']);
+      }
+      return $defaultClass;
+    });
   }
 
   function processEntry($conn, $ldapEntry, &$result) {
     $entry = parent::processEntry($conn, $ldapEntry, $result);
-
+    if (!is_array($entry['objectclass'])) {
+      $entry['objectclass'] = [$entry['objectclass']];
+    }
     $oc = array_map('strtolower', $entry['objectclass']);
     unset($entry['objectclass']);
     if (in_array('inetorgperson', $oc)) {

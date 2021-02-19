@@ -1,7 +1,8 @@
 <?PHP
    class HtimeModel extends artnum\SQL {
       function __construct($db, $config) {
-         parent::__construct($db, 'htime', 'htime_id', $config);
+         $this->kconf = $config;
+         parent::__construct($db, 'htime', 'htime_id', []);
          $this->conf('auto-increment', true);
          $this->conf('mtime', 'htime_modified');
          $this->conf('mtime.ts', true);

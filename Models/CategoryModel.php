@@ -1,7 +1,8 @@
 <?PHP
    class CategoryModel extends artnum\SQL {
       function __construct($db, $config) {
-         parent::__construct($db, 'category', 'category_id', $config);
+         $this->kconf = $config;
+         parent::__construct($db, 'category', 'category_id', []);
          $this->conf('auto-increment', true);
          $this->conf('create', 'category_created');
          $this->conf('create.ts', true);

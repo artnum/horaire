@@ -1,7 +1,8 @@
 <?PHP
 class ProcessModel extends artnum\SQL {
    function __construct($db, $config) {
-      parent::__construct($db, 'process', 'process_id', $config);
+      $this->kconf = $config;
+      parent::__construct($db, 'process', 'process_id', []);
       $this->conf('auto-increment', true);
       $this->conf('create', 'process_created');
       $this->conf('create.ts', true);

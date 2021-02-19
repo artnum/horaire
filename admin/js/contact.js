@@ -320,10 +320,23 @@ export class SContactStore {
     return this.a.href
   }
 
+  update (id, content) {
+    return new Promise((resolve, reject) => {
+      let parts = id.split('/', 2)
+      if (parts.length === 2) { id = parts[1] }
+      let url = new URL(`${this.url}/${id}`)
+      KAAL.fetch(url, {method: 'HEAD'}).then(response => {
+        if (!response.ok) { resolve(false); return }
+        KAAL.fetch(url, {method: 'PUT', body: JSON.stringify(content)})
+      })
+    })
+  }
+
   get (id) {
     return new Promise((resolve, reject) => {
       let parts = id.split('/', 2)
-      let url = new URL(`${this.url}/${parts[1]}`)
+      if (parts.length === 2) { id = parts[1] }
+      let url = new URL(`${this.url}/${id}`)
       KAAL.fetch(url, KAAL.fetchOpts).then(response => {
         if (!response.ok) { resolve(null); return }
         response.json().then(json => {

@@ -3,7 +3,8 @@
 
 class ProjectModel extends artnum\SQL {
   function __construct($db, $config) {
-    parent::__construct($db, 'project', 'project_id', $config);
+    $this->kconf = $config;
+    parent::__construct($db, 'project', 'project_id', []);
     $this->conf('auto-increment', true);
     $this->conf('datetime', array('project_closed', 'project_opened', 'project_targetEnd'));
     $this->conf('create', 'project_created');

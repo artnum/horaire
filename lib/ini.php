@@ -19,6 +19,24 @@ $defaultConf = array(
   )
 );
 
+class KConf {
+  protected $IniValue;
+  function __construct($ini) {
+    $this->IniValue = $ini;
+  }
+
+  function get($path) {
+    if (empty($path)) { return null; }
+    $frags = explode('.', $path);
+    $value = $this->IniValue;
+    for ($attr = array_shift($frags); $attr; $attr = array_shift($frags)) {
+      if (!isset($value[$attr]) || empty($value[$attr])) { return NULL; }
+      $value = $value[$attr];
+    }
+    return $value;
+  }
+}
+
 function load_ini_configuration() {
   global $defaultConf;
   if (($ini_file = getenv('KAAL_CONFIGURATION_FILE')) === FALSE ||

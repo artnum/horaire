@@ -4,7 +4,8 @@
 class EntityModel extends artnum\SQL
 {
    function __construct($db, $config) {
-      parent::__construct($db, 'atEntity', 'atEntity_id', $config);
+      $this->kconf = $config;
+      parent::__construct($db, 'atEntity', 'atEntity_id', []);
    }
 }
 

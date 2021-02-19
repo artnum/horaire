@@ -4,6 +4,7 @@ require('lib/ini.php');
 require('lib/dbs.php');
 
 $ini_conf = load_ini_configuration();
+$KConf = new KConf($ini_conf);
 
 $r = new artnum\Random();
 if (!file_exists(getcwd() .'/db/random-seed.txt')) {
@@ -36,7 +37,7 @@ foreach($abServers as $server) {
   if (!empty($ini_conf[$s]) && !empty($ini_conf[$s]['uri'])) {
     $ldapServers[] = array(
       'uri' => $ini_conf[$s]['uri'],
-      'ro' => !empty($ini_conf[$s]['read-only']) ? boolval($ini_conf[$s]['read-only']) : true,
+      'ro' => isset($ini_conf[$s]['read-only']) ? boolval($ini_conf[$s]['read-only']) : true,
       'dn' => !empty($ini_conf[$s]['username']) ? $ini_conf[$s]['username'] : NULL,
       'password' => !empty($ini_conf[$s]['password']) ? $ini_conf[$s]['password'] : NULL
     );
@@ -54,5 +55,5 @@ $ldap_db = new artnum\LDAPDB(
 );
 $store->add_db('ldap', $ldap_db);
 
-$store->run();
+$store->run($KConf);
 ?>

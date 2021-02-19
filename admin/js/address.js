@@ -1,16 +1,17 @@
 import { SContactStore, SAddrList, FContact } from './contact.js'
 
-const HtmlForm = `<label for="c:person"><input disabled type="radio" value="person" name="type" name="c:person" checked /> Personne</label>
-<label for="c:organization"><input disabled type="radio" value="organization" name="type" name="c:organization" /> Organisation</label><br />
+const HtmlForm = `<label for="c:person"><input type="radio" value="person" name="type" name="c:person" checked /> Personne</label>
+<label for="c:organization"><input type="radio" value="organization" name="type" name="c:organization" /> Organisation</label><br />
 <label for="c:displayname">Nom à afficher</label><input type="text" name="c:displayname" /><span class="notice">Nom servant à identifier l'adresse sans en avoir les détails sous les yeux</span><br />
-<label for="c:sn">Nom</label><input disabled type="text" name="c:sn" /><label for="c:givenname">Prénom</label><input disabled type="text" name="c:givenname" /><br />
-<label for="c:o">Organisation</label><input disabled type="text" name="c:o"><br />
-<label for="c:postaladdress">Addresse</label><textarea disabled name="c:postaladdress"></textarea><br />
-<label for="c:postalcode">Code postal</label><input disabled type="text" name="c:postalcode">
-<label for="c:l">Localité</label><input type="text" disabled name="c:l"><br />
-<label for="c:telephonenumber">Téléphone</label><input disabled type="text" name="c:telephonenumber"><span class="addMore"></span><br />
-<label for="c:mobile">Mobile</label><input type="text" disabled name="c:mobile"><span class="addMore"></span><br />
-<label for="c:mail">E-mail</label><input type="text" disabled name="c:mail"><span class="addMore"></span><br />`
+<label for="c:sn">Nom</label><input type="text" name="c:sn" /><label for="c:givenname">Prénom</label><input type="text" name="c:givenname" /><br />
+<label for="c:o">Organisation</label><input type="text" name="c:o"><br />
+<label for="c:postaladdress">Addresse</label><textarea name="c:postaladdress"></textarea><br />
+<label for="c:postalcode">Code postal</label><input type="text" name="c:postalcode">
+<label for="c:l">Localité</label><input type="text" name="c:l"><br />
+<label for="c:telephonenumber">Téléphone</label><input type="text" name="c:telephonenumber"><span class="addMore"></span><br />
+<label for="c:mobile">Mobile</label><input type="text" name="c:mobile"><span class="addMore"></span><br />
+<label for="c:mail">E-mail</label><input type="text" name="c:mail"><span class="addMore"></span><br />
+<button type="button" name="save">Enregistrer</button><button type="button" name="reset">Annuler</button><br />`
 
 export class Address {
     constructor(node, options = { displayName: 'c:displayname', contactStore: '../Contact/' }) {
@@ -21,14 +22,51 @@ export class Address {
         }
     }
 
+    reset () {
+        let nodes = [...this.domNode.getElementsByTagName('INPUT'), ...this.domNode.getElementsByTagName('TEXTAREA')]
+        for (let i = 0; i < nodes.length; i++) {
+            if (nodes[i].value !== undefined) { nodes[i].value = '' }
+            window.requestAnimationFrame(() => {
+                nodes[i].classList.remove('modified')
+            })
+        }
+        delete this.domNode.dataset.id
+    }
+
+    save () {
+        let body = {}
+        let nodes = [...this.domNode.getElementsByTagName('INPUT'), ...this.domNode.getElementsByTagName('TEXTAREA')]
+        for (let i = 0; i < nodes.length; i++) {
+            if (nodes[i].value === undefined) { continue }
+            if (nodes[i].dataset.value === undefined) { nodes[i].dataset.value = '' }
+            if (nodes[i].dataset.value !== nodes[i].value) {
+                let name = nodes[i].getAttribute('name')
+                if (name.indexOf('c:') === 0) {
+                    name = name.split(':', 2)[1]
+                    body[name] = nodes[i].value
+                }
+            }
+        }
+        console.log(body)
+    }
+
+
     placeAt(node) {
         this.domNode = node
         let place = new Promise((resolve, reject) => {
             window.requestAnimationFrame(() => { node.innerHTML += HtmlForm; resolve() })
         })
         place.then(() => {
+            let buttons = this.domNode.getElementsByTagName('BUTTON')
+            console.log(buttons);
+            for (let i = 0; i < buttons.length; i++) {
+                switch(buttons[i].getAttribute('name')) {
+                    case 'save': buttons[i].addEventListener('click', event => { this.save() }); break
+                    case 'reset': buttons[i].addEventListener('click', event => { this.reset() }) ; break
+                }
+            }
             let nodes = this.domNode.getElementsByTagName('INPUT')
-            for (let i in nodes) {
+            for (let i = 0; i < nodes.length; i++) {
                 if (nodes[i].getAttribute('name') === this.options.displayName) {
                     this.displayName = nodes[i]
                     break
