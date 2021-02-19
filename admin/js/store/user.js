@@ -4,7 +4,6 @@ function UserStore(base, minLevel = 256) {
 }
 
 UserStore.prototype.get = function (id) {
-    console.log(id)
     return new Promise((resolve, reject) => {
         let entry = {label: '', value: ''}
         let url = new URL(`${this.base}/${id}`)

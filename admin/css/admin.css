@@ -238,9 +238,8 @@ tr.sub[data-open="1"] {
     background-color: var(--background-color);
     color: var(--text-color);
     position: fixed;
-    left: 50%;
-    top: 50%;
-    transform: translateY(-50%) translateX(-50%);
+    max-width: 80%;
+    max-height: 80%;
 }
 
 body.AdminPopupModal {

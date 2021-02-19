@@ -113,4 +113,20 @@ export class Address {
                 this.SAddr.showList(list)
             })
     }
+
+    setAddressId (id) {
+        if (id) {
+            this.contactStore.get(id).then(json => {
+                if (json) {
+                    let c = new FContact(this.domNode, 'c')
+                    c.clear()
+                    c.apply(json)
+                }
+            })
+        }
+    }
+
+    update () {
+        this.SAddr.popper.update()
+    }
 }

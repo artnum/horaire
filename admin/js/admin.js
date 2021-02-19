@@ -348,6 +348,7 @@
       popup.insertBefore(titleNode, popup.firstChild)
       let content = document.createElement('DIV')
       content.innerHTML = html
+      content.setAttribute('name', 'popup-content')
       if (options.classes && Array.isArray(options.classes)) {
         options.classes.forEach(c => {
           content.classList.add(c)
@@ -373,7 +374,34 @@
 
       window.requestAnimationFrame(() => {
         document.body.appendChild(popup)
+        let rect = popup.getBoundingClientRect()
+        let w = window.innerWidth || document.body.clientWidth
+        let h = window.innerHeight || document.body.clientHeight
+        popup.style.left = `${Math.round((w - rect.width) / 2)}px`
+        popup.style.top = `${Math.round((h - rect.height) / 2)}px`
       })
+      const rObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+          let node = entry.target
+          new Promise((resolve, _) => {
+            window.requestAnimationFrame(() => {
+              let rect = node.getBoundingClientRect()
+              let w = window.innerWidth || document.body.clientWidth
+              let h = window.innerHeight || document.body.clientHeight
+              node.style.left = `${Math.round((w - rect.width) / 2)}px`
+              node.style.top = `${Math.round((h - rect.height) / 2)}px`
+              resolve()
+            })
+          }).then(() => {
+            for (let n = node.firstElementChild; n; n = n.nextElementSibling) {
+              if (n.getAttribute('name') === 'popup-content') { break }
+            }
+            n.dispatchEvent(new CustomEvent('resize', {}))
+          })
+        }
+      })
+      rObserver.observe(popup)
+
       return content
     },
     parseDuration: function (text, to = 's') {

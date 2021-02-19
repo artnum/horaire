@@ -435,25 +435,40 @@ async function evCancelEdit (event) {
      let form = popup.getElementsByTagName('FORM')[0]
      let fs = form.getElementsByTagName('FIELDSET')
      let addr
+     let fieldset
      for (let i = 0; i < fs.length; i++) {
       if (fs[i].getAttribute('name') === 'address') {
+        fieldset = fs[i]
         addr = new window.Addr(fs[i])
         break
       }
      }
-
-     addr.
-
+     addr.setAddressId(project.client)
+     popup.addEventListener('resize', () => {
+      addr.update()
+     })
+     
      let managerSelect = new Select(popup.querySelector('input[name="manager"]'), new UserStore(`${KAAL.getBase()}/Person`, 128), {realSelect: true, allowFreeText: false})
      form.addEventListener('reset', (event) => {
        let p = event.target
        while (p && !p.classList.contains('popup')) { p = p.parentNode }
        p.dispatchEvent(new CustomEvent('close'))
      })
+     
      form.addEventListener('submit', (event) => {
        event.preventDefault()
        let content = window.Admin.getForm(event.target)
-       Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`), {method: 'PUT', body: {id: content.project, name: content.name, reference: content.reference, price: content.price, manager: managerSelect.value}}).then((result) => {
+       let body = {
+            id: content.project,
+            name: content.name,
+            reference: content.reference,
+            price: content.price,
+            manager: managerSelect.value
+       }
+       if (fieldset.dataset.id) {
+         body.client = `Contact/${fieldset.dataset.id}`
+       }
+       Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`), {method: 'PUT', body: body}).then((result) => {
          if (result.success) {
            Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`)).then((result) => {
              if (result.success) {

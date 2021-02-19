@@ -41,7 +41,7 @@ export class SAddrList {
     window.requestAnimationFrame(
       () => this.reference.parentNode.insertBefore(this.domNode, this.reference.nextElementSibling)
     )
-    this.popper = createPopper(this.reference, this.domNode, {placement: 'bottom-start'})
+    this.popper = createPopper(this.reference, this.domNode, {placement: 'bottom-start', strategy: 'fixed'})
     this.domNode.addEventListener('click', this.handleEvents.bind(this))
     this.eventTarget = new EventTarget()
   }
@@ -320,6 +320,23 @@ export class SContactStore {
     return this.a.href
   }
 
+  get (id) {
+    return new Promise((resolve, reject) => {
+      let parts = id.split('/', 2)
+      let url = new URL(`${this.url}/${parts[1]}`)
+      KAAL.fetch(url, KAAL.fetchOpts).then(response => {
+        if (!response.ok) { resolve(null); return }
+        response.json().then(json => {
+          if (json.length <= 0) { resolve(null); return }
+          if (Array.isArray(json.data)) {
+            json.data = json.data[0]
+          }
+          resolve(json.data)
+        }, _ => resolve(null))
+      })
+    })
+  }
+  
   search (term, params = {}) {
     const searchOn = ['o', 'sn', 'givenname']
     return new Promise((resolve, reject) => {

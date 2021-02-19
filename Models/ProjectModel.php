@@ -36,7 +36,7 @@ class ProjectModel extends artnum\SQL {
     }
     
     $hook_succeed = false;
-    if (!$this->conf('hook-path')) {
+    if (!$this->conf('hook-path') || $id !== NULL) {
       $hook_succeed = true;
     } else {
       if(is_executable($this->conf('hook-path') . '/project-write')) {
