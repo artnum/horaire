@@ -393,7 +393,8 @@
               resolve()
             })
           }).then(() => {
-            for (let n = node.firstElementChild; n; n = n.nextElementSibling) {
+            let n = node.firstElementChild
+            for (; n; n = n.nextElementSibling) {
               if (n.getAttribute('name') === 'popup-content') { break }
             }
             n.dispatchEvent(new CustomEvent('resize', {}))
