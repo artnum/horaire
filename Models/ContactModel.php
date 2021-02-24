@@ -2,7 +2,7 @@
 class ContactModel extends artnum\LDAP {
   function __construct($db, $config)  {
     $this->kconf = $config;
-    parent::__construct($db, $this->kconf->get('trees.contacts'), array('objectclass', 'givenname', 'sn', 'displayname', 'mail', 'telephonenumber', 'o', 'mobile', 'l', 'postalcode', 'c', 'postaladdress', 'uid'), []);
+    parent::__construct($db, $this->kconf->get('trees.contacts'), ['objectclass', 'givenname', 'sn', 'displayname', 'mail', 'telephonenumber', 'o', 'mobile', 'l', 'postalcode', 'c', 'postaladdress', 'uid'], []);
     $this->conf('rdnAttr', 'uid');
     $this->conf('objectclass', function (&$entry) {
       $defaultClass = [
@@ -60,7 +60,7 @@ class ContactModel extends artnum\LDAP {
     if (!empty($entry['postalcode'])) { $locality[] = $entry['postalcode']; }
     if (!empty($entry['l'])) { $locality[] = $entry['l']; }
     $entry['locality'] = join(' ', $locality);
-    
+
     return $entry;
   }
 }

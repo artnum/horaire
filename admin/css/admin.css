@@ -94,6 +94,17 @@ input[type=submit], input[type=button], input[type=reset], button {
     font-weight: bold;
 }
 
+input[type=submit]:hover, input[type=button]:hover, input[type=reset]:hover, button:hover {
+    background-color: rgba(200, 200, 200, 0.3) !important;
+    border-color: black !important;
+}
+
+input[type=submit]:active, input[type=button]:active, input[type=reset]:active, button:active {
+    background-color: black !important;
+    color: white !important;
+    border-color: gray !important;
+}
+
 label {
     display: inline-block;
     min-width: 18ch;

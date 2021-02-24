@@ -140,6 +140,7 @@ export class FContact {
     if (node === null) { node = this.node }
 
     for (node = node.firstElementChild; node; node = node.nextElementSibling) {
+      if (node.dataset.cloned) { continue; }
       if (node.children.length > 0) {
         yield * this.getNodes(node)
       }
@@ -190,15 +191,8 @@ export class FContact {
       this.node.dataset.id = contact.IDent
     }
 
-    const gNode = this.setType(contact.type)
+    const gNode = this.getNodes(this.node)
     for (let node = gNode.next().value; node; node = gNode.next().value) {
-      if (attrs.indexOf(node.name) === -1 && Object.keys(ContactAttributes).indexOf(node.name) === -1) {
-        window.requestAnimationFrame(() => { node.dom.style.display = 'none' })
-      } else {
-        if (node.dom.style.display === 'none') {
-          window.requestAnimationFrame(() => { node.dom.style.display = '' })
-        }
-      }
       node.dom.classList.remove('modified')
       if (contact[node.name]) {
         switch (node.dom.nodeName) {
@@ -206,14 +200,38 @@ export class FContact {
             switch (node.dom.type.toLowerCase()) {
               case 'text':
                 if (Array.isArray(contact[node.name])) {
+                  let currentNode = node.dom
                   for (let i = 0; i < contact[node.name].length; i++) {
-                    if (i === node.count) {
-                      node.dom.value = contact[node.name][i]
-                      node.dom.dataset.value = contact[node.name][i]
-                      if (node.dom.id !== `${node.name}[${node.count}]`) {
-                        node.dom.id = `${node.name}[${node.count}]`
-                      }
+                    currentNode.value = contact[node.name][i]
+                    currentNode.dataset.value = contact[node.name][i]
+                    if (!currentNode.nextElementSibling) {
+                      let newNode = currentNode.cloneNode()
+                      newNode.value = ''
+                      newNode.dataset.value = ''
+                      newNode.dataset.cloned = true
+                      currentNode.parentNode.appendChild(newNode)
+                      currentNode = newNode
+                      continue
+                    } 
+                    if (currentNode.nextElementSibling.nodeName !== 'INPUT') {
+                      let newNode = currentNode.cloneNode()
+                      newNode.value = ''
+                      newNode.dataset.value = ''
+                      newNode.dataset.cloned = true
+                      currentNode.parentNode.insertBefore(newNode, currentNode.nextElementSibling)
+                      currentNode = newNode
+                      continue
                     }
+                    if (currentNode.nextElementSibling.getAttribute('name') !== currentNode.getAttribute('name')) {
+                      let newNode = currentNode.cloneNode()
+                      newNode.value = ''
+                      newNode.dataset.value = ''
+                      newNode.dataset.cloned = true
+                      currentNode.parentNode.insertBefore(newNode, currentNode.nextElementSibling)
+                      currentNode = newNode
+                      continue
+                    }
+                    currentNode = currentNode.nextElementSibling
                   }
                 } else {
                   if (node.count === 0) {
@@ -222,6 +240,17 @@ export class FContact {
                   }
                 }
                 break
+              case 'radio':
+              case 'checkbox':
+                if (node.name === 'type') {
+                  node.dom.disabled = true
+                }
+                node.dom.dataset.value = contact[node.name]
+                if (node.dom.value === contact[node.name]) {
+                  node.dom.checked = true
+                } else {
+                  node.dom.checked = false
+                }
             }
             break
           case 'TEXTAREA':
@@ -229,21 +258,7 @@ export class FContact {
             node.dom.dataset.value = node.dom.value
             break
         }
-      } else if (node.dom.name && contact[node.dom.name]) {
-        if (
-          node.dom.nodeName === 'INPUT' &&
-            (
-              node.dom.type === 'radio' ||
-              node.dom.type === 'checkbox'
-            )
-        ) {
-          if (contact[node.dom.name] === node.dom.value) {
-            node.dom.checked = true
-          } else {
-            node.dom.checked = false
-          }
-        }
-      }
+      } 
     }
   }
 
@@ -327,7 +342,36 @@ export class SContactStore {
       let url = new URL(`${this.url}/${id}`)
       KAAL.fetch(url, {method: 'HEAD'}).then(response => {
         if (!response.ok) { resolve(false); return }
-        KAAL.fetch(url, {method: 'PUT', body: JSON.stringify(content)})
+        KAAL.fetch(url, {method: 'PUT', body: JSON.stringify(content)}).then(response => {
+          if (!response.ok) { resolve(false); return }
+          response.json().then(result => {
+            if (result.length === 1) {
+              if (result.data[0].success) {
+                resolve(true)
+                return
+              }
+            }
+            resolve(false)
+          })
+        })
+      })
+    })
+  }
+
+  create (content) {
+    return new Promise((resolve, reject) => {
+      let url = new URL(`${this.url}/`)
+      KAAL.fetch(url, {method: 'POST', body: JSON.stringify(content)}).then(response => {
+        if (!response.ok) { resolve(null); return; }
+        response.json().then(result => {
+          if (result.length === 1) {
+            if (result.data[0].success) {
+              resolve(result.data[0].IDent)
+              return
+            }
+          }
+          resolve(null)
+        })
       })
     })
   }

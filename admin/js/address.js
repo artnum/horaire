@@ -1,8 +1,8 @@
 import { SContactStore, SAddrList, FContact } from './contact.js'
 
-const HtmlForm = `<label for="c:person"><input type="radio" value="person" name="type" name="c:person" checked /> Personne</label>
-<label for="c:organization"><input type="radio" value="organization" name="type" name="c:organization" /> Organisation</label><br />
-<label for="c:displayname">Nom à afficher</label><input type="text" name="c:displayname" /><span class="notice">Nom servant à identifier l'adresse sans en avoir les détails sous les yeux</span><br />
+const HtmlForm = `<label><input type="radio" value="person" name="c:type" checked /> Personne</label>
+<label><input type="radio" value="organization" name="c:type" /> Organisation</label><br />
+<label for="c:displayname">Nom à afficher</label><input type="text" name="c:displayname" /><br />
 <label for="c:sn">Nom</label><input type="text" name="c:sn" /><label for="c:givenname">Prénom</label><input type="text" name="c:givenname" /><br />
 <label for="c:o">Organisation</label><input type="text" name="c:o"><br />
 <label for="c:postaladdress">Addresse</label><textarea name="c:postaladdress"></textarea><br />
@@ -25,29 +25,117 @@ export class Address {
     reset () {
         let nodes = [...this.domNode.getElementsByTagName('INPUT'), ...this.domNode.getElementsByTagName('TEXTAREA')]
         for (let i = 0; i < nodes.length; i++) {
-            if (nodes[i].value !== undefined) { nodes[i].value = '' }
-            window.requestAnimationFrame(() => {
-                nodes[i].classList.remove('modified')
-            })
+            let type = nodes[i].getAttribute('type')
+            if (nodes[i].dataset.cloned) { nodes[i].parentNode.removeChild(nodes[i]); continue }
+            if (type) { type = type.toLowerCase() }
+            if (nodes[i].disabled !== undefined) { nodes[i].disabled = false }
+            switch(type) {
+                case 'radio':
+                case 'checkbox':
+                    nodes[i].dataset.value = ''
+                    break
+                default:
+                    if (nodes[i].value !== undefined) { nodes[i].value = '' }
+                    delete nodes[i].dataset.value
+                    window.requestAnimationFrame(() => {
+                        nodes[i].classList.remove('modified')
+                    })
+                    break
+            }
         }
         delete this.domNode.dataset.id
     }
 
     save () {
-        let body = {}
+        let cntBodyElement = {}
+        let bodyOrig = {}
+        let bodyCurr = {}
         let nodes = [...this.domNode.getElementsByTagName('INPUT'), ...this.domNode.getElementsByTagName('TEXTAREA')]
         for (let i = 0; i < nodes.length; i++) {
-            if (nodes[i].value === undefined) { continue }
-            if (nodes[i].dataset.value === undefined) { nodes[i].dataset.value = '' }
-            if (nodes[i].dataset.value !== nodes[i].value) {
-                let name = nodes[i].getAttribute('name')
-                if (name.indexOf('c:') === 0) {
-                    name = name.split(':', 2)[1]
-                    body[name] = nodes[i].value
+            let name = nodes[i].getAttribute('name')
+            if (name === undefined) { continue }
+            if (name.indexOf('c:') !== 0) { continue }
+            name = name.split(':', 2)[1]
+            if (cntBodyElement[name] === undefined) {
+                cntBodyElement[name] = 0
+            }
+            switch(nodes[i].getAttribute('type')) {
+                case 'radio':
+                    if (nodes[i].checked) {
+                        if (nodes[i].value !== nodes[i].dataset.value) {
+                            bodyCurr[name] = nodes[i].value
+                            bodyOrig[name] = nodes[i].dataset.value                        }
+                    }
+                    break
+                default:
+                    if (nodes[i].value === undefined) { continue }
+                    if (nodes[i].dataset.value === undefined) { nodes[i].dataset.value = '' }
+
+                    if (cntBodyElement[name] === 0) {
+                        bodyCurr[name] = nodes[i].value
+                        bodyOrig[name] = nodes[i].dataset.value
+                    } else if (cntBodyElement[name] === 1) {
+                        bodyCurr[name] = [bodyCurr[name], nodes[i].value]
+                        bodyOrig[name] = [bodyOrig[name], nodes[i].dataset.value]
+                    } else {
+                        bodyCurr[name].push(nodes[i].value)
+                        bodyOrig[name].push(nodes[i].dataset.value)
+                    }
+                    cntBodyElement[name]++
+                    break
+            }
+                    
+        }
+        let mod = {}
+        for (let k in bodyOrig) {
+            if (Array.isArray(bodyOrig[k])) {
+                for (let i = 0; i < bodyOrig[k].length; i++) {
+                    if (bodyOrig[k][i] !== bodyCurr[k][i]) {
+                        mod[k] =bodyCurr[k]
+                        break
+                    }
+                }
+            } else {
+                if (bodyCurr[k] !== bodyOrig[k]) {
+                    mod[k] = bodyCurr[k]
                 }
             }
         }
-        console.log(body)
+
+        for(let k in mod) {
+            if (Array.isArray(mod[k])) {
+                let out = []
+                for (let i = 0; i < mod[k].length; i++) {
+                    if (mod[k][i] !== '') {
+                        out.push(mod[k][i])
+                    }
+                }
+                mod[k] = out
+            } else {
+                if (mod[k] === '') {
+                    delete mod[k]
+                    mod[`-${k}`] = '1'
+                }
+            }
+        }
+
+        if (this.domNode.dataset.id) {
+            mod['IDent'] = this.domNode.dataset.id
+            this.contactStore.update(this.domNode.dataset.id, mod).then(success => {
+                if (success) {
+                    this.setAddressId(mod['IDent'])
+                }
+            })
+        } else {
+            if (mod.type === 'person' && !mod.cn) {
+                mod.cn = mod.displayname
+            }
+            this.contactStore.create(mod).then(id => {
+                if (id) {
+                    this.setAddressId(id)
+                }
+            })
+        }       
     }
 
 
@@ -58,7 +146,6 @@ export class Address {
         })
         place.then(() => {
             let buttons = this.domNode.getElementsByTagName('BUTTON')
-            console.log(buttons);
             for (let i = 0; i < buttons.length; i++) {
                 switch(buttons[i].getAttribute('name')) {
                     case 'save': buttons[i].addEventListener('click', event => { this.save() }); break
@@ -134,13 +221,6 @@ export class Address {
             const node = previous.cloneNode(true)
             node.value = ''
             node.dataset.value = ''
-            let id = /^([0-9a-zA-Z.:-_,;+]*)\[([0-9]+)\]$/.exec(node.id)
-            if (id) {
-                node.id = `${id[1]}[${parseInt(id[2]) + 1}]`
-            } else {
-                node.id = `${previous.id}[1]`
-                previous.id = `${previous.id}[0]`
-            }
             previous.parentNode.insertBefore(node, previous.nextSibling)
         }
     }
@@ -155,6 +235,7 @@ export class Address {
     setAddressId (id) {
         if (id) {
             this.contactStore.get(id).then(json => {
+                this.reset()
                 if (json) {
                     let c = new FContact(this.domNode, 'c')
                     c.clear()
