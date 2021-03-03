@@ -81,7 +81,7 @@
   <label><input type="radio" onchange="factureUnpaid()" checked="checked"  name="state"> Ouverte</label>
   <label><input type="radio" onchange="facturePaid()" name="state"> Payée</label>
   <label><input type="radio" onchange="factureAll()" name="state"> Toute</label>
-  <table id="facture" data-source="Facture" data-options="{}" data-entry-id="id">
+  <!---<table id="facture" data-source="Facture" data-options="{}" data-entry-id="id">
     <thead class="darkbg"><tr>
       <th data-attribute="indate:date">Date d'entrée</th>
       <th data-attribute="date:date">Date de facture</th>
@@ -98,7 +98,7 @@
     </tr></thead>
     <tbody>
     </tbody>
-  </table>
+  </table>//-->
 </body>
 <script src="../conf/kaal.js"></script>
 <script src="js/kaal.js"></script>
@@ -595,7 +595,7 @@
       ]
     }
   ]
-  const facture = new Artnum.DTable({table: document.getElementById('facture'), actions: actions})
+  /*const facture = new Artnum.DTable({table: document.getElementById('facture'), actions: actions})
   facture.transliterate = transliterate
 
   facture.postprocess = (tr) => {
@@ -633,7 +633,7 @@
   }
 
   factureUnpaid()
-  factureCre()
+  factureCre()*/
 
   function linkTo () {
     Admin.fetchPopup('html_frag/linkbill.html', 'Lier facture', { closable: true, minWidth: '40%' }).then(popup => {
