@@ -141,7 +141,7 @@ function makeEntry (entry) {
     tr.setAttribute('data-state', 'deleted')
   }
   var hour = new Hour(parseInt(entry.value))
-  var innerhtml = `<td data-value="${entry.day}" data-sort-value="${entry.day}">${(new Date(entry.day)).fullDate()}
+  var innerhtml = `<td name="date" data-value="${entry.day}" data-sort-value="${entry.day}">${(new Date(entry.day)).fullDate()}
     </td><td name="hour" data-value="${hour.format()}">${hour.format()}
     </td><td name="comment" data-value="${(entry.comment ? entry.comment : '')}">
    ${(entry.comment ? entry.comment : '')}
@@ -218,6 +218,38 @@ function editEntry (event) {
    let body = {id: line.dataset.id, value: 0, comment: '', project: 0, process: 0}
    for (let td = line.firstElementChild; td; td = td.nextElementSibling) {
      switch (td.getAttribute('name')) {
+       case 'date':
+         if (save) {
+           let x = Date.EUParse(td.getElementsByTagName('INPUT')[0].value)
+           body.day = x.dateStamp()
+         } else {
+           let i = document.createElement('INPUT')
+           i.setAttribute('type', 'text')
+           i.addEventListener('keyup', (event) => {
+             switch (event.key) {
+               case 'Enter':
+               case 'Escape':
+                 return
+               default:
+                 let h = document.createElement('SPAN')
+                 h.innerHTML = (Date.EUParse(event.target.value)).fullDate()
+                 if (event.target.parentNode.lastChild === event.target) {
+                   event.target.parentNode.appendChild(h)
+                 } else {
+                   event.target.parentNode.replaceChild(h, event.target.parentNode.lastChild)
+                 }
+             }
+           })
+           i.value = new Date((td.dataset.value)).fullDate()
+           let h = document.createElement('SPAN')
+           h.innerHTML = (Date.EUParse(i.value)).fullDate()
+           window.requestAnimationFrame(() => {
+             td.innerHTML = ''
+             td.appendChild(i)
+             td.appendChild(h)
+           })
+         }
+         break
        case 'hour':
          if (save) {
            let x = new Hour (td.getElementsByTagName('INPUT')[0].value)

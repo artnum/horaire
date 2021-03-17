@@ -358,11 +358,11 @@ td[name] input {
     width: calc(100% - 28px);
 }
 
-td[name="hour"] input {
+td[name="hour"] input, td[name="date"] input {
     max-width: 50%;
 }
 
-td[name="hour"] span {
+td[name="hour"] span, td[name="date"] span {
     font-family: monospace;
 }
 
