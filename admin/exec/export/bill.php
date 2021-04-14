@@ -47,7 +47,12 @@ $ldap = $ldap_db->_con();
 foreach(['Créanciers', 'Débiteurs'] as $sheetname) {
   $xlsRow = 10;
   $xlsSheet = $SS->getSheetByName($sheetname);
-  $stmt = $db->prepare('SELECT *,COALESCE((SELECT CAST(SUM("paiement_amount") AS FLOAT) FROM "paiement" WHERE "paiement_facture" = "facture_id"),0.0) AS facture_paid FROM facture WHERE  facture_paid < "facture_amount" AND facture_deleted = 0 AND facture_type = ' . ($sheetname === 'Créanciers' ? 1 : 2));
+  $stmt;
+  if (isset($_GET['paid'])) {
+    $stmt = $db->prepare('SELECT *,COALESCE((SELECT CAST(SUM("paiement_amount") AS FLOAT) FROM "paiement" WHERE "paiement_facture" = "facture_id"),0.0) AS facture_paid FROM facture WHERE  facture_paid >= "facture_amount" AND facture_deleted = 0 AND facture_type = ' . ($sheetname === 'Créanciers' ? 1 : 2));
+  } else {
+    $stmt = $db->prepare('SELECT *,COALESCE((SELECT CAST(SUM("paiement_amount") AS FLOAT) FROM "paiement" WHERE "paiement_facture" = "facture_id"),0.0) AS facture_paid FROM facture WHERE  facture_paid < "facture_amount" AND facture_deleted = 0 AND facture_type = ' . ($sheetname === 'Créanciers' ? 1 : 2));
+  }
   $stmt->execute();
   while(($row = $stmt->fetch(\PDO::FETCH_ASSOC))!==FALSE) {   
     $dateBill = new DateTime($row['facture_date']);

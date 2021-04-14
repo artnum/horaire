@@ -73,6 +73,7 @@
   <h2>Factures enregistrées</h2>
   <div style="font-weight: bold; font-size: 16pt;"><a href="exec/export/bill.php" target="_blank">Exportation pour paiment</a></div>
   <div><form method="POST" onsubmit="doImport(event)" action="exec/import/bill.php" enctype="multipart/form-data"><input type="file" name="gfimport"><input type="submit" value="Reimportation"></form></div>
+  <div style="font-weight: bold; font-size: 16pt;"><a href="exec/export/bill.php?paid=1" target="_blank">Exportation facture payée</a></div>
   <br>
   <label><input type="radio" onchange="factureCre()" checked="checked"  name="type"> Créancier</label>
   <label><input type="radio" onchange="factureDeb()" name="type"> Débiteur</label>
