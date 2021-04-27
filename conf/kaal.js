@@ -39,5 +39,9 @@ window.KAAL = {
             }
         }
         return fetch(url, options)
+    },
+    ked: {
+        api: 'http://localhost/keditor/web/',
+        key: null, // not yet implemented
     }
 }

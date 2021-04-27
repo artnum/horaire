@@ -49,6 +49,7 @@
 <script src="js/string.js"></script>
 <script src="js/store/user.js"></script>
 <script src="js/addr.js" type="module"></script>
+<script src="js/ked.js"></script>
 <script type="module">
   import { Address } from './js/address.js'
   const address = new Address(document.getElementById('client'))
@@ -310,6 +311,8 @@ function changeState (event) {
       let pId = result.data[0].id
       Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`)).then(function (result) {
         if (result.success && result.length === 1) {
+          const ked = new KED()
+          ked.createProject(result.data.id, result.data.reference)
           newEntry(result.data).then((tr) => {
             replaceAddEntry(tr, pId)
             newTravailPopup({project: pId, first: true})
