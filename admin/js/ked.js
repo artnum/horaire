@@ -73,7 +73,7 @@ KED.prototype.packet = function () {
     return p
 }
 
-KED.prototype.createProject = function (id, reference) {
+KED.prototype.createProject = function (id, reference, related) {
     if (this.uri === null) { return }
     const packet = this.packet()
     
@@ -81,7 +81,7 @@ KED.prototype.createProject = function (id, reference) {
         .op('create-tag')
         .path('')
         .name(reference)
-        .set('related', ['Projet'])
+        .set('related', [related])
         .send()
         .then(response => {
             console.log(response)

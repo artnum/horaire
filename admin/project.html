@@ -312,7 +312,11 @@ function changeState (event) {
       Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`)).then(function (result) {
         if (result.success && result.length === 1) {
           const ked = new KED()
-          ked.createProject(result.data.id, result.data.reference)
+          let related = 'Projet'
+          if (String(result.data.reference).substring(0,1).toLowerCase() === 'r') {
+            related = 'Régie'
+          }
+          ked.createProject(result.data.id, result.data.reference, related)
           newEntry(result.data).then((tr) => {
             replaceAddEntry(tr, pId)
             newTravailPopup({project: pId, first: true})
