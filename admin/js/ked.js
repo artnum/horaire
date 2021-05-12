@@ -45,6 +45,11 @@ KEDPacket.prototype.name = function (value) {
     return this
 }
 
+KEDPacket.prototype.set = function (name, value) {
+    this.packet.set(name, value)
+    return this
+}
+
 KEDPacket.prototype.send = function () {
     return new Promise((resolve, reject) => {
         if (!this.uri) { reject('uri not set'); return }
@@ -73,10 +78,10 @@ KED.prototype.createProject = function (id, reference) {
     const packet = this.packet()
     
     packet
-        .op('create-document')
+        .op('create-tag')
         .path('')
         .name(reference)
-        .details('id', id)
+        .set('related', ['Projet'])
         .send()
         .then(response => {
             console.log(response)
