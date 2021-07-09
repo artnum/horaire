@@ -254,12 +254,21 @@ try {
    $factureAmount = 0;
    $amountByType = [0, 0, 0, 0];
    
-   $SheetFacture['header'] = ['N° de facture' => 'string', 'Date' => 'date', 'Personne/société' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string' ];
+   $SheetFacture['header'] = ['N° de facture' => 'string', 'Date' => 'date', 'Personne/société' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string', 'Paiement' => 'date' ];
    $repSt = $db->prepare('SELECT * FROM "repartition" LEFT JOIN "facture" ON "facture_id" = "repartition_facture" WHERE "repartition_project" = :id AND "facture_deleted" = 0');
    $repSt->bindValue(':id', $row['project_id'], PDO::PARAM_INT);
    if ($repSt->execute()) {
       $line = 1;
       while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
+         $paydate = null;
+         $paiementSt = $db->prepare('SELECT MAX(paiement_date) as "paiement_date" FROM paiement WHERE paiement_facture = :facture_id');
+         $paiementSt->bindValue(':facture_id', $repData['facture_id'], PDO::PARAM_INT);
+         if ($paiementSt->execute()) {
+            $paiementData = $paiementSt->fetch(PDO::FETCH_ASSOC);
+            if ($paiementData) {
+               $paydate = new DateTime($paiementData['paiement_date']);
+            }
+         }
          $reference = strval($repData['facture_reference']);
          $amount_ht = 0;
          $tva = 7.7;
@@ -319,7 +328,7 @@ try {
 
          $factureAmount += $amount_ht;
          $amountByType[intval($repData['facture_type'])-1] += abs($amount_ht);
-         $SheetFacture['content'][] = [$reference, $date->format('Y-m-d'), $repData['facture_person'], $amount_ht, $tva, '=D'.($line+1). '+(D' . ($line+1) . '*E' . ($line+1) .'%)' , $type];
+         $SheetFacture['content'][] = [$reference, $date->format('Y-m-d'), $repData['facture_person'], $amount_ht, $tva, '=D'.($line+1). '+(D' . ($line+1) . '*E' . ($line+1) .'%)' , $type, $paydate ? $paydate->format('Y-m-d') : ''];
 
          $line++;
       }
@@ -351,9 +360,7 @@ try {
    $writer->writeSheetRow('Résumé', ['Résultat [%]', '', '', floatval($project['price']) === 0.0 ? -1.0 : (($project['price'] - $total) / $project['price'])], null, ['string', 'string', 'string', '0.00 %;[RED]-0.00%']);
    $writer->writeSheetRow('Résumé', ['']);
    $writer->writeSheetRow('Résumé', ['Débiteurs HT', '', '', $amountByType[1]], null, ['string', 'string', 'string', 'price']);
-
-
-   
+ 
    $writer->writeSheetHeader('Par processus', $SheetProcessus['header'], ['widths'=>[25,10, 10]]);
    foreach($SheetProcessus['content'] as $row) {  
       $writer->writeSheetRow('Par processus', $row);
