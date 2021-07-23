@@ -59,7 +59,7 @@ try {
   $per_process = array();
   $per_person = array();
   /* Entrées */
-  $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process' => 'string', 'Jour' => 'datetime', 'Temps [h]' => '0.00', 'Temps noté [h]' => '0.00', 'Personne' => 'string'), array('widths'=>[25, 25, 25, 25, 25, 25]));
+  $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process' => 'string', 'Description' => 'string', 'Jour' => 'datetime', 'Temps [h]' => '0.00', 'Temps noté [h]' => '0.00', 'Personne' => 'string'), array('widths'=>[25, 25, 25, 25, 25, 25]));
 
   foreach ($values as $row) {
     if (is_null($person)) {
@@ -78,7 +78,7 @@ try {
     } else {
       $value = $row['htime_value'];
     }
-    $writer->writeSheetRow('Entrées', array($row['project_reference'], $row['project_name'], $row['process_name'], $date, $value / 3600, $row['htime_value'] / 3600, $row['person_name']));
+    $writer->writeSheetRow('Entrées', array($row['project_reference'], $row['project_name'], $row['process_name'], $row['htime_comment'] , $date, $value / 3600, $row['htime_value'] / 3600, $row['person_name']));
     
     $per_process[$row['process_name']] += $value;
     $per_person[$row['person_name']] += $value;
@@ -86,7 +86,7 @@ try {
   
   $writer->writeSheetRow('Entrées', array('', '', ''));
   $rc = $writer->countSheetRows('Entrées');
-  $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', ''));
+  $writer->writeSheetRow('Entrées', array('Total', '', '','', '', '=SUM(F2:F' . ($rc - 1) . ')', ''));
   
   /* Par processus */
    $writer->writeSheetHeader('Par processus', array('Process' => 'string', 'Temps [h]' => '0.00'), array('widths'=>[25,10]));
