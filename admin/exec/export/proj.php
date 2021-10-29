@@ -123,8 +123,35 @@ try {
             }
 
          }
+
+         $ldap = $ldap_db->_con();
+         $res = @ldap_read($ldap, attrLessUrl2db($row['project_client'], $ldap_db->getBase()), '(objectclass=*)', ['displayname', 'givenname', 'sn', 'o']);
+         if ($res) {
+            $entries = ldap_get_entries($ldap, $res);
+            if ($entries['count'] > 0) {
+               $entry = $entries[0];
+               
+               if (!isset($entry['displayname'])) { $entry['displayname'] = ['count' => 0]; }
+               if (!isset($entry['o'])) { $entry['o'] = ['count' => 0]; }
+               if (!isset($entry['sn'])) { $entry['sn'] = ['count' => 0]; }
+               if (!isset($entry['givenname'])) { $entry['givenname'] = ['count' => 0]; }
+
+               if ($entry['displayname']['count'] > 0) {
+                  $row['project_client'] = trim($entry['displayname'][0]);
+               } else if ($entry['o']['count'] > 0) {
+                  $row['project_client'] = trim($entry['o'][0]);
+               } else if ($entry['givenname']['count'] > 0 || $entry['sn']['count'] > 0) {
+                  $name = $entry['givenname']['count'] > 0 ? $entry['givenname'][0] : '';
+                  $name .= $name !== '' ? ' ' : '';
+                  $name .= $entry['sn']['count'] > 0 ? $entry['sn'][0] : '';
+                  $row['project_client'] = trim($name);
+               }
+            }
+         }
+
          $per_project[$row['project_id']] = array(
-            'reference' => $row['project_reference'], 
+            'reference' => $row['project_reference'],
+            'client' => $row['project_client'],
             'name' => $row['project_name'], 
             'price' => $row['project_price'], 
             'firstdate' => null, 
@@ -237,7 +264,8 @@ try {
   
    $writer->writeSheetHeader('Par projet', [
       'Reference' => 'string', 
-      'Nom' => 'string', 
+      'Nom' => 'string',
+      'Client' => 'string',
       'Chef projet' => 'string',
       'Heure [h]' => '0.00', 
       'Travail' => 'price',
@@ -280,6 +308,7 @@ try {
       $writer->writeSheetRow('Par projet', [
          $project['reference'], 
          $project['name'],
+         $project['client'],
          $project['manager'],
          $project['time'] / 3600,
          $project['workcost'],
