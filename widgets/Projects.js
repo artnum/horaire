@@ -77,10 +77,11 @@ define([
             case 1:
               Query.exec(Path.url(`Travail/${id}`)).then((result) => {
                 if (!result.success || result.length === 0) { resolve(null); return }
-                let travail = result.data
+                let travail = Array.isArray(result.data) ? result.data[0] : result.data
                 if (travail.closed !== '0') { resolve(null) }
                 Query.exec(Path.url(`Project/${travail.project}`)).then((result) => {
                   if (!result.success || result.length === 0) { resolve(null); return }
+                  result.data = Array.isArray(result.data) ? result.data[0] : result.data
                   if (result.data.deleted || result.data.closed) { resolve(null); return }
                   resolve({travail: travail.id, project: result.data.id})
                 })
@@ -89,7 +90,7 @@ define([
             case 2:
               Query.exec(Path.url(`Project/${id}`)).then((result) => {
                 if (!result.success || result.length === 0) { resolve(null); return }
-                let project = result.data
+                let project = Array.isArray(result.data) ? result.data[0] : result.data
                 if (project.deleted || project.closed) { resolve(null); return }
                 resolve({travail: null, project: project.id})
               })

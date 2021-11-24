@@ -91,7 +91,7 @@ function addProject (event) {
       if (result.success && result.length === 1) {
         Artnum.Query.exec(Artnum.Path.url('Process/' + result.data[0].id)).then(function (result) {
           if (result.success && result.length === 1) {
-            replaceAddEntry(newEntry(result.data))
+            replaceAddEntry(newEntry(Array.isArray(result.data) ? result.data[0] : result.data))
           }
         })
       }
@@ -197,7 +197,7 @@ async function evEditLine (event) {
         if (res.success && res.length === 1) {
           res = await Artnum.Query.exec(Artnum.Path.url(dataSource + '/' + res.data[0].id))
           if (res.success && res.length === 1) {
-            replaceAddEntry(newEntry(res.data))
+            replaceAddEntry(newEntry(Array.isArray(res.data) ? res.data[0] : res.data))
           }
         }
       }

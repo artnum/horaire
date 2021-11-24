@@ -334,7 +334,7 @@ function editEntry (event) {
            if (result.success && result.length) {
              let table = event.target
              for (; table && table.nodeName !== 'TABLE'; table = table.parentNode) ;
-             Admin.insertEntry(makeEntry(result.data[0] || result.data), table)
+             Admin.insertEntry(makeEntry(Array.isArray(result.data) ? result.data[0] : result.data), table)
            }
          })
        }
@@ -418,7 +418,7 @@ function addTime (event) {
             }
             var tbody = table;
             for (tbody = table.firstChild; tbody.nodeName !== 'TBODY'; tbody = tbody.nextSibling);
-            tbody.appendChild(makeEntry2(result.data))
+            tbody.appendChild(makeEntry2(Array.isArray(result.data) ? result.data[0] : result.data))
           }
         })
       }

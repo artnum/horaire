@@ -62,7 +62,7 @@
    return new Promise((resolve, reject) => {
      Artnum.Query.exec(Artnum.Path.url(`Person/${userId}`)).then((result) => {
        if (!result.success || result.length !== 1) { reject(new Error('Pas d\'utilisateur')); return }
-       let user = result.data
+       let user = Array.isArray(result.data) ? result.data[0] : result.data
        let popup = window.Admin.popup(`<form>
          <input type="hidden" value="${user.id}" name="user" />
          <label for="username">Nom d'utilisateur : <input type="text" name="username" value="${user.username}" /></label><br>
@@ -139,7 +139,7 @@
                let uid = result.data[0].id
                Artnum.Query.exec(Artnum.Path.url(`Person/${uid}`)).then((result) => {
                  if (!result.success || result.length !== 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
-                 newEntry(result.data).then((html) => {
+                 newEntry(Array.isArray(result.data) ? result.data[0] : result.data).then((html) => {
                    replaceAddEntry(html)
                    let p = event.target
                    while (p && !p.classList.contains('popup')) { p = p.parentNode }
@@ -415,7 +415,7 @@
    return new Promise((resolve, reject) => {
      Artnum.Query.exec(Artnum.Path.url(`Person/${userId}`)).then((result) => {
        if (!result.success || result.length !== 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
-       let user = result.data
+       let user = Array.isArray(result.data) ? result.data[0] : result.data
        if (confirm(`Voulez-vous vraiment supprimer l'utilisateur ${user.name} ?`)) {
          Artnum.Query.exec(Artnum.Path.url(`Person/${user.id}`), {method: 'DELETE', body: {id: user.id}}).then((result) => {
            if (result.success) { resolve(); return}
@@ -433,7 +433,7 @@
         if (response.ok) {
           response.json().then(result => {
             if (result.length === 1) {
-              newEntry(result.data).then(html => replaceAddEntry(html))
+              newEntry(Array.isArray(result.data) ? result.data[0] : result.data).then(html => replaceAddEntry(html))
             }
           })
         }

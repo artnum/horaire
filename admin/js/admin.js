@@ -278,7 +278,7 @@
               newid = result.data[0].id
               Artnum.Query.exec(Artnum.Path.url(store + '/' + newid)).then(function (result) {
                 if (result.success && result.length === 1) {
-                  resolve(result.data)
+                  resolve(Array.isArray(result.data) ? result.data[0] : result.data)
                 }
               })
             } else {

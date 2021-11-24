@@ -120,10 +120,10 @@ function changeState (event) {
      query = new Promise((resolve, reject) => {
        Artnum.Query.exec(Artnum.Path.url(`Travail/${params.travail}`)).then((result) => {
          if (!result.success || result.length !== 1) { reject(new Error('La mission est inexistante')); return }
-         let travail = result.data
+         let travail = Array.isArray(result.data) ? result.data[0] : result.data
          Artnum.Query.exec(Artnum.Path.url(`Project/${params.project}`)).then((result) => {
            if (!result.success || result.length !== 1) { reject(new Error('Le project est inexistant')); return }
-           resolve({project: result.data, travail: travail})
+           resolve({project: Array.isArray(result.data) ? result.data[0] : result.data, travail: travail})
          })
        })
      })
@@ -131,6 +131,7 @@ function changeState (event) {
      query = new Promise((resolve, reject) => {
        Artnum.Query.exec(Artnum.Path.url(`Project/${params.project}`)).then((result) => {
          if (!result.success || result.length !== 1) { reject(new Error('Le projet est inexistant')); return }
+         result.data = Array.isArray(result.data) ? result.data[0] : result.data
          resolve({project: result.data, travail: {id: '', reference: params.first ? result.data.reference : '', meeting: '', contact: '', phone: '', description: '', time: 0}}) 
        })
      })
@@ -311,6 +312,7 @@ function changeState (event) {
       let pId = result.data[0].id
       Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`)).then(function (result) {
         if (result.success && result.length === 1) {
+          result.data = Array.isArray(result.data) ? result.data[0] : result.data
           const ked = new KED()
           let related = 'Projet'
           if (String(result.data.reference).substring(0,1).toLowerCase() === 'r') {
@@ -399,6 +401,7 @@ async function evCloseProject (event) {
         let id = res.data[0].id
         res = await Artnum.Query.exec(Artnum.Path.url('Project/' + res.data[0].id))
         if (res.success && res.length === 1) {
+          res.data = Array.isArray(res.data) ? res.data[0] : rest.data
           newEntry(res.data).then((tr) => {
             replaceAddEntry(tr, id)
           })
@@ -429,7 +432,7 @@ async function evCancelEdit (event) {
    let pid = event.target.dataset.project
    Artnum.Query.exec(Artnum.Path.url(`Project/${pid}`)).then((result) => {
      if (!result.success || result.length !== 1) { alert('Projet inexistant'); console.log(result); return }
-     let project = result.data
+     let project = Array.isArray(result.data) ? result.data[0] : result.data
      let popup = window.Admin.popup(`<form>
       <input type="hidden" value="${project.id}" name="project" />
       <label for="reference">Numéro de chantier : </label><input name="reference" type="text" value="${project.reference}" />
@@ -479,7 +482,7 @@ async function evCancelEdit (event) {
          if (result.success) {
            Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`)).then((result) => {
              if (result.success) {
-               newEntry(result.data).then((tr) => {
+               newEntry(Array.isArray(result.data) ? result.data[0] : result.data).then((tr) => {
                  replaceAddEntry(tr, result.data.id)
                  let p = event.target
                  while (p && !p.classList.contains('popup')) { p = p.parentNode }
