@@ -47,7 +47,7 @@ define([
         var url = Path.url('Project/' + value)
         Query.exec(url).then(function (json) {
           if (json.success) {
-            this._set('_project', json.data)
+            this._set('_project', Array.isArray(json.data) ? json.data[0] : json.data)
             this.printTitle()
           }
         }.bind(this))

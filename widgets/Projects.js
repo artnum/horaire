@@ -188,11 +188,12 @@ define([
     travail: function (pid) {
       return new Promise(function (resolve, reject) {
         Query.exec(Path.url(`Project/${pid}`)).then((projet) => {
+          projet = Array.isArray(projet.data) ? projet.data[0] : projet.data
           Query.exec(Path.url('Travail', {params: {'search.project': pid, 'search.closed': 0}})).then(function (travaux) {
             if (!travaux.success || travaux.length <= 0) { reject(new Error('Pas de travaux')); return }
             let GTravaux = new ButtonGroup({moveNode: false})
             travaux.data.forEach((travail) => {
-              GTravaux.addValue(travail.id, {type: 'travail', label: `Bon : "${projet.data.reference}.${travail.id}"`, filterValue: [travail.reference, travail.id, projet.data.reference]})
+              GTravaux.addValue(travail.id, {type: 'travail', label: `Bon : "${projet.reference}.${travail.id}"`, filterValue: [travail.reference, travail.id, projet.reference]})
             })
             resolve(GTravaux)
           })
