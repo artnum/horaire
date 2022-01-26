@@ -50,6 +50,7 @@
 <script src="js/store/user.js"></script>
 <script src="js/addr.js" type="module"></script>
 <script src="js/ked.js"></script>
+<script src="../js/index.js"></script>
 <script type="module">
   import { Address } from './js/address.js'
   const address = new Address(document.getElementById('client'))
@@ -57,7 +58,6 @@
 <script>
  window.Conf = { workweek: 5, weekhours: 42 }
  window.Conf.workday = window.Conf.weekhours / window.Conf.workweek
-
 
  const APPConf = Conf
  var searchParams = {'search.closed': '-', 'search.deleted': '-', 'sort.reference': 'asc'}
@@ -155,7 +155,7 @@ function changeState (event) {
       <input type="hidden" value="${project.id}" name="project" />
       <label for="subref">Référence : </label><input name="subref" type="text" value="${travail.reference}" /> <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" value="${travail.meeting}" /><br>
       <label for="contact">Personne de contact : </label><input name="contact" type="text" value="${travail.contact}" /> <label for="cphone">Téléphone : </label><input name="cphone" type="text" value="${travail.phone}"/><br>
-      <label for="end">Fin souhaitée : <input name="end" type="date" value="${travail.end ? travail.end : ''}"/><br>
+      <label for="group">Sous-chantier: <input name="group" type="text" value="${$i(travail.group)}"/></label><label for="end">Fin souhaitée : <input name="end" type="date" value="${travail.end ? travail.end : ''}"/><br>
       <label for="time">Temps du projet : <input name="time" type="text" value="${time}"></label><label for="force">à un force de <input name="force" type="text" value="${travail.force ? travail.force : 1}" /></label><br>
       <span class="notice">La force représente le nombre minimal d'ouvriers ayant une efficacité de 100% (1.0) pour effectuer le travail dans le temps donné.  Le temps du projet est en heure à moins que la valeur soit préfixée par 's' pour semaine, 'j' pour jour. Un jour dure ${window.Conf.workday} heures et une semaine dure ${window.Conf.weekhours} heures.</span><br>
       <label for="description>">Description du travail</label><br>
@@ -182,7 +182,7 @@ function changeState (event) {
      form.addEventListener('submit', (event) => {
        event.preventDefault()
        let content = window.Admin.getForm(event.target)
-       let mapping = {project: 'project', description: 'description', subref: 'reference', meeting: 'meeting', contact: 'contact', cphone: 'phone', time: 'time', end: 'end', force: 'force'}
+       let mapping = {group: 'group', project: 'project', description: 'description', subref: 'reference', meeting: 'meeting', contact: 'contact', cphone: 'phone', time: 'time', end: 'end', force: 'force'}
        let data = travail.id !== '' ?  {id: travail.id} : {}
        for (let i in mapping) {
          data[mapping[i]] = '' // init to empty string
@@ -231,12 +231,11 @@ function changeState (event) {
              p = p.parentNode
            }
            p.dispatchEvent(new CustomEvent('close'))
-           newEntry(project).then((result) => {
-             replaceAddEntry(result, project.id).then(() => {
-               showHideTravaux(project.id, true)
-             })
+           UIKADisplayProject(project)
+           .then(kaproject => {
+             showHideTravaux(kaproject.id, true)
              if (event.detail && event.detail.print) {
-               window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: project.id, travail: tid}}))                         
+               window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: kaproject.id, travail: tid}}))                         
              }
            })
          } else {
@@ -310,7 +309,8 @@ function changeState (event) {
       alert('Erreur de création du projet')
     } else {
       let pId = result.data[0].id
-      Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`)).then(function (result) {
+      Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`))
+      .then(function (result) {
         if (result.success && result.length === 1) {
           result.data = Array.isArray(result.data) ? result.data[0] : result.data
           const ked = new KED()
@@ -319,9 +319,10 @@ function changeState (event) {
             related = 'Régie'
           }
           ked.createProject(result.data.id, result.data.reference, related)
-          newEntry(result.data).then((tr) => {
-            replaceAddEntry(tr, pId)
-            newTravailPopup({project: pId, first: true})
+          
+          UIKADisplayProject(result.data)
+          .then(kaproject => {
+            newTravailPopup({project: kaproject.id, first: true})
             addRunning = false
           })
           Admin.setFormInputValue(form, 'reference')
@@ -399,13 +400,7 @@ async function evCloseProject (event) {
       var res = await Artnum.Query.exec(Artnum.Path.url('Project/' + node.getAttribute('data-id')), {method: 'PATCH', body: {id: node.getAttribute('data-id'), closed: close}})
       if (res.success && res.length === 1) {
         let id = res.data[0].id
-        res = await Artnum.Query.exec(Artnum.Path.url('Project/' + res.data[0].id))
-        if (res.success && res.length === 1) {
-          res.data = Array.isArray(res.data) ? res.data[0] : rest.data
-          newEntry(res.data).then((tr) => {
-            replaceAddEntry(tr, id)
-          })
-        }
+        return UIKADisplayProject(res.data[0].id)
       }
     }  
   } 
@@ -480,15 +475,11 @@ async function evCancelEdit (event) {
        }
        Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`), {method: 'PUT', body: body}).then((result) => {
          if (result.success) {
-           Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`)).then((result) => {
-             if (result.success) {
-               newEntry(Array.isArray(result.data) ? result.data[0] : result.data).then((tr) => {
-                 replaceAddEntry(tr, result.data.id)
-                 let p = event.target
-                 while (p && !p.classList.contains('popup')) { p = p.parentNode }
-                 p.dispatchEvent(new CustomEvent('close'))
-               })
-             }
+           UIKADisplayProject(content.project)
+           .then(kaproject => {
+              let p = event.target
+              while (p && !p.classList.contains('popup')) { p = p.parentNode }
+              p.dispatchEvent(new CustomEvent('close'))
            })
          }
        })
@@ -496,10 +487,10 @@ async function evCancelEdit (event) {
    })
  }
 
- function newEntry (entry) {
+ function newEntry (entry, travauxGroup) {
    return new Promise(function (resolve, reject) {
      if (entry.id) {
-       let reference = entry.reference.split('').reverse()
+       let reference = DataUtils.str(entry.reference).split('').reverse()
        let newNextRef = []
        let i
        for (i = reference.shift(); i; i = reference.shift()) {
@@ -524,19 +515,7 @@ async function evCancelEdit (event) {
            document.getElementById('rYear').innerHTML = `Ajouter régie ${RYName}-${String(newNextRef + 1).padStart(3, '0')}`
          }
        }
-       
-       let qTravail = Artnum.Query.exec(Artnum.Path.url('Travail', {params: {'search.project': entry.id, 'search.plan': '0'}}))
-       let qManager = new Promise((resolve, reject) => {
-         if (!entry.manager) { resolve(''); return}
-         fetch (new URL(`${KAAL.getBase()}/Person/${entry.manager}`)).then(response => {
-            if (!response.ok) { resolve(''); return}
-            response.json().then(result => {
-              if (result.length !== 1) { resolve(''); return}
-              Array.isArray(result.data) ? resolve(result.data[0].name) : resolve(result.data.name)
-            })
-          })
-       })
-       
+             
        let exportButton = document.createElement('BUTTON')
        exportButton.setAttribute('type', 'button')
        exportButton.addEventListener('click', function (event) {
@@ -588,33 +567,44 @@ async function evCancelEdit (event) {
        newTravail.innerHTML = 'Ajout travail'
        newTravail.addEventListener('click', newTravailEvent)
        
-       Promise.all([qTravail, qManager]).then(([travaux, manager]) => {
+       KAPerson.load(entry.manager).then((manager) => {
          let frag = document.createDocumentFragment()
          let tr = document.createElement('TR')
          frag.appendChild(tr)
-         
          tr.setAttribute('data-id', entry.id)
-         tr.innerHTML = `<td data-name="reference" data-sort-value="${entry.reference}"  data-filter-value="${entry.reference}">${travaux.length > 0 ? '<span>&#9205;</span> ' : ''}${(entry.reference ? entry.reference : '')}</td>
+         tr.innerHTML = `<td data-name="reference" data-sort-value="${entry.reference}"  data-filter-value="${entry.reference}">${travauxGroup.length > 0 ? '<span>&#9205;</span> ' : ''}${(entry.reference ? entry.reference : '')}</td>
                          <td data-name="name" data-type="text">${(entry.name ? entry.name : '')}</td>
-                         <td data-name="manager" data-sort-value="${entry.manager !== null ? entry.manager : -1}" data-filter-value="${entry.manager !== null ? entry.manager : -1}">${manager}</td>`
-         if (travaux.length > 0) {
+                         <td data-name="manager" data-sort-value="${entry.manager !== null ? entry.manager : -1}" data-filter-value="${entry.manager !== null ? entry.manager : -1}">${manager.name}</td>`
+         if (travauxGroup.length > 0) {
            tr.classList.add('extensible')
-           let subTable = document.createElement('TABLE')
+           const subTable = document.createElement('TABLE')
            subTable.classList.add('sub')
            let trHeader = document.createElement('TR')
            trHeader.innerHTML = '<th>Référence</th><th>Rendez-vous</th><th>Personne contact</th><th>Téléphone</th><th>Description</th><th></th>'
            subTable.appendChild(trHeader)
-           travaux.data.forEach((travail) => {
-             let tr = document.createElement('TR')
-             let desc = travail.description ? travail.description.replace(/(?:\r\n|\r|\n)/g, '<br>') : ''
-             tr.innerHTML = `<td data-sort-value="${travail.reference}">${travail.reference}</td><td>${travail.meeting}</td><td>${travail.contact}</td><td>${travail.phone}</td><td class="longtext">${desc}</td><td class="overflowable"><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="edit">Éditer</button><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="print">Imprimer</button><button type="button" data-travail="${travail.id}" data-project="${entry.id}" data-action="delete">Supprimer</button></td>`
-             tr.addEventListener('click', (event) => {
-               if (event.target.nodeName === 'BUTTON') {
-                 handleTravailButton(event)
-               }
-             })
-             subTable.appendChild(tr)
-           })
+           let oddEven = 'even'
+           for (const group of travauxGroup.gets()) {
+              const tr = document.createElement('TR')
+              tr.classList.add('subproject')
+              tr.innerHTML = `<th colspan="6"> ${group ? $s(`Sous-chantier "${group}"`) : 'Général'}</th>`
+              subTable.appendChild(tr)
+              oddEven = 'even'
+
+              travauxGroup.get(group)
+              .forEach((travail) => {
+                console.log(travail)
+                if (oddEven === 'odd') { oddEven = 'even' } else { oddEven = 'odd'}
+                const tr = document.createElement('TR')
+                tr.classList.add(oddEven)
+                tr.innerHTML = `<td data-sort-value="${$s(travail.reference)}">${$s(travail.reference)}</td><td>${$s(travail.meeting)}</td><td>${$s(travail.contact)}</td><td>${$s(travail.phone)}</td><td class="longtext">${$s(travail.description)}</td><td class="overflowable"><button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="edit">Éditer</button><button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="print">Imprimer</button><button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="delete">Supprimer</button></td>`
+                tr.addEventListener('click', (event) => {
+                  if (event.target.nodeName === 'BUTTON') {
+                    handleTravailButton(event)
+                  }
+                })
+                subTable.appendChild(tr)
+              })
+           }
 
            let sub = document.createElement('TR')
            sub.dataset.sortIgnore = true
@@ -719,6 +709,37 @@ async function evCancelEdit (event) {
    })
  }
 
+function UIKADisplayProject (project) {
+  return new Promise ((resolve, reject) => {
+    new Promise ((resolve) => {
+      if (typeof project === 'object') {
+        resolve(KAProject.create(project))
+      } else {
+        KAProject.load(project)
+        .then(kaproject => {
+          resolve(kaproject)
+        })
+      }
+    })
+    .then(kaproject => {
+      KATravail.getByProject(kaproject.id)
+      .then(travaux => {
+        return new KAGroup(travaux)
+      })
+      .then(travauxGroup => {
+        return newEntry(kaproject, travauxGroup)
+      })
+      .then(tr => {
+        replaceAddEntry(tr, kaproject.id)
+        resolve(kaproject)
+      })
+      .catch(error => {
+        reject(error)
+      })
+    })
+  })
+}
+
  var t = null
  async function load () {
    let managerSelect = new Select(document.getElementById('manager'), new UserStore(`${KAAL.getBase()}/Person`, 128), {allowFreeText: false, realSelect: true})
@@ -737,11 +758,9 @@ async function evCancelEdit (event) {
      if (res.success) {
        let node
        for (node = document.getElementById('projects').firstChild; node.nodeName !== 'TBODY'; node = node.nextSibling);
-       res.data.forEach(function (entry) {
-         newEntry(entry).then((tr) => {
-           replaceAddEntry(tr, entry.id)
-         })
-       })
+       for (const entry of res.data) {
+        UIKADisplayProject(entry)
+       }
      }
    })
 

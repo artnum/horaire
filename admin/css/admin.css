@@ -210,12 +210,17 @@ tr.sub[data-open="1"] {
     background-color: hsla(246, 40%, 40%, 0.2);
 }
 
-/*.even {
-    background-color: hsla(200, 60%, 60%, 0.2) !important;
+.even {
+    background-color: hsla(246, 40%, 40%, 0.2) !important;
 }
+
 .odd {
-    background-color: hsla(133, 60%, 60%, 0.2) !important;
-}*/
+    background-color: white !important;
+}
+
+.subproject {
+    background-color: wheat !important;
+}
 
 .sub table td.longtext {
     word-wrap: break-word !important;

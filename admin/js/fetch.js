@@ -36,3 +36,16 @@ fetch.stats = function () {
 fetch.count = 0
 fetch.failed = 0
 fetch.success = 0
+
+function kafetch (url, params = {}) {
+  return new Promise ((resolve, reject) => {
+    fetch (url, params)
+    .then(response => {
+      if (!response.ok) { reject('Erreur communication'); return }
+      return response.json()
+    })
+    .then(result => {
+      resolve(result)
+    })
+  })
+}
