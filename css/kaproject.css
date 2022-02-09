@@ -1,3 +1,9 @@
+.ka-container {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
 .ka-project, .ka-userbox, .ka-login {
     display: block;
     margin: auto;
@@ -36,12 +42,18 @@
 
 .ka-userbox {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     background-color: darkorange;
     color: black;
     font-weight: bold;
+    cursor: pointer;
+}
 
+.ka-userbox span {
+    font-size: 12px;
+    font-weight: normal;
 }
 
 .ka-project:hover > .reference {

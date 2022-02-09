@@ -84,7 +84,7 @@ TimeInteractUI.prototype.showHeader = function () {
         KAPerson.load(this.userId)
         .then(user => {
         const div = document.createElement('DIV')
-            div.innerHTML = `${user.get('name')}`
+            div.innerHTML = `${user.get('name')}<span>Cliquer ici pour se déconnecter</span>`
             div.classList.add('ka-userbox')
             const container = document.querySelector('div.ka-container')
             div.addEventListener('click', event => {
