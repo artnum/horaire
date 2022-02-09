@@ -63,6 +63,7 @@ TimeInteractUI.prototype.loadProject = function () {
             const div = document.createElement('DIV')
             div.classList.add('ka-project')
             div.dataset.project = kaproject.id
+            div.dataset.reference = kaproject.reference.toLowerCase()
             div.innerHTML = `<span class="reference">${kaproject.reference}</span><span class="name">${kaproject.name}</span>`
             window.requestAnimationFrame(() => {
                 container.appendChild(div)
@@ -83,10 +84,11 @@ TimeInteractUI.prototype.showHeader = function () {
     return new Promise(resolve => {
         KAPerson.load(this.userId)
         .then(user => {
-        const div = document.createElement('DIV')
+            const div = document.createElement('DIV')
             div.innerHTML = `${user.get('name')}<span>Cliquer ici pour se déconnecter</span>`
             div.classList.add('ka-userbox')
             const container = document.querySelector('div.ka-container')
+            
             div.addEventListener('click', event => {
                 new Promise(resolve => {
                     window.requestAnimationFrame(() => {
@@ -98,7 +100,33 @@ TimeInteractUI.prototype.showHeader = function () {
                     this.eventTarget.dispatchEvent(new CustomEvent('user-logout'))
                 })
             })
+
+            const searchDiv = document.createElement('DIV')
+            searchDiv.innerHTML = `<input type="text" placeholder="Chercher une référence">`
+
+            searchDiv.firstElementChild.addEventListener('keyup', event => {
+                if (event.target.value === '') {
+                    const nodes = container.querySelectorAll('.ka-project')
+
+                    for (const node of nodes) {
+                      node.style.removeProperty('display' )   
+                    }
+                    return
+                } 
+                const search = event.target.value.toLowerCase()
+                const nodes = container.querySelectorAll('.ka-project')
+
+                for (const node of nodes) {
+                    if (!node.dataset.reference.startsWith(search)) {
+                        node.style.setProperty('display', 'none')
+                    } else {
+                        node.style.removeProperty('display' )   
+                    }
+                }
+            })
+
             container.appendChild(div)
+            container.appendChild(searchDiv)
             resolve()
         })
     })
