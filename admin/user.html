@@ -441,16 +441,16 @@
   }
 
   async function loadUsers () {
-    var admin = await Artnum.Query.exec(Artnum.Path.url('admin/htpasswd.php'))
+    //var admin = await Artnum.Query.exec(Artnum.Path.url('admin/htpasswd.php'))
     Artnum.Query.exec(Artnum.Path.url('Person', {params: {'search.deleted': '-'}})).then(function (person) {
       if (person.success && person.length > 0) {
         for (var i = 0; i < person.length; i++) {
           var entry = person.data[i]
-          if (admin.indexOf(entry.username) !== -1) {
+          /*if (admin.indexOf(entry.username) !== -1) {
             entry.admin = true
           } else {
             entry.admin = false
-          }
+          }*/
           newEntry(entry).then((html) => {
             replaceAddEntry(html)
           })
