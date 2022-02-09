@@ -45,7 +45,7 @@ KAGroup.prototype.gets = function () {
     if (this.ungrouped.length > 0) {
         return ['', ...this.data.keys()]
     }
-    return this.data.keys()
+    return [...this.data.keys()]
 }
 
 KAGroup.prototype.hasUngrouped = function () {
