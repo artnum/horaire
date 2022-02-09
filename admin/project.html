@@ -45,6 +45,7 @@
 <script src="../node_modules/artnum/DTable.js"></script>
 <script src="../node_modules/artnum/Select.js"></script>
 <script src="../node_modules/popper.js/dist/umd/popper.min.js"></script>
+<script src="../node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
 <script src="js/admin.js"></script>
 <script src="js/string.js"></script>
 <script src="js/store/user.js"></script>
@@ -162,6 +163,11 @@ function changeState (event) {
       <textarea name="description">${travail.description ? travail.description : project.name}</textarea><br>
       <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
      </form>`, `Travail pour ${project.reference} - ${project.name}`)
+
+    KATravail.getByProject(project.id)
+    .then(travaux => {    
+      new KAList(popup.querySelector('input[name="group"]'), new KAGroup(travaux))
+    })
 
      let form = popup.getElementsByTagName('form')[0]
      form.addEventListener('reset', (event) => {
@@ -592,7 +598,6 @@ async function evCancelEdit (event) {
 
               travauxGroup.get(group)
               .forEach((travail) => {
-                console.log(travail)
                 if (oddEven === 'odd') { oddEven = 'even' } else { oddEven = 'odd'}
                 const tr = document.createElement('TR')
                 tr.classList.add(oddEven)

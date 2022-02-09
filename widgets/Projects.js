@@ -121,24 +121,13 @@ define([
       djOn(group, 'change', function (event) {
         this.On = 'process'
         this.emit('change', this.get('value'))
-        let GTravaux = this.travail(this.get('value').project)
         window.requestAnimationFrame(function () {
           this.content.replaceChild(this.Process.domNode, this.Group.domNode)
           var back = document.createElement('DIV')
           back.setAttribute('class', 'artnumButton')
           back.setAttribute('style', 'margin-bottom: 14px')
           back.innerHTML = '← Retour'
-          this.content.insertBefore(back, this.Process.domNode)
-          let dNode = this.Process.domNode
-          GTravaux.then((n) => {
-            this.Travaux = n
-            let title = document.createElement('H2')
-            title.appendChild(document.createTextNode('Avec bon de travail'))
-            window.requestAnimationFrame(() => {
-              dNode.parentNode.insertBefore(n.domNode, dNode.nextElementSibling)
-              dNode.parentNode.insertBefore(title, dNode.nextElementSibling)
-            })
-          })
+          this.content.insertBefore(back, this.Process.domNode)         
 
           djOn(back, 'click', function (event) {
             this.On = 'group'
@@ -183,22 +172,6 @@ define([
             process.addValue(results.data[i].id, {type: 'process', label: results.data[i].name, filterValue: results.data[i].name})
           }
         }
-      })
-    },
-
-    travail: function (pid) {
-      return new Promise(function (resolve, reject) {
-        Query.exec(Path.url(`Project/${pid}`)).then((projet) => {
-          projet = Array.isArray(projet.data) ? projet.data[0] : projet.data
-          Query.exec(Path.url('Travail', {params: {'search.project': pid, 'search.closed': 0}})).then(function (travaux) {
-            if (!travaux.success || travaux.length <= 0) { reject(new Error('Pas de travaux')); return }
-            let GTravaux = new ButtonGroup({moveNode: false})
-            travaux.data.forEach((travail) => {
-              GTravaux.addValue(travail.id, {type: 'travail', label: `Bon : "${projet.reference}.${travail.id}"`, filterValue: [travail.reference, travail.id, projet.reference]})
-            })
-            resolve(GTravaux)
-          })
-        })
       })
     },
 

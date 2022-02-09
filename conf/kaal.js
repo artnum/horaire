@@ -6,6 +6,9 @@ window.KAAL = {
         }
         return `kaal-auto-${++KAAL.domIdCount}`
     },
+    limits: {
+        lateDay: 2
+    },
     work: {
         day: 504.0, // minutes
         min: 30.0, // minimal job time, minutes
@@ -28,7 +31,10 @@ window.KAAL = {
         liveLimit: '20' // les recherches lors de la saisie sont limitées en nombre de résultat
     },
     getBase: () => {
-        return `${window.location.origin}/${KAAL.base}`
+        return `${window.location.origin}/${KAAL.base}`.replace(/([^:]\/)\/+/g, "$1")
+    },
+    url: (relative) => {
+        return `${KAAL.getBase()}/${relative}`.replace(/([^:]\/)\/+/g, "$1")
     },
     fetch: (url, options = {}) => {
         if (options.headers === undefined) {

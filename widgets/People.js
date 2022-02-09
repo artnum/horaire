@@ -19,9 +19,7 @@ define([
   'horaire/Button',
   'horaire/Entity',
   'horaire/_Result',
-  'artnum/dojo/Log',
-  'artnum/Path',
-  'artnum/Query'
+  'artnum/dojo/Log'
 ], function (
   djDeclare,
   _dtWidgetBase,
@@ -42,9 +40,7 @@ define([
   hButton,
   HEntity,
   _Result,
-  Log,
-  Path,
-  Query
+  Log
 ) {
   return djDeclare('horaire.People', [
     _dtWidgetBase, _dtTemplatedMixin, _dtWidgetsInTemplateMixin
@@ -52,33 +48,44 @@ define([
     templateString: template,
     baseClass: 'people',
     postCreate: function () {
-      var that = this
-
       var cp = new DtContentPane({ title: 'Accueil', id: 'home' })
-      Query.exec(Path.url('Person', {params: {'search.deleted': '-', 'search.disabled': 0}})).then(function (body) {
-        if (body.success && body.length > 0) {
-          var frag = document.createDocumentFragment()
-          for (var i = 0; i < body.length; i++) {
-            var entry = body.data[i]
-            var ecp = new DtContentPane({ id: 'P_' + entry.id, title: entry.name })
-            var entity = new HEntity(entry, {pane: ecp, link: 'P_' + entry.id})
-            that.own(entity)
-            that.nContent.addChild(ecp)
-
-            frag.appendChild(entity.domNode)
-          }
-
-          window.requestAnimationFrame(function () {
-            that.nContent.addChild(cp)
-            cp.set('content', frag)
-            if (window.location.hash) {
-              that.nContent.selectChild(window.location.hash.substr(1))
-            } else {
-              that.nContent.selectChild('home')
-            }
-            that.nContent.startup()
-          })
+      fetch(`${KAAL.getBase()}/Person/_query`, {method: 'POST', body: JSON.stringify({
+        '#and': {
+          disabled: 0,
+          deleted: '-'
         }
+      })})
+      .then(response => {
+        if (!response.ok) { throw new Error('Erreur de chargement') }
+        return response.json()
+      })
+      .then(body => {
+        if (body.length < 1) { return }
+        
+        const frag = document.createDocumentFragment()
+        for (let i = 0; i < body.length; i++) {
+          var entry = body.data[i]
+          var ecp = new DtContentPane({ id: 'P_' + entry.id, title: entry.name })
+          var entity = new HEntity(entry, {pane: ecp, link: 'P_' + entry.id})
+          this.own(entity)
+          this.nContent.addChild(ecp)
+
+          frag.appendChild(entity.domNode)
+        }
+
+        window.requestAnimationFrame(() => {
+          this.nContent.addChild(cp)
+          cp.set('content', frag)
+          if (window.location.hash) {
+            this.nContent.selectChild(window.location.hash.substring(1))
+          } else {
+            this.nContent.selectChild('home')
+          }
+          this.nContent.startup()
+        })
+      })
+      .catch(error => {
+        console.log(error)
       })
 
       djOn(this.nHome, 'click', djLang.hitch(this, function () { window.location.hash = '#home' }))
@@ -86,7 +93,7 @@ define([
       djOn(window, 'hashchange', djLang.hitch(this, function (e) {
         var nurl = new URL(e.newURL)
         try {
-          this.nContent.selectChild(nurl.hash.substr(1))
+          this.nContent.selectChild(nurl.hash.substring(1))
         } catch (e) {
           this.error('Destination inconnue')
         }

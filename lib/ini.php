@@ -23,6 +23,21 @@ class KConf {
   protected $IniValue;
   function __construct($ini) {
     $this->IniValue = $ini;
+    $this->dbs = [];
+    $this->vars = [];
+  }
+
+  function setVar($name, $value) {
+    $this->vars[$name] = $value;
+  }
+
+  function getVar($name) {
+    if (!isset($this->vars[$name])) { return null; }
+    return $this->vars[$name];
+  }
+
+  function delVar($name) {
+    unset($this->vars[$name]);
   }
 
   function get($path) {
@@ -34,6 +49,27 @@ class KConf {
       $value = $value[$attr];
     }
     return $value;
+  }
+
+  function setDB ($ressource, $type, $readonly = false) {
+    if (!isset($this->dbs[$type])) {
+      $this->dbs[$type] = ['cro' => 0, 'crw' => 0, 'ro' => [], 'rw' => []];
+    }
+    $access = $readonly ? 'ro' : 'rw';
+    $this->dbs[$type][$access][] = $ressource;
+  }
+
+  function getDB ($type, $readonly = false) {
+    if (!isset($this->dbs[$type])) { return NULL; }
+    $access = $readonly ? 'ro' : 'rw';
+    if ($readonly && empty($this->dbs[$type]['ro'])) { $access = 'rw'; }
+    if (empty($this->dbs[$type][$access])) { return NULL; }
+    $current = $this->dbs[$type]['c' . $access];
+    $ressource = $this->dbs[$type][$access][$current];
+    $current++;
+    if ($current >= count($this->dbs[$type][$access])) { $current = 0; }
+    $this->dbs[$type]['c' . $access] = $current;
+    return $ressource;
   }
 }
 

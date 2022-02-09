@@ -1,0 +1,25 @@
+.ka-popper {
+    line-height: 1.4em;
+    padding: 4px 6px;
+    background-color: white;
+    max-height: 22ex;
+    overflow-y: auto;
+    min-width: 16ch;
+    max-width: 38ch;
+    border: 1px solid black;
+    border-top: none;
+}
+
+.ka-popper .ka-result {
+    border: 1px solid transparent;
+    padding: 0.5ex 0.5ch;
+    margin: 0.5ex 0;
+    cursor: pointer;
+}
+
+.ka-popper .ka-selected {
+    background-clip: border-box;
+    background-color: lightblue;
+    border: 1px solid darkblue;
+}
+

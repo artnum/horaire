@@ -2,7 +2,10 @@
 require('artnum/autoload.php');
 require('lib/ini.php');
 require('lib/dbs.php');
+require('conf/wesrv.php');
+require('wesrv/lib/msg.php');
 
+$MSGSrv = new \wesrv\msg(WESRV_IP, WESRV_PORT, WESRV_KEY);
 $ini_conf = load_ini_configuration();
 $KConf = new KConf($ini_conf);
 
@@ -54,6 +57,12 @@ $ldap_db = new artnum\LDAPDB(
   !empty($ini_conf['addressbook']['base']) ? $ini_conf['addressbook']['base'] : NULL
 );
 $store->add_db('ldap', $ldap_db);
+
+if (!empty($_SERVER['HTTP_X_CLIENT_ID'])) {
+  $KConf->setVar('clientid', $_SERVER['HTTP_X_CLIENT_ID']);
+} else {
+  $KConf->setVar('clientid', '');
+}
 
 $store->run($KConf);
 ?>

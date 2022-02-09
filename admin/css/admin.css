@@ -3,6 +3,7 @@
 @import 'contact.css';
 @import 'project.css';
 @import 'bill.css';
+@import 'list.css';
 
 :root {
     --background-color: white;

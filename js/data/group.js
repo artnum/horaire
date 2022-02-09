@@ -47,3 +47,34 @@ KAGroup.prototype.gets = function () {
     }
     return this.data.keys()
 }
+
+KAGroup.prototype.hasUngrouped = function () {
+    return this.ungrouped.length > 0
+}
+
+KAGroup.prototype.query = function (value) {
+    const keys = this.data.keys()
+    const results = []
+    for (const key of keys) {
+        if (value === '') {
+            results.push({
+                id: key,
+                label: key,
+                value: key
+            })
+            continue
+        }
+        const pos = key.toLowerCase().indexOf(value.toLowerCase())
+        if (pos !== -1) {
+            results.push({
+                id: key,
+                label: key,
+                value: key
+            })
+        }
+    }
+    results.sort((a, b) => {
+        return a.label.localeCompare(b.label)
+    })
+    return Promise.resolve(results)
+}

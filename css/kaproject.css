@@ -1,0 +1,265 @@
+.ka-project, .ka-userbox, .ka-login {
+    display: block;
+    margin: auto;
+    min-width: 38ch;
+    max-width: 33%;
+    min-height: 4ex;
+    max-height: 4ex;
+    border: 2px solid black;
+    margin: 0.5ex 2ch;
+    overflow: hidden;
+    text-overflow: clip;
+    font-family: sans-serif;
+    position: relative;
+}
+
+.ka-login {
+    min-height: 8ex !important;
+    max-height: 32ex !important;
+    border: none;
+}
+
+.ka-login input {
+    border: 2px solid black;
+    padding: 0;
+    min-height: 6ex;
+    min-width: calc(100% - 4px);
+    margin: 1.5ex 0;
+}
+
+.ka-login button {
+    padding: 0;
+    min-height: 6ex;
+    min-width: 100%;
+    margin: 1.5ex 0;
+}
+
+.ka-userbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: darkorange;
+    color: black;
+    font-weight: bold;
+
+}
+
+.ka-project:hover > .reference {
+    background-color: steelblue;
+}
+
+.ka-project > span {
+    cursor: pointer;
+    padding: 0.5ex 0.5ch;
+    display: inline-block;
+    min-height: 4ex;
+    max-height: 4ex;
+    overflow: hidden;
+    text-overflow: clip;
+}
+
+.ka-project .reference {
+    font-weight: bold;
+    color: white; 
+    background-color: darkblue;
+    min-width: 12ch;
+    max-width: 12ch;
+    overflow: hidden;
+    margin:0;
+}
+
+.ka-project > .name {
+    max-width: calc(100% - 16ch);
+    min-width: calc(100% - 16ch);
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+.ka-project.extended {
+    max-height: none;
+}
+
+.ka-project-detail {
+    padding: 0.2ex 0.2ch;
+    clear:both;
+    border-top: 2px solid darkblue;
+}
+
+.ka-project > .name {
+    color: darkblue;
+    background-color: white;
+    transition: ease-in-out 0.3s;
+}
+
+.ka-project > .reference {
+    color: white;
+    background-color: darkblue;
+    transition:ease-in-out 0.3s;
+}
+
+.ka-project[data-open="true"] > .reference {
+    color: darkblue;
+    background-color: white;
+    transition: ease-in-out 0.3s;
+}
+
+.ka-project[data-open="true"] > .name {
+    color: white;
+    background-color: darkblue;
+    transition:ease-in-out 0.3s;
+}
+
+
+.ka-button > span {
+    cursor: pointer;
+    padding: 1.5ex 0.5ch;
+    display: inline-block;
+    min-height: 2ex;
+    max-height: 4ex;
+    overflow: hidden;
+    text-overflow: clip;
+}
+
+.ka-button .name {
+    max-width: calc(100% - 16ch);
+    min-width: calc(100% - 16ch);
+    height: 100%;
+}
+
+.ka-button[data-open="true"] > .reference {
+    background-color: white;
+    color: black;
+    transition: ease-in-out 0.3s;
+}
+
+.ka-button[data-open="true"] > .name {
+    background-color: darkblue;
+    color: white;
+    transition:ease-in-out 0.3s;
+}
+
+.ka-project .ka-head {
+    background-color: darkslategray;
+    color: white;
+    min-height: 4ex;
+    text-align: center;
+    vertical-align: middle;
+    width: 100%;
+}
+
+.ka-project .ka-button {
+    min-height: 4ex;
+}
+
+.ka-project-detail .reference {
+    background-color: lavender;
+    color: black;
+    max-height: 2ex;
+    min-height: 2ex;
+}
+
+.ka-project-detail .ka-subhead {
+    font-weight: bold;
+    text-align: center;
+}
+
+.ka-timebox {
+    margin: 3ex 0;
+}
+
+.ka-timebox input {
+    min-width: 100%;
+    max-width: 100%;
+}
+
+.ka-timebox .ka-day {
+    cursor: pointer;
+    display: inline-block;
+    padding: 1ex 0.8ch;
+    border: 2px solid darkblue;
+    margin: 0.2ex 0.2ch;
+}
+
+.ka-timebox .ka-day.selected {
+    border: 2px solid darkblue;
+    background-color: lightblue;
+}
+
+.ka-input label {
+    display: inline-block;
+    max-width: 8ch;
+    min-width: 8ch;
+}
+
+.ka-input input {
+    display: inline-block;
+    max-width: calc(100% - 12ch);
+    min-width: calc(100% - 12ch);
+}
+
+
+.ka-previous-time {
+    font-size: 0.9em;
+}
+
+.ka-previous-time .ka-head {
+    background-color: indianred;
+}
+
+.ka-total-day, .ka-time-entry {
+    padding: 0.4ex 0;
+}
+
+.ka-time-entry {
+    cursor: pointer;
+    padding: 1.5ex 0;
+}
+
+.ka-time-entry .remark {
+    overflow: hidden;
+    text-overflow: clip;
+}
+
+.ka-total-day span, .ka-time-entry span {
+    padding: 0 0.2ch;
+}
+
+.ka-total-day {
+    font-weight: bold;
+    color: white;
+    background-color: darkgoldenrod;
+}
+
+.ka-input button {
+    width: 100%;
+    margin: 0.2ex 0.2ch;
+    padding: 1.5ex 0;
+}
+
+.ka-timebox div {
+    padding: 1.5ex 0;
+}
+
+.ka-time-entry.highlight {
+    background-color: darkblue;
+    color: white
+}
+
+@media (max-width: 480px) {
+    .ka-project, .ka-userbox, .ka-login {
+        min-height: 8ex;
+        max-height: 8ex;
+    }
+    .ka-project > span {
+        min-height: 8ex;
+        max-height: 8ex;
+    }
+}
+
+@media (max-width: 1080px) {
+    .ka-project, .ka-userbox, .ka-login {
+        min-width: calc(100% - 4ch);
+        max-width: calc(100% - 4ch);
+    }
+}
+
