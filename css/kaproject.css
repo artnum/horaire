@@ -4,7 +4,7 @@
     flex-direction: column;
 }
 
-.ka-project, .ka-userbox, .ka-login {
+.ka-project, .ka-userbox, .ka-login, .ka-search input {
     display: block;
     margin: auto;
     min-width: 38ch;
@@ -17,6 +17,18 @@
     text-overflow: clip;
     font-family: sans-serif;
     position: relative;
+}
+
+.ka-search {
+    padding: 0;
+    margin: 0;
+    min-width: 100%;
+}
+
+.ka-search input {
+    font-weight: bolder;
+    padding: 4px;
+    min-width: calc(100% - 4ch - 12px);
 }
 
 .ka-login {
@@ -256,6 +268,38 @@
     background-color: darkblue;
     color: white
 }
+
+.ka-time-entry.ka-unmodifiable {
+    background-color: lightgray;
+    cursor: default;
+}
+
+#KAMsgLine {
+    position: fixed;
+    top: 5px;
+    width: calc(100% - 14px);
+    margin: 0;
+    left: 0;
+    padding: 5px;
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+    font-family: monospace;
+}
+
+.ka-error {
+
+    border: 2px solid red;
+    background-color: lightpink;
+    color: black;
+}
+
+.ka-info {
+    border: 2px solid blue;
+    background-color: lightskyblue;
+    color: black;
+}
+
 
 @media (max-width: 480px) {
     .ka-project, .ka-userbox, .ka-login {

@@ -10,8 +10,8 @@ const imports = [
     [KAAL.url('js/ui/utils.js'), 'script'],
     [KAAL.url('js/ui/list.js'), 'script'],
     [KAAL.url('js/ui/time-interact.js'), 'script'],
-    [KAAL.url('js/ui/user-interact.js'), 'script']
-
+    [KAAL.url('js/ui/user-interact.js'), 'script'],
+    [KAAL.url('js/ui/msg-interact.js'), 'script']
 ]
 
 window.addEventListener('DOMContentLoaded', event => {

@@ -38,7 +38,6 @@ const DataUtils = {
     },
     secToHour (value) {
         const hour = Math.floor(value / 3600)
-        console.log(hour)
         const minute = Math.round(((value / 3600) - hour) * 60)
         return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
     },

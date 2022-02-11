@@ -24,8 +24,10 @@ function TimeInteractUI (userId) {
     this.userId = userId
     const date =  new Date()
     const dates = []
+    this.strDates = []
     date.setHours(12, 0, 0, 0)
     dates.push(date)
+    this.strDates.push(DataUtils.shortDate(date))
     for (let day = KAAL.limits.lateDay - 1; day > 0; day--) {
         const d = new Date()
         d.setTime(dates[dates.length - 1].getTime())
@@ -34,6 +36,7 @@ function TimeInteractUI (userId) {
             d.setHours(12, 0, 0, 0)
         } while (d.getDay() === 0 || d.getDay() === 6)
         dates.push(d)
+        this.strDates.push(DataUtils.shortDate(d))
     }
     this.dates = dates
 }
@@ -71,7 +74,7 @@ TimeInteractUI.prototype.loadProject = function () {
             div.addEventListener('click', event => {
                 let node = event.target
                 while (node && !node.dataset.project) {
-                    if (node.classList.contains('ka-project-detail')) { return } // we click on detail, so we don't handle event there
+                    if (node.classList.contains('ka-project-detail') || node.classList.contains('ka-previous-time')) { return } // we click on detail, so we don't handle event there
                     node = node.parentNode 
                 }
                 this.selectProject(node.dataset.project)
@@ -102,6 +105,7 @@ TimeInteractUI.prototype.showHeader = function () {
             })
 
             const searchDiv = document.createElement('DIV')
+            searchDiv.classList.add('ka-search')
             searchDiv.innerHTML = `<input type="text" placeholder="Chercher une référence">`
 
             searchDiv.firstElementChild.addEventListener('keyup', event => {
@@ -117,7 +121,8 @@ TimeInteractUI.prototype.showHeader = function () {
                 const nodes = container.querySelectorAll('.ka-project')
 
                 for (const node of nodes) {
-                    if (!node.dataset.reference.startsWith(search)) {
+                    const label = node.querySelector('span.name')
+                    if (!node.dataset.reference.startsWith(search) && label.textContent.toLowerCase().includes(search) === false) {
                         node.style.setProperty('display', 'none')
                     } else {
                         node.style.removeProperty('display' )   
@@ -312,19 +317,20 @@ TimeInteractUI.prototype.openProject = function (project) {
 TimeInteractUI.prototype.selectProject = function (projectId) {
     return new Promise (resolve => {
         const container = document.querySelector('div.ka-container')
-        let closing = Promise.resolve()
-        if (this.hasSet.project) {
-            const prevProject = this.hasSet.project
-            const closeProject = container.querySelector(`div.ka-project[data-project="${this.hasSet.project}"`)
-            closing = this.closeProject(closeProject)
-            if (prevProject === projectId) { 
-                resolve();
-                return 
+        new Promise(resolve => {
+            if (this.hasSet.project) {
+                const prevProject = this.hasSet.project
+                const closeProject = container.querySelector(`div.ka-project[data-project="${this.hasSet.project}"`)
+                closing = this.closeProject(closeProject)
+                if (prevProject === projectId) { 
+                    resolve(false);
+                    return 
+                }
             }
-        } 
-        
-        closing
-        .then(_ => {
+            resolve(true)
+        })
+        .then(doOpen => {
+            if (!doOpen) { resolve(); return }
             const openProject = container.querySelector(`div.ka-project[data-project="${projectId}"]`)
             this.openProject(openProject)
             .then(() => {
@@ -403,6 +409,9 @@ TimeInteractUI.prototype.insertPreviousTimeEntry = function (temps) {
         const prevTimeContainer = container.querySelector('.ka-previous-time')
         const currentEntry = prevTimeContainer.querySelector(`div[data-time-id="${temps.uid}"]`)
         const newEntry = this.createPeviousTimeEntry(temps)
+        if (this.strDates.indexOf(DataUtils.shortDate(temps.get('day'))) === -1) {
+            newEntry.classList.add('ka-unmodifiable')
+        }
         if (currentEntry) {
             window.requestAnimationFrame(() => {
                 currentEntry.parentNode.replaceChild(newEntry, currentEntry)
@@ -472,7 +481,11 @@ TimeInteractUI.prototype.findLastTimeEntryForDay = function (day) {
 TimeInteractUI.prototype.showRecentTime = function () {
     return new Promise (resolve => {
         const t = []
-        for (const date of this.dates) {
+        const today = new Date()
+        today.setHours(12, 0, 0, 0)
+        for (let i = 0; i  < 30; i++) {
+            const date = new Date()
+            date.setTime(today.getTime() - (86400000 * i))
             t.push(KATemps.getByUserAndDate(this.userId, date))
         }
         Promise.all(t)
@@ -521,11 +534,16 @@ TimeInteractUI.prototype.showRecentTime = function () {
 }
 
 TimeInteractUI.prototype.selectTimeEntry = function (timeId) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
         KATemps.load(timeId)
         .then(temps => {
+            if (this.strDates.indexOf(DataUtils.shortDate(temps.get('day'))) === -1) {
+                this.alert('Entrée non-modifiable')
+                return
+            }
             this.selectProject(temps.get('project'))
             .then(_ => {
+                console.log('project selected')
                 return this.selectProcess(temps.get('process'))
             })
             .then(_ => {
@@ -537,7 +555,10 @@ TimeInteractUI.prototype.selectTimeEntry = function (timeId) {
             .then(() => {
                 this.selectDay(temps.day)
                 this.highlightTimeEntry(timeId)
-
+                resolve()
+            })
+            .catch(reason => {
+                reject(reason)
             })
         })
     })
@@ -632,6 +653,7 @@ TimeInteractUI.prototype.clearTimeBox = function () {
 
 TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, remark: null}) {
     return new Promise(resolve => {
+        console.log('show timebox')
         const container = document.querySelector('div.ka-container')
         const subcontainer = container.querySelector('div.ka-project-detail')
     
@@ -646,6 +668,7 @@ TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, r
             }
         }
 
+        if (!subcontainer) { return }
         if (subcontainer.querySelector('.ka-timebox')) { return }
 
         const timebox = document.createElement('DIV')
@@ -709,6 +732,7 @@ TimeInteractUI.prototype.delTime = function (event) {
             new Promise(resolve => {
                 window.requestAnimationFrame(() => {
                     timeEntry.parentNode.removeChild(timeEntry)
+                    this.msg('Entrée correctement surpprimée')
                     resolve()
                 })
             })
@@ -758,13 +782,18 @@ TimeInteractUI.prototype.addTime = function (event) {
         this.insertPreviousTimeEntry(temps)
         .then(() => {
             this.createPreviousTimeTotal(new Date(temps.get('day')))
+            this.msg('Entrée correctement ajoutée')
         })
     })
 
 }
 
 TimeInteractUI.prototype.alert = function (str) {
-    alert(str)
+    MsgInteractUI('error', str)
+}
+
+TimeInteractUI.prototype.msg = function (str) {
+    MsgInteractUI('info', str)
 }
 
 TimeInteractUI.prototype.handleTimeBox = function (event) {

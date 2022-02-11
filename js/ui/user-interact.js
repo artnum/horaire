@@ -62,6 +62,7 @@ UserInteractUI.prototype.doLogin = function (event) {
         const keyopt = person.get('keyopt').split(' ', 2)
         const hashedPassword = sjcl.codec.base64.fromBits(sjcl.misc.pbkdf2(password, sjcl.codec.base64.toBits(keyopt[1]), parseInt(keyopt[0]))) //=== this.entry.key) {
         if (hashedPassword === person.get('key')) {
+            MsgInteractUI('info', 'Authentification réussie')
             this.eventTarget.dispatchEvent(new CustomEvent('user-login', {detail: {userId: person.uid}}))
             window.requestAnimationFrame(() => {
                 for (const userbox of userboxes) {
@@ -69,6 +70,7 @@ UserInteractUI.prototype.doLogin = function (event) {
                 }
             })
         } else {
+            MsgInteractUI('error', 'Erreur d\'authentification')
             window.requestAnimationFrame(() => {
                 for (const userbox of userboxes) {
                     userbox.style.removeProperty('display')
