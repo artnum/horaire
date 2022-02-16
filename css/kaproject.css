@@ -7,10 +7,10 @@
 .ka-project, .ka-userbox, .ka-login, .ka-search input {
     display: block;
     margin: auto;
-    min-width: 38ch;
-    max-width: 33%;
-    min-height: 4ex;
-    max-height: 4ex;
+    min-width: 45%;
+    max-width: 45%;
+    min-height: 8ex;
+    max-height: 8ex;
     border: 2px solid black;
     margin: 0.5ex 2ch;
     overflow: hidden;
@@ -22,8 +22,8 @@
 .ka-search {
     padding: 0;
     margin: 0;
-    min-width: 38ch;
-    max-width: 33%;
+    min-width: 45%;
+    max-width: 45%;
 }
 
 .ka-search input {
@@ -77,8 +77,8 @@
     cursor: pointer;
     padding: 0.5ex 0.5ch;
     display: inline-block;
-    min-height: 4ex;
-    max-height: 4ex;
+    min-height: 8ex;
+    max-height: 8ex;
     overflow: hidden;
     text-overflow: clip;
 }

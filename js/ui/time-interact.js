@@ -139,13 +139,17 @@ TimeInteractUI.prototype.showHeader = function () {
 
 TimeInteractUI.prototype.closeProject = function (project) {
     return new Promise(resolve => {
+        const container = document.querySelector('div.ka-container')
+
+        if (!project) {
+            project = container.querySelector(`div.ka-project[data-project="${this.hasSet.project}"`)
+        }
         delete project.dataset.open
 
         this.hasSet.project = null
         this.hasSet.travail = null
         this.hasSet.process = null
         this.day = null
-        const container = document.querySelector('div.ka-container')
         const unhide = []
         for (let node = container.firstElementChild; node; node = node.nextElementSibling) {
             if (node.dataset.project !== project.dataset.project) {
@@ -535,15 +539,17 @@ TimeInteractUI.prototype.showRecentTime = function () {
 
 TimeInteractUI.prototype.selectTimeEntry = function (timeId) {
     return new Promise((resolve, reject) => {
-        KATemps.load(timeId)
-        .then(temps => {
+        Promise.all([
+            KATemps.load(timeId),
+            this.closeProject()
+        ])
+        .then(([temps]) => {
             if (this.strDates.indexOf(DataUtils.shortDate(temps.get('day'))) === -1) {
                 this.alert('Entrée non-modifiable')
                 return
             }
             this.selectProject(temps.get('project'))
             .then(_ => {
-                console.log('project selected')
                 return this.selectProcess(temps.get('process'))
             })
             .then(_ => {
@@ -653,7 +659,6 @@ TimeInteractUI.prototype.clearTimeBox = function () {
 
 TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, remark: null}) {
     return new Promise(resolve => {
-        console.log('show timebox')
         const container = document.querySelector('div.ka-container')
         const subcontainer = container.querySelector('div.ka-project-detail')
     
@@ -667,7 +672,7 @@ TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, r
                 if (!this.hasSet[k] && this.mustHave[k]) { return }
             }
         }
-
+        
         if (!subcontainer) { return }
         if (subcontainer.querySelector('.ka-timebox')) { return }
 
