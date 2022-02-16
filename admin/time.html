@@ -23,6 +23,18 @@
     <label for="project">Projet : </label>
     <input name="project" autocomplete="off" id="selectProject" type="text" />
     <label for="process">Processus : </label><select data-source="Process" data-options="{label: '$name', id: 'id', parameters: {'search.deleted': '-'}}" name="process"></select><br />
+    <fieldset>
+      <legend>Répétition</legend>
+      <label for="upTo">Jusqu'au: </label><input type="date" name="upTo" /><br>
+      <label for="day1"><input type="checkbox" checked="true" name="day1"/> Lundi</label>
+      <label for="day2"><input type="checkbox" checked="true" name="day2"/> Mardi</label>
+      <label for="day3"><input type="checkbox" checked="true" name="day3"/> Mercredi</label>
+      <label for="day4"><input type="checkbox" checked="true" name="day4"/> Jeudi</label>
+      <label for="day5"><input type="checkbox" checked="true" name="day5"/> Vendredi</label>
+      <label for="day6"><input type="checkbox" name="day6"/> Samedi</label>
+      <label for="day0"><input type="checkbox" name="day0"/> Dimanche</label>
+    </fieldset>
+    <br>
     <input type="submit" value="Ajouter" />
   </form>
   <table id="addResults" style="display: none">
@@ -407,23 +419,33 @@ function addTime (event) {
   var dataSource = event.target.getAttribute('data-source')
   var form = Admin.getForm(event.target)
   var hour = new Hour(form.hour)
-   if (hour.value !== 0) {
-    Artnum.Query.exec(Artnum.Path.url(dataSource), {method: 'POST',
-      body: {day: (new Date(form.day)).toISOString().split('T')[0], value: hour.value, person: form.person, project: form.project, process: form.process, comment: form.comment}}).then(function (result) {
-      if (result.success && result.length === 1) {
-        Artnum.Query.exec(Artnum.Path.url(dataSource + '/' + result.data[0].id)).then(function (result) {
-          if (result.success && result.length === 1) {
-            var table = document.getElementById('addResults')
-            if (table.getAttribute('style')) {
-              table.removeAttribute('style')
+  event.target.reset()
+  if (hour.value !== 0) {
+
+    let upTo = new Date(form.day)
+    if (form.upTo !== null) {
+      upTo = new Date(form.upTo)
+    }
+
+    for (let day = new Date(form.day); day.toISOString().split('T')[0] <= upTo.toISOString().split('T')[0]; day.setTime(day.getTime() + 86400000)) {
+      if (form[`day${day.getDay()}`] === false) { continue; }
+      Artnum.Query.exec(Artnum.Path.url(dataSource), {method: 'POST',
+        body: {day: day.toISOString().split('T')[0], value: hour.value, person: form.person, project: form.project, process: form.process, comment: form.comment}}).then(function (result) {
+        if (result.success && result.length === 1) {
+          Artnum.Query.exec(Artnum.Path.url(dataSource + '/' + result.data[0].id)).then(function (result) {
+            if (result.success && result.length === 1) {
+              var table = document.getElementById('addResults')
+              if (table.getAttribute('style')) {
+                table.removeAttribute('style')
+              }
+              var tbody = table;
+              for (tbody = table.firstChild; tbody.nodeName !== 'TBODY'; tbody = tbody.nextSibling);
+              tbody.appendChild(makeEntry2(Array.isArray(result.data) ? result.data[0] : result.data))
             }
-            var tbody = table;
-            for (tbody = table.firstChild; tbody.nodeName !== 'TBODY'; tbody = tbody.nextSibling);
-            tbody.appendChild(makeEntry2(Array.isArray(result.data) ? result.data[0] : result.data))
-          }
-        })
-      }
-    }) 
+          })
+        }
+      })
+    }
   } else {
     
   }
