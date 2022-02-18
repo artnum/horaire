@@ -419,7 +419,15 @@ function addTime (event) {
   var dataSource = event.target.getAttribute('data-source')
   var form = Admin.getForm(event.target)
   var hour = new Hour(form.hour)
-  event.target.reset()
+  document.querySelector('input[name="upTo"]').value = ''
+  document.querySelector('input[name="project"]').value = ''
+  document.querySelector('input[name="day6"]').checked = false
+  document.querySelector('input[name="day0"]').checked = false
+  document.querySelector('input[name="day1"]').checked = true
+  document.querySelector('input[name="day2"]').checked = true
+  document.querySelector('input[name="day3"]').checked = true
+  document.querySelector('input[name="day4"]').checked = true
+  document.querySelector('input[name="day5"]').checked = true
   if (hour.value !== 0) {
 
     let upTo = new Date(form.day)
