@@ -1,5 +1,9 @@
 <?PHP
 include('artnum/autoload.php');
+require('../../../lib/ini.php');
+require('../../../lib/dbs.php');
+
+
 include('pdf.php');
 include('artnum/bvrkey.php');
 include('../../../lib/barcode/barcode.php');
@@ -15,8 +19,8 @@ $JClient = new artnum\JRestClient(
   $_SERVER['SERVER_NAME'] .
   implode('/', $path));
 
-$pdo = new PDO('sqlite:../../../db/horaire.sqlite3');
-$pdo->exec('PRAGMA foreign_keys = YES;');
+  $ini_conf = load_ini_configuration();
+  $pdo = init_pdo($ini_conf);
 
 if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
   $st = $pdo->prepare('SELECT * FROM "project" WHERE "project_id" = :id');
@@ -108,7 +112,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     foreach(array('1' => 'Client',
                   '2' => 'Téléphone',
                   '3' => 'Adresse') as $item => $label) {
-
+      if ($client === null) { continue ; }
       $PDF->SetFont('helvetica', '', 8);
       $PDF->printLn($label);
       $PDF->SetFont('helvetica', 'B', 10);
