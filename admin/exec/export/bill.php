@@ -49,12 +49,27 @@ foreach(['Créanciers', 'Débiteurs'] as $sheetname) {
   $xlsSheet = $SS->getSheetByName($sheetname);
   $stmt;
   if (isset($_GET['paid'])) {
-    $stmt = $db->prepare('SELECT *,COALESCE((SELECT CAST(SUM("paiement_amount") AS FLOAT) FROM "paiement" WHERE "paiement_facture" = "facture_id"),0.0) AS facture_paid FROM facture WHERE  facture_paid >= "facture_amount" AND facture_deleted = 0 AND facture_type = ' . ($sheetname === 'Créanciers' ? 1 : 2));
+    $stmt = $db->prepare('SELECT * FROM facture WHERE facture_deleted = 0 AND facture_type = ' . ($sheetname === 'Créanciers' ? 1 : 2));
   } else {
-    $stmt = $db->prepare('SELECT *,COALESCE((SELECT CAST(SUM("paiement_amount") AS FLOAT) FROM "paiement" WHERE "paiement_facture" = "facture_id"),0.0) AS facture_paid FROM facture WHERE  facture_paid < "facture_amount" AND facture_deleted = 0 AND facture_type = ' . ($sheetname === 'Créanciers' ? 1 : 2));
+    $stmt = $db->prepare('SELECT * FROM facture WHERE facture_deleted = 0 AND facture_type = ' . ($sheetname === 'Créanciers' ? 1 : 2));
   }
   $stmt->execute();
-  while(($row = $stmt->fetch(\PDO::FETCH_ASSOC))!==FALSE) {   
+  while(($row = $stmt->fetch(\PDO::FETCH_ASSOC))!==FALSE) {
+
+    $paid = 0;
+    $paidStmt = $db->prepare('SELECT COALESCE(CAST(SUM("paiement_amount") AS FLOAT)) AS "facture_paid" FROM "paiement" WHERE "paiement_facture" = ' . $row['facture_id']);
+    $paidStmt->execute();
+    $paidRow = $paidStmt->fetch(\PDO::FETCH_ASSOC);
+    $row['facture_paid'] = $paidRow['facture_paid'];
+    if (isset($_GET['paid'])) {
+      if ($row['facture_paid'] < $row['facture_amount']) { continue; }
+    } else {
+      if ($row['facture_paid'] >= $row['facture_amount']) { continue; }
+
+    }
+
+
+
     $dateBill = new DateTime($row['facture_date']);
     $dateDue = new DateTime($row['facture_duedate']);
     $payTime = $dateBill->diff($dateDue);
