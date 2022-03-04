@@ -444,9 +444,10 @@ foreach (['Créanciers', 'Débiteurs'] as $sheetname) {
             if ($total_paid > 0) {
                 try {
                     $stmt = $db->prepare('INSERT INTO paiement (paiement_facture, paiement_date, paiement_amount) VALUES (:id, :date, :amount);');
+                    $total_paid = strval($total_paid);
                     $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
                     $stmt->bindParam(':date', $todayStr, PDO::PARAM_STR);
-                    $stmt->bindParam(':amount', strval($total_paid), PDO::PARAM_STR);
+                    $stmt->bindParam(':amount', $total_paid, PDO::PARAM_STR);
                     $stmt->execute();
                     $out[$i + 5101 + $offset] = ['type' => 'facture', 'id' => $id[1], 'op' => 'update', 'success' => true];
                 } catch (Exception $e) {
