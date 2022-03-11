@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS "travail" ( -- table containing specific work to be d
         "travail_time" FLOAT default 0, 
         "travail_force" FLOAT DEFAULT 1.0, 
         "travail_end" VARCHAR(10), 
+		"travail_begin" VARCHAR(10) DEFAULT '', 
         "travail_plan" INTEGER DEFAULT 0, 
         "travail_group" CHAR(32),
         FOREIGN KEY("travail_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE CASCADE

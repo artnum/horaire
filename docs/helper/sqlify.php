@@ -98,6 +98,7 @@ $tables = array (
         "travail_time"  => SQLITE3_FLOAT,
         "travail_force"  => SQLITE3_FLOAT,
         "travail_end" => SQLITE3_TEXT,
+        "travail_begin" => SQLITE3_TEXT,
         "travail_plan"  => SQLITE3_INTEGER,
         "travail_group" => SQLITE3_TEXT
    ],
