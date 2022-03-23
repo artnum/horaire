@@ -1,4 +1,7 @@
 <?PHP
+require('artnum/autoload.php');
+require('../../../lib/ini.php');
+require('../../../lib/dbs.php');
 require('PHP_XLSXWriter/xlsxwriter.class.php');
 /* select * from htime left join project on htime.htime_project = project.project_id left join person on htime.htime_person = person.person_id where person_id = 1 and htime_deleted is not null; */
 
@@ -36,10 +39,13 @@ foreach (array('from', 'to') as $t) {
 }
 
 $query .= ' ORDER BY htime.htime_day ASC';
-
+$ini_conf = load_ini_configuration();
+$db = init_pdo($ini_conf);
+if (is_null($db)) {
+  throw new Exception('Storage database not reachable');
+  exit(0);
+}
 try {
-  $db = new PDO('sqlite:../../../db/horaire.sqlite3');
-  $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
   $st = $db->prepare($query);
   foreach($params as $p) {
     $st->bindValue($p[0], $p[1], $p[2]);
