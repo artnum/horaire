@@ -79,15 +79,24 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
         }
       }
     }
-    
+  
+    $DATE;
+
     if (isset($data['travail_id'])) {
+      $date = new DateTime();
+      $date->setTimestamp(intval($data['travail_created']));
+      $DATE = $date->format('d.m.Y');
       $data['bon_number'] = $data['project_reference'] . '.' . $data['travail_id'];
       $barcode_value = '0001' . sprintf('%09u', $data['travail_id']);
     } else {
+      $date = new DateTime();
+      $date->setTimestamp(intval($data['project_created']));
+      $DATE =  $date->format('d.m.Y');
       $data['bon_number'] = $data['project_reference'];
       $barcode_value = '0002' . sprintf('%09u', $data['project_id']);
     }
-    
+    $PDF->SetFont('helvetica', '', 7);
+    $PDF->printLn($DATE, ['break' => false]);
     $bcGen = new barcode_generator();
     $barcode_value .= bvrkey($barcode_value);
     $img = $bcGen->render_image('itf14', $barcode_value, ['h' => 60]);
@@ -281,6 +290,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->printLn('Nom et prénom du signataire si différent du haut :', array('break' => false));
     $PDF->drawLine(ceil($PDF->GetX()  + 3), ceil($PDF->GetY() + 3), floor($PDF->w - $PDF->rMargin - $PDF->GetX() - 3), 0, 'dotted');
     $PDF->close_block();
+
   }
   $PDF->Output($Filename, 'I');
 }
