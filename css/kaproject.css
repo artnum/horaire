@@ -240,6 +240,13 @@
     padding: 1.5ex 0;
 }
 
+.ka-time-entry .project-reference {
+    margin-left: 2ch;
+}
+
+.ka-time-entry .time {
+    font-weight: bold;
+}
 .ka-time-entry .remark {
     overflow: hidden;
     text-overflow: clip;

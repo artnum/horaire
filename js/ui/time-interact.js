@@ -402,12 +402,14 @@ TimeInteractUI.prototype.createPeviousTimeEntry = function(temps) {
     div.innerHTML = `
         <span class="day">${DataUtils.shortDate(d)}</span>
         <span class="time">${DataUtils.secToHour(temps.get('value'))}</span>
-        <span class="remark">${temps.get('comment') ? temps.get('comment') : ''}</span>
+        <span class="remark">${temps.get('comment') ? temps.get('comment') : ''}</span><br>
+        <span class="project-reference">${temps.get('_project')?.reference}</span><span class="project-remark">${temps.get('_project')?.name}</span>
         `
     return div
 }
 
 TimeInteractUI.prototype.insertPreviousTimeEntry = function (temps) {
+    console.log(temps)
     return new Promise(resolve => {
         const container = document.querySelector(`div.ka-project[data-project="${this.hasSet.project}"]`)
         const prevTimeContainer = container.querySelector('.ka-previous-time')
