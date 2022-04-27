@@ -61,6 +61,9 @@ function TimeInteractUI (userId) {
                             .then(_ => {
                                 if (travail.data[0].status) {
                                     this.selectProcess(travail.data[0].status)
+                                    .then(_ => {
+                                        this.showTimeBox()
+                                    })
                                 }
                             })
                         })
