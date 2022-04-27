@@ -13,14 +13,22 @@ for ($i = 0; $i < 4; $i++) {
   array_pop($path);
 }
 
+$ServerURL = $_SERVER['REQUEST_SCHEME'] .
+'://' .
+$_SERVER['SERVER_NAME'] .
+implode('/', $path);
+
 $JClient = new artnum\JRestClient(
   $_SERVER['REQUEST_SCHEME'] .
   '://' .
   $_SERVER['SERVER_NAME'] .
   implode('/', $path));
 
-  $ini_conf = load_ini_configuration();
-  $pdo = init_pdo($ini_conf);
+
+$ini_conf = load_ini_configuration();
+$pdo = init_pdo($ini_conf);
+
+$KAIROSClient = new artnum\JRestClient($ini_conf['kairos']['url'] . '/store/');
 
 if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
   $st = $pdo->prepare('SELECT * FROM "project" WHERE "project_id" = :id');
@@ -47,7 +55,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     if (!$st) { die('Erreur de base de données'); }
     $st->bindParam(':project', $_GET['pid'], PDO::PARAM_INT);
     if (!$st->execute()) { die('Erreur de base de données'); }
-    if (!($tdata = $st->fetchAll())) { $tdata = array(array('travail_reference' => '', 'travail_meeting' => '', 'travail_contact' => '', 'travail_phone' => '', 'travail_progress' => '')); }
+    if (!($tdata = $st->fetchAll())) { $tdata = array(array('travail_reference' => '', 'travail_meeting' => '', 'travail_contact' => '', 'travail_phone' => '', 'travail_progress' => '', 'travail_status' => '')); }
   }
 
   $Filename= sprintf('%s.pdf', $pdata['project_reference']);
@@ -64,10 +72,6 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->AddPage('P', 'a4');
     $PDF->SetFont('helvetica', '', 12);   
     $PDF->block('head');
-    $y = $PDF->GetY();
-    $PDF->SetY($y + 8);
-    $PDF->squaredFrame(37, array('line-type' => 'dotted', 'square' => 9, 'lined' => true));
-    $PDF->SetY($y);
 
     $client = null;
     if (!empty($data['project_client'])) {
@@ -80,28 +84,45 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       }
     }
   
+    $process = null;
+    if ($data['travail_status']) {
+      $status = $KAIROSClient->get($data['travail_status'], 'Status');
+      if ($status['length'] === 1) {
+        $process = $status['data'][0]['name'];
+      } 
+    }
+  
     $DATE;
-
     if (isset($data['travail_id'])) {
       $date = new DateTime();
       $date->setTimestamp(intval($data['travail_created']));
       $DATE = $date->format('d.m.Y');
       $data['bon_number'] = $data['project_reference'] . '.' . $data['travail_id'];
-      $barcode_value = '0001' . sprintf('%09u', $data['travail_id']);
+      $barcode_value = $ServerURL . '/#travail/' . sprintf('%u', $data['travail_id']);
     } else {
       $date = new DateTime();
       $date->setTimestamp(intval($data['project_created']));
       $DATE =  $date->format('d.m.Y');
       $data['bon_number'] = $data['project_reference'];
-      $barcode_value = '0002' . sprintf('%09u', $data['project_id']);
+      $barcode_value = $ServerURL . '/#project/' . sprintf('%u', $data['project_id']);
     }
     $PDF->SetFont('helvetica', '', 7);
-    $PDF->printLn($DATE, ['break' => false]);
+    
     $bcGen = new barcode_generator();
-    $barcode_value .= bvrkey($barcode_value);
-    $img = $bcGen->render_image('itf14', $barcode_value, ['h' => 60]);
-    imagepng($img, sys_get_temp_dir() . '/' . $barcode_value . '.png');
-    $PDF->Image(sys_get_temp_dir() . '/' . $barcode_value . '.png', 158, 12, 0, 0, 'PNG');
+    $img = $bcGen->render_image('qr', $barcode_value, ['w' => 120]);
+    imagepng($img, sys_get_temp_dir() . '/' . base64_encode($barcode_value) . '.png');
+    $PDF->Image(sys_get_temp_dir() . '/' . base64_encode($barcode_value) . '.png', 170, 2, 0, 0, 'PNG');
+    
+    $y = $PDF->GetY();
+    $x = $PDF->GetX();
+    $PDF->SetXY(184, 5); 
+    $PDF->printLn($DATE, ['break' => false]);
+    $PDF->SetXY($x, $y);
+
+    $y = $PDF->GetY();
+    $PDF->SetY($y + 8);
+    $PDF->squaredFrame(37, array('line-type' => 'dotted', 'square' => 9, 'lined' => true));
+    $PDF->SetY($y);
 
     foreach(array('bon_number' => 'N° de bon',
                   'travail_reference' => 'Référence',
@@ -194,6 +215,12 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       foreach ($lines as $line) {
         $PDF->printLn($line, ['multiline' => true]);
       }
+    }
+
+    if ($process) {
+      $PDF->printLn('Processus : ', ['break' => false]);
+      $PDF->SetFont('helvetica', 'B', 10);
+      $PDF->printLn($process);
     }
 
     $PDF->br();

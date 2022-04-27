@@ -156,7 +156,15 @@ function changeState (event) {
       <input type="hidden" value="${project.id}" name="project" />
       <label for="subref">Référence : </label><input name="subref" type="text" value="${travail.reference}" /> <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" value="${travail.meeting}" /><br>
       <label for="contact">Personne de contact : </label><input name="contact" type="text" value="${travail.contact}" /> <label for="cphone">Téléphone : </label><input name="cphone" type="text" value="${travail.phone}"/><br>
-      <label for="group">Sous-chantier: </label><input name="group" type="text" value="${$i(travail.group)}"/><br>
+      <label for="group">Sous-chantier: </label><input name="group" type="text" value="${$i(travail.group)}"/> <label for="process">Processus : </label><select name="status">
+        <option value="">- Aucun -</option>
+        <option ${parseInt(travail.status) === 1 ? 'selected' : ''} value="1">Assemblage</option>
+        <option ${parseInt(travail.status) === 2 ? 'selected' : ''}  value="2">Production</option>
+        <option ${parseInt(travail.status) === 3 ? 'selected' : ''}  value="3">Montage</option>
+        <option ${parseInt(travail.status) === 4 ? 'selected' : ''}  value="4">Absence/Malagie/Congé</option>
+        <option ${parseInt(travail.status) === 5 ? 'selected' : ''}  value="5">Transport</option>
+        </select>
+      <br>
       <label for="begin">Début souhaité :</label><input name="begin" type="date" value="${travail.begin ? travail.begin : ''}"/><label for="end">Fin souhaitée : </label><input name="end" type="date" value="${travail.end ? travail.end : ''}"/><br>
       <label for="time">Temps du projet : <input name="time" type="text" value="${time}"></label><label for="force">à un force de <input name="force" type="text" value="${travail.force ? travail.force : 1}" /></label><br>
       <span class="notice">La force représente le nombre minimal d'ouvriers ayant une efficacité de 100% (1.0) pour effectuer le travail dans le temps donné.  Le temps du projet est en heure à moins que la valeur soit préfixée par 's' pour semaine, 'j' pour jour. Un jour dure ${window.Conf.workday} heures et une semaine dure ${window.Conf.weekhours} heures.</span><br>
@@ -189,7 +197,7 @@ function changeState (event) {
      form.addEventListener('submit', (event) => {
        event.preventDefault()
        let content = window.Admin.getForm(event.target)
-       let mapping = {group: 'group', project: 'project', description: 'description', subref: 'reference', meeting: 'meeting', contact: 'contact', cphone: 'phone', time: 'time', end: 'end', begin: 'begin', force: 'force'}
+       let mapping = {group: 'group', project: 'project', description: 'description', subref: 'reference', meeting: 'meeting', contact: 'contact', cphone: 'phone', time: 'time', end: 'end', begin: 'begin', force: 'force', status: 'status'}
        let data = travail.id !== '' ?  {id: travail.id} : {}
        for (let i in mapping) {
          data[mapping[i]] = '' // init to empty string
