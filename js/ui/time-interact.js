@@ -39,6 +39,36 @@ function TimeInteractUI (userId) {
         this.strDates.push(DataUtils.shortDate(d))
     }
     this.dates = dates
+
+    if (window.location.hash) {
+        this.loadProject()
+        .then(_ => {
+            const [type, id] = window.location.hash.split('/')
+            window.location.hash = ''
+            if (type === '#project') {
+                this.loadProject()
+                .then(_ => {
+                    this.selectProject(id)
+                }
+            } else {
+                kafetch(KAAL.url(`Travail/${id}`))
+                .then(travail => {
+                    if (travail.length === 1) {
+                        console.log(travail.data[0])
+                        this.selectProject(travail.data[0].project)
+                        .then(_ => {
+                            this.selectTravail(id)
+                            .then(_ => {
+                                if (travail.data[0].status) {
+                                    this.selectProcess(travail.data[0].status)
+                                }
+                            })
+                        })
+                    }
+                })
+            }
+        })
+    }
 }
 
 TimeInteractUI.prototype.addEventListener = function (type, listener, options = {}) {
@@ -53,33 +83,36 @@ TimeInteractUI.prototype.run = function () {
 }
 
 TimeInteractUI.prototype.loadProject = function () {
-    kafetch(KAAL.url('Project/_query'), {method: 'POST', body: JSON.stringify({
-        '#and': {
-            deleted: '-',
-            closed: '-'
-        }
-    })})
-    .then(projects => {
-        const container = document.querySelector('div.ka-container')
-        for (const project of projects.data) {
-            const kaproject = KAProject.create(project)
-            const div = document.createElement('DIV')
-            div.classList.add('ka-project')
-            div.dataset.project = kaproject.id
-            div.dataset.reference = kaproject.reference.toLowerCase()
-            div.innerHTML = `<span class="reference">${kaproject.reference}</span><span class="name">${kaproject.name}</span>`
-            window.requestAnimationFrame(() => {
-                container.appendChild(div)
-            })
-            div.addEventListener('click', event => {
-                let node = event.target
-                while (node && !node.dataset.project) {
-                    if (node.classList.contains('ka-project-detail') || node.classList.contains('ka-previous-time')) { return } // we click on detail, so we don't handle event there
-                    node = node.parentNode 
-                }
-                this.selectProject(node.dataset.project)
-            })
-        }
+    return new Promise((resolve, reject) => {
+        kafetch(KAAL.url('Project/_query'), {method: 'POST', body: JSON.stringify({
+            '#and': {
+                deleted: '-',
+                closed: '-'
+            }
+        })})
+        .then(projects => {
+            const container = document.querySelector('div.ka-container')
+            for (const project of projects.data) {
+                const kaproject = KAProject.create(project)
+                const div = document.createElement('DIV')
+                div.classList.add('ka-project')
+                div.dataset.project = kaproject.id
+                div.dataset.reference = kaproject.reference.toLowerCase()
+                div.innerHTML = `<span class="reference">${kaproject.reference}</span><span class="name">${kaproject.name}</span>`
+                window.requestAnimationFrame(() => {
+                    container.appendChild(div)
+                })
+                div.addEventListener('click', event => {
+                    let node = event.target
+                    while (node && !node.dataset.project) {
+                        if (node.classList.contains('ka-project-detail') || node.classList.contains('ka-previous-time')) { return } // we click on detail, so we don't handle event there
+                        node = node.parentNode 
+                    }
+                    this.selectProject(node.dataset.project)
+                })
+            }
+            resolve()
+        })
     })
 }
 
