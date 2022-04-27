@@ -107,6 +107,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
 
     /* start pdf page */
     $PDF->set('color-type', $colorType);
+    $PDF->set('work-type', $process);
     $PDF->AddPage('P', 'a4');
     $PDF->SetFont('helvetica', '', 12);   
     $PDF->block('head');
@@ -219,12 +220,6 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       foreach ($lines as $line) {
         $PDF->printLn($line, ['multiline' => true]);
       }
-    }
-
-    if ($process) {
-      $PDF->printLn('Processus : ', ['break' => false]);
-      $PDF->SetFont('helvetica', 'B', 10);
-      $PDF->printLn($process);
     }
 
     $PDF->br();

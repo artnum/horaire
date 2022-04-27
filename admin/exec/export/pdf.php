@@ -31,10 +31,20 @@ class HorairePDF extends artnum\PDF {
       $this->background_block('#FFFFFF');
     }
     if ($this->Options['doctype'] !== 'R') {
-      $this->printLn('Bon de Travail');
+      $this->printLn('Bon de Travail', ['break' => false]);
     } else {
-      $this->printLn('Régie');
+      $this->printLn('Régie', ['break' => false]);
     }
+    if ($this->get('work-type')) {
+      $this->setFontSize(3);
+      $r = $this->rMargin;
+      $this->rMargin = 46;
+      $this->printLn($this->get('work-type'), ['break' => false, 'align' => 'right']);
+      $this->rMargin = $r;
+    } 
+    
+    $this->br();
+    
     $this->close_block();
     $this->setColor('black');
     if (!empty($this->Options['name'])) {
