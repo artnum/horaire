@@ -69,10 +69,6 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
   $PDF->addTab(130);
   foreach($tdata as $t) {
     $data = array_merge($pdata, $t);
-    $PDF->AddPage('P', 'a4');
-    $PDF->SetFont('helvetica', '', 12);   
-    $PDF->block('head');
-
     $client = null;
     if (!empty($data['project_client'])) {
       $uri = explode('/', $data['project_client']);
@@ -85,10 +81,12 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     }
   
     $process = null;
+    $colorType = '#FFFFFF';
     if ($data['travail_status']) {
       $status = $KAIROSClient->get($data['travail_status'], 'Status');
       if ($status['length'] === 1) {
         $process = $status['data'][0]['name'];
+        $colorType = $status['data'][0]['color'];
       } 
     }
   
@@ -106,6 +104,12 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       $data['bon_number'] = $data['project_reference'];
       $barcode_value = $ServerURL . '/#project/' . sprintf('%u', $data['project_id']);
     }
+
+    /* start pdf page */
+    $PDF->set('color-type', $colorType);
+    $PDF->AddPage('P', 'a4');
+    $PDF->SetFont('helvetica', '', 12);   
+    $PDF->block('head');
     $PDF->SetFont('helvetica', '', 7);
     
     $bcGen = new barcode_generator();

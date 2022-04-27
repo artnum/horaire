@@ -17,12 +17,28 @@ class HorairePDF extends artnum\PDF {
   function Header() {
     $this->SetXY(15, 15);
     $this->SetFont('helvetica', 'B', 16);
+    $this->block('title');
+    if ($this->get('color-type')) {
+      $this->background_block($this->get('color-type'));
+      $color = $this->get('color-type');
+      $r = pow(hexdec(substr($color, 1, 2)) / 255, 2.2);
+      $g = pow(hexdec(substr($color, 3, 2)) / 255, 2.2);
+      $b = pow(hexdec(substr($color, 5, 2)) / 255, 2.2);
+      if (0.2126 * $r + 0.7151 * $g + 0.0721 * $b < 0.5) {
+        $this->setColor('white');
+      }
+    } else {
+      $this->background_block('#FFFFFF');
+    }
     if ($this->Options['doctype'] !== 'R') {
       $this->printLn('Bon de Travail');
     } else {
       $this->printLn('Régie');
     }
+    $this->close_block();
+    $this->setColor('black');
     if (!empty($this->Options['name'])) {
+      $this->SetY($this->GetY() + 1);
       $this->SetFontSize(4);
       $name = $this->Options['name'];
       if ($this->getStringWidth($this->Options['name']) > 130) {
