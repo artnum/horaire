@@ -49,7 +49,7 @@ function TimeInteractUI (userId) {
                 this.loadProject()
                 .then(_ => {
                     this.selectProject(id)
-                }
+                })
             } else {
                 kafetch(KAAL.url(`Travail/${id}`))
                 .then(travail => {
