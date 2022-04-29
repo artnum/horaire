@@ -105,6 +105,28 @@ function changeState (event) {
   load()
 }
 
+function createBTTravail (kaproject) {
+  const data = {
+    reference: `BT ${kaproject.reference}`,
+    project: kaproject.id
+  }
+  return new Promise((resovle, reject) => {
+    Artnum.Query.exec(Artnum.Path.url(`Travail/`), {method: 'POST', body: data})
+    .then((result) => {
+         if (result.success) {
+           let tid = result.data[0].id
+           UIKADisplayProject(kaproject.id)
+           .then(kaproject => {
+             showHideTravaux(kaproject, true)
+           })
+         } else {
+           alert('Une erreur est survenue')
+         }
+       })
+  })
+}
+
+
  async function newTravailEvent (event) {
    let params = {}
    if (event.target.dataset.travail) {
@@ -169,7 +191,7 @@ function changeState (event) {
       <label for="time">Temps du projet : <input name="time" type="text" value="${time}"></label><label for="force">à un force de <input name="force" type="text" value="${travail.force ? travail.force : 1}" /></label><br>
       <span class="notice">La force représente le nombre minimal d'ouvriers ayant une efficacité de 100% (1.0) pour effectuer le travail dans le temps donné.  Le temps du projet est en heure à moins que la valeur soit préfixée par 's' pour semaine, 'j' pour jour. Un jour dure ${window.Conf.workday} heures et une semaine dure ${window.Conf.weekhours} heures.</span><br>
       <label for="description>">Description du travail</label><br>
-      <textarea name="description">${travail.description ? travail.description : project.name}</textarea><br>
+      <textarea name="description">${travail.description ? travail.description : ''}</textarea><br>
       <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
      </form>`, `Travail pour ${project.reference} - ${project.name}`)
 
@@ -338,7 +360,11 @@ function changeState (event) {
           
           UIKADisplayProject(result.data)
           .then(kaproject => {
-            newTravailPopup({project: kaproject.id, first: true})
+            if (String(kaproject.reference).startsWith('R')) {
+              newTravailPopup({project: kaproject.id, first: true})
+            } else {
+              createBTTravail(kaproject)
+            }
             addRunning = false
           })
           Admin.setFormInputValue(form, 'reference')
