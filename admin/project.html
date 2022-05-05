@@ -184,7 +184,8 @@ function createBTTravail (kaproject) {
         <option ${parseInt(travail.status) === 2 ? 'selected' : ''}  value="2">Production</option>
         <option ${parseInt(travail.status) === 3 ? 'selected' : ''}  value="3">Montage</option>
         <option ${parseInt(travail.status) === 4 ? 'selected' : ''}  value="4">Absence/Malagie/Congé</option>
-        <option ${parseInt(travail.status) === 5 ? 'selected' : ''}  value="5">Transport</option>
+        <option ${parseInt(travail.status) === 5 ? 'selected' : ''}  value="5">Logistique</option>
+        <option ${parseInt(travail.status) === 9 ? 'selected' : ''}  value="5">Bureau</option>
         </select>
       <br>
       <label for="begin">Début souhaité :</label><input name="begin" type="date" value="${travail.begin ? travail.begin : ''}"/><label for="end">Fin souhaitée : </label><input name="end" type="date" value="${travail.end ? travail.end : ''}"/><br>
