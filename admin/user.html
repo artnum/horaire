@@ -32,12 +32,13 @@
       <option value="32">Gestion temps, projet et processus</option>
       <option value="16">Gestion de tout</option>
     </select></label><br/>
+    <label for="order">Ordre au planning : <input name="order" type="text" /><br>
     <input type="submit" value="Ajouter" />
 </form>
 <h2>Utilisateurs existants</h2>
 <form>
    <table id="users" data-source="Person">
-    <thead class="darkbg"><tr><th>Nom</th><th>Utilisateur</th><th data-sort-type="float">Efficacité</th><th data-sort-type="float">Prix horaire</th><th data-sort-type="bool">Actif</th><th data-sort-type="integer">Niveau</th><th data-sort-type="no">Action</th></tr></thead>
+    <thead class="darkbg"><tr><th>Nom</th><th>Utilisateur</th><th data-sort-type="float">Efficacité</th><th data-sort-type="float">Prix horaire</th><th data-sort-type="bool">Actif</th><th data-sort-type="integer">Niveau</th><th data-sort-type="integer">Ordre au planning</th></th><th data-sort-type="no">Action</th></tr></thead>
     <tbody>
     </tbody>
   </table>
@@ -77,6 +78,7 @@
          </select></label><br/>
          <label for="password">Mot de passe : <input type="password" name="password" value=""></label><br><span class="notice" data-name="password-modified">Le mot de passe ne sera pas modifié</span><br>
          <label for="disabled"> Désactiver : <input type="checkbox" name="disabled" ${user.disabled === '0' ? '' : 'checked'} /></label><br>
+         <label for="order">Ordre au planning : <input name="order" type="text" value="${user.order}"/><br>
          <button type="submit">Sauver</button><button type="reset">Annuler</button>
          </form>
        `, `Modifier utilisateur ${user.name}`, {closable: true})
@@ -110,7 +112,7 @@
                return
              }
            }
-           let mapping = {username: 'username', name: 'name', efficiency: 'efficiency', level: 'level'}
+           let mapping = {username: 'username', name: 'name', efficiency: 'efficiency', level: 'level', order: 'order'}
            let body = {disabled: content.disabled ? '1' : '0'}
            for (let i in mapping) {
              if (content[i] && content[i] !== null) {
@@ -186,10 +188,12 @@
          <td>${entry.efficiency}</td>
          <td>${entry.price}</td>
          <td>${(entry.disabled === '0' ? 'oui' : 'non')}</td>
-         <td>${level}</td><td>
+         <td>${level}</td>
+         <td>${entry.order}</td>
+         <td>
          <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="edit">Modifier</button>
          <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="pricing">Tarif horaire</button>
-         <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="delete">Supprimer</button>
+         <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="delete">Supprimer</button></td>
 `
      }
      resolve(tr)
@@ -218,7 +222,7 @@
     var forms = document.getElementsByTagName('FORM')
     forms[0].addEventListener('submit', async function (event) {
       event.preventDefault()
-      var user = { name: null, efficiency: 1.0, key: null, keyopt: null, password: null, admin: false, user: false, username: null }
+      var user = { name: null, efficiency: 1.0, key: null, keyopt: null, password: null, admin: false, user: false, username: null, order: 0 }
       
       
       ; ['INPUT', 'SELECT'].forEach((ename) => {
@@ -247,6 +251,10 @@
               user.level = parseInt(inputs[i].value)
               inputs[i].value = 256
               break
+            case 'order':
+              user.order = parseInt(inputs[i].value)
+              inputs[i].value = 0
+              break
           }
         }
       })
@@ -258,7 +266,7 @@
       }
 
       if (user.key && user.name && user.keyopt && user.username && user.level) {
-        Artnum.Query.exec(Artnum.Path.url('Person'), {method: 'POST', body: {level: user.level, name: user.name, key: user.key, keyopt: user.keyopt, username: user.username}}).then(function (result) {
+        Artnum.Query.exec(Artnum.Path.url('Person'), {method: 'POST', body: {order: user.order, level: user.level, name: user.name, key: user.key, keyopt: user.keyopt, username: user.username}}).then(function (result) {
           if (!result.success && result.length !== 1) {
             alert('Erreur de création des utilisateur')
           } else {
