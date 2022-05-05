@@ -209,10 +209,28 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       }
     }
 
+    $dateFormater = new IntlDateFormatter(
+      'fr_CH',  IntlDateFormatter::FULL,
+      IntlDateFormatter::FULL,
+      'Europe/Zurich',
+      IntlDateFormatter::GREGORIAN,
+      'EEEE, dd MMMM y'
+    );
     
+    if (empty($data['travail_begin']) || is_null($data['travail_begin'])) {
+      $data['travail_begin'] = new DateTime();
+    } else {
+      $data['travail_begin'] = new DateTime($data['travail_begin']);
+    }
+
     $PDF->block('description');
     $PDF->SetFont('helvetica', 'B', 10);
-    $PDF->printLn('Description du travail');
+    $PDF->printLn('Description du travail', ['break' => false]);
+    $PDF->SetFont('helvetica', '', 10);
+    $PDF->tab(1);
+    $PDF->printLn('Début souhaité : ', ['break' => false]);
+    $PDF->SetFont('helvetica', 'B', 10);
+    $PDF->printLn(trim($dateFormater->format($data['travail_begin'])));
     $PDF->hr();
     $PDF->SetFont('helvetica', '', 10);
     if (!empty($data['travail_description'])) {
