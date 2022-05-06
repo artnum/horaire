@@ -1,3 +1,9 @@
+:root {
+    --ka-button-background-color: darkblue;
+    --ka-button-color: white;
+    --ka-button-blended-bg: lavender;
+}
+
 .ka-container {
     display: flex;
     align-items: center;
@@ -158,8 +164,8 @@
 }
 
 .ka-button[data-open="true"] > .name {
-    background-color: darkblue;
-    color: white;
+    background-color: var(--ka-button-background-color);
+    color: var(--ka-button-color);
     transition:ease-in-out 0.3s;
 }
 
@@ -177,7 +183,7 @@
 }
 
 .ka-project-detail .reference {
-    background-color: lavender;
+    background-color: var(--ka-button-blended-bg);
     color: black;
     max-height: 2ex;
     min-height: 2ex;

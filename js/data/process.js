@@ -16,7 +16,7 @@ KAProcess.create = function (project) {
 KAProcess.load = function (projectId) {
     return new Promise((resolve, reject) => {
         if (DataUtils.empty(projectId)) { resolve (new KAProcess()); return }
-        kafetch(`${KAAL.getBase()}/Process/${projectId.toId()}`)
+        kafetch(`${KAAL.kairos.url}/store/Status/${projectId.toId()}`)
         .then(project => {
             if (project.length !== 1) { reject('Projet inconnu'); return }
             resolve(KAProcess.create(project.data[0]))
@@ -29,9 +29,10 @@ KAProcess.load = function (projectId) {
 
 KAProcess.list = function () {
     return new Promise((resolve, reject) => {
-        kafetch(`${KAAL.getBase()}/Process/_query`, {method: 'POST', body: JSON.stringify({'#and': {deleted: '--', name: '**'}})})
+        kafetch(`${KAAL.kairos.url}/store/Status/_query`, {method: 'POST', body: JSON.stringify({'#and': {name: '**', type: 1}})})
         .then(processes => {
             const p = []
+            if (!processes.data) { resolve(p); return }
             for (const process of processes.data) {
                 p.push(KAProcess.create(process))
             }

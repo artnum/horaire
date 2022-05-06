@@ -54,7 +54,6 @@ function TimeInteractUI (userId) {
                 kafetch(KAAL.url(`Travail/${id}`))
                 .then(travail => {
                     if (travail.length === 1) {
-                        console.log(travail.data[0])
                         this.selectProject(travail.data[0].project)
                         .then(_ => {
                             this.selectTravail(id)
@@ -270,6 +269,10 @@ TimeInteractUI.prototype.openProject = function (project) {
                 for (const process of processes) {
                     const div = document.createElement('DIV')
                     div.classList.add('ka-button')
+                    const kolor = new Kolor(process.get('color'))
+                    div.style.setProperty('--ka-button-background-color', process.get('color'))
+                    div.style.setProperty('--ka-button-color', kolor.foreground())
+                    div.style.setProperty('--ka-button-blended-bg', kolor.alpha(0.4))
                     div.innerHTML = `<span class="reference">${process.get('reference')}</span> <span class="name">${process.get('name')}</name>`
                     div.dataset.process = process.uid
                     chain.then(() => {
@@ -445,7 +448,6 @@ TimeInteractUI.prototype.createPeviousTimeEntry = function(temps) {
 }
 
 TimeInteractUI.prototype.insertPreviousTimeEntry = function (temps) {
-    console.log(temps)
     return new Promise(resolve => {
         const container = document.querySelector(`div.ka-project[data-project="${this.hasSet.project}"]`)
         const prevTimeContainer = container.querySelector('.ka-previous-time')
