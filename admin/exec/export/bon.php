@@ -63,10 +63,16 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     'doctype' => substr($pdata['project_reference'], 0, 1),
     'name' => $pdata['project_name']
   ));
+
+  $PDF->addTaggedFont('h', 'helvetica', '', '');
+  $PDF->addTaggedFont('b', 'helvetica', 'B', '');
   $PDF->SetAutoPageBreak(false);
   $PDF->SetMargins(15,30, 10);
   $PDF->addTab('middle');
   $PDF->addTab(130);
+  $PDF->addTab(60);
+  $PDF->addTab('right');
+
   foreach($tdata as $t) {
     $data = array_merge($pdata, $t);
     $client = null;
@@ -114,7 +120,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetFont('helvetica', '', 7);
     
     $bcGen = new barcode_generator();
-    $img = $bcGen->render_image('qr', $barcode_value, ['w' => 120]);
+    $img = $bcGen->render_image('qr', $barcode_value, ['w' => 140]);
     imagepng($img, sys_get_temp_dir() . '/' . base64_encode($barcode_value) . '.png');
     $PDF->Image(sys_get_temp_dir() . '/' . base64_encode($barcode_value) . '.png', 170, 2, 0, 0, 'PNG');
     
@@ -223,14 +229,25 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       $data['travail_begin'] = new DateTime($data['travail_begin']);
     }
 
+    if (empty($data['travail_end']) || is_null($data['travail_end'])) {
+      $data['travail_end'] =  $data['travail_begin'];
+    } else {
+      $data['travail_end'] = new DateTime($data['travail_end']);
+    }
+
     $PDF->block('description');
     $PDF->SetFont('helvetica', 'B', 10);
     $PDF->printLn('Description du travail', ['break' => false]);
     $PDF->SetFont('helvetica', '', 10);
-    $PDF->tab(1);
-    $PDF->printLn('Début souhaité : ', ['break' => false]);
+    $PDF->tab(3);
+    $PDF->printLn('Début : ', ['break' => false]);
     $PDF->SetFont('helvetica', 'B', 10);
-    $PDF->printLn(trim($dateFormater->format($data['travail_begin'])));
+    $PDF->printLn(trim($dateFormater->format($data['travail_begin'])), ['break' => false]);
+
+    $PDF->tab(4);
+    $PDF->printTaggedLn(['Fin : ', '%h',  trim($dateFormater->format($data['travail_end'])), '%b'], ['align' => 'right']);
+    
+
     $PDF->hr();
     $PDF->SetFont('helvetica', '', 10);
     if (!empty($data['travail_description'])) {
