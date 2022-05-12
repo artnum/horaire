@@ -189,8 +189,7 @@ function createBTTravail (kaproject) {
         </select>
       <br>
       <label for="begin">Début souhaité :</label><input name="begin" type="date" value="${travail.begin ? travail.begin : ''}"/><label for="end">Fin souhaitée : </label><input name="end" type="date" value="${travail.end ? travail.end : ''}"/><br>
-      <label for="time">Temps du projet : <input name="time" type="text" value="${time}"></label><label for="force">à un force de <input name="force" type="text" value="${travail.force ? travail.force : 1}" /></label><br>
-      <span class="notice">La force représente le nombre minimal d'ouvriers ayant une efficacité de 100% (1.0) pour effectuer le travail dans le temps donné.  Le temps du projet est en heure à moins que la valeur soit préfixée par 's' pour semaine, 'j' pour jour. Un jour dure ${window.Conf.workday} heures et une semaine dure ${window.Conf.weekhours} heures.</span><br>
+      <label for="time">Temps total du projet : <input name="time" type="text" value="${time}"></label><label for="force">Nombre de personne : <input name="force" type="text" value="${travail.force ? travail.force : 1}" /></label><br>
       <label for="description>">Description du travail</label><br>
       <textarea name="description">${travail.description ? travail.description : ''}</textarea><br>
       <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
