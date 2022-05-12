@@ -21,12 +21,7 @@ class HorairePDF extends artnum\PDF {
     if ($this->get('color-type')) {
       $this->background_block($this->get('color-type'));
       $color = $this->get('color-type');
-      $r = pow(hexdec(substr($color, 1, 2)) / 255, 2.2);
-      $g = pow(hexdec(substr($color, 3, 2)) / 255, 2.2);
-      $b = pow(hexdec(substr($color, 5, 2)) / 255, 2.2);
-      if (0.2126 * $r + 0.7151 * $g + 0.0721 * $b < 0.5) {
-        $this->setColor('white');
-      }
+      $this->setColor($this->getBWFromColor($color));
     } else {
       $this->background_block('#FFFFFF');
     }

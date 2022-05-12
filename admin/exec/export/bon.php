@@ -116,9 +116,12 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->set('work-type', $process);
     $PDF->AddPage('P', 'a4');
     $PDF->SetFont('helvetica', '', 12);   
+  
     $PDF->block('head');
+    $PDF->SetFontSize(3.2);
+    if (!empty($data['travail_group'])) { $PDF->printTaggedLn(['%h', 'Sous-projet : ', '%b', $data['travail_group']]); $PDF->br(); }
     $PDF->SetFont('helvetica', '', 7);
-    
+
     $bcGen = new barcode_generator();
     $img = $bcGen->render_image('qr', $barcode_value, ['w' => 140]);
     imagepng($img, sys_get_temp_dir() . '/' . base64_encode($barcode_value) . '.png');
@@ -150,6 +153,8 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       $PDF->printLn($data[$item] ? $data[$item] : ' ');
     }
     $PDF->reset();
+    $PDF->SetY($y);
+
     foreach(array('1' => 'Client',
                   '2' => 'Téléphone',
                   '3' => 'Adresse') as $item => $label) {
@@ -267,15 +272,23 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetFont('helvetica', '', 10);
     $furtherX = 0;
     $PDF->Line($PDF->lMargin, ceil($y - $PDF->FontSize), ceil($PDF->w - $PDF->rMargin), ceil($y - $PDF->FontSize));
+    $PDF->block('main-head');
+    $PDF->background_block($colorType);
+    $PDF->setColor($PDF->getBWFromColor($colorType));
     foreach(array('Date' => 30, 'Employé' => 90, 'Tarif' => 15, 'Heure' => 15, 'Total' => 0) as $label => $w) {
-      $PDF->Cell($w, 0, $label, 0, 0, 'C');
+      $sX = $PDF->GetX();
+      $PDF->printTaggedLn(['%h', $label], ['break' => false]);
+      $PDF->SetX($PDF->GetX() +  ($w - ($PDF->GetX() - $sX)));
       if ($w > 0) {
         if ($PDF->GetX() > $furtherX) { $furtherX = $PDF->GetX(); }
-        $PDF->Line($PDF->GetX(), $y - $PDF->FontSize, $PDF->GetX(), ceil($y + $bHeight + 10));
+        $PDF->Line($PDF->GetX(), $y - 1, $PDF->GetX(), $y + $bHeight + 10.2);
       }
     }
+    $PDF->br();
+    $PDF->close_block();
+    $PDF->br();
     $PDF->Line($PDF->lMargin, $y + $PDF->FontSize, ceil($PDF->w - $PDF->rMargin), $y + $PDF->FontSize);
-    $PDF->SetXY($PDF->lMargin, ceil($y + $PDF->FontSize + 6));
+    $PDF->SetXY($PDF->lMargin, $PDF->GetY());
     $PDF->squaredFrame($bHeight, array('square' => 5, 'lined' => true, 'line-type'=>'dotted'));
     $PDF->SetY($PDF->GetY() + $bHeight + 2);
     $str = 'Total main d\'œuvre : ';
@@ -288,38 +301,29 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetFont('helvetica', 'B', 10);
     $PDF->printLn('Matériel utilisé et autres charge');
     $PDF->br();
-    $bHeight = 35;
+    $bHeight = 20;
     $y = $PDF->GetY();
     $PDF->SetFont('helvetica', '', 10);
     $furtherX = 0;
     $PDF->Line($PDF->lMargin, $y - $PDF->FontSize, ceil($PDF->w - $PDF->rMargin), $y - $PDF->FontSize);
-    foreach(array('Matériaux' => 100, 'Qté' => 15, "Unité\n(km/h/pc)" => 15, 'Prix unité' => 15, 'Total' => 0) as $label => $w) {
-      $PDF->SetFont('helvetica', '', 10);
-      $sublabel = '';
-      if (strpos($label, "\n") !== FALSE) {
-        $label = explode("\n", $label);
-        $sublabel = $label[1];
-        $label = $label[0];
-        $PDF->SetFont('helvetica', '', 8);
-      }
-      $pX = $PDF->GetX();
-      $PDF->Cell($w, 0, $label, 0, 0, 'C');
-      if ($sublabel !== '') {
-        /*$oX = $PDF->GetX();
-           $PDF->SetFont('helvetica', '', 8);
-           $PDF->SetX($pX);
-           $oY = $PDF->GetY();
-           $PDF->SetY($oY + 4);
-           $PDF->Cell($w, 0, $sublabel, 0, 0, 'C');
-           $PDF->SetXY($oX, $oY);*/
-      }
+    $PDF->block('matos-head');
+    $PDF->background_block($colorType);
+    $PDF->setColor($PDF->getBWFromColor($colorType));
+    foreach(array('Matériaux' => 100, 'Qté' => 20, "Unité" => 20, 'Prix unité' => 20, 'Total' => 0) as $label => $w) {
+      $sX = $PDF->GetX();
+      $PDF->printTaggedLn(['%h', $label], ['break' => false]);
+      $PDF->SetX($PDF->GetX() +  ($w - ($PDF->GetX() - $sX)));
       if ($w > 0) {
         if ($PDF->GetX() > $furtherX) { $furtherX = $PDF->GetX(); }
-        $PDF->Line($PDF->GetX(), $y - $PDF->FontSize, $PDF->GetX(), ceil($y + $bHeight + 10));
+        $PDF->Line($PDF->GetX(), $y - 1, $PDF->GetX(), $y + $bHeight + 10.2);
       }
     }
+    $PDF->br();
+    $PDF->close_block();
+    $PDF->br();
+    $PDF->setColor('black');
     $PDF->Line($PDF->lMargin, $y + $PDF->FontSize, ceil($PDF->w - $PDF->rMargin), $y + $PDF->FontSize);
-    $PDF->SetXY($PDF->lMargin, ceil($y + $PDF->FontSize + 6));
+    $PDF->SetXY($PDF->lMargin, $PDF->GetY());
     $PDF->squaredFrame($bHeight, array('square' => 5, 'lined' => true, 'line-type'=>'dotted'));
     $PDF->SetY($PDF->GetY() + $bHeight + 2);
     $str = 'Total matériel et autres charges : ';
