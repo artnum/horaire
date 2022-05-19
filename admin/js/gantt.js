@@ -228,7 +228,8 @@ KGantt.prototype.run = function () {
             let i = 0
             for (const day of this.days) {
                 const baseX =  i * width
-                const baseY = oheight - (oheight / 104 * day)
+                let baseY = oheight - (oheight / 104 * day)
+                if (baseY < 0) { baseY = -1 }
                 cords += `L ${baseX},${baseY} ` 
                 i++
             }
