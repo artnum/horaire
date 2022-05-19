@@ -171,7 +171,9 @@ KGantt.prototype.run = function () {
                 for (let i = firstDay; i <= firstDay + travail.get('days'); i++) {
                     
                     if (i >= this.days.length) { break }
-                    this.days[i] += travail.get('hoursPerDay')
+                    const perDay = travail.get('hoursPerDay')
+                    if (!isNaN(perDay) || !isFinite(perDay)) { continue }
+                    this.days[i] += perDay
                 }
                 const trNode = document.createElement('DIV')
                 trNode.style.setProperty('position', 'absolute')
@@ -208,7 +210,7 @@ KGantt.prototype.run = function () {
         for (const day of this.days) {
             const baseX =  i * width
             const baseY = window.innerHeight - (window.innerHeight / 104 * day)
-            cords += `S ${baseX},${baseY},${baseX+0.5},${baseY}` 
+            cords += `L ${baseX},${baseY} ` 
             /*const bar = document.createElement('div')
             bar.style.position = 'absolute'
             bar.style.bottom = '0px'
@@ -220,8 +222,9 @@ KGantt.prototype.run = function () {
             window.requestAnimationFrame(() => { overlay.appendChild(bar)})*/
             i++
         }
+        const pathCoords = roundPathCorners(cords, 4)
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-        path.setAttributeNS(null, 'd', cords)
+        path.setAttributeNS(null, 'd', pathCoords)
         path.setAttributeNS(null, 'stroke', '#FF0000')
         path.setAttributeNS(null, 'fill', 'transparent')
         path.setAttributeNS(null, 'stroke-width', '3')
