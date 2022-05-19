@@ -1,8 +1,13 @@
 function KGantt() {
     this.begin = new Date()
     this.begin.setMonth(0, 1)
+    this.begin.setHours(0, 0, 0, 0)
     this.end = new Date()
     this.end.setMonth(11, 31)
+    this.end.setHours(24, 0, 0, 0)
+    this.days = new Array((Math.round(this.end.getTime() - this.begin.getTime()) / 86400000))
+    for (let i = 0; i < this.days.length; i++) { this.days[i] = 0 }
+    console.log(this.days)
 }
 
 KGantt.prototype.getTravaux = function () {
@@ -51,6 +56,11 @@ KGantt.prototype.getTravaux = function () {
                     }
                     t.set(k, travail[k])
                 }
+                t.set('days', (t.get('end').getTime() - t.get('begin').getTime()) / 86400000)
+                t.set('hoursPerDay', (parseInt(t.get('time')) / t.get('days')) / 3600)
+                if (isNaN(t.get('days'))) { t.set('days', 0) }
+                if (isNaN(t.get('hoursPerDay'))) { t.set('hoursPerDay', 0) }
+                console.log(t)
                 travaux.push(t)
             }
             travaux.sort((a, b) => {
@@ -157,7 +167,13 @@ KGantt.prototype.run = function () {
             const height = baseHeight / project.get('travaux').length
             let i = 0
             for (const travail of project.get('travaux')) {
-                console.log(secWidth, (travail.get('end').getTime() - travail.get('begin').getTime()) * secWidth)
+                let firstDay = Math.round((this.begin.getTime() - travail.get('begin').getTime()) / 86400000)
+                if (firstDay < 0) { firstDay = 0 }
+                for (let i = firstDay; i <= firstDay + travail.get('days'); i++) {
+                    
+                    if (i >= this.days.length) { break }
+                    this.days[i] += travail.get('hoursPerDay')
+                }
                 const trNode = document.createElement('DIV')
                 trNode.style.setProperty('position', 'absolute')
                 trNode.style.setProperty('top', `${i * height}px`)
@@ -173,6 +189,31 @@ KGantt.prototype.run = function () {
             }
             baseColor = (baseColor + 20) % 360
         }
+
+        const overlay = document.createElement('DIV')
+        overlay.style.position = 'fixed'
+        overlay.style.top = '0px'
+        overlay.style.left = '0px'
+        overlay.style.right = '0px'
+        overlay.style.bottom = '0px'
+        overlay.style.backgroundColor = 'transparent'
+
+        window.requestAnimationFrame(() => { document.getElementById('k-gantt-container').appendChild(overlay) })
+
+        const width = window.innerWidth / this.days.length
+        let i = 0
+        for (const day of this.days) {
+            const bar = document.createElement('div')
+            bar.style.position = 'absolute'
+            bar.style.bottom = '0px'
+            bar.style.left = `${i * width}px`
+            bar.style.minWidth = `${width}px`
+            bar.style.minHeight = `${window.innerHeight / (8 * 20) * day}px`
+            bar.style.borderTop = '1px solid red'
+            i++
+            window.requestAnimationFrame(() => { overlay.appendChild(bar)})
+        }
+
     })
 }
 
