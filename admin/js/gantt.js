@@ -153,6 +153,8 @@ KGantt.prototype.run = function () {
     .then(projects => {
         const secWidth = window.innerWidth / (this.end.getTime() - this.begin.getTime())
         let baseColor = 0
+        let rects 
+        const nodesAdded = []
         for (const project of projects) {
             if (project.get('deleted')) { continue }
             if (!project.get('uncount')) { continue }
@@ -169,7 +171,6 @@ KGantt.prototype.run = function () {
             let i = 0
             for (const travail of project.get('travaux')) {
                 let firstDay = Math.round((travail.get('begin').getTime()- this.begin.getTime()) / 86400000)
-                console.log(firstDay)
                 if (firstDay < 0) { firstDay = 0 }
                 for (let i = firstDay; i <= firstDay + travail.get('days'); i++) {
                     
@@ -186,53 +187,60 @@ KGantt.prototype.run = function () {
                 trNode.style.setProperty('min-height', `${height}px`)
                 trNode.style.setProperty('background-color', `hsla(${baseColor}, 100%, 60%, 0.5)`)
                 trNode.style.setProperty('z-index', '-1')
-                window.requestAnimationFrame(() => {
-                    projNode.appendChild(trNode)
-                })
+                nodesAdded.push(new Promise((resolve) => {
+                    window.requestAnimationFrame(() => {
+                        projNode.appendChild(trNode)
+                        if (!rects) {
+                            rects = projNode.getClientRects()
+                        }
+                        resolve()
+                    })
+                }))
+                
                 i++
             }
             baseColor = (baseColor + 20) % 360
         }
 
-        const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-        overlay.setAttributeNS(null, 'width', `${window.innerWidth}px`)
-        overlay.setAttributeNS(null, 'height', `${window.innerHeight}px`)
-        overlay.setAttributeNS(null, 'version', `1.1`)
+        Promise.all(nodesAdded)
+        .then(() => {
+            const owidth = rects[0].width - rects[0].left
+            const oheight = 200
+            const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+            overlay.setAttributeNS(null, 'width', `${owidth}px`)
+            overlay.setAttributeNS(null, 'height', `${oheight}px`)
+            overlay.setAttributeNS(null, 'version', `1.1`)
 
-        overlay.style.position = 'fixed'
-        overlay.style.left = '0px'
-        overlay.style.bottom = '0px'
-        overlay.style.backgroundColor = 'transparent'
+            overlay.style.position = 'fixed'
+            overlay.style.left =  `${rects[0].left}px`
+            overlay.style.bottom = '0px'
+            overlay.style.backgroundColor = 'lightgray'
 
-        window.requestAnimationFrame(() => { document.getElementById('k-gantt-container').appendChild(overlay) })
+            window.requestAnimationFrame(() => { 
+                const node = document.getElementById('k-gantt-container')
+                node.appendChild(overlay) 
+                node.style.marginBottom = `${oheight}px`
+            })
 
-        const width = window.innerWidth / this.days.length
+            const width = owidth / this.days.length
+            
+            let cords = `M 0,${oheight} `
+            let i = 0
+            for (const day of this.days) {
+                const baseX =  i * width
+                const baseY = oheight - (oheight / 104 * day)
+                cords += `L ${baseX},${baseY} ` 
+                i++
+            }
+            const pathCoords = roundPathCorners(cords, 4)
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+            path.setAttributeNS(null, 'd', pathCoords)
+            path.setAttributeNS(null, 'stroke', '#FF0000')
+            path.setAttributeNS(null, 'fill', 'transparent')
+            path.setAttributeNS(null, 'stroke-width', '3')
 
-        let cords = `M 0,${window.innerHeight} `
-        let i = 0
-        for (const day of this.days) {
-            const baseX =  i * width
-            const baseY = window.innerHeight - (window.innerHeight / 104 * day)
-            cords += `L ${baseX},${baseY} ` 
-            /*const bar = document.createElement('div')
-            bar.style.position = 'absolute'
-            bar.style.bottom = '0px'
-            bar.style.left = `${i * width}px`
-            bar.style.minWidth = `${width}px`
-            bar.style.minHeight = `${window.innerHeight / (8 * 20) * day}px`
-            bar.style.borderTop = '1px solid red'
-            i++
-            window.requestAnimationFrame(() => { overlay.appendChild(bar)})*/
-            i++
-        }
-        const pathCoords = roundPathCorners(cords, 4)
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-        path.setAttributeNS(null, 'd', pathCoords)
-        path.setAttributeNS(null, 'stroke', '#FF0000')
-        path.setAttributeNS(null, 'fill', 'transparent')
-        path.setAttributeNS(null, 'stroke-width', '3')
-
-        overlay.appendChild(path)
+            overlay.appendChild(path)
+        })
     })
 }
 
