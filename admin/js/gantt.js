@@ -189,20 +189,27 @@ KGantt.prototype.run = function () {
             baseColor = (baseColor + 20) % 360
         }
 
-        const overlay = document.createElement('DIV')
+        const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        overlay.setAttributeNS(null, 'width', `${window.innerWidth}px`)
+        overlay.setAttributeNS(null, 'height', `${window.innerHeight}px`)
+        overlay.setAttributeNS(null, 'version', `1.1`)
+
         overlay.style.position = 'fixed'
-        overlay.style.top = '0px'
         overlay.style.left = '0px'
-        overlay.style.right = '0px'
         overlay.style.bottom = '0px'
         overlay.style.backgroundColor = 'transparent'
 
         window.requestAnimationFrame(() => { document.getElementById('k-gantt-container').appendChild(overlay) })
 
         const width = window.innerWidth / this.days.length
+
+        let cords = `M 0,${window.innerHeight} `
         let i = 0
         for (const day of this.days) {
-            const bar = document.createElement('div')
+            const baseX =  i * width
+            const baseY = window.innerHeight - (window.innerHeight / 104 * day)
+            cords += `S ${baseX},${baseY},${baseX+0.5},${baseY}` 
+            /*const bar = document.createElement('div')
             bar.style.position = 'absolute'
             bar.style.bottom = '0px'
             bar.style.left = `${i * width}px`
@@ -210,9 +217,16 @@ KGantt.prototype.run = function () {
             bar.style.minHeight = `${window.innerHeight / (8 * 20) * day}px`
             bar.style.borderTop = '1px solid red'
             i++
-            window.requestAnimationFrame(() => { overlay.appendChild(bar)})
+            window.requestAnimationFrame(() => { overlay.appendChild(bar)})*/
+            i++
         }
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+        path.setAttributeNS(null, 'd', cords)
+        path.setAttributeNS(null, 'stroke', '#FF0000')
+        path.setAttributeNS(null, 'fill', 'transparent')
+        path.setAttributeNS(null, 'stroke-width', '3')
 
+        overlay.appendChild(path)
     })
 }
 
