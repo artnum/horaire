@@ -7,7 +7,6 @@ function KGantt() {
     this.end.setHours(24, 0, 0, 0)
     this.days = new Array((Math.round(this.end.getTime() - this.begin.getTime()) / 86400000))
     for (let i = 0; i < this.days.length; i++) { this.days[i] = 0 }
-    console.log(this.days)
 }
 
 KGantt.prototype.getTravaux = function () {
@@ -60,7 +59,6 @@ KGantt.prototype.getTravaux = function () {
                 t.set('hoursPerDay', (parseInt(t.get('time')) / t.get('days')) / 3600)
                 if (isNaN(t.get('days'))) { t.set('days', 0) }
                 if (isNaN(t.get('hoursPerDay'))) { t.set('hoursPerDay', 0) }
-                console.log(t)
                 travaux.push(t)
             }
             travaux.sort((a, b) => {
@@ -167,7 +165,8 @@ KGantt.prototype.run = function () {
             const height = baseHeight / project.get('travaux').length
             let i = 0
             for (const travail of project.get('travaux')) {
-                let firstDay = Math.round((this.begin.getTime() - travail.get('begin').getTime()) / 86400000)
+                let firstDay = Math.round((travail.get('begin').getTime()- this.begin.getTime()) / 86400000)
+                console.log(firstDay)
                 if (firstDay < 0) { firstDay = 0 }
                 for (let i = firstDay; i <= firstDay + travail.get('days'); i++) {
                     
