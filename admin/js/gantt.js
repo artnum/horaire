@@ -143,16 +143,18 @@ KGantt.prototype.run = function () {
     })
     .then(projects => {
         const secWidth = window.innerWidth / (this.end.getTime() - this.begin.getTime())
+        let baseColor = 0
         for (const project of projects) {
+            const baseHeight = 40
             const projNode = document.createElement('DIV')
             projNode.style.setProperty('position', 'relative')
             projNode.style.setProperty('min-width', '100%')
-            projNode.style.setProperty('min-height', '20px')
+            projNode.style.setProperty('min-height', `${baseHeight}px`)
             projNode.innerHTML = `<span class="reference">${project.get('reference')}</span><span class="name">${project.get('name')}</span>`
             window.requestAnimationFrame(() => {
                 document.getElementById('k-gantt-container').appendChild(projNode)
             })
-            const height = 20 / project.get('travaux').length
+            const height = baseHeight / project.get('travaux').length
             let i = 0
             for (const travail of project.get('travaux')) {
                 console.log(secWidth, (travail.get('end').getTime() - travail.get('begin').getTime()) * secWidth)
@@ -162,12 +164,14 @@ KGantt.prototype.run = function () {
                 trNode.style.setProperty('width', `${(travail.get('end').getTime() - travail.get('begin').getTime()) * secWidth}px`)
                 trNode.style.setProperty('left',  `${(travail.get('begin').getTime() - this.begin.getTime()) * secWidth}px`)
                 trNode.style.setProperty('min-height', `${height}px`)
-                trNode.style.setProperty('background-color', 'red')
+                trNode.style.setProperty('background-color', `hsla(${baseColor}, 100%, 60%, 0.5)`)
                 trNode.style.setProperty('z-index', '-1')
                 window.requestAnimationFrame(() => {
                     projNode.appendChild(trNode)
                 })
+                i++
             }
+            baseColor = (baseColor + 20) % 360
         }
     })
 }
