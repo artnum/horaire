@@ -154,6 +154,7 @@ KGantt.prototype.run = function () {
         const secWidth = window.innerWidth / (this.end.getTime() - this.begin.getTime())
         let baseColor = 0
         let rects 
+        let totalHours = 0
         const nodesAdded = []
         for (const project of projects) {
             if (project.get('deleted')) { continue }
@@ -178,6 +179,7 @@ KGantt.prototype.run = function () {
                     const perDay = travail.get('hoursPerDay')
                     if (isNaN(perDay) || !isFinite(perDay)) { continue }
                     this.days[i] += perDay
+                    totalHours += perDay
                 }
                 const trNode = document.createElement('DIV')
                 trNode.style.setProperty('position', 'absolute')
@@ -204,9 +206,11 @@ KGantt.prototype.run = function () {
 
         Promise.all(nodesAdded)
         .then(() => {
+            const svgns = 'http://www.w3.org/2000/svg'
+            const mean = totalHours / this.days.length
             const owidth = rects[0].width - rects[0].left
             const oheight = 200
-            const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+            const overlay = document.createElementNS(svgns, 'svg')
             overlay.setAttributeNS(null, 'width', `${owidth}px`)
             overlay.setAttributeNS(null, 'height', `${oheight}px`)
             overlay.setAttributeNS(null, 'version', `1.1`)
@@ -234,13 +238,20 @@ KGantt.prototype.run = function () {
                 i++
             }
             const pathCoords = roundPathCorners(cords, 4)
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+            const path = document.createElementNS(svgns, 'path')
             path.setAttributeNS(null, 'd', pathCoords)
             path.setAttributeNS(null, 'stroke', '#FF0000')
             path.setAttributeNS(null, 'fill', 'transparent')
             path.setAttributeNS(null, 'stroke-width', '3')
 
+            const meanLine = document.createElementNS(svgns, 'path')
+            const h = oheight - ((oheight / 104) * mean)
+            meanLine.setAttributeNS(null, 'd', `M 0,${h} H ${owidth}`)
+            meanLine.setAttributeNS(null, 'stroke', '#00FF00')
+            meanLine.setAttributeNS(null, 'fill', 'transparent')
+            meanLine.setAttributeNS(null, 'stroke-width', '1')
             overlay.appendChild(path)
+            overlay.appendChild(meanLine)
         })
     })
 }
