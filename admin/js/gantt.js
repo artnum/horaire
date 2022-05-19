@@ -22,7 +22,8 @@ KGantt.prototype.getTravaux = function () {
                     '#or:1': {
                         'end:0': ['>=', this.begin.toISOString().split('T')[0]],
                         'end:1': ['<', this.end.toISOString().split('T')[0]]
-                    }
+                    },
+                    'closed': 0
                 }
             })
         })
@@ -153,6 +154,8 @@ KGantt.prototype.run = function () {
         const secWidth = window.innerWidth / (this.end.getTime() - this.begin.getTime())
         let baseColor = 0
         for (const project of projects) {
+            if (project.get('deleted')) { continue }
+            if (!project.get('uncount')) { continue }
             const baseHeight = 40
             const projNode = document.createElement('DIV')
             projNode.style.setProperty('position', 'relative')
@@ -172,7 +175,7 @@ KGantt.prototype.run = function () {
                     
                     if (i >= this.days.length) { break }
                     const perDay = travail.get('hoursPerDay')
-                    if (!isNaN(perDay) || !isFinite(perDay)) { continue }
+                    if (isNaN(perDay) || !isFinite(perDay)) { continue }
                     this.days[i] += perDay
                 }
                 const trNode = document.createElement('DIV')
