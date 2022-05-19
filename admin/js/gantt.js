@@ -222,7 +222,7 @@ KGantt.prototype.run = function () {
                 node.style.marginBottom = `${oheight}px`
             })
 
-            const width = owidth / this.days.length
+            const width = secWidth * 86400000
             
             let cords = `M 0,${oheight} `
             let i = 0
