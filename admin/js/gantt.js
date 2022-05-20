@@ -6,8 +6,6 @@ function KGanttView() {
     this.end.setMonth(11, 31)
     this.end.setHours(23, 59, 59, 0)
     this.days = new Array(Math.round((this.end.getTime() - this.begin.getTime()) / 86400000))
-    for (let i = 0; i < this.days.length; i++) { this.days[i] = 0 }
-
     window.addEventListener('resize', () => {
         this.run()
     })
@@ -291,6 +289,7 @@ KGanttView.prototype.showWeeks = function () {
 
 KGanttView.prototype.run = function () {
     this.secWidth = window.innerWidth / (this.end.getTime() - this.begin.getTime())
+    for (let i = 0; i < this.days.length; i++) { this.days[i] = 0 }
     Promise.all([
         this.getTravaux(),
         this.showWeeks()])
@@ -391,7 +390,8 @@ KGanttView.prototype.run = function () {
             const mean = totalHours / this.days.length
             const owidth = rects[0].width - rects[0].left
             const oheight = 200
-            const overlay = document.createElementNS(svgns, 'svg')
+            const overlay = document.getElementById('k-gantt-time') || document.createElementNS(svgns, 'svg')
+            overlay.setAttributeNS(null, 'id', 'k-gantt-time')
             overlay.setAttributeNS(null, 'width', `${owidth}px`)
             overlay.setAttributeNS(null, 'height', `${oheight}px`)
             overlay.setAttributeNS(null, 'version', `1.1`)
@@ -403,11 +403,11 @@ KGanttView.prototype.run = function () {
 
             window.requestAnimationFrame(() => { 
                 const node = document.getElementById('k-gantt-container')
-                node.appendChild(overlay) 
+                if (!overlay.parentNode) { node.appendChild(overlay) }
                 node.style.marginBottom = `${oheight}px`
             })
 
-            const width = secWidth * 86400000
+            const width = this.secWidth * 86400000
             
             let cords = `M 0,${oheight} `
             let i = 0
@@ -419,20 +419,26 @@ KGanttView.prototype.run = function () {
                 i++
             }
             const pathCoords = roundPathCorners(cords, 4)
-            const path = document.createElementNS(svgns, 'path')
-            path.setAttributeNS(null, 'd', pathCoords)
-            path.setAttributeNS(null, 'stroke', '#FF0000')
-            path.setAttributeNS(null, 'fill', 'transparent')
-            path.setAttributeNS(null, 'stroke-width', '3')
+            const path = document.getElementById('k-gantt-timewave') || document.createElementNS(svgns, 'path')
+            path.setAttributeNS(null, 'id', 'k-gantt-timewave')
+            window.requestAnimationFrame(() => {
+                if (!path.parentNode) { overlay.appendChild(path) }
+                path.setAttributeNS(null, 'd', pathCoords)
+                path.setAttributeNS(null, 'stroke', '#FF0000')
+                path.setAttributeNS(null, 'fill', 'transparent')
+                path.setAttributeNS(null, 'stroke-width', '3')
+            })
 
-            const meanLine = document.createElementNS(svgns, 'path')
             const h = oheight - ((oheight / 104) * mean)
-            meanLine.setAttributeNS(null, 'd', `M 0,${h} H ${owidth}`)
-            meanLine.setAttributeNS(null, 'stroke', '#00FF00')
-            meanLine.setAttributeNS(null, 'fill', 'transparent')
-            meanLine.setAttributeNS(null, 'stroke-width', '1')
-            overlay.appendChild(path)
-            overlay.appendChild(meanLine)
+            const meanLine = document.getElementById('k-gantt-timemean') || document.createElementNS(svgns, 'path')
+            meanLine.setAttributeNS(null, 'id', 'k-gantt-timemean')
+            window.requestAnimationFrame(() => {
+                if (!meanLine.parentNode) { overlay.appendChild(meanLine) }
+                meanLine.setAttributeNS(null, 'd', `M 0,${h} H ${owidth}`)
+                meanLine.setAttributeNS(null, 'stroke', '#00FF00')
+                meanLine.setAttributeNS(null, 'fill', 'transparent')
+                meanLine.setAttributeNS(null, 'stroke-width', '1')
+            })
         })
     })
 }
