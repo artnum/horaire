@@ -194,6 +194,46 @@ KGanttView.prototype.overlapTravaux = function (project) {
         }
     }
 
+    let root
+    for (const travail of travaux) {
+        let t = travail
+        if (!root) { root = t }
+        let overlapIdx = 0
+        do {
+            if (!t.get('overlap-max')) {
+                t.set('overlap-max', travail.get('overlap').length + 1)
+                continue
+            }
+            if (travail.get('overlap-max') < t.get('overlap').length + 1) {
+                travail.set('overlap-max', t.get('overlap').length + 1)
+                root = t
+            }
+            if (t.get('overlap-max') < travail.get('overlap-max')) {
+                t.set('overlap-max', travail.get('overlap-max'))
+                root = travail
+            }
+            t = travail.get('overlap')[overlapIdx]
+            overlapIdx++
+        } while (t)
+    }
+    const leveled = [root.get('id')]
+    root.set('overlap-level', 0)
+    for (let i = 0; i < root.get('overlap').length; i++) {
+        root.get('overlap')[i].set('overlap-level', i + 1)
+        leveled.push(root.get('overlap')[i].get('id'))
+    }
+
+    for (const travail of travaux) {
+        if (leveled.indexOf(travail.get('îd')) !== -1) { continue }
+        root = travail
+        for (let i = 0; i < root.get('overlap').length; i++) {
+            if (leveled.indexOf(root.get('overlap')[i].get('id')) !== -1) { continue }
+            root.get('overlap')[i].set('overlap-level', i + 1)
+            leveled.push(root.get('overlap')[i].get('id'))
+        }
+    }
+
+
     project.set('travaux', travaux)
 }
 
@@ -226,7 +266,7 @@ KGanttView.prototype.run = function () {
                 if (drawn.indexOf(travail.get('id')) !==-1) { continue }
                 let t = travail
                 let overlapIdx = 0
-                let height = baseHeight / (travail.get('overlap').length + 1)
+                let height = baseHeight / (travail.get('overlap-max'))
                 if (!isFinite(height)) { height = baseHeight }
                 do {
                     drawn.push(t.get('id'))
@@ -242,7 +282,7 @@ KGanttView.prototype.run = function () {
                     }
                     const trNode = document.createElement('DIV')
                     trNode.style.setProperty('position', 'absolute')
-                    trNode.style.setProperty('top', `${overlapIdx * height}px`)
+                    trNode.style.setProperty('top', `${t.get('overlap-level') * height}px`)
                     trNode.style.setProperty('width', `${(t.get('end').getTime() - t.get('begin').getTime()) * secWidth}px`)
                     trNode.style.setProperty('left',  `${(t.get('begin').getTime() - this.begin.getTime()) * secWidth}px`)
                     trNode.style.setProperty('min-height', `${height}px`)
