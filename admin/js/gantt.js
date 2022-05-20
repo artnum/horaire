@@ -173,7 +173,7 @@ KGanttView.prototype.getProjectsFromTravaux = function (travaux) {
 KGanttView.prototype.overlapTravaux = function (project) {
     const travaux = project.get('travaux')
 
-    let overlap_order = 0
+    let maxOverlapValue = 0
     for (let i = 0; i < travaux.length; i++) {
         const t1 = travaux[i]
         if (!t1.get('overlap')) {
@@ -208,9 +208,15 @@ KGanttView.prototype.overlapTravaux = function (project) {
             }
             if (travail.get('overlap-max') < t.get('overlap').length + 1) {
                 travail.set('overlap-max', t.get('overlap').length + 1)
+                if (maxOverlapValue < t.get('overlap').length + 1) {
+                    maxOverlapValue = t.get('overlap').length + 1
+                }
                 root = t
             }
             if (t.get('overlap-max') < travail.get('overlap-max')) {
+                if (maxOverlapValue < travail.get('overlap-max')) {
+                    maxOverlapValue = travail.get('overlap-max')
+                }
                 t.set('overlap-max', travail.get('overlap-max'))
                 root = travail
             }
@@ -236,7 +242,7 @@ KGanttView.prototype.overlapTravaux = function (project) {
         }
     }
 
-
+    project.set('overlap-max', maxOverlapValue)
     project.set('travaux', travaux)
 }
 
@@ -252,7 +258,6 @@ KGanttView.prototype.showWeeks = function () {
         const weekContainer = document.createElement('DIV')
         const container = document.getElementById('k-gantt-container')
         weekContainer.id = `k-gantt-weeks`
-        weekContainer.style.position = 'relative'
         weekContainer.style.minWidth = '100%'
         weekContainer.style.minHeight = '50px'
         weekContainer.style.backgroundColor = 'black'
@@ -305,16 +310,19 @@ KGanttView.prototype.run = function () {
             if (project.get('deleted')) { continue }
             if (!project.get('uncount')) { continue }
             this.overlapTravaux(project)
+            if (!project.get('overlap-max')) { project.set('overlap-max', 1)}
+            if (project.get('overlap-max') < 1) { project.set('overlap-max', 1)}
             let baseHeight = 40
             const projNode = document.getElementById(`project-${project.get('id')}`) || document.createElement('DIV')
             if (projNode.dataset.open === '1') {
-                baseHeight = 280
+                baseHeight = project.get('overlap-max') * baseHeight
             }
             projNode.id = `project-${project.get('id')}`
+            projNode.dataset.maxOverlap = project.get('overlap-max')
             projNode.classList.add('project')
             projNode.style.setProperty('position', 'relative')
             projNode.style.setProperty('min-width', '100%')
-            projNode.style.setProperty('min-height', `${baseHeight}px`)
+            projNode.style.setProperty('min-height', `${baseHeight + 18}px`)
             projNode.innerHTML = `<span class="reference">${project.get('reference')}</span><span class="name">${project.get('name')}</span>`
             if (!projNode.parentNode) {
                 projNode.addEventListener('click', (event) => {
@@ -324,7 +332,7 @@ KGanttView.prototype.run = function () {
                         this.reheightProject(node, baseHeight)
                         node.dataset.open = '0'
                     } else {
-                        this.reheightProject(node, 280)
+                        this.reheightProject(node, node.dataset.maxOverlap * baseHeight)
                         node.dataset.open = '1'
                     }
                 })
@@ -338,7 +346,6 @@ KGanttView.prototype.run = function () {
             for (const travail of project.get('travaux')) {
                 if (drawn.indexOf(travail.get('id')) !==-1) { continue }
                 let t = travail
-                let overlapIdx = 0
                 let height = baseHeight / (travail.get('overlap-max'))
                 if (!isFinite(height)) { height = baseHeight }
                 do {
@@ -359,7 +366,7 @@ KGanttView.prototype.run = function () {
                     trNode.dataset.overlapMax = travail.get('overlap-max')
                     trNode.dataset.tooltip = `${t.get('reference')} - ${t.get('description')}`
                     trNode.style.setProperty('position', 'absolute')
-                    trNode.style.setProperty('top', `${t.get('overlap-level') * height}px`)
+                    trNode.style.setProperty('top', `${(t.get('overlap-level') * height) + 18}px`)
                     trNode.style.setProperty('width', `${((t.get('end').getTime() - t.get('begin').getTime()) * secWidth) - 1}px`)
                     trNode.style.setProperty('left',  `${((t.get('begin').getTime() - this.begin.getTime()) * secWidth) - 1}px`)
                     trNode.style.setProperty('min-height', `${height - 2}px`)
@@ -381,7 +388,6 @@ KGanttView.prototype.run = function () {
                     
                     i++
                     t = travail.get('overlap').pop()
-                    overlapIdx++
                 } while (t)
             }
         }
@@ -448,12 +454,12 @@ KGanttView.prototype.run = function () {
 
 KGanttView.prototype.reheightProject = function (node, size) {
     window.requestAnimationFrame(() => {
-        node.style.minHeight = `${size}px`
+        node.style.minHeight = `${size + 18}px`
     })
     const nodes = node.querySelectorAll('div.travail')
     for (const n of nodes) {
         const height = size / n.dataset.overlapMax
-        const top = height * n.dataset.overlapLevel
+        const top = (height * n.dataset.overlapLevel) + 18
         window.requestAnimationFrame(() => {
             n.style.minHeight = `${height - 2}px`
             n.style.top = `${top}px`
