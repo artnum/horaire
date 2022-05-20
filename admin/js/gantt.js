@@ -204,6 +204,7 @@ KGanttView.prototype.overlapTravaux = function (project) {
         do {
             if (!t.get('overlap-max')) {
                 t.set('overlap-max', travail.get('overlap').length + 1)
+                maxOverlapValue = travail.get('overlap').length + 1
                 continue
             }
             if (travail.get('overlap-max') < t.get('overlap').length + 1) {
@@ -319,6 +320,9 @@ KGanttView.prototype.run = function () {
             }
             projNode.id = `project-${project.get('id')}`
             projNode.dataset.maxOverlap = project.get('overlap-max')
+            if (project.get('overlap-max') > 1) {
+                projNode.classList.add('zoom')
+            }
             projNode.classList.add('project')
             projNode.style.setProperty('position', 'relative')
             projNode.style.setProperty('min-width', '100%')
