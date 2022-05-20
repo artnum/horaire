@@ -1,4 +1,4 @@
-function KGantt() {
+function KGanttView() {
     this.begin = new Date()
     this.begin.setMonth(0, 1)
     this.begin.setHours(0, 0, 0, 0)
@@ -9,7 +9,7 @@ function KGantt() {
     for (let i = 0; i < this.days.length; i++) { this.days[i] = 0 }
 }
 
-KGantt.prototype.getTravaux = function () {
+KGanttView.prototype.getTravaux = function () {
     return new Promise((resolve) => {
         fetch(`${KAAL.getBase()}/Travail/_query`, {
             method: 'POST',
@@ -34,7 +34,7 @@ KGantt.prototype.getTravaux = function () {
         .then(result => {
             if (!result) { return resolve([])}
             if (result.length === 0 || result.data === null) { return resolve([]) }
-            
+            const statusPromise = []
             const travaux = []
             for (const travail of result.data) {
                 const t = new Map()
@@ -60,17 +60,40 @@ KGantt.prototype.getTravaux = function () {
                 t.set('hoursPerDay', (parseInt(t.get('time')) / t.get('days')) / 3600)
                 if (isNaN(t.get('days'))) { t.set('days', 0) }
                 if (isNaN(t.get('hoursPerDay'))) { t.set('hoursPerDay', 0) }
+                const request = new Promise(resolve => {
+                    fetch(`${KAAL.kairos.url}/store/Status/${t.get('status')}`)
+                    .then(response => {
+                        if (!response.ok) { return resolve({length: 0})}
+                        return response.json()
+                    })
+                    .then(result => {
+                        if (!result) { return resolve({color: 'black', name: ''}) } 
+                        if (result.length < 1) { return resolve({color: 'black', name: ''})}
+                        resolve(result.data[0])
+                    })
+                })
+                t.set('request', request)
+                statusPromise.push(request)
                 travaux.push(t)
             }
             travaux.sort((a, b) => {
                 return a.get('begin').getTime() - b.get('begin').getTime()
             })
-            return resolve(travaux)
+            Promise.all(statusPromise)
+            .then(_ => {
+                for(const t of travaux) {
+                    t.get('request')
+                    .then(status => {
+                        t.set('status', status)
+                    })
+                }
+                return resolve(travaux)
+            })
         })
     })
 }
 
-KGantt.prototype.getProjectsFromTravaux = function (travaux) {
+KGanttView.prototype.getProjectsFromTravaux = function (travaux) {
     return new Promise(resolve => {
         const projects = new Map()
         const requests = []
@@ -145,20 +168,49 @@ KGantt.prototype.getProjectsFromTravaux = function (travaux) {
     })
 }
 
-KGantt.prototype.run = function () {
+KGanttView.prototype.overlapTravaux = function (project) {
+    const travaux = project.get('travaux')
+
+    let overlap_order = 0
+    for (let i = 0; i < travaux.length; i++) {
+        const t1 = travaux[i]
+        if (!t1.get('overlap')) {
+            t1.set('overlap', [])
+        }
+        for (let j = i+1; j < travaux.length; j++) {
+            const t2 = travaux[j]
+            if (!t2.get('overlap')) {
+                t2.set('overlap', [])
+            }
+
+            const b1 = t1.get('begin').getTime()
+            const b2 = t2.get('begin').getTime()
+            const e1 = t1.get('end').getTime()
+            const e2 = t2.get('end').getTime()
+    
+            if ((b1 < b2 && b2 < e1) || (b1 < e2 && e2 < e1)) {
+                t1.get('overlap').push(t2)
+            }
+        }
+    }
+
+    project.set('travaux', travaux)
+}
+
+KGanttView.prototype.run = function () {
     this.getTravaux()
     .then(travaux => {
         return this.getProjectsFromTravaux(travaux)
     })
     .then(projects => {
         const secWidth = window.innerWidth / (this.end.getTime() - this.begin.getTime())
-        let baseColor = 0
         let rects 
         let totalHours = 0
         const nodesAdded = []
         for (const project of projects) {
             if (project.get('deleted')) { continue }
             if (!project.get('uncount')) { continue }
+            this.overlapTravaux(project)
             const baseHeight = 40
             const projNode = document.createElement('DIV')
             projNode.style.setProperty('position', 'relative')
@@ -168,40 +220,49 @@ KGantt.prototype.run = function () {
             window.requestAnimationFrame(() => {
                 document.getElementById('k-gantt-container').appendChild(projNode)
             })
-            const height = baseHeight / project.get('travaux').length
             let i = 0
+            const drawn = []
             for (const travail of project.get('travaux')) {
-                let firstDay = Math.round((travail.get('begin').getTime()- this.begin.getTime()) / 86400000)
-                if (firstDay < 0) { firstDay = 0 }
-                for (let i = firstDay; i <= firstDay + travail.get('days'); i++) {
+                if (drawn.indexOf(travail.get('id')) !==-1) { continue }
+                let t = travail
+                let overlapIdx = 0
+                let height = baseHeight / (travail.get('overlap').length + 1)
+                if (!isFinite(height)) { height = baseHeight }
+                do {
+                    drawn.push(t.get('id'))
+                    let firstDay = Math.round((t.get('begin').getTime()- this.begin.getTime()) / 86400000)
+                    if (firstDay < 0) { firstDay = 0 }
+                    for (let i = firstDay; i <= firstDay + t.get('days'); i++) {
+                        
+                        if (i >= this.days.length) { break }
+                        const perDay = t.get('hoursPerDay')
+                        if (isNaN(perDay) || !isFinite(perDay)) { continue }
+                        this.days[i] += perDay
+                        totalHours += perDay
+                    }
+                    const trNode = document.createElement('DIV')
+                    trNode.style.setProperty('position', 'absolute')
+                    trNode.style.setProperty('top', `${overlapIdx * height}px`)
+                    trNode.style.setProperty('width', `${(t.get('end').getTime() - t.get('begin').getTime()) * secWidth}px`)
+                    trNode.style.setProperty('left',  `${(t.get('begin').getTime() - this.begin.getTime()) * secWidth}px`)
+                    trNode.style.setProperty('min-height', `${height}px`)
+                    trNode.style.setProperty('background-color', `${t.get('status').color}`)
+                    trNode.style.setProperty('z-index', '-1')
+                    nodesAdded.push(new Promise((resolve) => {
+                        window.requestAnimationFrame(() => {
+                            projNode.appendChild(trNode)
+                            if (!rects) {
+                                rects = projNode.getClientRects()
+                            }
+                            resolve()
+                        })
+                    }))
                     
-                    if (i >= this.days.length) { break }
-                    const perDay = travail.get('hoursPerDay')
-                    if (isNaN(perDay) || !isFinite(perDay)) { continue }
-                    this.days[i] += perDay
-                    totalHours += perDay
-                }
-                const trNode = document.createElement('DIV')
-                trNode.style.setProperty('position', 'absolute')
-                trNode.style.setProperty('top', `${i * height}px`)
-                trNode.style.setProperty('width', `${(travail.get('end').getTime() - travail.get('begin').getTime()) * secWidth}px`)
-                trNode.style.setProperty('left',  `${(travail.get('begin').getTime() - this.begin.getTime()) * secWidth}px`)
-                trNode.style.setProperty('min-height', `${height}px`)
-                trNode.style.setProperty('background-color', `hsla(${baseColor}, 100%, 60%, 0.5)`)
-                trNode.style.setProperty('z-index', '-1')
-                nodesAdded.push(new Promise((resolve) => {
-                    window.requestAnimationFrame(() => {
-                        projNode.appendChild(trNode)
-                        if (!rects) {
-                            rects = projNode.getClientRects()
-                        }
-                        resolve()
-                    })
-                }))
-                
-                i++
+                    i++
+                    t = travail.get('overlap').pop()
+                    overlapIdx++
+                } while (t)
             }
-            baseColor = (baseColor + 20) % 360
         }
 
         Promise.all(nodesAdded)
@@ -258,6 +319,6 @@ KGantt.prototype.run = function () {
 
 
 window.onload = (event) => {
-    const gantt = new KGantt()
+    const gantt = new KGanttView()
     gantt.run()
 }
