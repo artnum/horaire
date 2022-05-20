@@ -234,7 +234,7 @@ KGantt.prototype.run = function () {
                 const baseX =  i * width
                 let baseY = oheight - (oheight / 104 * day)
                 if (baseY < 0) { baseY = -1 }
-                cords += `L ${baseX},${baseY} ` 
+                cords += `L ${baseX + width/2},${baseY} ` 
                 i++
             }
             const pathCoords = roundPathCorners(cords, 4)
