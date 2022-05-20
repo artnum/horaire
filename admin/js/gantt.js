@@ -254,6 +254,7 @@ KGanttView.prototype.run = function () {
             this.overlapTravaux(project)
             const baseHeight = 40
             const projNode = document.createElement('DIV')
+            projNode.classList.add('project')
             projNode.style.setProperty('position', 'relative')
             projNode.style.setProperty('min-width', '100%')
             projNode.style.setProperty('min-height', `${baseHeight}px`)
@@ -282,11 +283,12 @@ KGanttView.prototype.run = function () {
                         totalHours += perDay
                     }
                     const trNode = document.createElement('DIV')
+                    trNode.classList.add('travail')
                     trNode.style.setProperty('position', 'absolute')
                     trNode.style.setProperty('top', `${t.get('overlap-level') * height}px`)
-                    trNode.style.setProperty('width', `${(t.get('end').getTime() - t.get('begin').getTime()) * secWidth}px`)
-                    trNode.style.setProperty('left',  `${(t.get('begin').getTime() - this.begin.getTime()) * secWidth}px`)
-                    trNode.style.setProperty('min-height', `${height}px`)
+                    trNode.style.setProperty('width', `${((t.get('end').getTime() - t.get('begin').getTime()) * secWidth) - 1}px`)
+                    trNode.style.setProperty('left',  `${((t.get('begin').getTime() - this.begin.getTime()) * secWidth) - 1}px`)
+                    trNode.style.setProperty('min-height', `${height - 2}px`)
                     trNode.style.setProperty('background-color', `${t.get('status').color}`)
                     trNode.style.setProperty('z-index', '-1')
                     nodesAdded.push(new Promise((resolve) => {
