@@ -226,6 +226,7 @@ KGanttView.prototype.overlapTravaux = function (project) {
     for (const travail of travaux) {
         if (leveled.indexOf(travail.get('îd')) !== -1) { continue }
         root = travail
+        if (!root.get('overlap-level')) { root.set('overlap-level', 0) }
         for (let i = 0; i < root.get('overlap').length; i++) {
             if (leveled.indexOf(root.get('overlap')[i].get('id')) !== -1) { continue }
             root.get('overlap')[i].set('overlap-level', i + 1)
