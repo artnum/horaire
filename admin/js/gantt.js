@@ -4,9 +4,13 @@ function KGanttView() {
     this.begin.setHours(0, 0, 0, 0)
     this.end = new Date()
     this.end.setMonth(11, 31)
-    this.end.setHours(24, 0, 0, 0)
-    this.days = new Array((Math.round(this.end.getTime() - this.begin.getTime()) / 86400000))
+    this.end.setHours(23, 59, 59, 0)
+    this.days = new Array(Math.round((this.end.getTime() - this.begin.getTime()) / 86400000))
     for (let i = 0; i < this.days.length; i++) { this.days[i] = 0 }
+
+    window.addEventListener('resize', () => {
+        this.run()
+    })
 }
 
 KGanttView.prototype.getTravaux = function () {
@@ -238,13 +242,63 @@ KGanttView.prototype.overlapTravaux = function (project) {
     project.set('travaux', travaux)
 }
 
+KGanttView.prototype.showWeeks = function () {
+    function getWeek (d) {
+        const date = new Date(d.getTime())
+        date.setHours(0, 0, 0, 0)
+        date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7)
+        const week1 = new Date(date.getFullYear(), 0, 4)
+        return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7)
+    }
+    return new Promise((resolve, reject) => {
+        const weekContainer = document.createElement('DIV')
+        const container = document.getElementById('k-gantt-container')
+        weekContainer.id = `k-gantt-weeks`
+        weekContainer.style.position = 'relative'
+        weekContainer.style.minWidth = '100%'
+        weekContainer.style.minHeight = '50px'
+        weekContainer.style.backgroundColor = 'black'
+        window.requestAnimationFrame(() => {
+            if (document.getElementById('k-gantt-weeks')) {
+                container.removeChild(document.getElementById('k-gantt-weeks'))
+            }
+            container.insertBefore(weekContainer, container.firstElementChild)
+        })
+
+        let week
+        let date = new Date()
+        for (date.setTime(this.begin.getTime()); date.getTime() < this.end.getTime(); date.setTime(date.getTime() + 86400000)) {
+            if (week !== getWeek(date)) {
+                week = getWeek(date)
+                const w = document.createElement('DIV')
+                w.style.minWidth = `${(7 * 86400000 * this.secWidth) - 2}px`
+                w.style.maxWidth = w.style.minWidth
+                w.style.border = 'solid 1px gray'
+                w.style.position = 'absolute'
+                w.style.left = `${(week - 1) * 7 * 86400000 * this.secWidth}px`
+                w.style.top = '0px'
+                w.style.backgroundColor = 'white'
+                w.style.textAlign = 'center'
+                w.innerHTML = `${week}`
+                window.requestAnimationFrame(() => { weekContainer.appendChild(w) })
+            }
+        }
+
+        resolve()
+    })
+
+}
+
 KGanttView.prototype.run = function () {
-    this.getTravaux()
-    .then(travaux => {
+    this.secWidth = window.innerWidth / (this.end.getTime() - this.begin.getTime())
+    Promise.all([
+        this.getTravaux(),
+        this.showWeeks()])
+    .then(([travaux, _]) => {
         return this.getProjectsFromTravaux(travaux)
     })
     .then(projects => {
-        const secWidth = window.innerWidth / (this.end.getTime() - this.begin.getTime())
+        const secWidth = this.secWidth
         let rects 
         let totalHours = 0
         const nodesAdded = []
@@ -252,16 +306,32 @@ KGanttView.prototype.run = function () {
             if (project.get('deleted')) { continue }
             if (!project.get('uncount')) { continue }
             this.overlapTravaux(project)
-            const baseHeight = 40
-            const projNode = document.createElement('DIV')
+            let baseHeight = 40
+            const projNode = document.getElementById(`project-${project.get('id')}`) || document.createElement('DIV')
+            if (projNode.dataset.open === '1') {
+                baseHeight = 280
+            }
+            projNode.id = `project-${project.get('id')}`
             projNode.classList.add('project')
             projNode.style.setProperty('position', 'relative')
             projNode.style.setProperty('min-width', '100%')
             projNode.style.setProperty('min-height', `${baseHeight}px`)
             projNode.innerHTML = `<span class="reference">${project.get('reference')}</span><span class="name">${project.get('name')}</span>`
-            window.requestAnimationFrame(() => {
-                document.getElementById('k-gantt-container').appendChild(projNode)
-            })
+            if (!projNode.parentNode) {
+                projNode.addEventListener('click', (event) => {
+                    if (event.target.dataset.open === '1') {
+                        this.reheightProject(event.target, baseHeight)
+                        event.target.dataset.open = '0'
+                    } else {
+                        this.reheightProject(event.target, 280)
+                        event.target.dataset.open = '1'
+                    }
+                })
+                
+                window.requestAnimationFrame(() => {
+                    document.getElementById('k-gantt-container').appendChild(projNode)
+                })
+            }
             let i = 0
             const drawn = []
             for (const travail of project.get('travaux')) {
@@ -282,8 +352,10 @@ KGanttView.prototype.run = function () {
                         this.days[i] += perDay
                         totalHours += perDay
                     }
-                    const trNode = document.createElement('DIV')
+                    const trNode = document.getElementById(`travail-${t.get('id')}`) || document.createElement('DIV')
                     trNode.classList.add('travail')
+                    trNode.dataset.overlapLevel = t.get('overlap-level')
+                    trNode.dataset.overlapMax = travail.get('overlap-max')
                     trNode.style.setProperty('position', 'absolute')
                     trNode.style.setProperty('top', `${t.get('overlap-level') * height}px`)
                     trNode.style.setProperty('width', `${((t.get('end').getTime() - t.get('begin').getTime()) * secWidth) - 1}px`)
@@ -292,13 +364,18 @@ KGanttView.prototype.run = function () {
                     trNode.style.setProperty('background-color', `${t.get('status').color}`)
                     trNode.style.setProperty('z-index', '-1')
                     nodesAdded.push(new Promise((resolve) => {
-                        window.requestAnimationFrame(() => {
-                            projNode.appendChild(trNode)
-                            if (!rects) {
-                                rects = projNode.getClientRects()
-                            }
+                        if (!trNode.parentNode) {
+                            window.requestAnimationFrame(() => {
+                                projNode.appendChild(trNode)
+                                if (!rects) {
+                                    rects = projNode.getClientRects()
+                                }
+                                resolve()
+                            })
+                        } else {
+                            rects = projNode.getClientRects()
                             resolve()
-                        })
+                        }
                     }))
                     
                     i++
@@ -360,6 +437,21 @@ KGanttView.prototype.run = function () {
     })
 }
 
+
+KGanttView.prototype.reheightProject = function (node, size) {
+    window.requestAnimationFrame(() => {
+        node.style.minHeight = `${size}px`
+    })
+    const nodes = node.querySelectorAll('div.travail')
+    for (const n of nodes) {
+        const height = size / n.dataset.overlapMax
+        const top = height * n.dataset.overlapLevel
+        window.requestAnimationFrame(() => {
+            n.style.minHeight = `${height - 2}px`
+            n.style.top = `${top}px`
+        })
+    }
+}
 
 window.onload = (event) => {
     const gantt = new KGanttView()
