@@ -318,12 +318,14 @@ KGanttView.prototype.run = function () {
             projNode.innerHTML = `<span class="reference">${project.get('reference')}</span><span class="name">${project.get('name')}</span>`
             if (!projNode.parentNode) {
                 projNode.addEventListener('click', (event) => {
-                    if (event.target.dataset.open === '1') {
-                        this.reheightProject(event.target, baseHeight)
-                        event.target.dataset.open = '0'
+                    let node = event.target
+                    while (node && !node.classList.contains('project')) { node = node.parentNode }
+                    if (node.dataset.open === '1') {
+                        this.reheightProject(node, baseHeight)
+                        node.dataset.open = '0'
                     } else {
-                        this.reheightProject(event.target, 280)
-                        event.target.dataset.open = '1'
+                        this.reheightProject(node, 280)
+                        node.dataset.open = '1'
                     }
                 })
                 
@@ -355,13 +357,13 @@ KGanttView.prototype.run = function () {
                     trNode.classList.add('travail')
                     trNode.dataset.overlapLevel = t.get('overlap-level')
                     trNode.dataset.overlapMax = travail.get('overlap-max')
+                    trNode.dataset.tooltip = `${t.get('reference')} - ${t.get('description')}`
                     trNode.style.setProperty('position', 'absolute')
                     trNode.style.setProperty('top', `${t.get('overlap-level') * height}px`)
                     trNode.style.setProperty('width', `${((t.get('end').getTime() - t.get('begin').getTime()) * secWidth) - 1}px`)
                     trNode.style.setProperty('left',  `${((t.get('begin').getTime() - this.begin.getTime()) * secWidth) - 1}px`)
                     trNode.style.setProperty('min-height', `${height - 2}px`)
                     trNode.style.setProperty('background-color', `${t.get('status').color}`)
-                    trNode.style.setProperty('z-index', '-1')
                     nodesAdded.push(new Promise((resolve) => {
                         if (!trNode.parentNode) {
                             window.requestAnimationFrame(() => {

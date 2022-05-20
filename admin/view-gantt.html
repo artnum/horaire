@@ -8,10 +8,42 @@
             }
             .travail {
                 border: 1px solid white;
+                cursor: pointer;
             }
             .project {
                 border: 2px solid white;
                 font-size: 12px;
+            }
+
+            [data-tooltip]:before {
+                /* needed - do not touch */
+                content: attr(data-tooltip);
+                position: absolute;
+                opacity: 0;
+                
+                /* customizable */
+                transition: all 0.05s ease;
+                padding: 4px;
+                color: #333;
+                border-radius: 2px;
+                box-shadow: 2px 2px 1px silver;    
+            }
+
+            [data-tooltip]:hover:before {
+                /* needed - do not touch */
+                opacity: 1;
+
+                z-index: 2;
+                /* customizable */
+                background: yellow;
+                margin-top: -26px;
+                margin-left: 20px;    
+                width: max-content;
+                max-width: 200px;
+            }
+
+            [data-tooltip]:not([data-tooltip-persistent]):before {
+                pointer-events: none;
             }
         </style>
         <script src="../conf/kaal.js"></script>
