@@ -410,7 +410,7 @@ KGanttView.prototype.run = function () {
                     const trNode = document.getElementById(`travail-${t.get('id')}`) || document.createElement('DIV')
                     trNode.classList.add('travail')
                     trNode.dataset.overlapLevel = t.get('overlap-level')
-                    trNode.dataset.overlapMax = project.get('overlap-max')
+                    trNode.dataset.overlapMax = t.get('overlap-max')
                     trNode.dataset.tooltip = `${t.get('reference')} - ${t.get('description')}`
                     trNode.style.setProperty('position', 'absolute')
                     trNode.style.setProperty('top', `${(t.get('overlap-level') * height) + 18}px`)
@@ -423,7 +423,7 @@ KGanttView.prototype.run = function () {
                         const planNode = document.getElementById(`travail-minmax-${t.get('id')}`) || document.createElement('DIV')
                         planNode.classList.add('planifie')
                         planNode.dataset.overlapLevel = t.get('overlap-level')
-                        planNode.dataset.overlapMax = project.get('overlap-max')
+                        planNode.dataset.overlapMax = t.get('overlap-max')
                         planNode.dataset.tooltip = `${t.get('reference')} - ${t.get('description')}`
                         planNode.style.setProperty('position', 'absolute')
                         planNode.style.setProperty('top', `${(t.get('overlap-level') * height) + 10 + height / 2}px`)
