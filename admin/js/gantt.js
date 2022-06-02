@@ -425,11 +425,16 @@ KGanttView.prototype.run = function () {
                         planNode.dataset.overlapLevel = t.get('overlap-level')
                         planNode.dataset.overlapMax = travail.get('overlap-max')
                         planNode.style.setProperty('position', 'absolute')
-                        planNode.style.setProperty('top', `${(t.get('overlap-level') * (height / 2)) + 18}px`)
+                        planNode.style.setProperty('top', `${(t.get('overlap-level') * height) + 10 + height / 2}px`)
                         planNode.style.setProperty('min-height', `${(height / 2) - 2}px`)
                         planNode.style.setProperty('left',  `${((t.get('min-reservation').getTime() - this.begin.getTime()) * secWidth) - 1}px`)
                         planNode.style.setProperty('width', `${((t.get('max-reservation').getTime() - t.get('min-reservation').getTime()) * secWidth) - 1}px`)
-                        planNode.style.setProperty('--border-color', LightenDarkenColor(t.get('status').color, 50))
+                        planNode.style.setProperty('--border-color', LightenDarkenColor(t.get('status').color, 30))
+                        const x = parseInt(t.get('status').color.substring(1), 16)
+                        const r = (x & 0xFF0000) >> 16
+                        const g = (x & 0x00FF00) >> 8
+                        const b = (x & 0x0000FF) 
+                        planNode.style.setProperty('background-color', `rgba(${r+20},${g+20},${b+20},0.3)`)
                         planNode.style.setProperty('z-index', 5)
                         nodesAdded.push(new Promise(resolve => {
                             if (!planNode.parentNode) {
@@ -540,7 +545,7 @@ KGanttView.prototype.reheightProject = function (node, size) {
     const nodes2 = node.querySelectorAll('div.planifie')
     for (const n of nodes2) {
         const height = size / n.dataset.overlapMax
-        const top = ((height / 2) * n.dataset.overlapLevel) + 18
+        const top = (height  * n.dataset.overlapLevel) + 10 + (height / 2)
         window.requestAnimationFrame(() => {
             n.style.minHeight = `${(height / 2) - 2}px`
             n.style.top = `${top}px`
