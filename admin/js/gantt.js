@@ -329,6 +329,14 @@ KGanttView.prototype.showWeeks = function () {
 }
 
 KGanttView.prototype.run = function () {
+
+    function LightenDarkenColor(col, amt) {
+        if (col.indexOf('#') !== -1) { col = col.substring(1) }
+        col = parseInt(col, 16);
+        return `#${(((col & 0x0000FF) + amt) | ((((col >> 8) & 0x00FF) + amt) << 8) | (((col >> 16) + amt) << 16)).toString(16)}`
+      }
+      
+
     this.secWidth = window.innerWidth / (this.end.getTime() - this.begin.getTime())
     for (let i = 0; i < this.days.length; i++) { this.days[i] = 0 }
     Promise.all([
@@ -413,12 +421,15 @@ KGanttView.prototype.run = function () {
 
                     if (t.get('min-reservation') && t.get('max-reservation')) {
                         const planNode = document.getElementById(`travail-minmax-${t.get('id')}`) || document.createElement('DIV')
+                        planNode.classList.add('planifie')
+                        planNode.dataset.overlapLevel = t.get('overlap-level')
+                        planNode.dataset.overlapMax = travail.get('overlap-max')
                         planNode.style.setProperty('position', 'absolute')
                         planNode.style.setProperty('top', `${(t.get('overlap-level') * (height / 2)) + 18}px`)
                         planNode.style.setProperty('min-height', `${(height / 2) - 2}px`)
                         planNode.style.setProperty('left',  `${((t.get('min-reservation').getTime() - this.begin.getTime()) * secWidth) - 1}px`)
                         planNode.style.setProperty('width', `${((t.get('max-reservation').getTime() - t.get('min-reservation').getTime()) * secWidth) - 1}px`)
-                        planNode.style.setProperty('border', '1px solid red')
+                        planNode.style.setProperty('--border-color', LightenDarkenColor(t.get('status').color, 50))
                         planNode.style.setProperty('z-index', 5)
                         nodesAdded.push(new Promise(resolve => {
                             if (!planNode.parentNode) {
@@ -523,6 +534,15 @@ KGanttView.prototype.reheightProject = function (node, size) {
         const top = (height * n.dataset.overlapLevel) + 18
         window.requestAnimationFrame(() => {
             n.style.minHeight = `${height - 2}px`
+            n.style.top = `${top}px`
+        })
+    }
+    const nodes2 = node.querySelectorAll('div.planifie')
+    for (const n of nodes2) {
+        const height = size / n.dataset.overlapMax
+        const top = ((height / 2) * n.dataset.overlapLevel) + 18
+        window.requestAnimationFrame(() => {
+            n.style.minHeight = `${(height / 2) - 2}px`
             n.style.top = `${top}px`
         })
     }
