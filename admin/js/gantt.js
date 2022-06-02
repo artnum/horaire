@@ -491,6 +491,7 @@ KGanttView.prototype.run = function () {
                 const node = document.getElementById('k-gantt-container')
                 if (!overlay.parentNode) { node.appendChild(overlay) }
                 node.style.marginBottom = `${oheight}px`
+                node.style.overflow = 'hidden'
             })
 
             const width = this.secWidth * 86400000
