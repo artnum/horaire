@@ -538,7 +538,7 @@ KGanttView.prototype.reheightProject = function (node, size) {
     const nodes = node.querySelectorAll('div.travail')
     for (const n of nodes) {
         let height = size / n.dataset.overlapMax
-        if (height > 80) { height = 80 }
+        if (height > 40) { height = 40 }
         const top = (height * n.dataset.overlapLevel) + 18
         window.requestAnimationFrame(() => {
             n.style.minHeight = `${height - 2}px`
@@ -548,7 +548,7 @@ KGanttView.prototype.reheightProject = function (node, size) {
     const nodes2 = node.querySelectorAll('div.planifie')
     for (const n of nodes2) {
         let height = size / n.dataset.overlapMax
-        if (height > 80) { height = 80 }
+        if (height > 40) { height = 40 }
         const top = (height  * n.dataset.overlapLevel) + 10 + (height / 2)
         window.requestAnimationFrame(() => {
             n.style.minHeight = `${(height / 2) - 2}px`
