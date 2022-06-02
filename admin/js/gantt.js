@@ -430,7 +430,7 @@ KGanttView.prototype.run = function () {
                         planNode.style.setProperty('min-height', `${(height / 2) - 2}px`)
                         planNode.style.setProperty('left',  `${((t.get('min-reservation').getTime() - this.begin.getTime()) * secWidth) - 1}px`)
                         planNode.style.setProperty('width', `${((t.get('max-reservation').getTime() - t.get('min-reservation').getTime()) * secWidth) - 1}px`)
-                        planNode.style.setProperty('--border-color', LightenDarkenColor(t.get('status').color, 30))
+                        planNode.style.setProperty('--border-color', LightenDarkenColor(t.get('status').color, 20))
                         const x = parseInt(t.get('status').color.substring(1), 16)
                         const r = (x & 0xFF0000) >> 16
                         const g = (x & 0x00FF00) >> 8
