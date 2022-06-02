@@ -75,7 +75,21 @@ KGanttView.prototype.getTravaux = function () {
                     })
                 })
                 t.set('request', request)
+                const request2 = new Promise(resolve => {
+                    fetch(`${KAAL.kairos.url}/store/Reservation/_query`, {method: 'POST', body: JSON.stringify({affaire: t.get('id')})})
+                    .then(response => {
+                        if (!response.ok) { return {length: 0, data: []} }
+                        return response.json()
+                    })
+                    .then(results => {
+                        if (!results.data) { return resolve([]) }
+                        return resolve(results.data)
+                    })
+
+                })
+                t.set('request2', request2)
                 statusPromise.push(request)
+                statusPromise.push(request2)
                 travaux.push(t)
             }
             travaux.sort((a, b) => {
@@ -87,6 +101,27 @@ KGanttView.prototype.getTravaux = function () {
                     t.get('request')
                     .then(status => {
                         t.set('status', status)
+                    })
+                    t.get('request2')
+                    .then(reservations => {
+                        let min
+                        let max
+                        for (const reservation of reservations) {
+                            const begin = new Date(reservation.begin)
+                            const end = new Date(reservation.end)
+
+                            if (!isNaN(begin.getTime())) {
+                                if (!min) { min = begin }
+                                else { if (min.getTime() > begin.getTime()) { min = begin } }
+                            }
+                            if (!isNaN(end.getTime())) {
+                                if (!max) { max = end }
+                                else { if (max.getTime() < end.getTime()) { max = end } }
+                            }
+                        }
+                        t.set('max-reservation', max)
+                        t.set('min-reservation', min)
+                        t.set('reservations', reservations)
                     })
                 }
                 return resolve(travaux)
@@ -375,6 +410,28 @@ KGanttView.prototype.run = function () {
                     trNode.style.setProperty('left',  `${((t.get('begin').getTime() - this.begin.getTime()) * secWidth) - 1}px`)
                     trNode.style.setProperty('min-height', `${height - 2}px`)
                     trNode.style.setProperty('background-color', `${t.get('status').color}`)
+
+                    if (t.get('min-reservation') && t.get('max-reservation')) {
+                        const planNode = document.getElementById(`travail-minmax-${t.get('id')}`) || document.createElement('DIV')
+                        planNode.style.setProperty('position', 'absolute')
+                        planNode.style.setProperty('top', `${(t.get('overlap-level') * (height / 2)) + 18}px`)
+                        planNode.style.setProperty('min-height', `${(height / 2) - 2}px`)
+                        planNode.style.setProperty('left',  `${((t.get('min-reservation').getTime() - this.begin.getTime()) * secWidth) - 1}px`)
+                        planNode.style.setProperty('width', `${((t.get('max-reservation').getTime() - t.get('min-reservation').getTime()) * secWidth) - 1}px`)
+                        planNode.style.setProperty('border', '1px solid red')
+                        planNode.style.setProperty('z-index', 5)
+                        nodesAdded.push(new Promise(resolve => {
+                            if (!planNode.parentNode) {
+                                window.requestAnimationFrame(() => {
+                                    projNode.appendChild(planNode)
+                                    resolve()
+                                })
+                            } else {
+                                resolve()
+                            }
+                        }))
+                    }
+
                     nodesAdded.push(new Promise((resolve) => {
                         if (!trNode.parentNode) {
                             window.requestAnimationFrame(() => {
