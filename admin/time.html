@@ -22,7 +22,7 @@
     <label for="comment">Commentaire :</label><input type="text" name="comment" /><br />
     <label for="project">Projet : </label>
     <input name="project" autocomplete="off" id="selectProject" type="text" />
-    <label for="process">Processus : </label><select data-source="Process" data-options="{label: '$name', id: 'id', parameters: {'search.deleted': '-'}}" name="process"></select><br />
+    <label for="process">Processus : </label><input name="process"></select><br />
     <fieldset>
       <legend>Répétition</legend>
       <label for="upTo">Jusqu'au: </label><input type="date" name="upTo" /><br>
@@ -71,11 +71,13 @@
 <script src="../node_modules/artnum/Select.js"></script>
 <script src="../node_modules/artnum/Query.js"></script>
 <script src="../node_modules/artnum/DTable.js"></script>
+<script src="../../kcore/index.js"></script>
 <script src="js/admin.js"></script>
 <script src="js/stores.js"></script>
 <script src="../js/index.js"></script>
 <script>
   const stProject = new STProject('Project', true)
+  const stProcess = new STProcess()
 
 
 function submitForm (event, doExport = false) {
@@ -100,14 +102,18 @@ function submitForm (event, doExport = false) {
    if (obj.deleted) {
      delete params['search.deleted']
    }
-   Artnum.Query.exec(Artnum.Path.url(form.getAttribute('data-source'), {params: params})).then(function (result) {
+   Artnum.Query.exec(Artnum.Path.url(form.getAttribute('data-source'), {params: params}))
+   .then(function (result) {
      var table = document.getElementById('results')
      var tbody = table;
      for (tbody = table.firstChild; tbody.nodeName !== 'TBODY'; tbody = tbody.nextSibling);
      tbody.innerHTML = ''
      if (result.success && result.length > 0) {
        for (var i = 0; i < result.length; i++) {
-         tbody.appendChild(makeEntry(result.data[i]))
+          makeEntry(result.data[i])
+          .then(tr => {
+            tbody.appendChild(tr)
+          })
        }
      }
    })
@@ -130,55 +136,106 @@ function submitForm (event, doExport = false) {
 }
 
 function makeEntry2 (entry) {
-  var tr = document.createElement('TR')
-  tr.setAttribute('data-id', entry.id)
-  if (entry.deleted) {
-    tr.setAttribute('data-state', 'deleted')
-  }
-  var hour = new Hour(parseInt(entry.value))
-  var innerhtml = `<td data-value="${entry.day}" data-sort-value="${entry.day}">${entry.day}
-    </td><td name="hour" data-value="${hour.format()}">${hour.format()}
-    </td><td name="comment" data-value="${(entry.comment ? entry.comment : '')}">${(entry.comment ? entry.comment : '')}
-    </td><td data-source="Person" data-id="${entry.person}">${entry._person.name}
-    </td><td name="project" data-source="Projects" data-id="${entry.project}">${entry._project.name}
-    </td><td name="process" data-source="Process" data-id="${entry.process}">${entry._process.name}
-    </td>`
-  tr.innerHTML = innerhtml
-  return tr
+  return new Promise(resolve => {
+    Promise.all([
+      stProcess.get(entry.process),
+      stProject.get(entry.project)
+    ])
+    .then(([process, project]) => {
+      if (!process) {
+        process = {
+          id: 0,
+          name: '',
+          color: 'black'
+        }
+      }
+      if (!project) {
+        project = {
+          id: 0,
+          name: ''
+        }
+      }
+
+      if (!process.color) { process.color = 'black' }
+
+      var tr = document.createElement('TR')
+      tr.setAttribute('data-id', entry.id)
+      if (entry.deleted) {
+        tr.setAttribute('data-state', 'deleted')
+      }
+      var hour = new Hour(parseInt(entry.value))
+      var innerhtml = `<td data-value="${entry.day}" data-sort-value="${entry.day}">${entry.day}
+        </td><td name="hour" data-value="${hour.format()}">${hour.format()}
+        </td><td name="comment" data-value="${(entry.comment ? entry.comment : '')}">${(entry.comment ? entry.comment : '')}
+        </td><td data-source="Person" data-id="${entry.person}">${entry._person.name}
+        </td><td name="project" data-source="Projects" data-id="${project.id}">${project.name}
+        </td><td name="process" data-source="Process" style="color: ${process.color}"  data-id="${process.id}">${process.name}
+        </td>`
+      tr.innerHTML = innerhtml
+      return resolve(tr)
+    })
+    .catch(error => {
+      console.log(error)
+      reject(error)
+    })
+  })
 }
 
 function makeEntry (entry) {
-  var tr = document.createElement('TR')
-  tr.setAttribute('data-id', entry.id)
-  if (entry.deleted) {
-    tr.setAttribute('data-state', 'deleted')
-  }
-  var hour = new Hour(parseInt(entry.value))
-  var innerhtml = `<td name="date" data-value="${entry.day}" data-sort-value="${entry.day}">${(new Date(entry.day)).fullDate()}
-    </td><td name="hour" data-value="${hour.format()}">${hour.format()}
-    </td><td name="comment" data-value="${(entry.comment ? entry.comment : '')}">
-   ${(entry.comment ? entry.comment : '')}
-    </td><td name="project" data-source="Projects" data-id="${entry.project}">${entry._project ? entry._project.name : ''}
-    </td><td name="process" data-source="Process" data-id="${entry.process}">${entry._process ? entry._process.name : ''}
-    </td>`
+  return new Promise (resolve => {
+    Promise.all([
+      stProcess.get(entry.process),
+      stProject.get(entry.project)
+    ])
+    .then(([process, project]) => {
+      if (!process) {
+        process = {
+          id: 0,
+          name: '',
+          color: 'black'
+        }
+      }
+      if (!project) {
+        project = {
+          id: 0,
+          name: ''
+        }
+      }
+      if (!process.color) { process.color = 'black' }
 
-  if (entry.deleted) {
-    innerhtml += '<td><input type="button" name="undelete" value="Rétablir" onclick="undeleteEntry(event)"/></td>'
-  } else {
-    innerhtml += '<td><input type="button" name="edit" value="Modifier" onclick="editEntry(event)"/>' +
-      '<input type="button" name="delete" value="Supprimer" onclick="deleteEntry(event)" />' +
-      '</td>'
-  }
-   tr.innerHTML = innerhtml
-   tr.addEventListener('dblclick', (event) => {
-     let line = event.target
-     for (; line.nodeName !== 'TR'; line = line.parentNode);
-     if (line.dataset.edit) {
-       return
-     }
-     editEntry(event)
-   })
-  return tr
+      const tr = document.createElement('TR')
+      tr.setAttribute('data-id', entry.id)
+      if (entry.deleted) {
+        tr.setAttribute('data-state', 'deleted')
+      }
+      var hour = new Hour(parseInt(entry.value))
+      var innerhtml = `<td name="date" data-value="${entry.day}" data-sort-value="${entry.day}">${(new Date(entry.day)).fullDate()}
+        </td><td name="hour" data-value="${hour.format()}">${hour.format()}
+        </td><td name="comment" data-value="${(entry.comment ? entry.comment : '')}">
+      ${(entry.comment ? entry.comment : '')}
+        </td><td name="project" data-source="Projects" data-id="${project.id}">${project.name}
+        </td><td name="process" data-source="Process" style="color: ${process.color}" data-id="${process.id}">${process.name}
+        </td>`
+
+      if (entry.deleted) {
+        innerhtml += '<td><input type="button" name="undelete" value="Rétablir" onclick="undeleteEntry(event)"/></td>'
+      } else {
+        innerhtml += '<td><input type="button" name="edit" value="Modifier" onclick="editEntry(event)"/>' +
+          '<input type="button" name="delete" value="Supprimer" onclick="deleteEntry(event)" />' +
+          '</td>'
+      }
+      tr.innerHTML = innerhtml
+      tr.addEventListener('dblclick', (event) => {
+        let line = event.target
+        for (; line.nodeName !== 'TR'; line = line.parentNode);
+        if (line.dataset.edit) {
+          return resolve()
+        }
+        editEntry(event)
+      })
+      return resolve(tr)
+    })
+  })
 }
 
  function resetEntry (event)
@@ -189,7 +246,10 @@ function makeEntry (entry) {
      if (result.success && result.length) {
        let table = event.target
        for (; table && table.nodeName !== 'TABLE'; table = table.parentNode) ;
-       Admin.insertEntry(makeEntry(result.data[0] || result.data), table)
+       makeEntry(result.data[0] || result.data)
+       .then(tr => {
+        Admin.insertEntry(tr, table)
+       })
      }
    })
  }
@@ -313,28 +373,38 @@ function editEntry (event) {
          if (save) {
            body.project = td.getElementsByTagName('INPUT')[0].dataset.value
          } else {
-           let project = document.createElement('INPUT')
-           let s = Select(project, stProject, {realSelect: true, allowFreeText: false})
-           project.addEventListener('keyup', onEnterEscapeKey)
-           s.value = td.dataset.id
-           window.requestAnimationFrame(() => {
-             td.innerHTML = ''
-             td.appendChild(project)
-           })
+            const project = document.createElement('INPUT')
+            project.addEventListener('keyup', onEnterEscapeKey)
+            new Promise(resolve => {
+              window.requestAnimationFrame(() => {
+                td.innerHTML = ''
+                td.appendChild(project)
+                resolve(project)
+              })
+            })
+            .then(node => {
+              const s = new KSelectUI(node, stProject, {realSelect: true, allowFreeText: false})
+              s.value = td.dataset.id
+            })
          }
          break
        case 'process':
          if (save) {
            body.process = td.getElementsByTagName('INPUT')[0].dataset.value
          } else {
-           let process = document.createElement('INPUT')
-           let s = Select(process, new STProcess('Process'), {realSelect: true, allowFreeText: false})
+           const process = document.createElement('INPUT')
            process.addEventListener('keyup', onEnterEscapeKey)
-           s.value = td.dataset.id
-           window.requestAnimationFrame(() => {
-             td.innerHTML = ''
-             td.appendChild(process)
-           })
+           new Promise(resolve => {
+              window.requestAnimationFrame(() => {
+                td.innerHTML = ''
+                td.appendChild(process)
+                resolve(process)
+              })
+            })
+            .then(node => {
+              const s = new KSelectUI(node, new STProcess('Process'), {realSelect: true, allowFreeText: false})
+              s.value = td.dataset.id
+            })
          }
          break
      }
@@ -345,9 +415,12 @@ function editEntry (event) {
        if (result.success && result.length > 0 && result.data[0].id) {
          Artnum.Query.exec(Artnum.Path.url(`Htime/${result.data[0].id}`)).then((result) => {
            if (result.success && result.length) {
-             let table = event.target
-             for (; table && table.nodeName !== 'TABLE'; table = table.parentNode) ;
-             Admin.insertEntry(makeEntry(Array.isArray(result.data) ? result.data[0] : result.data), table)
+              let table = event.target
+              for (; table && table.nodeName !== 'TABLE'; table = table.parentNode) ;
+              makeEntry(Array.isArray(result.data) ? result.data[0] : result.data)
+             .then(tr => {
+                Admin.insertEntry(tr, table)
+              })
            }
          })
        }
@@ -375,10 +448,12 @@ function undeleteEntry (event) {
   var id = line.getAttribute('data-id')
   if (id) {
     Admin.deleteEntry('Htime', id, true).then(function (data) {
-      var entry = makeEntry(data)
-      var table = line
-      for (; table && table.nodeName !== 'TABLE'; table = table.parentNode);
-      Admin.insertEntry(entry, table)
+      makeEntry(data)
+      .then(tr => {
+        let table = line
+        for (; table && table.nodeName !== 'TABLE'; table = table.parentNode);
+        Admin.insertEntry(tr, table)
+      })
     })
   }
 }
@@ -420,8 +495,8 @@ function addTime (event) {
   var form = Admin.getForm(event.target)
   var hour = new Hour(form.hour)
   document.querySelector('input[name="upTo"]').value = ''
-  document.querySelector('input[name="project"]').value = ''
-  document.querySelector('select[name="process"]').value = ''
+  document.querySelector('input[name="hour"]').value = ''
+  document.querySelector('input[name="comment"]').value = ''
   document.querySelector('input[name="day6"]').checked = false
   document.querySelector('input[name="day0"]').checked = false
   document.querySelector('input[name="day1"]').checked = true
@@ -449,7 +524,10 @@ function addTime (event) {
               }
               var tbody = table;
               for (tbody = table.firstChild; tbody.nodeName !== 'TBODY'; tbody = tbody.nextSibling);
-              tbody.appendChild(makeEntry2(Array.isArray(result.data) ? result.data[0] : result.data))
+              makeEntry2(Array.isArray(result.data) ? result.data[0] : result.data)
+              .then(tr => {
+                tbody.appendChild(tr)
+              })
             }
           })
         }
@@ -460,14 +538,14 @@ function addTime (event) {
   }
 }
 
-window.onload = function (event) {
+window.addEventListener('kcore-loaded', event => {
   var forms = document.getElementsByTagName('form')
     for (var i = 0; i < forms.length; i++) {
       Admin.loadForm(forms[i])
     }
-   var t = new Artnum.DTable({table: 'results', sortOnly: true})
-   /* <select data-source="Project" data-options='{label: "$reference - $name", id: "id", parameters: {"search.closed": "-", "search.deleted": "-"}}' name="project"></select> */
-   Select(document.getElementById('selectProject'), stProject, {realSelect: true, allowFreeText: false})
-}
+  var t = new Artnum.DTable({table: 'results', sortOnly: true})
+  new KSelectUI(document.getElementById('selectProject'), stProject, {realSelect: true, allowFreeText: false})
+  new KSelectUI(document.body.querySelector('input[name="process"]'), stProcess, {realSelect: true, allowFreeText: false})
+})
 </script>
 </html>

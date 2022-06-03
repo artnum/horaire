@@ -3,6 +3,8 @@
 /* exported STProject */
 
 function highlight (val, txt, open = '<span class="match">', close = '</span>') {
+  if (val === '*') { return txt }
+  val = val.replace('*', '')
   let s = txt.toLowerCase().toAscii().indexOf(val.toLowerCase().toAscii())
   if (s !== -1) {
     return `${txt.substring(0, s)}${open}${txt.substring(s, s + val.length)}${close}${txt.substring(s + val.length)}`
@@ -10,47 +12,64 @@ function highlight (val, txt, open = '<span class="match">', close = '</span>') 
   return txt
 }
 
-function STProcess(store) {
-  this.Store = store
+function STProcess() {
+  this.Store = KAAL.kairos.url
 }
 STProcess.prototype.get = function (id) {
   return new Promise((resolve, reject) => {
     let entry = null
     if (id === undefined || id === null || id === false) { resolve(entry); return }
-    Artnum.Query.exec(Artnum.Path.url(`${this.Store}/${id}`)).then((results) => {
-      if (results.success && results.length === 1) {
-        entry = Array.isArray(results.data) ? results.data[0] : results.data
-        entry.label = `${entry.name}`
-        entry.value = entry.uid ? entry.uid : entry.id
-      }
-      resolve(entry)
+    fetch(`${this.Store}/store/Status/${id}`)
+    .then(response => {
+      if (!response.ok) { return {data:[], length: 0} }
+      return response.json()
+    })
+    .then(results => {
+      if (results.length === 0) { return resolve(entry) }
+      entry = Array.isArray(results.data) ? results.data[0] : results.data
+      entry.label = `${entry.name}`
+      entry.value = entry.uid ? entry.uid : entry.id
+      entry.color = entry.color ? entry.color : '#000000'
+      return resolve(entry)
+    })
+    .catch(error => {
+      console.log(error)
     })
   })
 }
 
 STProcess.prototype.query = function (txt) {
   return new Promise((resolve, reject) => {
-    let entries = []
-    let searchTerm = txt.toAscii().toLowerCase()
-    let params = {
-      'search.name': `~%${searchTerm}%`,
-      'search.deleted': '-'
+    if (typeof txt === 'object') { txt = Object.values(txt)[0] }
+    const entries = []
+    const searchTerm = txt.toAscii().toLowerCase()
+    const query = {
+      name: `*${searchTerm}`,
+      type: '1'
     }
-    Artnum.Query.exec(Artnum.Path.url(`${this.Store}`, {params: params})).then((results) => {
-      if (results.success && results.length) {
-        results.data.forEach((entry) => {
-          let name = `${entry.name}`
-          name = highlight(searchTerm, name)
-          entry.label = name
-          entry.value = entry.uid ? entry.uid : entry.id
-          entries.push(entry)
-        })
-      }
+
+    fetch(`${this.Store}/store/Status/_query`, {method: 'post', body: JSON.stringify(query)})
+    .then(response => {
+      if (!response.ok) { return {length: 0, data: []} }
+      return response.json()
+    })
+    .then(results => {
+      if (results.length === 0) { return resolve(entries) }
+      if (!Array.isArray(results.data)) { results.data = [results.data] }
+      results.data.forEach((entry) => {
+        entry.label = highlight(searchTerm, String(entry.name))
+        entry.value = entry.uid ? entry.uid : entry.id
+        entry.color = entry.color ? entry.color : '#000000'
+        entries.push(entry)
+      })
       entries.sort((a, b) => {
         return a.name.localeCompare(b.name)
       })
-
       resolve(entries)
+    })
+    .catch(error => {
+      console.log(error)
+      resolve([])
     })
   })
 }
@@ -67,7 +86,7 @@ function STProject (store, closed = false) {
 STProject.prototype.get = function (id) {
   return new Promise((resolve, reject) => {
     let entry = null
-    if (id === undefined || id === null || id === false) { resolve(entry); return }
+    if (id === undefined || id === null || id === false) { return resolve(entry) }
     Artnum.Query.exec(Artnum.Path.url(`${this.Store}/${id}`)).then((results) => {
       if (results.success && results.length === 1) {
         entry = Array.isArray(results.data) ? results.data[0] : results.data
@@ -81,28 +100,39 @@ STProject.prototype.get = function (id) {
 
 STProject.prototype.query = function (txt) {
   return new Promise((resolve, reject) => {
+    if (typeof txt === 'object') { txt = Object.values(txt)[0] }
     let entries = []
     let searchTerm = txt.toAscii().toLowerCase()
-    let params = {
-      'search.reference': `~${searchTerm}%`,
-      'search.name': `~%${searchTerm}%`,
-      'search._rules': '(reference OR name) AND deleted',
-      'search.deleted': '-'
-    }
-    if (!this.closed) {
-      params['search.closed'] = '-'
-      params['search._rules'] = '(reference OR name) AND deleted AND closed'
-    }
-    Artnum.Query.exec(Artnum.Path.url(`${this.Store}`, {params: params})).then((results) => {
-      if (results.success && results.length) {
-        results.data.forEach((entry) => {
-          let name = `${entry.reference} ${entry.name}`
-          name = highlight(searchTerm, name)
-          entry.label = name
-          entry.value = entry.uid ? entry.uid : entry.id
-          entries.push(entry)
-        })
+    const request = {
+      '#and': {
+        '#or': { 
+          reference: `${searchTerm}`,
+          name: `*${searchTerm}` 
+        },
+        deleted: '-'
       }
+    }
+
+    if (!this.closed) {
+      request['#and'].closed = '-'
+    }
+
+    fetch(Artnum.Path.url(`${this.Store}/_query`), {method: 'post', body: JSON.stringify(request)})
+    .then(response => {
+      if (!response.ok) { return {length: 0, data: []} }
+      return response.json()
+    })
+    .then(results => {
+      if (results.length === 0) { return resolve([]) }
+
+      results.data.forEach((entry) => {
+        let name = `${entry.reference} ${entry.name}`
+        name = highlight(searchTerm, name)
+        entry.label = name
+        entry.value = entry.uid ? entry.uid : entry.id
+        entries.push(entry)
+      })
+    
       entries.sort((a, b) => {
         let Xa = parseInt(a.reference)
         let Xb = parseInt(b.reference)
@@ -125,7 +155,7 @@ STProject.prototype.getIdentity = function (object) {
   return object.uid ? object.uid : object.id
 }
 
-const STCategory = function (store) {
+function STCategory (store) {
   this.Store = store
 }
 
@@ -146,6 +176,7 @@ STCategory.prototype.get = function (id) {
 
 STCategory.prototype.query = function (txt) {
   return new Promise((resolve, reject) => {
+    if (typeof txt === 'object') { txt = Object.values(txt)[0] }
     let entries = []
     let searchTerm = txt.toAscii().toLowerCase()
     let params = {
