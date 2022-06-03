@@ -310,7 +310,10 @@
       
       if (options.modal) {
         let underlay = document.createElement('DIV')
-        underlay.id = 'ModalUnderlay'        
+        underlay.id = 'ModalUnderlay'
+        if (typeof KZ === 'function') {
+          underlay.style.zIndex = KZ()
+        }
         window.underlay = underlay
         window.requestAnimationFrame(() => {
           document.body.appendChild(underlay)
@@ -319,7 +322,8 @@
       }
 
       let popup = document.createElement('DIV')
-      popup.style.zIndex = '9999'
+      if (typeof KZ === 'function') { popup.style.zIndex = KZ() }
+      else { popup.style.zIndex = 9999 }
       let titleNode = document.createElement('SPAN')
       titleNode.innerHTML = title
 

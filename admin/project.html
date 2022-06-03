@@ -48,10 +48,12 @@
 <script src="../node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
 <script src="js/admin.js"></script>
 <script src="js/string.js"></script>
+<script src="js/stores.js"></script>
 <script src="js/store/user.js"></script>
 <script src="js/addr.js" type="module"></script>
 <script src="js/ked.js"></script>
 <script src="../js/index.js"></script>
+<script src="../../kcore/index.js"></script>
 <script type="module">
   import { Address } from './js/address.js'
   const address = new Address(document.getElementById('client'))
@@ -170,17 +172,8 @@ function createBTTravail (kaproject) {
       <input type="hidden" value="${project.id}" name="project" />
       <label for="subref">Référence : </label><input name="subref" type="text" value="${travail.reference}" /> <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" value="${travail.meeting}" /><br>
       <label for="contact">Personne de contact : </label><input name="contact" type="text" value="${travail.contact}" /> <label for="cphone">Téléphone : </label><input name="cphone" type="text" value="${travail.phone}"/><br>
-      <label for="group">Sous-chantier: </label><input name="group" type="text" value="${$i(travail.group)}"/> <label for="process">Processus : </label><select name="status">
-        <option value="">- Aucun -</option>
-        <option ${parseInt(travail.status) === 1 ? 'selected' : ''} value="1">Assemblage</option>
-        <option ${parseInt(travail.status) === 2 ? 'selected' : ''}  value="2">Production</option>
-        <option ${parseInt(travail.status) === 3 ? 'selected' : ''}  value="3">Montage</option>
-        <option ${parseInt(travail.status) === 4 ? 'selected' : ''}  value="4">Absence/Malagie/Congé</option>
-        <option ${parseInt(travail.status) === 5 ? 'selected' : ''}  value="5">Logistique</option>
-        <option ${parseInt(travail.status) === 9 ? 'selected' : ''}  value="9">Bureau</option>
-        <option ${parseInt(travail.status) === 12 ? 'selected' : ''}  value="12">Régie</option>
-
-        </select>
+      <label for="group">Sous-chantier: </label><input name="group" type="text" value="${$i(travail.group)}"/> <label for="process">Processus : </label>
+      <input name="status" value="${travail.status}"></input>
       <br>
       <label for="begin">Début souhaité :</label><input name="begin" type="date" value="${travail.begin ? travail.begin : ''}"/><label for="end">Fin souhaitée : </label><input name="end" type="date" value="${travail.end ? travail.end : ''}"/><br>
       <label for="time">Temps total du projet : <input name="time" type="text" value="${time}"></label><label for="force">Nombre de personne : <input name="force" type="text" value="${travail.force ? travail.force : 1}" /></label><br>
@@ -189,6 +182,9 @@ function createBTTravail (kaproject) {
       <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
      </form>`, `Travail pour ${project.reference} - ${project.name}`)
 
+     const s = new KSelectUI(popup.querySelector('input[name="status"]'), new STProcess(), {realSelect: true, allowFreeText: false})
+
+    
     KATravail.getByProject(project.id)
     .then(travaux => {    
       new KAList(popup.querySelector('input[name="group"]'), new KAGroup(travaux))
