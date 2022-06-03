@@ -155,6 +155,75 @@ STProject.prototype.getIdentity = function (object) {
   return object.uid ? object.uid : object.id
 }
 
+function STPerson (level = 128) {
+  this.level = level
+}
+
+STPerson.prototype.get = function (id) {
+  return new Promise((resolve, reject) => {
+    let entry = null
+    if (id === undefined || id === null || id === false) { resolve(entry); return }
+    fetch(`${KAAL.getBase()}/Person/${id}`)
+    .then(response => {
+      if (!response.ok) { return {data:[], length: 0} }
+      return response.json()
+    })
+    .then(results => {
+      if (results.length === 0) { return resolve(entry) }
+      entry = Array.isArray(results.data) ? results.data[0] : results.data
+      entry.label = `${entry.name}`
+      entry.value = entry.uid ? entry.uid : entry.id
+      return resolve(entry)
+    })
+    .catch(error => {
+      console.log(error)
+    })
+  })
+}
+
+STPerson.prototype.query = function (txt) {
+  return new Promise((resolve, reject) => {
+    if (typeof txt === 'object') { txt = Object.values(txt)[0] }
+    let entries = []
+    let searchTerm = txt.toAscii().toLowerCase()
+    const request = {
+      '#and': {
+        name: `*${searchTerm}`,
+        level: ['<=', this.level, 'int'],
+        disabled: '0',
+        deleted: '--'
+      }
+    }
+
+    fetch(`${KAAL.getBase()}/Person/_query`, {method: 'post', body: JSON.stringify(request)})
+    .then(response => {
+      if (!response.ok) { return {length: 0, data: []} }
+      return response.json()
+    })
+    .then(results => {
+      if (results.length === 0) { return resolve([]) }
+
+      results.data.forEach((entry) => {
+        let name = `${entry.name}`
+        name = highlight(searchTerm, name)
+        entry.label = name
+        entry.value = entry.uid ? entry.uid : entry.id
+        entries.push(entry)
+      })
+    
+      entries.sort((a, b) => {
+        return a.name.localeCompare(b.name)
+      })
+
+      resolve(entries)
+    })
+  })
+}
+
+STProject.prototype.getIdentity = function (object) {
+  return object.uid ? object.uid : object.id
+}
+
 function STCategory (store) {
   this.Store = store
 }

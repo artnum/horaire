@@ -173,7 +173,7 @@ function createBTTravail (kaproject) {
       <label for="subref">Référence : </label><input name="subref" type="text" value="${travail.reference}" /> <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" value="${travail.meeting}" /><br>
       <label for="contact">Personne de contact : </label><input name="contact" type="text" value="${travail.contact}" /> <label for="cphone">Téléphone : </label><input name="cphone" type="text" value="${travail.phone}"/><br>
       <label for="group">Sous-chantier: </label><input name="group" type="text" value="${$i(travail.group)}"/> <label for="process">Processus : </label>
-      <input name="status" value="${travail.status}"></input>
+      <input name="status" value="${travail.status ?? ''}"></input>
       <br>
       <label for="begin">Début souhaité :</label><input name="begin" type="date" value="${travail.begin ? travail.begin : ''}"/><label for="end">Fin souhaitée : </label><input name="end" type="date" value="${travail.end ? travail.end : ''}"/><br>
       <label for="time">Temps total du projet : <input name="time" type="text" value="${time}"></label><label for="force">Nombre de personne : <input name="force" type="text" value="${travail.force ? travail.force : 1}" /></label><br>
@@ -485,7 +485,7 @@ async function evCancelEdit (event) {
       addr.update()
      })
      
-     let managerSelect = new Select(popup.querySelector('input[name="manager"]'), new UserStore(`${KAAL.getBase()}/Person`, 128), {realSelect: true, allowFreeText: false})
+     const managerSelect = new KSelectUI(popup.querySelector('input[name="manager"]'), new STPerson(), {realSelect: true, allowFreeText: false})
      form.addEventListener('reset', (event) => {
        let p = event.target
        while (p && !p.classList.contains('popup')) { p = p.parentNode }
@@ -773,7 +773,7 @@ function UIKADisplayProject (project) {
 
  var t = null
  async function load () {
-   let managerSelect = new Select(document.getElementById('manager'), new UserStore(`${KAAL.getBase()}/Person`, 128), {allowFreeText: false, realSelect: true})
+   const managerSelect = new KSelectUI(document.getElementById('manager'), new STPerson(), {allowFreeText: false, realSelect: true})
    document.getElementById('rDef').addEventListener('click', genRef)
    document.getElementById('rYear').addEventListener('click', genRef)
    document.getElementById('inYear').value = String((new Date()).getFullYear())
@@ -809,7 +809,6 @@ function UIKADisplayProject (project) {
      }
    }})
  }
- 
- window.addEventListener('load', load)
+ window.addEventListener('kcore-loaded', load)
 </script>
 </html>
