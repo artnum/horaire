@@ -2,16 +2,6 @@
 /* global Artnum */
 /* exported STProject */
 
-function highlight (val, txt, open = '<span class="match">', close = '</span>') {
-  if (val === '*') { return txt }
-  val = val.replace('*', '')
-  let s = txt.toLowerCase().toAscii().indexOf(val.toLowerCase().toAscii())
-  if (s !== -1) {
-    return `${txt.substring(0, s)}${open}${txt.substring(s, s + val.length)}${close}${txt.substring(s + val.length)}`
-  }
-  return txt
-}
-
 function STProcess() {
   this.Store = KAAL.kairos.url
 }
@@ -57,7 +47,7 @@ STProcess.prototype.query = function (txt) {
       if (results.length === 0) { return resolve(entries) }
       if (!Array.isArray(results.data)) { results.data = [results.data] }
       results.data.forEach((entry) => {
-        entry.label = highlight(searchTerm, String(entry.name))
+        entry.label = entry.name
         entry.value = entry.uid ? entry.uid : entry.id
         entry.color = entry.color ? entry.color : '#000000'
         entries.push(entry)
@@ -127,7 +117,6 @@ STProject.prototype.query = function (txt) {
 
       results.data.forEach((entry) => {
         let name = `${entry.reference} ${entry.name}`
-        name = highlight(searchTerm, name)
         entry.label = name
         entry.value = entry.uid ? entry.uid : entry.id
         entries.push(entry)
@@ -205,7 +194,6 @@ STPerson.prototype.query = function (txt) {
 
       results.data.forEach((entry) => {
         let name = `${entry.name}`
-        name = highlight(searchTerm, name)
         entry.label = name
         entry.value = entry.uid ? entry.uid : entry.id
         entries.push(entry)
@@ -256,7 +244,6 @@ STCategory.prototype.query = function (txt) {
       if (results.success && results.length) {
         results.data.forEach((entry) => {
           let name = `${entry.reference} ${entry.name}`
-          name = highlight(searchTerm, name)
           entry.label = name
           entry.value = entry.uid ? entry.uid : entry.id
           entries.push(entry)
