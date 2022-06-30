@@ -15,10 +15,10 @@ KAPerson.create = function (person) {
 
 KAPerson.load = function (personId) {
     return new Promise((resolve, reject) => {
-        if (DataUtils.empty(personId)) { resolve (new KAPerson()); return }
+        if (DataUtils.empty(personId)) { return resolve (new KAPerson()) }
         kafetch(`${KAAL.getBase()}/Person/${personId.toId()}`)
         .then(person => {
-            if (person.length !== 1) { reject('Personne inconnue'); return }
+            if (person.length !== 1) { return resolve (new KAPerson()) }
             resolve(KAPerson.create(person.data[0]))
         })
         .catch(error => {
