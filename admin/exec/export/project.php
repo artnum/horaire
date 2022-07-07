@@ -350,7 +350,7 @@ try {
    
    $i = 10;
    foreach ($processus as $k => $v) {
-      $writer->writeSheetRow('Résumé', ['',$k, strval(number_format(floatval($v) * 100 / floatval($project['workcost']), 2)) . ' %', $v], ['font-style' => 'italic'], ['string', 'string', 'string', 'price']);
+      $writer->writeSheetRow('Résumé', ['',$k, strval(number_format(floatval($v) * 100 / floatval($project['workcost']), 2)) . ' %', $v, '', strval(number_format(floatval($v) * 100 / floatval($total), 2)) . ' %'], ['font-style' => 'italic'], ['string', 'string', 'string', 'price', 'string', 'string']);
       $i++;
    }
    $writer->writeSheetRow('Résumé', ['']);
