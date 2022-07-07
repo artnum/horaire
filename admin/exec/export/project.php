@@ -336,6 +336,7 @@ try {
       $SheetFacture['content'][] = ['Totaux', '', '', '=SUM(D2:D' . $line .  ')', '', '=SUM(F2:F' . $line .  ')']; 
    }
 
+   $total = $project['workcost'] + $amountByType[0] + $materielMontant;
 
    $writer->writeSheetRow('Résumé', ['Projet', $project['reference']], ['font-style' => 'bold']);
    $writer->writeSheetRow('Résumé', ['Responsable', $project['manager']]);
@@ -344,17 +345,18 @@ try {
    $writer->writeSheetRow('Résumé', ['']);
    $writer->writeSheetRow('Résumé', ['Matériel', '', '', $materielMontant], null, ['string', 'string', 'string', 'price']);
    $writer->writeSheetRow('Résumé', ['']);
-   $writer->writeSheetRow('Résumé', ['Main d\'œuvre', '', '', $project['workcost']], null, ['string', 'string', 'string', 'price']);
+   $writer->writeSheetRow('Résumé', ['Main d\'œuvre', '', '100%', $project['workcost'], strval(number_format(floatval($project['workcost']) * 100 / floatval($total), 2)) . ' %'], null, ['string', 'string', 'string', 'price', 'string']);
    $writer->writeSheetRow('Résumé', ['dont'], ['font-style' => 'italic']);
    
+   $i = 10;
    foreach ($processus as $k => $v) {
-      $writer->writeSheetRow('Résumé', ['', $k, $v], ['font-style' => 'italic'], ['string', 'string', 'price']);
+      $writer->writeSheetRow('Résumé', ['',$k, strval(number_format(floatval($v) * 100 / floatval($project['workcost']), 2)) . ' %', $v], ['font-style' => 'italic'], ['string', 'string', 'string', 'price']);
+      $i++;
    }
    $writer->writeSheetRow('Résumé', ['']);
-   $writer->writeSheetRow('Résumé', ['Créanciers HT', '', '', $amountByType[0]], null, ['string', 'string', 'string', 'price']);
+   $writer->writeSheetRow('Résumé', ['Créanciers HT', '', '', $amountByType[0],  strval(number_format(floatval($amountByType[0]) * 100 / floatval($total), 2)) . ' %'], null, ['string', 'string', 'string', 'price', 'string']);
    $writer->writeSheetRow('Résumé', ['']);
-   $total = $project['workcost'] + $amountByType[0] + $materielMontant;
-   $writer->writeSheetRow('Résumé', ['Coûts HT', '', '', $total], ['font-style' => 'bold'], ['string', 'string', 'string', 'price']);
+   $writer->writeSheetRow('Résumé', ['Coûts HT', '', '', $total, '100 %'], ['font-style' => 'bold'], ['string', 'string', 'string', 'price', 'string']);
    $writer->writeSheetRow('Résumé', ['Prix Vendu', '', '', $project['price']], null, ['string', 'string', 'string', 'price']);
    $writer->writeSheetRow('Résumé', ['Résultat [CHF]', '', '', $project['price'] - $total], null, ['string', 'string', 'string', '0.00;[RED]-0.00']);
    $writer->writeSheetRow('Résumé', ['Résultat [%]', '', '', floatval($project['price']) === 0.0 ? -1.0 : (($project['price'] - $total) / $project['price'])], null, ['string', 'string', 'string', '0.00 %;[RED]-0.00%']);
