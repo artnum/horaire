@@ -220,7 +220,7 @@ try {
    }
    $SheetProcessus['content'][] = ['', ''];
    $rc = count($SheetProcessus['content']);
-   $SheetProcessus['content'][] = ['Total', '=SUM(B2:B' . ($rc - 1) . ')'];
+   $SheetProcessus['content'][] = ['Total', '=SUM(B2:B' . $rc . ')'];
 
    $SheetMateriel = [
       'header' => [ 'Référence' => 'string', 'Nom' => 'string', 'Prix unitaire' => 'price', 'Quantité' => '0.00', 'Personne' => 'string', '' => 'string', 'Total' => 'price'],
