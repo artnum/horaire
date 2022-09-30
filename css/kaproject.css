@@ -2,34 +2,48 @@
     --ka-button-background-color: darkblue;
     --ka-button-color: white;
     --ka-button-blended-bg: lavender;
+
+    --ka-background-button-color: hsla(333, 49%, 49%, 0.7);
+    --ka-border-button-color: hsla(333, 49%, 49%, 0.7);
+    --ka-text-button-color: black;
+
+    --ka-background-button-active-color: hsla(333, 49%, 49%, 0.3);
+    --ka-border-button-active-color: hsla(333, 49%, 49%, 0.7);
+    --ka-text-button-active-color: black;
 }
 
-.ka-container {
-    display: flex;
-    align-items: center;
-    flex-direction: column;
+body {
+    padding: 0;
+    margin: 0;
 }
 
-.ka-project, .ka-userbox, .ka-login, .ka-search input {
+.ka-head, .ka-foot, .ka-main-top, .ka-main-bottom {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 1fr;
+    row-gap: 5px;
+    padding: 15px;
+}
+
+.ka-project, .ka-userbox, .ka-login, .ka-search input, .ka-date {
     display: block;
     margin: auto;
-    min-width: 45%;
-    max-width: 45%;
+    min-width: 100%;
+    max-width: 100%;
     min-height: 8ex;
     max-height: 8ex;
     border: 2px solid black;
-    margin: 0.5ex 2ch;
     overflow: hidden;
     text-overflow: clip;
     font-family: sans-serif;
     position: relative;
+    border-radius: 6px;
+    box-sizing: border-box;
 }
 
 .ka-search {
     padding: 0;
     margin: 0;
-    min-width: 45%;
-    max-width: 45%;
 }
 
 .ka-search input {
@@ -59,15 +73,140 @@
     margin: 1.5ex 0;
 }
 
-.ka-userbox {
+.ka-userbox, .ka-date {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background-color: darkorange;
-    color: black;
+    background-color: var(--ka-background-button-color);
+    border-color: var(--ka-border-button-color);
+    color: var(--ka-text-button-color);
     font-weight: bold;
     cursor: pointer;
+}
+
+.ka-userbox:active, .ka-date:active  {
+    color:black;
+    background-color: white;
+}
+
+.ka-open {
+    color:black;
+    background-color: white;
+}
+
+.ka-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    min-width: 100%;
+    min-height: 8ex;
+    max-height: 8ex;
+    background-color: var(--ka-background-button-color);
+    border: 2px outset var(--ka-border-button-color);
+    color: var(--ka-text-button-color);
+    overflow: hidden;
+    text-overflow: clip;
+    font-family: sans-serif;
+    border-radius: 6px;
+    user-select: none;
+    cursor: pointer;
+}
+
+.ka-button.ka-fat {
+    font-weight: bold;
+}
+
+.ka-button.ka-small {
+    min-height: 6ex;
+    max-height: 6ex;
+}
+.ka-light {
+    font-weight: normal;
+}
+
+.ka-button.ka-foldable {
+    user-select: unset;
+    cursor: unset;
+}
+
+
+.ka-button.ka-open {
+    color: var(--ka-text-button-active-color);
+    background-color: var(--ka-background-button-active-color);
+    border-color: var(--ka-border-button-active-color);
+    border-style: inset;
+
+}
+
+.ka-button .ka-foldbottom, .ka-button .ka-foldtop {
+    box-sizing: border-box;
+    padding: 0px 10px;
+    width: 100%;
+    display: grid;
+}
+
+.ka-button .ka-foldbottom {
+    background-color: var(--ka-background-button-active-color);
+    display: none;
+}
+
+.ka-button .ka-foldtop {
+    user-select: none;
+    cursor: pointer;
+    min-height: 8ex;
+    max-height: 8ex;
+}
+
+.ka-button.ka-open .ka-foldbottom {
+    font-weight: normal;
+    display: grid;
+}
+
+.ka-button.ka-open .ka-foldtop {
+    border-bottom: var(--ka-border-button-color);
+}
+
+.ka-button.ka-foldable.ka-open  {
+    min-height: max-content;
+    max-height: max-content;
+}
+
+.ka-button:active  {
+    color: var(--ka-text-button-active-color);
+    background-color: var(--ka-background-button-active-color);
+    border-color: var(--ka-border-button-active-color);
+    border-style: inset;
+}
+
+.ka-button2 > span {
+    cursor: pointer;
+    padding: 1.5ex 0.5ch;
+    display: inline-block;
+    min-height: 2ex;
+    max-height: 4ex;
+    overflow: hidden;
+    text-overflow: clip;
+}
+
+.ka-button2 .name {
+    max-width: calc(100% - 16ch);
+    min-width: calc(100% - 16ch);
+    height: 100%;
+}
+
+.ka-button2[data-open="true"] > .reference {
+    background-color: white;
+    color: black;
+    transition: ease-in-out 0.3s;
+}
+
+.ka-button2[data-open="true"] > .name {
+    background-color: var(--ka-button-background-color);
+    color: var(--ka-button-color);
+    transition:ease-in-out 0.3s;
 }
 
 .ka-userbox span {
@@ -290,7 +429,7 @@
 
 #KAMsgLine {
     position: fixed;
-    top: 5px;
+    bottom: 0px;
     width: calc(38% - 14px);
     margin: 0;
     left: calc(50% - ((38% - 14px) / 2));
@@ -315,9 +454,127 @@
     color: black;
 }
 
+.ka-project-entry {
+    display: grid;
+    flex-direction: row;
+    grid-template-columns: repeat(4, auto);
+    grid-template-rows: 8ex;
+    column-gap: 5px;
+    grid-template-rows: auto;
+    justify-items: stretch;
+    align-items: stretch;
+}
+
+.ka-project-entry span {
+    display: grid;
+    align-items: center;
+    row-gap: 20px;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+.ka-project-entry span:first-child {
+    padding-left: 0px;
+}
+
+.ka-project-entry span:last-child {
+    padding-right: 0px;
+}
+
+
+/*
+.ka-full-project.ka-open {
+    min-height: 24ex;
+    max-height: 24ex;
+    grid-template-rows: 8ex auto;
+
+}
+
+.ka-full-project span {
+    display: block;
+    height: 2.6ex;
+    font-size: 1.2em;    
+}
+
+.ka-full-project form {
+    grid-row-start: 2;
+    grid-column-start: 1;
+    grid-column-end: -1;
+    min-width: 100%;
+    grid-row-end: 2;
+    background-color: white;
+    border: 2px solid black;
+    min-height: 16ex;
+    display: none;
+    color: black;
+} */
+
+.ka-button.ka-open form {
+    display: grid;
+    grid-template-columns: [label1] 1fr [input1]  1fr [label2] 1fr [input2] 1fr [end];
+    grid-template-rows: [row1] 1fr [row2] 1fr [row3] 1fr [end];
+    align-items: center;
+    row-gap: 2px;
+    column-gap: 4px;
+}
+
+.ka-button.ka-open form .ka-total-show {
+    grid-column: input1 / end;
+}
+
+.ka-button.ka-open form input, .ka-button.ka-open form button {
+    height: 80%;
+}
+
+.ka-button.ka-open form input[name="comment"] {
+    grid-column: input1 / end;
+}
+
+.ka-button.ka-open form button {
+    grid-column: span 2;
+}
+
+.ka-date-selector, .ka-user-action {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 10px;
+    width: 100%;
+}
+
+input, button {
+    min-height: 6ex;
+}
+
+input {
+    text-align: center;
+    font-weight: bold;
+    font-size: 16px;
+}
 
 @media (max-width: 480px) {
-    .ka-project, .ka-userbox, .ka-login {
+    .ka-container {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+    }
+    .ka-button.ka-open form {
+        display: grid;
+        grid-template-columns: [label1] 1fr [input1]  1fr  [end];
+        grid-template-rows: [row1] 1fr [row2] 1fr [row3] 1fr [row4] 1fr [end];
+        align-items: center;
+        row-gap: 2ex;
+        column-gap: 4px;
+    }
+    
+    .ka-button, .ka-button .ka-foldtop {
+        min-height: 12ex;
+        max-height: 12ex;
+    }
+
+    .ka-button {
+        font-size: 12px;
+    }
+    .ka-project, .ka-userbox, .ka-login, .ka-date {
         min-height: 8ex;
         max-height: 8ex;
     }
@@ -327,8 +584,13 @@
     }
 }
 
-@media (max-width: 1080px) {
-    .ka-project, .ka-userbox, .ka-login, .ka-search {
+@media (min-width: 1080px) {
+    .ka-container {
+        width: 40%;
+        max-width: 40%;
+        margin: auto;
+    }
+    .ka-project, .ka-userbox, .ka-login, .ka-search, .ka-date {
         min-width: calc(100% - 4ch);
         max-width: calc(100% - 4ch);
     }

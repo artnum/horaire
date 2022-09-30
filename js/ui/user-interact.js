@@ -5,7 +5,7 @@ function UserInteractUI () {
 UserInteractUI.prototype.run = function () {
     KAPerson.listActive()
     .then(people => {
-        const container = document.querySelector('.ka-container')
+        const container = document.querySelector('.ka-main-top')
         for (const person of people) {
             const div = document.createElement('DIV')
             div.classList.add('ka-userbox')
@@ -23,7 +23,7 @@ UserInteractUI.prototype.run = function () {
 }
 
 UserInteractUI.prototype.showLogin = function (uid) {
-    const container = document.querySelector('.ka-container')
+    const container = document.querySelector('.ka-main-top')
     const userboxes = container.querySelectorAll('.ka-userbox')
 
     if (document.querySelector('.ka-login')) { return ; }
@@ -51,7 +51,7 @@ UserInteractUI.prototype.showLogin = function (uid) {
 
 UserInteractUI.prototype.doLogin = function (event) {
     event.preventDefault()
-    const container = document.querySelector('.ka-container')
+    const container = document.querySelector('.ka-main-top')
     const userboxes = container.querySelectorAll('.ka-userbox')
     const formData = new FormData(event.target)
     let form = event.target
@@ -85,7 +85,7 @@ UserInteractUI.prototype.doLogin = function (event) {
 }
 
 UserInteractUI.prototype.cancelLogin = function () {
-    const container = document.querySelector('.ka-container')
+    const container = document.querySelector('.ka-main-top')
     const userboxes = container.querySelectorAll('.ka-userbox')
     window.requestAnimationFrame(() => {
         for (const userbox of userboxes) {

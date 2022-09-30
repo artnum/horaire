@@ -9,14 +9,8 @@ $MSGSrv = new \wesrv\msg(WESRV_IP, WESRV_PORT, WESRV_KEY);
 $ini_conf = load_ini_configuration();
 $KConf = new KConf($ini_conf);
 
-$r = new artnum\Random();
-if (!file_exists(getcwd() .'/db/random-seed.txt')) {
-   $r->str(256, getcwd() . '/db/random-seed.txt');
-}
-
 $http_request = new artnum\HTTP\JsonRequest();
 $store = new artnum\JStore\Generic($http_request, true);
-
 $pdo = init_pdo($ini_conf);
 if (is_null($pdo)) {
   throw new Exception('Storage database not reachable');

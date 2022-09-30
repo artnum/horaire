@@ -21,6 +21,12 @@ const DataUtils = {
             .replaceAll('/', '&#47;')
             .replaceAll(/(?:\r\n|\r|\n)/g, '<br>')
     },
+    textualShortDate (date) {
+      if (typeof date === 'string') {
+        date = new Date(date)
+      }
+      return `${Intl.DateTimeFormat(navigator.language, {weekday: 'long'}).format(date).capitalize()}, ${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}`
+    },
     shortDate (date) {
         if (typeof date === 'string') {
             date = new Date(date)
@@ -129,4 +135,8 @@ Number.prototype.toId = function () {
 
 String.prototype.toId = function () {
     return DataUtils.toId(this)
+}
+
+String.prototype.capitalize = function () {
+  return this.charAt(0).toLocaleUpperCase() + this.slice(1)
 }

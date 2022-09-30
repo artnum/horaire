@@ -76,11 +76,259 @@ function TimeInteractUI (userId) {
 TimeInteractUI.prototype.addEventListener = function (type, listener, options = {}) {
     this.eventTarget.addEventListener(type, listener, options)
 }
+TimeInteractUI.prototype.dispatchEvent = function (event) {
+    this.eventTarget.dispatchEvent(event)
+}
+
+TimeInteractUI.prototype.back = function () {
+    this.hideIndex()
+    .then(()=> {
+        this.closeProject()
+        window.dispatchEvent(new CustomEvent('close-all-kabutton'))
+        this.showIndex()
+    })
+}
+
+TimeInteractUI.prototype.hideIndex = function () {
+    return new Promise((resolve) => {
+        const container = document.querySelector('div.ka-main-bottom')
+        window.requestAnimationFrame(() => {
+            container.innerHTML = ''
+            resolve()
+        })
+    })
+}
+
+TimeInteractUI.prototype.showIndex = function () {
+    return new Promise((resolve) => {
+        const project = KAButton('Autres projets', {click: true, fat: true})
+        project.addEventListener('submit', event => {
+            this.hideIndex()
+            .then(() => {
+                return this.showHeader()
+            })
+            .then(() => {
+                this.loadProject()
+            })
+        })
+
+        const hours = KAButton('Mes heures', {click: true, fat: true})
+        hours.addEventListener('submit', event => {
+            this.hideIndex()
+            .then(() => {
+                const container = document.querySelector('div.ka-main-bottom')
+                const div = document.createElement('DIV')
+                div.classList.add('ka-project-detail')
+                container.appendChild(div)
+                this.showRecentTime(container)
+            })
+        })
+        const container = document.querySelector('div.ka-main-bottom')
+        window.requestAnimationFrame(() => {
+            container.appendChild(project)
+            container.appendChild(hours)
+        })
+        return resolve()
+    })
+}
 
 TimeInteractUI.prototype.run = function () {
-    this.showHeader()
+    this.addEventListener('change-date', event => {
+        if (this.currentDate) {
+            this.unloadPlanningSet(this.currentDate)
+        }
+        const date = new Date(event.detail)
+        this.day = date
+        this.currentDate = date.toISOString().split('T')[0]
+        this.loadFromPlanning(date)
+    })
+    this.addEventListener('reset-date', event => {
+        this.day = null
+        if (this.currentDate) {
+            this.unloadPlanningSet(this.currentDate)
+        }
+    })
+    this.showUser()
     .then(() => {
-        this.loadProject()
+        return this.showDates()
+    })
+    .then(() => {
+        return this.showIndex()
+    })
+}
+
+TimeInteractUI.prototype.unloadPlanningSet = function (date) {
+    const nodes = document.querySelectorAll(`[data-child-of="${date}"]`)
+    nodes.forEach((node) => {
+        window.requestAnimationFrame(() => {
+            if (!node.parentNode) { return }
+            node.parentNode.removeChild(node)
+        })
+    })
+}
+
+TimeInteractUI.prototype.loadFromPlanning = function (date) {
+    return new Promise((resolve, reject) => {
+        kafetch(`${KAAL.kairos.url}/store/Reservation/_query`, {
+            method:'POST', 
+            body: JSON.stringify({
+                '#and': {
+                    target: this.userId,
+                    deleted: '--',
+                    '#and': {
+                        dbegin: ['>=', date.toISOString().split('T')[0], 'str'],
+                        dend: ['<=', date.toISOString().split('T')[0], 'str']
+                    }
+                }
+            })
+        })
+        .then(result => {
+            if (result.length <= 0) { return [] }
+            return result.data
+        })
+        .then(reservations => {
+            const affaires = []
+            const req = []
+            for (const reservation of reservations) {
+                if (affaires.indexOf(reservation.affaire) === -1) { 
+                    affaires.push(reservation.affaire)
+                    req.push(kafetch(KAAL.url(`Travail/${reservation.affaire}`)))
+                }
+            }
+            Promise.all(req)
+            .then(results => {
+                const travaux = []
+                for (const result of results) {
+                    if (result.length < 1) { continue }
+                    travaux.push(result.data[0])
+                }
+                return this.joinProjectToTravail(travaux)
+            })
+            .then(travaux => {
+                for (const travail of travaux) {
+                    for (const reservation of reservations) {
+                        if (reservation.affaire === travail.id) { reservation.affaire = travail }
+                    }
+                }
+                return this.joinAllToStatus(reservations)
+            })
+            .then(reservations => {
+                const childOf = date.toISOString().split('T')[0]
+                const container = document.querySelector('div.ka-main-top')
+                for (const reservation of reservations) {
+                    const button = KAEntryForm(reservation.affaire.project, reservation.affaire, reservation.affaire.status, reservation)
+                    button.dataset.childOf = childOf
+                    window.requestAnimationFrame(() => {
+                        container.appendChild(button)
+                        resolve()
+                    })
+                    button.addEventListener('submit-data', event => {
+                        const detail = event.detail
+                        const form = new FormData(detail.form)
+                        this.setTime(
+                            detail.project.id,
+                            detail.process.id,
+                            detail.affaire.id,
+                            form.get('comment'),
+                            childOf,
+                            DataUtils.strToDuration(form.get('time'))
+                        )
+                        .then(temps => {
+                            this.prependPreviousTimeEntry(temps)
+                            .then(() => {
+                                this.createPreviousTimeTotal(new Date(temps.get('day')))
+                                this.msg('Entrée correctement ajoutée')
+                                detail.form.reset()
+                            })
+                        })
+                        if (KAAL.work.managementProcess && DataUtils.strToDuration(form.get('regie'))) {
+                            this.setTime(
+                                detail.project.id,
+                                KAAL.work.managementProcess,
+                                detail.affaire.id,
+                                form.get('comment'),
+                                childOf,
+                                DataUtils.strToDuration(form.get('regie'))
+                            ).then(temps => {
+                                this.prependPreviousTimeEntry(temps)
+                                .then(() => {
+                                    this.createPreviousTimeTotal(new Date(temps.get('day')))
+                                    this.msg('Entrée correctement ajoutée')
+                                    detail.form.reset()
+                                })
+                            })
+                        }
+                    })
+                }
+            })
+        })
+    })
+}
+
+TimeInteractUI.prototype.joinAllToStatus = function (reservations) {
+    return new Promise((resolve, reject) => {
+        kafetch(`${KAAL.kairos.url}/store/Status/_query`, {method: 'POST', body: JSON.stringify({type: 1})})
+        .then(results => {
+            if (results.length <= 0) { results.data = [] }
+            const status = results.data
+            for (const reservation of reservations) {
+                if (reservation.status === 0) {
+                    reservation.status = reservation.affaire.status
+                }
+                for (const s of status) {
+                    if (reservation.status === s.id) { reservation.status = s}
+                    if (reservation.affaire.status === s.id) { reservation.affaire.status = s}
+                }
+            }
+            return resolve(reservations)
+        })
+    
+    })
+}
+
+TimeInteractUI.prototype.joinProjectToTravail = function (travaux) {
+    return new Promise((resolve, reject) => {
+        const req = []
+        const projects = []
+        for (const travail of travaux) {
+            if (projects.indexOf(travail.project) === -1) {
+                projects.push(travail.project)
+                req.push(kafetch(KAAL.url(`Project/${travail.project}`)))
+            }
+        }
+        Promise.all(req)
+        .then(results => {
+            for (const result of results) {
+                if (result.length < 1) { continue }
+                for (const travail of travaux) {
+                    travail.project = result.data[0]
+                }
+            }
+            return resolve(travaux)
+        })
+    })
+}
+
+TimeInteractUI.prototype.showDates = function () {
+    return new Promise((resolve) => {
+        const div = document.createElement('DIV')
+        div.classList.add('ka-date-selector')
+        for (const date of this.dates) {
+            const d = KAButton(DataUtils.textualShortDate(date), {group: 'date', fat: true})
+            d.dataset.date = date.toISOString().split('T')[0]
+            d.addEventListener('submit', event => {
+                this.dispatchEvent(new CustomEvent('change-date', {detail: event.target.dataset.date}))
+            })
+            d.addEventListener('reset', event => {
+                this.dispatchEvent(new CustomEvent('reset-date'))
+            })                
+            div.insertBefore(d, div.firstElementChild)
+        }
+        const container = document.querySelector('div.ka-main-top')
+        window.requestAnimationFrame(() => {
+            container.appendChild(div)
+            resolve()
+        })
     })
 }
 
@@ -93,7 +341,7 @@ TimeInteractUI.prototype.loadProject = function () {
             }
         })})
         .then(projects => {
-            const container = document.querySelector('div.ka-container')
+            const container = document.querySelector('div.ka-main-bottom')
             for (const project of projects.data) {
                 const kaproject = KAProject.create(project)
                 const div = document.createElement('DIV')
@@ -118,19 +366,31 @@ TimeInteractUI.prototype.loadProject = function () {
     })
 }
 
-TimeInteractUI.prototype.showHeader = function () {
+TimeInteractUI.prototype.showUser = function () {
     return new Promise(resolve => {
         KAPerson.load(this.userId)
         .then(user => {
-            const div = document.createElement('DIV')
-            div.innerHTML = `${user.get('name')}<span>Cliquer ici pour se déconnecter</span>`
-            div.classList.add('ka-userbox')
-            const container = document.querySelector('div.ka-container')
+            const div = KAButton(`${user.get('name')}`, {fat: true, click: true, small: true})
+            const subcontainer = document.createElement('div')
+            subcontainer.classList.add('ka-user-action')
+            const logout = KAButton(`Déconnection`, {fat: true, click: true, small: true})
+            const back = KAButton(`Retour`, {fat: true, click: true, small: true})
+
+            subcontainer.appendChild(back)
+            subcontainer.appendChild(logout)
+            const container = document.querySelector('div.ka-head')
             
-            div.addEventListener('click', event => {
+
+            back.addEventListener('submit', event => {
+                this.back()
+            })
+            logout.addEventListener('submit', event => {
                 new Promise(resolve => {
                     window.requestAnimationFrame(() => {
-                        container.innerHTML = ''
+                        document.querySelector('div.ka-head').innerHTML = ''
+                        document.querySelector('div.ka-main-top').innerHTML = ''
+                        document.querySelector('div.ka-main-bottom').innerHTML = ''
+                        document.querySelector('div.ka-foot').innerHTML = ''
                         resolve()
                     })
                 })
@@ -139,33 +399,45 @@ TimeInteractUI.prototype.showHeader = function () {
                 })
             })
 
-            const searchDiv = document.createElement('DIV')
-            searchDiv.classList.add('ka-search')
-            searchDiv.innerHTML = `<input type="text" placeholder="Chercher une référence">`
+            window.requestAnimationFrame(() => {
+                container.appendChild(div)
+                container.appendChild(subcontainer)
+                resolve()
+            })
+        })
+    })
+}
 
-            searchDiv.firstElementChild.addEventListener('keyup', event => {
-                if (event.target.value === '') {
-                    const nodes = container.querySelectorAll('.ka-project')
+TimeInteractUI.prototype.showHeader = function () {
+    return new Promise(resolve => {
+        const container = document.querySelector('div.ka-main-bottom')
 
-                    for (const node of nodes) {
-                      node.style.removeProperty('display' )   
-                    }
-                    return
-                } 
-                const search = event.target.value.toLowerCase()
+        const searchDiv = document.createElement('DIV')
+        searchDiv.classList.add('ka-search')
+        searchDiv.innerHTML = `<input type="text" placeholder="Chercher une référence">`
+
+        searchDiv.firstElementChild.addEventListener('keyup', event => {
+            if (event.target.value === '') {
                 const nodes = container.querySelectorAll('.ka-project')
 
                 for (const node of nodes) {
-                    const label = node.querySelector('span.name')
-                    if (!node.dataset.reference.startsWith(search) && label.textContent.toLowerCase().includes(search) === false) {
-                        node.style.setProperty('display', 'none')
-                    } else {
-                        node.style.removeProperty('display' )   
-                    }
+                    node.style.removeProperty('display' )   
                 }
-            })
+                return
+            } 
+            const search = event.target.value.toLowerCase()
+            const nodes = container.querySelectorAll('.ka-project')
 
-            container.appendChild(div)
+            for (const node of nodes) {
+                const label = node.querySelector('span.name')
+                if (!node.dataset.reference.startsWith(search) && label.textContent.toLowerCase().includes(search) === false) {
+                    node.style.setProperty('display', 'none')
+                } else {
+                    node.style.removeProperty('display' )   
+                }
+            }
+        })
+        window.requestAnimationFrame(() => {
             container.appendChild(searchDiv)
             resolve()
         })
@@ -174,17 +446,17 @@ TimeInteractUI.prototype.showHeader = function () {
 
 TimeInteractUI.prototype.closeProject = function (project) {
     return new Promise(resolve => {
-        const container = document.querySelector('div.ka-container')
+        const container = document.querySelector('div.ka-main-bottom')
 
         if (!project) {
             project = container.querySelector(`div.ka-project[data-project="${this.hasSet.project}"`)
         }
+        if (!project) { return resolve() }
         delete project.dataset.open
 
         this.hasSet.project = null
         this.hasSet.travail = null
         this.hasSet.process = null
-        this.day = null
         const unhide = []
         for (let node = container.firstElementChild; node; node = node.nextElementSibling) {
             if (node.dataset.project !== project.dataset.project) {
@@ -214,7 +486,7 @@ TimeInteractUI.prototype.closeProject = function (project) {
        
             const subcontainer = project.querySelector('div.ka-project-detail')
             window.requestAnimationFrame(() => {
-                project.removeChild(subcontainer)
+                if (subcontainer) { project.removeChild(subcontainer) }
                 project.classList.remove('extended')
                 resolve()
             })
@@ -234,7 +506,7 @@ TimeInteractUI.prototype.openProject = function (project) {
         ])
         .then(([travaux, processes]) => {
             this.hasSet.project = project.dataset.project
-            const container = document.querySelector('div.ka-container')
+            const container = document.querySelector('div.ka-main-bottom')
             const subcontainer = document.createElement('DIV')
             subcontainer.addEventListener('click', this.handleSelectProcessTravail.bind(this))
             subcontainer.classList.add('ka-project-detail')
@@ -268,7 +540,7 @@ TimeInteractUI.prototype.openProject = function (project) {
                 const chain = Promise.resolve()
                 for (const process of processes) {
                     const div = document.createElement('DIV')
-                    div.classList.add('ka-button')
+                    div.classList.add('ka-button2')
                     const kolor = new Kolor(process.get('color'))
                     div.style.setProperty('--ka-button-background-color', process.get('color'))
                     div.style.setProperty('--ka-button-color', kolor.foreground())
@@ -303,7 +575,7 @@ TimeInteractUI.prototype.openProject = function (project) {
                     if (travaux.hasUngrouped()) {
                         for (const travail of travaux.get(groups.shift())) {
                             const div = document.createElement('DIV')
-                            div.classList.add('ka-button')
+                            div.classList.add('ka-button2')
                             div.innerHTML = `<span class="reference">${travail.get('reference')}</span> <span class="name">${travail.get('description')}</span>`
                             div.dataset.travail = travail.uid
                             chain.then(() => {
@@ -333,7 +605,7 @@ TimeInteractUI.prototype.openProject = function (project) {
                             })
                             for (const travail of travaux.get(group)) {
                                 const div = document.createElement('DIV')
-                                div.classList.add('ka-button')
+                                div.classList.add('ka-button2')
                                 div.innerHTML = `<span class="reference">${travail.get('reference')}</span> <span class="name">${travail.get('description')}</span>`
                                 div.dataset.travail = travail.uid
                                 chain.then(() => {
@@ -359,21 +631,21 @@ TimeInteractUI.prototype.openProject = function (project) {
 
 TimeInteractUI.prototype.selectProject = function (projectId) {
     return new Promise (resolve => {
-        const container = document.querySelector('div.ka-container')
+        const container = document.querySelector('div.ka-main-bottom')
         new Promise(resolve => {
             if (this.hasSet.project) {
                 const prevProject = this.hasSet.project
                 const closeProject = container.querySelector(`div.ka-project[data-project="${this.hasSet.project}"`)
-                closing = this.closeProject(closeProject)
-                if (prevProject === projectId) { 
-                    resolve(false);
-                    return 
-                }
+                this.closeProject(closeProject)
+                .then(() => {
+
+                    return resolve()
+                })
+            } else {
+                return resolve()
             }
-            resolve(true)
         })
-        .then(doOpen => {
-            if (!doOpen) { resolve(); return }
+        .then(() => {
             const openProject = container.querySelector(`div.ka-project[data-project="${projectId}"]`)
             this.openProject(openProject)
             .then(() => {
@@ -395,7 +667,7 @@ TimeInteractUI.prototype.selectTravail = function (travailId) {
         const subcontainer = container.querySelector('div.ka-project-detail')
         this.hasSet.travail = travailId
         const animReq = []
-        for (const node of subcontainer.querySelectorAll('.ka-button[data-travail]')) {
+        for (const node of subcontainer.querySelectorAll('.ka-button2[data-travail]')) {
             animReq.push(new Promise(resolve => { delete node.dataset.open; resolve() }))
             if (node.dataset.travail === travailId) {
                 animReq.push(new Promise (resolve => { window.requestAnimationFrame(() => { node.dataset.open = 'true'; resolve() }) }))
@@ -412,9 +684,10 @@ TimeInteractUI.prototype.selectProcess = function (processId) {
     return new Promise((resolve) => {
         const container = document.querySelector('div.ka-container')
         const subcontainer = container.querySelector('div.ka-project-detail')
+        if (!subcontainer) { return resolve() }
         this.hasSet.process = processId
         const animReq = []
-        for (const node of subcontainer.querySelectorAll('.ka-button[data-process]')) {
+        for (const node of subcontainer.querySelectorAll('.ka-button2[data-process]')) {
             animReq.push(new Promise(resolve => { delete node.dataset.open; resolve() }))
             if (node.dataset.process === processId) {
                 animReq.push(new Promise (resolve => { window.requestAnimationFrame(() => { node.dataset.open = 'true'; resolve() }) }))
@@ -425,10 +698,6 @@ TimeInteractUI.prototype.selectProcess = function (processId) {
             resolve()
         })
     })
-}
-
-TimeInteractUI.prototype.selectDay = function (day) {
-    
 }
 
 TimeInteractUI.prototype.createPeviousTimeEntry = function(temps) {
@@ -447,10 +716,13 @@ TimeInteractUI.prototype.createPeviousTimeEntry = function(temps) {
     return div
 }
 
-TimeInteractUI.prototype.insertPreviousTimeEntry = function (temps) {
+TimeInteractUI.prototype.prependPreviousTimeEntry = function (temps, container = null) {
     return new Promise(resolve => {
-        const container = document.querySelector(`div.ka-project[data-project="${this.hasSet.project}"]`)
+        if (!container) { container = document.querySelector(`div.ka-project[data-project="${this.hasSet.project}"]`) }
+        if (!container) { container = document.querySelector(`div.ka-main-bottom`) }
+        if (!container) { return resolve() }
         const prevTimeContainer = container.querySelector('.ka-previous-time')
+        if (!prevTimeContainer) { return resolve() }
         const currentEntry = prevTimeContainer.querySelector(`div[data-time-id="${temps.uid}"]`)
         const newEntry = this.createPeviousTimeEntry(temps)
         if (this.strDates.indexOf(DataUtils.shortDate(temps.get('day'))) === -1) {
@@ -462,7 +734,33 @@ TimeInteractUI.prototype.insertPreviousTimeEntry = function (temps) {
                 resolve()
             })
         } else {
-            const lastEntry = this.findLastTimeEntryForDay(temps.get('day'))
+            window.requestAnimationFrame(() => {
+                prevTimeContainer.insertBefore(newEntry, prevTimeContainer.firstElementChild.nextElementSibling);           
+                resolve()
+            })
+        }
+    })
+}
+
+TimeInteractUI.prototype.insertPreviousTimeEntry = function (temps, container = null) {
+    return new Promise(resolve => {
+        if (!container) { container = document.querySelector(`div.ka-project[data-project="${this.hasSet.project}"]`) }
+        if (!container) { container = document.querySelector(`div.ka-main-bottom`) }
+        if (!container) { return resolve() }
+        const prevTimeContainer = container.querySelector('.ka-previous-time')
+        if (!prevTimeContainer) { return resolve() }
+        const currentEntry = prevTimeContainer.querySelector(`div[data-time-id="${temps.uid}"]`)
+        const newEntry = this.createPeviousTimeEntry(temps)
+        if (this.strDates.indexOf(DataUtils.shortDate(temps.get('day'))) === -1) {
+            newEntry.classList.add('ka-unmodifiable')
+        }
+        if (currentEntry) {
+            window.requestAnimationFrame(() => {
+                currentEntry.parentNode.replaceChild(newEntry, currentEntry)
+                resolve()
+            })
+        } else {
+            const lastEntry = this.findLastTimeEntryForDay(temps.get('day'), container)
             window.requestAnimationFrame(() => {
                 if (!lastEntry) {
                     prevTimeContainer.appendChild(newEntry);
@@ -475,11 +773,13 @@ TimeInteractUI.prototype.insertPreviousTimeEntry = function (temps) {
     })
 }
 
-TimeInteractUI.prototype.createPreviousTimeTotal = function (day) {
+TimeInteractUI.prototype.createPreviousTimeTotal = function (day, container = null) {
     return new Promise(resolve => {
-        const container = document.querySelector(`div.ka-project[data-project="${this.hasSet.project}"]`)
+        if (!container) { container = document.querySelector(`div.ka-project[data-project="${this.hasSet.project}"]`) }
+        if (!container) { container = document.querySelector(`div.ka-main-bottom`) }
+        if (!container) { return resolve() }
         const prevTimeContainer = container.querySelector('.ka-previous-time')
-
+        if (!prevTimeContainer) { return resolve() }
         const div = document.createElement('DIV')
         div.classList.add('ka-total-day')
         div.dataset.day = DataUtils.shortDate(day)
@@ -498,7 +798,7 @@ TimeInteractUI.prototype.createPreviousTimeTotal = function (day) {
                 resolve()
             })
         } else {
-            const lastEntry = this.findLastTimeEntryForDay(day)
+            const lastEntry = this.findLastTimeEntryForDay(day, container)
             if (lastEntry) {
                 window.requestAnimationFrame(() => {
                     prevTimeContainer.insertBefore(div, lastEntry.nextElementSibling)
@@ -514,15 +814,15 @@ TimeInteractUI.prototype.createPreviousTimeTotal = function (day) {
     })
 }
 
-TimeInteractUI.prototype.findLastTimeEntryForDay = function (day) {
-    const container = document.querySelector(`div.ka-project[data-project="${this.hasSet.project}"]`)
+TimeInteractUI.prototype.findLastTimeEntryForDay = function (day, container = null) {
+    if (!container) { container = document.querySelector(`div.ka-project[data-project="${this.hasSet.project}"]`) }
     const prevTimeContainer = container.querySelector('.ka-previous-time')
 
     const entries = prevTimeContainer.querySelectorAll(`.ka-time-entry[data-day="${DataUtils.shortDate(day)}"]`)
     return Array.from(entries).pop()
 }
 
-TimeInteractUI.prototype.showRecentTime = function () {
+TimeInteractUI.prototype.showRecentTime = function (container = null) {
     return new Promise (resolve => {
         const t = []
         const today = new Date()
@@ -534,8 +834,9 @@ TimeInteractUI.prototype.showRecentTime = function () {
         }
         Promise.all(t)
         .then(tempsByDate => {
-            const container = document.querySelector(`div.ka-project[data-project="${this.hasSet.project}"]`)
+            if (!container) { container = document.querySelector(`div.ka-project[data-project="${this.hasSet.project}"]`) }
             const subcontainer = container.querySelector('div.ka-project-detail')
+    
             const div = document.createElement('DIV')
             div.classList.add('ka-previous-time')
             div.innerHTML += '<div class="ka-head">Vos temps récemment notés</div>'
@@ -558,13 +859,13 @@ TimeInteractUI.prototype.showRecentTime = function () {
                     let date = null
                     for (const temps of tempsDate) {
                         date = temps.get('day')
-                        timeEntriesPromise.push(this.insertPreviousTimeEntry(temps))
+                        timeEntriesPromise.push(this.insertPreviousTimeEntry(temps, container))
                     }
 
                     Promise.allSettled(timeEntriesPromise)
                     .then(_ => {
                         if (date !== null) {
-                            totalPromise.push(this.createPreviousTimeTotal(date))
+                            totalPromise.push(this.createPreviousTimeTotal(date, container))
                         }
                     })
                 }
@@ -579,32 +880,42 @@ TimeInteractUI.prototype.showRecentTime = function () {
 
 TimeInteractUI.prototype.selectTimeEntry = function (timeId) {
     return new Promise((resolve, reject) => {
-        Promise.all([
-            KATemps.load(timeId),
-            this.closeProject()
-        ])
-        .then(([temps]) => {
-            if (this.strDates.indexOf(DataUtils.shortDate(temps.get('day'))) === -1) {
-                this.alert('Entrée non-modifiable')
-                return
-            }
-            this.selectProject(temps.get('project'))
-            .then(_ => {
-                return this.selectProcess(temps.get('process'))
-            })
-            .then(_ => {
-                return this.selectTravail(temps.get('travail'))
-            })
-            .then(() => {
-                return this.showTimeBox({id: temps.uid, time: temps.get('value'), remark: temps.get('comment')})   
-            })
-            .then(() => {
-                this.selectDay(temps.day)
-                this.highlightTimeEntry(timeId)
-                resolve()
-            })
-            .catch(reason => {
-                reject(reason)
+        this.hideIndex()
+        .then(() => {
+            return this.showHeader()
+        })
+        .then(() => {
+            return this.loadProject()
+        })
+        .then(() => {
+            Promise.all([
+                KATemps.load(timeId),
+                this.closeProject()
+            ])
+            .then(([temps]) => {
+                if (this.strDates.indexOf(DataUtils.shortDate(temps.get('day'))) === -1) {
+                    this.alert('Entrée non-modifiable')
+                    return
+                }
+
+                this.selectProject(temps.get('project'))
+                .then(_ => {
+                    return this.selectProcess(temps.get('process'))
+                })
+                .then(_ => {
+                    return this.selectTravail(temps.get('travail'))
+                })
+                .then(() => {
+                    return this.showTimeBox({id: temps.uid, time: temps.get('value'), remark: temps.get('comment')})   
+                })
+                .then(() => {
+                    this.selectDay(temps.day)
+                    this.highlightTimeEntry(timeId)
+                    resolve()
+                })
+                .catch(reason => {
+                    reject(reason)
+                })
             })
         })
     })
@@ -613,24 +924,13 @@ TimeInteractUI.prototype.selectTimeEntry = function (timeId) {
 TimeInteractUI.prototype.selectDay = function (day) {
     if (typeof day === 'string') { day = new Date(day) }
 
-    const container = document.querySelector('div.ka-container')
-    const subcontainer = container.querySelector('div.ka-project-detail')
-    const tb = subcontainer.querySelector('.ka-timebox')
-
-    for (const prev of tb.querySelectorAll('.ka-day')) {
-        if (DataUtils.dbDate(new Date(prev.dataset.day)) === DataUtils.dbDate(day)) {
-            this.day = day
-            prev.classList.add('selected')
-        } else {
-            prev.classList.remove('selected')
-        }
-    }
-    
+    const node = document.querySelector(`.ka-button[data-group="date"][data-date="${DataUtils.dbDate(day)}"]`)
+    node.dispatchEvent(new CustomEvent('select'))   
 }
 
 TimeInteractUI.prototype.handleSelectProcessTravail = function (event) {
     let node = event.target
-    while (!node.classList.contains('ka-button') && !node.classList.contains('ka-head') && !node.classList.contains('ka-project')) { node = node.parentNode }
+    while (!node.classList.contains('ka-button2') && !node.classList.contains('ka-head') && !node.classList.contains('ka-project')) { node = node.parentNode }
     if (node.classList.contains('ka-head')) { return }
     if (node.classList.contains('ka-project')) { return }
 
@@ -689,7 +989,6 @@ TimeInteractUI.prototype.clearTimeBox = function () {
             })
         }
 
-        this.day = null
         this.showTimeBox()
         .then(() => {
             resolve()
@@ -718,8 +1017,8 @@ TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, r
 
         const timebox = document.createElement('DIV')
         timebox.classList.add('ka-timebox')
-        timebox.innerHTML = this.dates.map(v => { return `<div class="ka-day" data-day="${v.toISOString()}">${DataUtils.shortDate(v)}</div>` }).join('')
-        timebox.innerHTML += `<form data-time-id="${this.currentSelection.id ? this.currentSelection.id : ''}">
+        //timebox.innerHTML = this.dates.map(v => { return `<div class="ka-day" data-day="${v.toISOString()}">${DataUtils.shortDate(v)}</div>` }).join('')
+        timebox.innerHTML = `<form data-time-id="${this.currentSelection.id ? this.currentSelection.id : ''}">
             <div class="ka-input"><label for="time">Temps</label><input type="text" name="time" value="${this.currentSelection.time ? DataUtils.durationToStrTime(this.currentSelection.time) : ''}"/></div>
             <div class="ka-input"><label for="remark">Remarque</label><input type="text" name="remark" value="${this.currentSelection.remark ? this.currentSelection.remark : ''}"/></div>
             <div class="ka-input"><button type="submit" >${this.currentSelection.id ? 'Modifier' : 'Ajouter'}${this.currentSelection.time? ` <b>${DataUtils.durationToStr(this.currentSelection.time)}</b>` : ''}</button></div>
@@ -727,7 +1026,7 @@ TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, r
             </form>
         `
 
-        timebox.addEventListener('click', this.handleTimeBox.bind(this))
+        //timebox.addEventListener('click', this.handleTimeBox.bind(this))
         timebox.querySelector('form').addEventListener('submit', this.addTime.bind(this))
         const delButton = timebox.querySelector('form').querySelector('button[data-delete]')
         if (delButton){
@@ -784,6 +1083,27 @@ TimeInteractUI.prototype.delTime = function (event) {
             .then(() => {
                 this.createPreviousTimeTotal(temps.get('day'))
             })
+        })
+    })
+}
+
+TimeInteractUI.prototype.setTime = function (project, process, travail, comment, day, value) {
+    return new Promise((resolve, reject) => {
+        const temps = KATemps.create({
+            project,
+            process,
+            travail,
+            person: this.userId,
+            comment,
+            day,
+            value
+        })
+        temps.save()
+        .then(temps => {
+            resolve(temps)
+        })
+        .catch(e => {
+            reject(e)
         })
     })
 }

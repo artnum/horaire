@@ -9,6 +9,8 @@ const imports = [
     [KAAL.url('js/data/temps.js'), 'script'],
     [KAAL.url('js/ui/utils.js'), 'script'],
     [KAAL.url('js/ui/list.js'), 'script'],
+    [KAAL.url('js/ui/ka-button.js'), 'script'],
+    [KAAL.url('js/ui/ka-entry-form.js'), 'script'],
     [KAAL.url('js/lib/color.js'), 'script'],
     [KAAL.url('js/ui/time-interact.js'), 'script'],
     [KAAL.url('js/ui/user-interact.js'), 'script'],
