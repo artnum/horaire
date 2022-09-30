@@ -373,7 +373,7 @@ TimeInteractUI.prototype.showUser = function () {
             const div = KAButton(`${user.get('name')}`, {fat: true, click: true, small: true})
             const subcontainer = document.createElement('div')
             subcontainer.classList.add('ka-user-action')
-            const logout = KAButton(`Déconnection`, {fat: true, click: true, small: true})
+            const logout = KAButton(`Déconnexion`, {fat: true, click: true, small: true})
             const back = KAButton(`Retour`, {fat: true, click: true, small: true})
 
             subcontainer.appendChild(back)
