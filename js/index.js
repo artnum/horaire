@@ -1,5 +1,6 @@
 const imports = [
     [KAAL.url('admin/js/fetch.js'), 'script'],
+    [KAAL.url('admin/js/lib/login.js'), 'script'],
     [KAAL.url('js/data/utils.js'), 'script'],
     [KAAL.url('js/data/project.js'), 'script'],
     [KAAL.url('js/data/travail.js'), 'script'],

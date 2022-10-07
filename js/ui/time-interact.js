@@ -386,12 +386,16 @@ TimeInteractUI.prototype.showUser = function () {
             })
             logout.addEventListener('submit', event => {
                 new Promise(resolve => {
-                    window.requestAnimationFrame(() => {
-                        document.querySelector('div.ka-head').innerHTML = ''
-                        document.querySelector('div.ka-main-top').innerHTML = ''
-                        document.querySelector('div.ka-main-bottom').innerHTML = ''
-                        document.querySelector('div.ka-foot').innerHTML = ''
-                        resolve()
+                    const klogin = new KLogin()
+                    klogin.logout()
+                    .then(() => {
+                        window.requestAnimationFrame(() => {
+                            document.querySelector('div.ka-head').innerHTML = ''
+                            document.querySelector('div.ka-main-top').innerHTML = ''
+                            document.querySelector('div.ka-main-bottom').innerHTML = ''
+                            document.querySelector('div.ka-foot').innerHTML = ''
+                            resolve()
+                        })
                     })
                 })
                 .then(() => {

@@ -15,14 +15,23 @@ fetch = function (url, params = {}) {
   if (!params.headers.has('X-Request-Id')) {
     params.headers.set('X-Request-Id', `${new Date().toISOString()}-${performance.now()}-${fetch.count}`)
   }
-  let request = __fetch_original(url, params)
 
-  request.then(response => {
-      if (response.ok) { fetch.success++ }
-      else { fetch.failed++}
+  const klogin = new KLogin()
+  return new Promise((resolve, reject) => {
+    klogin.getToken()
+    .then(token => {
+      if (token) { params.headers.set('Authorization', `Bearer ${token}`)}
+      return __fetch_original(url, params)
+    })
+    .then(response => {
+        if (response.ok) { fetch.success++ }
+        else { fetch.failed++}
+        resolve(response)
+    })
+    .catch(e => {
+      reject(e)
+    })
   })
-
-  return request
 }
 
 fetch.stats = function () {

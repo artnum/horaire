@@ -3,6 +3,28 @@ function UserInteractUI () {
 }
 
 UserInteractUI.prototype.run = function () {
+    const klogin = new KLogin()
+    klogin.getToken()
+    .then(token => {
+        if (token) {
+            klogin.check(token)
+            .then(() => {
+                return klogin.getUser()
+            })
+            .then(userid => {
+                this.eventTarget.dispatchEvent(new CustomEvent('user-login', {detail: {userId: userid}}))
+
+            })
+            .catch(() => {
+                this.listActive()
+            })
+        } else {
+            this.listActive()
+        }
+    })
+}
+
+UserInteractUI.prototype.listActive = function () {
     KAPerson.listActive()
     .then(people => {
         const container = document.querySelector('.ka-main-top')
@@ -57,6 +79,34 @@ UserInteractUI.prototype.doLogin = function (event) {
     let form = event.target
     while (form && form.nodeName !== 'FORM') { node = node.parentNode }
     const password = formData.get('motdepasse')
+
+    const klogin = new KLogin()
+
+    klogin.login(form.dataset.userId, password)
+    .then(token => {
+        this.eventTarget.dispatchEvent(new CustomEvent('user-login', {detail: {userId: form.dataset.userId}}))
+        MsgInteractUI('info', 'Authentification réussie')
+        window.requestAnimationFrame(() => {
+            for (const userbox of userboxes) {
+                container.removeChild(userbox)
+            }
+        })
+    })
+    .catch(_ => {
+        MsgInteractUI('error', 'Erreur d\'authentification')
+        window.requestAnimationFrame(() => {
+            for (const userbox of userboxes) {
+                userbox.style.removeProperty('display')
+            }
+        })
+    })
+    .finally(() => {
+        window.requestAnimationFrame(() => {
+            form.parentNode.parentNode.removeChild(form.parentNode)
+        })
+    })
+
+    /*
     KAPerson.load(form.dataset.userId)
     .then(person => {
         const keyopt = person.get('keyopt').split(' ', 2)
@@ -82,6 +132,7 @@ UserInteractUI.prototype.doLogin = function (event) {
             form.parentNode.parentNode.removeChild(form.parentNode)
         })
     })
+    */
 }
 
 UserInteractUI.prototype.cancelLogin = function () {

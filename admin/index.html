@@ -12,6 +12,10 @@
   </main>
 </body>
 <script src="../conf/kaal.js"></script>
+<script src="js/lib/login.js"></script>
+<script src="js/fetch.js"></script>
+<script src="../js/data/person.js"></script>
+<script src="../js/data/utils.js"></script>
 <script src="../node_modules/sjcl/sjcl.js"></script>
 <script type="text/javascript">
  function login (ref) {
@@ -44,7 +48,32 @@
            break
        }
      }
+     let base = window.location.pathname.split('/')
+     while (!base[0]) { base.shift() }
 
+     let url = new URL(`${window.location.origin}/${base.shift()}/`)
+  
+     const klogin = new KLogin(url)
+     klogin.getUserid(username)
+     .then(userid => {
+      return klogin.login(userid, password)
+     })
+     .then(() => {
+        return klogin.getUser()
+     }).then(userid=> {
+        return KAPerson.load(userid)
+      })
+      .then(user => {
+        window.logged = true
+        window.level = parseInt(user.level)
+        open(ref)
+     })
+     .catch(e => {
+      console.log(e)
+      alert('Autentification échouée')
+     })
+
+/*
      let base = window.location.pathname.split('/')
      while (!base[0]) { base.shift() }
      let url = new URL(`${window.location.origin}/${base.shift()}/Person`)
@@ -64,8 +93,9 @@
            }
          }
        })
-     })
+     })*/
    })
+   
  }
 
  function exec(event) {
@@ -112,13 +142,34 @@
  }
 
  window.addEventListener('load', (event) => {
-   if (window.logged) {
-     open(main)
-   } else {
-     let main = document.getElementsByTagName('main')[0]
-     main.innerHTML = ''
-     login(main)
-   }
+  const klogin = new KLogin()
+    klogin.getToken()
+    .then(token => {
+        if (token) {
+            klogin.check(token)
+            .then(() => {
+                return klogin.getUser()
+            })
+            .then(userid => {
+              KAPerson.load(userid)
+            })
+            .then(user => {
+              window.logged = true
+              window.level = user.level
+              open(main)
+            })
+            .catch(() => {
+              let main = document.getElementsByTagName('main')[0]
+               main.innerHTML = ''
+               login(main)           
+             })
+        } else {
+          let main = document.getElementsByTagName('main')[0]
+          main.innerHTML = ''
+          login(main)   
+        }
+    })
+
  })
 </script>
 </html>

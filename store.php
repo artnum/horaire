@@ -4,6 +4,7 @@ require('lib/ini.php');
 require('lib/dbs.php');
 require('conf/wesrv.php');
 require('wesrv/lib/msg.php');
+require('lib/auth.php');
 
 $MSGSrv = new \wesrv\msg(WESRV_IP, WESRV_PORT, WESRV_KEY);
 $ini_conf = load_ini_configuration();
@@ -56,6 +57,25 @@ if (!empty($_SERVER['HTTP_X_CLIENT_ID'])) {
   $KConf->setVar('clientid', $_SERVER['HTTP_X_CLIENT_ID']);
 } else {
   $KConf->setVar('clientid', '');
+}
+
+if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
+  if (!($http_request->getCollection() === 'Person' && $http_request->getItem() === '_query')) {
+    http_response_code(401);
+    exit(0);
+  }
+} else {
+  $authContent = explode(' ', $_SERVER['HTTP_AUTHORIZATION']);
+  if (count($authContent) !== 2) {
+    http_response_code(401);
+    exit(0);
+  }
+
+  $kauth = new KAALAuth($pdo);
+  if (!$kauth->check_auth(trim($authContent[1]))) {
+    http_response_code(401);
+    exit(0);
+  }
 }
 
 $store->run($KConf);
