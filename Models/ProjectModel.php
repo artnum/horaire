@@ -16,16 +16,7 @@ class ProjectModel extends artnum\SQL {
     $this->conf('hook-path', 'exec/hooks');
     $this->conf('ignored', array('year'));
   }
-  function _write($arg, $id = NULL) {
-    /* for some unknown reason, it appears that users could create multiple entry with same reference
-     * so this should avoid some case in hope it fixes the bug
-     */
-    $exist = $this->listing(['search' => ['reference' => $arg['reference']]]);
-    $this->response->clear_output();
-    if ($exist['count'] > 0) {
-      throw new Exception('Référence existe');
-    }
-    
+  function _write($arg, $id = NULL) {    
     $hook_succeed = false;
     if (!$this->conf('hook-path') || $id !== NULL) {
       $hook_succeed = true;
