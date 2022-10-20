@@ -66,6 +66,10 @@
       .then(user => {
         window.logged = true
         window.level = parseInt(user.level)
+        if (location.search) {
+          window.location = location.search.substring(1)
+          return
+        }
         open(ref)
      })
      .catch(e => {
@@ -142,7 +146,11 @@
  }
 
  window.addEventListener('load', (event) => {
-  const klogin = new KLogin()
+  let base = window.location.pathname.split('/')
+  while (!base[0]) { base.shift() }
+
+  let url = new URL(`${window.location.origin}/${base.shift()}/`)
+  const klogin = new KLogin(url)
     klogin.getToken()
     .then(token => {
         if (token) {
@@ -151,11 +159,18 @@
                 return klogin.getUser()
             })
             .then(userid => {
-              KAPerson.load(userid)
+              return KAPerson.load(userid)
             })
             .then(user => {
+              console.log(user)
               window.logged = true
-              window.level = user.level
+              window.level = parseInt(user.level)
+              let main = document.getElementsByTagName('main')[0]
+              main.innerHTML = ''
+              if (location.search) {
+                window.location = location.search.substring(1)
+                return
+              }
               open(main)
             })
             .catch(() => {

@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS "travail" ( -- table containing specific work to be d
 		"travail_begin" VARCHAR(10) DEFAULT '', 
         "travail_plan" INTEGER DEFAULT 0, 
         "travail_group" CHAR(32),
+		"travail_folder" TINYINT UNSIGNED NOT NULL DEFAULT 0,
         FOREIGN KEY("travail_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE CASCADE
 );
 
@@ -175,3 +176,13 @@ CREATE TABLE IF NOT EXISTS "htime" (
 	FOREIGN KEY("htime_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE SET NULL,
 	FOREIGN KEY("htime_process") REFERENCES "process"("process_id") ON UPDATE CASCADE ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS "kaalauth" (
+	"uid" INTEGER UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+	"userid" INTEGER UNSIGNED NOT NULL,
+	"time" INTEGER UNSIGNED DEFAULT 0,
+	"started" INTEGER UNSIGNED DEFAULT 0,
+	"confirmed" INTEGER(1) UNSIGNED DEFAULT 0,
+	"auth" CHAR(255) DEFAULT ''
+);
+CREATE INDEX "idxKaalAuth_auth" ON "kaalauth"("auth") USING HASH;

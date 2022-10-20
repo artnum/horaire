@@ -301,6 +301,7 @@ TimeInteractUI.prototype.joinProjectToTravail = function (travaux) {
             for (const result of results) {
                 if (result.length < 1) { continue }
                 for (const travail of travaux) {
+                    if (travail.project !== result.data[0].id) { continue }
                     travail.project = result.data[0]
                 }
             }

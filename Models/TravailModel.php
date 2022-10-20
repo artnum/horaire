@@ -58,13 +58,12 @@ class TravailModel extends artnum\SQL {
   function _write($data, $id = NULL) {
     global $MSGSrv;
     $result = parent::_write($data, $id);
-    $item = $result->getItem(0);
-    if ($item !== null) {
+    if ($result['count'] > 0) {
       $MSGSrv->send(json_encode([
         'operation' => 'write',
         'type' => 'travail',
         'cid' => $this->kconf->getVar('clientid'),
-        'id' => $item['id']
+        'id' => $result['id']
       ]));
     }
     return $result;
@@ -73,13 +72,12 @@ class TravailModel extends artnum\SQL {
   function _delete($id) {
     global $MSGSrv;
     $result = parent::_delete($id);
-    $item = $result->getItem(0);
-    if ($item !== false) {
+    if ($result['count'] > 0) {
       $MSGSrv->send(json_encode([
         'operation' => 'delete',
         'type' => 'travail',
         'cid' => $this->kconf->getVar('clientid'),
-        'id' => array_keys($item)[0]
+        'id' => $id
       ]));
     }
     return $result;

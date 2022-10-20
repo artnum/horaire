@@ -15,17 +15,15 @@
       }
    
       function getYears ($options) {
-        $result = new \artnum\JStore\Result();
+        $result = ['count' => 0];
         $req = 'SELECT SUBSTR("facture_date", 1, 4) AS "facture_year" FROM "facture" GROUP BY SUBSTR("facture_date", 1, 4)';
-        try {
-            $st = $this->get_db()->prepare($req);
-            if ($st->execute()) {
-                while (($row = $st->fetch(\PDO::FETCH_ASSOC)) !== FALSE) {
-                    $result->addItem($this->unprefix($row));
-                }
+        $st = $this->get_db()->prepare($req);
+        if ($st->execute()) {
+            $this->response->start_output();
+            while (($row = $st->fetch(\PDO::FETCH_ASSOC)) !== FALSE) {
+                $this->response->print($this->unprefix($row));
+                $result['count']++;
             }
-        } catch(\Exception $e) {
-            $result->addError($e->getMessage(), $e);
         }
 
         return $result;
