@@ -21,19 +21,9 @@ class ProjectModel extends artnum\SQL {
      * so this should avoid some case in hope it fixes the bug
      */
     $exist = $this->listing(['search' => ['reference' => $arg['reference']]]);
-    if ($exist->getCount() > 0) {
-      if ($arg['id']) {
-          $item = $exist->getItem(0);
-          if (intval($item['id']) !== intval($arg['id'])) {
-            $result = new artnum\JStore\Result();
-            $result->addError('Reference exists');
-            return $result;
-          }
-      } else {
-        $result = new artnum\JStore\Result();
-        $result->addError('Reference exists');
-        return $result;
-      }
+    $this->response->clear_output();
+    if ($exist['count'] > 0) {
+      throw new Exception('Référence existe');
     }
     
     $hook_succeed = false;
