@@ -264,7 +264,7 @@ function createBTTravail (kaproject) {
            .then(kaproject => {
              showHideTravaux(kaproject.id, true)
              if (event.detail && event.detail.print) {
-               window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: kaproject.id, travail: tid}}))                         
+               window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: kaproject.id, travail: tid, auth: localStorage.getItem('klogin-token')}}))                         
              }
            })
          } else {
@@ -377,7 +377,7 @@ function createBTTravail (kaproject) {
        newTravailEvent(event)
        break
      case 'print':
-       window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: button.dataset.project, travail: button.dataset.travail}}))          
+       window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: button.dataset.project, travail: button.dataset.travail, auth: localStorage.getItem('klogin-token')}}))          
        break;
      case 'delete':
        Artnum.Query.exec(Artnum.Path.url(`Travail/${button.dataset.travail}`)).then((result) => {
@@ -564,7 +564,7 @@ async function evCancelEdit (event) {
        printButton.addEventListener('click', function (event) {
          if (event && event.target) {
            for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
-           window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: node.getAttribute('data-id')}}))
+           window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: node.getAttribute('data-id'), auth: `Bearer ${localStorage.getItem('klogin-token')}`}}))
          }
        })
        printButton.innerHTML = 'Imprimer'

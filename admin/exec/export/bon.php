@@ -24,11 +24,17 @@ $JClient = new artnum\JRestClient(
   $_SERVER['SERVER_NAME'] .
   implode('/', $path));
 
+if (!empty($_GET['auth'])) {
+  $JClient->setAuth($_GET['auth']);
+}
 
 $ini_conf = load_ini_configuration();
 $pdo = init_pdo($ini_conf);
 
 $KAIROSClient = new artnum\JRestClient($ini_conf['kairos']['url'] . '/store/');
+if (!empty($_GET['auth'])) {
+  $KAIROSClient->setAuth($_GET['auth']);
+}
 
 if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
   $st = $pdo->prepare('SELECT * FROM "project" WHERE "project_id" = :id');
