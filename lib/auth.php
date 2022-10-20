@@ -6,7 +6,7 @@ class KAALAuth {
     function __construct(PDO $pdo, String $table = 'kaalauth') {
         $this->pdo = $pdo;
         $this->table = $table;
-        $this->timeout = 28800; // 8h
+        $this->timeout = 86400; // 24h
     }
 
     function generate_auth ($userid, $hpw) {
@@ -88,6 +88,22 @@ class KAALAuth {
             error_log(sprintf('kaal-auth <check-auth>, "%s"', $e->getMessage()));
         } finally {
             return $matching;
+        }
+    }
+
+    function refresh_auth($authvalue) {
+        $pdo = $this->pdo;
+        $done = false;
+        try {
+            $stmt = $pdo->prepare(sprintf('UPDATE %s SET time = :time WHERE auth = :auth', $this->table));
+            $stmt->bindValue(':time', time(), PDO::PARAM_INT);
+            $stmt->bindValue(':auth', $authvalue, PDO::PARAM_INT);
+
+            $done = $stmt->execute();
+        } catch (Exception $e) {
+            error_log(sprintf('kaal-auth <add-auth>, "%s"', $e->getMessage()));
+        } finally {
+            return $done;
         }
     }
 

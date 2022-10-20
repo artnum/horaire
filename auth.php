@@ -48,6 +48,7 @@ try {
         case 'check':
             if (empty($content['auth'])) { throw new Exception(); }
             if (!$KAuth->confirm_auth($content['auth'])) { throw new Exception(); }
+            $KAuth->refresh_auth($content['auth']);
             echo json_encode(['done' => true]);
             break;
         case 'quit':
