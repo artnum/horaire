@@ -29,7 +29,7 @@ try {
         default: throw new Exception('Unknown step');
         case 'init':
             if(empty($content['userid'])) { throw new Exception(); }
-            $stmt =$pdo->prepare('SELECT "person_id", "person_key", "person_keyopt" FROM "person" WHERE "person_id" = :id');
+            $stmt =$pdo->prepare('SELECT "person_id", "person_key", "person_keyopt" FROM "person" WHERE "person_id" = :id AND "person_disabled" = 0 AND "person_deleted" IS NULL');
             $stmt->bindValue(':id', intval($content['userid']), PDO::PARAM_INT);
             $stmt->execute();
             if ($stmt->rowCount() !== 1) { throw new Exception(); }
