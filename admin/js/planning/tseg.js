@@ -83,7 +83,7 @@ TSeg.prototype._generateDom = function () {
 TSeg.prototype._label = function () {
     new Promise ((resolve,reject) => {
         new Promise ((resolve, reject) => {
-            KAAL.fetch(new URL(this.travail, KAAL.getBase())).then(response => {
+            fetch(new URL(this.travail, KAAL.getBase())).then(response => {
                 if (!response.ok) { reject('Server error') }
                 response.json().then(result => {
                     if (result.length === 1) {
@@ -92,7 +92,7 @@ TSeg.prototype._label = function () {
                 }, reason => reject(reason))
             }, reason => reject(reason))
         }).then(travail => {
-            KAAL.fetch(new URL(`Project/${travail.project}`, KAAL.getBase())).then(response => {
+            fetch(new URL(`Project/${travail.project}`, KAAL.getBase())).then(response => {
                 if (response.ok) {
                     response.json().then(result => {
                         if (result.length === 1) {

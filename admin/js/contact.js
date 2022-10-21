@@ -340,9 +340,9 @@ export class SContactStore {
       let parts = id.split('/', 2)
       if (parts.length === 2) { id = parts[1] }
       let url = new URL(`${this.url}/${id}`)
-      KAAL.fetch(url, {method: 'HEAD'}).then(response => {
+      fetch(url, {method: 'HEAD'}).then(response => {
         if (!response.ok) { resolve(false); return }
-        KAAL.fetch(url, {method: 'PUT', body: JSON.stringify(content)}).then(response => {
+        fetch(url, {method: 'PUT', body: JSON.stringify(content)}).then(response => {
           if (!response.ok) { resolve(false); return }
           response.json().then(result => {
             if (result.length === 1) {
@@ -361,7 +361,7 @@ export class SContactStore {
   create (content) {
     return new Promise((resolve, reject) => {
       let url = new URL(`${this.url}/`)
-      KAAL.fetch(url, {method: 'POST', body: JSON.stringify(content)}).then(response => {
+      fetch(url, {method: 'POST', body: JSON.stringify(content)}).then(response => {
         if (!response.ok) { resolve(null); return; }
         response.json().then(result => {
           if (result.length === 1) {
@@ -381,7 +381,7 @@ export class SContactStore {
       let parts = id.split('/', 2)
       if (parts.length === 2) { id = parts[1] }
       let url = new URL(`${this.url}/${id}`)
-      KAAL.fetch(url, KAAL.fetchOpts).then(response => {
+      fetch(url, KAAL.fetchOpts).then(response => {
         if (!response.ok) { resolve(null); return }
         response.json().then(json => {
           if (json.length <= 0) { resolve(null); return }
@@ -407,7 +407,7 @@ export class SContactStore {
         }
       }
       url.searchParams.append('limit', KAAL.search.liveLimit)
-      KAAL.fetch(url, KAAL.fetchOpts)
+      fetch(url, KAAL.fetchOpts)
         .then((response) => {
           if (response.ok) {
             return response.json()
