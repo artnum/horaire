@@ -167,6 +167,7 @@ class KAALAuth {
                 } else {
                    $connections[] = [
                     'uid' => $row['uid'],
+                    'time' => $row['time'],
                     'useragent' => $row['useragent'],
                     'remoteip' => $row['remoteip'],
                     'remotehost' => $row['remotehost']

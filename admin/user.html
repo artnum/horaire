@@ -192,7 +192,7 @@
           const popup = window.Admin.popup(`<form>
         <input type="hidden" value="${userId}" name="user" />
         <table>
-          <tr><th>Navigateur</th><th>Adresse IP</th><th>Nom d'hote</th></tr>
+          <tr><th>Temps</th><th>Navigateur</th><th>Adresse IP</th><th>Nom d'hote</th></tr>
         </table>
         <button type="submit">Déconnecter</button>
         </form>
@@ -210,8 +210,10 @@
           })
           const table = popup.getElementsByTagName('TABLE')[0]
           for (const connection of connections) {
+            const time = new Date()
+            time.setTime(parseInt(connection.time) * 1000)
             const tr = document.createElement('TR')
-            tr.innerHTML = `<td>${connection.useragent}</td><td>${connection.remoteip}</td><td>${connection.remotehost}</td>`
+            tr.innerHTML = `<td>${time.toLocaleString()}</td><td>${connection.useragent}</td><td>${connection.remoteip}</td><td>${connection.remotehost}</td>`
             table.appendChild(tr)
           }
         })
