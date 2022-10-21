@@ -1,9 +1,11 @@
 <html>
+
 <head>
   <title>Horaire</title>
   <link rel="stylesheet" href="css/admin.css" type="text/css" />
   <link rel="stylesheet" href="../node_modules/font-awesome/css/font-awesome.min.css" type="text/css" />
 </head>
+
 <body>
   <header>
     <h1>Administration</h1>
@@ -18,145 +20,148 @@
 <script src="../js/data/utils.js"></script>
 <script src="../node_modules/sjcl/sjcl.js"></script>
 <script type="text/javascript">
- function login (ref) {
-   let div = document.createElement('DIV')
-   let form = document.createElement('FORM')
+  function login(ref) {
+    let div = document.createElement('DIV')
+    let form = document.createElement('FORM')
 
-   form.innerHTML = `<label for="username">Utilisateur : <input type="text" name="username" class="darkbg"></label><br>
+    form.innerHTML = `<label for="username">Utilisateur : <input type="text" name="username" class="darkbg"></label><br>
                      <label for="password">Mot de passe : <input type="password" name="password" class="darkbg"></label><br>
                      <button type="submit">Authentifier</button>`
 
-   div.classList.add('login')
-   div.appendChild(form)
-   window.requestAnimationFrame(function () { ref.appendChild(div) })
-   
-   form.addEventListener('submit', function (event) {
-     event.preventDefault()
-     let nodeForm = event.target
-     for (; nodeForm.nodeName !== 'FORM'; nodeForm = nodeForm.parentNode);
-     let inputs = nodeForm.getElementsByTagName('INPUT')
-     let password = null
-     let username = null
-     for (var i = 0; i < inputs.length; i++) {
-       switch (inputs[i].getAttribute('name')) {
-         case 'password':
-           password = inputs[i].value
-           inputs[i].value = ''
-           break
-         case 'username':
-           username = inputs[i].value
-           break
-       }
-     }
-     let base = window.location.pathname.split('/')
-     while (!base[0]) { base.shift() }
+    div.classList.add('login')
+    div.appendChild(form)
+    window.requestAnimationFrame(function () { ref.appendChild(div) })
 
-     let url = new URL(`${window.location.origin}/${base.shift()}/`)
-  
-     const klogin = new KLogin(url)
-     klogin.getUserid(username)
-     .then(userid => {
-      return klogin.login(userid, password)
-     })
-     .then(() => {
-        return klogin.getUser()
-     }).then(userid=> {
-        return KAPerson.load(userid)
-      })
-      .then(user => {
-        window.logged = true
-        window.level = parseInt(user.level)
-        if (location.search) {
-          window.location = location.search.substring(1)
-          return
+    form.addEventListener('submit', function (event) {
+      event.preventDefault()
+      let nodeForm = event.target
+      for (; nodeForm.nodeName !== 'FORM'; nodeForm = nodeForm.parentNode);
+      let inputs = nodeForm.getElementsByTagName('INPUT')
+      let password = null
+      let username = null
+      for (var i = 0; i < inputs.length; i++) {
+        switch (inputs[i].getAttribute('name')) {
+          case 'password':
+            password = inputs[i].value
+            inputs[i].value = ''
+            break
+          case 'username':
+            username = inputs[i].value
+            break
         }
-        open(ref)
-     })
-     .catch(e => {
-      console.log(e)
-      alert('Autentification échouée')
-     })
+      }
 
-/*
-     let base = window.location.pathname.split('/')
-     while (!base[0]) { base.shift() }
-     let url = new URL(`${window.location.origin}/${base.shift()}/Person`)
-     url.searchParams.set('search.username', username)
-     fetch(url).then((result) => {
-       if (!result.ok) { alert('Authentification échouée'); return }
-       result.json().then((data) => {
-         if (data.success && data.length === 1) {
-           let [iteration, salt] = data.data[0].keyopt.split(' ', 2)
-           let p = sjcl.codec.base64.fromBits(sjcl.misc.pbkdf2(password, sjcl.codec.base64.toBits(salt), parseInt(iteration)))
-           if (p === data.data[0].key) {
-             window.logged = true
-             window.level = parseInt(data.data[0].level)
-             open(ref)
-           } else {
-             alert('Autentification échouée')
-           }
-         }
-       })
-     })*/
-   })
-   
- }
+      let base = window.location.pathname.split('/')
+      while (!base[0]) { base.shift() }
 
- function exec(event) {
-   event.preventDefault()
-   let main = event.target
-   while (main.nodeName !== 'MAIN') { main = main.parentNode;}
-   document.body.classList.add('pageview')
-   let iframe = main.nextElementSibling
-   if (!iframe || iframe.nodeName !== 'IFRAME') {
-     iframe = document.createElement('IFRAME')
-     main.parentNode.insertBefore(iframe, main.nextSibling)
-   }
+      const url = new URL(`${window.location.origin}/${base.shift()}/`)
 
-   iframe.setAttribute('src', event.target.getAttribute('href'))
- }
- 
- function open(ref) {
-   window.requestAnimationFrame(() => ref.innerHTML = '')
-   let buttons = [
-     { level: 128, node: `project.html`, label: 'Projets' },
-     { level: 64, node: `process.html`, label: 'Processus' },
-     { level: 16, node: `user.html`, label: 'Utilisateurs' },
-     { level: 32, node: `time.html`, label: 'Temps' },
-     { level: 32, node: `bill.html`, label: 'Facture' },
-     { level: 128, node: `item.html`, label: 'Matériels' },
-     { level: 128, node: `../../kairos/`, label: 'Planification' },
-     { level: 128, node: `view-gantt.html`, label: 'Vue général' },
+      const klogin = new KLogin(url)
+      klogin.getUserid(username)
+        .then(userid => {
+          return klogin.login(userid, password)
+        })
+        .then(() => {
+          return klogin.getUser()
+        }).then(userid => {
+          return KAPerson.load(userid)
+        })
+        .then(user => {
+          window.logged = true
+          window.level = parseInt(user.level)
+          if (location.search) {
+            window.location = location.search.substring(1)
+            return
+          }
+          open(ref)
+        })
+        .catch(e => {
+          console.log(e)
+          alert('Autentification échouée')
+        })
+    })
 
+  }
+
+  window.addEventListener('hashchange', event => {
+    const node = document.querySelector(`a[href="${window.location.hash.substring(1)}"]`)
+    exec({target: node, preventDefault: function () {} })
+  })
+
+  function exec(event) {
+    event.preventDefault()
+    let main = event.target
+    const target = event.target.getAttribute('href')
+
+    switch (target) {
+      default:
+        window.document.title = `Horaire[${event.target.textContent}]`
+        window.location.hash = target
+        
+
+        while (main.nodeName !== 'MAIN') { main = main.parentNode; }
+        document.body.classList.add('pageview')
+        let iframe = main.nextElementSibling
+        if (!iframe || iframe.nodeName !== 'IFRAME') {
+          iframe = document.createElement('IFRAME')
+          main.parentNode.insertBefore(iframe, main.nextSibling)
+        }
+
+        iframe.setAttribute('src', target)
+        break
+      case 'exit':
+        let base = window.location.pathname.split('/')
+        while (!base[0]) { base.shift() }
+        (new KLogin(new URL(`${window.location.origin}/${base.shift()}/`))).logout()
+        .then(_ => {
+          window.location.hash = ''
+          window.location.reload()
+        })
+        break
+    }
+  }
+
+  function open(ref) {
+    window.requestAnimationFrame(() => ref.innerHTML = '')
+    let buttons = [
+      { level: 128, node: `project.html`, label: 'Projets' },
+      { level: 64, node: `process.html`, label: 'Processus' },
+      { level: 16, node: `user.html`, label: 'Utilisateurs' },
+      { level: 32, node: `time.html`, label: 'Temps' },
+      { level: 32, node: `bill.html`, label: 'Facture' },
+      { level: 128, node: `item.html`, label: 'Matériels' },
+      { level: 128, node: `../../kairos/`, label: 'Planification' },
+      { level: 128, node: `view-gantt.html`, label: 'Vue général' },
+      { level: 256, node: `exit`, label: 'Déconnexion' },
     ]
 
-   buttons.forEach((e) => {
-     if (parseInt(e.level) >= parseInt(window.level)) {
-       let div = document.createElement('DIV')
-       div.classList.add('button')
-       let link = document.createElement('A')
-       link.setAttribute('href', e.node)
-       link.addEventListener('click', exec)
-       link.appendChild(document.createTextNode(e.label))
-       div.appendChild(link)
-       window.requestAnimationFrame(() => ref.appendChild(div))
-     }
-   })
-   
- }
+    buttons.forEach((e) => {
+      if (parseInt(e.level) >= parseInt(window.level)) {
+        let div = document.createElement('DIV')
+        div.classList.add('button')
+        let link = document.createElement('A')
+        link.setAttribute('href', e.node)
+        link.addEventListener('click', exec)
+        link.appendChild(document.createTextNode(e.label))
+        div.appendChild(link)
+        window.requestAnimationFrame(() => ref.appendChild(div))
+      }
+    })
 
- window.addEventListener('load', (event) => {
-  let base = window.location.pathname.split('/')
-  while (!base[0]) { base.shift() }
+  }
 
-  let url = new URL(`${window.location.origin}/${base.shift()}/`)
-  const klogin = new KLogin(url)
+  window.addEventListener('load', (event) => {
+    let base = window.location.pathname.split('/')
+    while (!base[0]) { base.shift() }
+
+    let url = new URL(`${window.location.origin}/${base.shift()}/`)
+    const klogin = new KLogin(url)
     klogin.getToken()
-    .then(token => {
+      .then(token => {
         if (token) {
-            klogin.check(token)
+          klogin.check(token)
             .then(() => {
-                return klogin.getUser()
+              return klogin.getUser()
             })
             .then(userid => {
               return KAPerson.load(userid)
@@ -175,16 +180,16 @@
             })
             .catch(() => {
               let main = document.getElementsByTagName('main')[0]
-               main.innerHTML = ''
-               login(main)           
-             })
+              main.innerHTML = ''
+              login(main)
+            })
         } else {
           let main = document.getElementsByTagName('main')[0]
           main.innerHTML = ''
-          login(main)   
+          login(main)
         }
-    })
+      })
 
- })
+  })
 </script>
 </html>
