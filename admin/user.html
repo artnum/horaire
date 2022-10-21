@@ -233,7 +233,7 @@
          <td>
          <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="edit">Modifier</button>
          <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="pricing">Tarif horaire</button>
-         <button data-user="${entry.id}" type="button" data-action="connections">Connections (${entry._connections.length})</button>
+         <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="connections">Connections (${entry._connections.length})</button>
          <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="delete">Supprimer</button></td>`
      }
      resolve(tr)
@@ -343,7 +343,7 @@
           setUserPrice(node.dataset.id, event.target.dataset.username)
           break
         case 'connections':
-          showConnections(node.dataset.id, node.dataset.username)
+          showConnections(node.dataset.id, event.target.dataset.username)
           break
       }
     })
