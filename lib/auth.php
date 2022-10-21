@@ -40,11 +40,18 @@ class KAALAuth {
     function add_auth ($userid, $authvalue) {
         $pdo = $this->pdo;
         $done = false;
+        $ip = $_SERVER['REMOTE_ADDR'];
+        $host = empty($_SERVER['REMOTE_HOST']) ? $ip : $_SERVER['REMOTE_HOST'];
+        $ua = !empty($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
+        
         try {
-            $stmt = $pdo->prepare(sprintf('INSERT INTO %s (userid, auth, started) VALUES (:uid, :auth, :started);', $this->table));
+            $stmt = $pdo->prepare(sprintf('INSERT INTO %s (userid, auth, started, remotehost, remoteip, useragent) VALUES (:uid, :auth, :started, :remotehost, :remoteip, :useragent);', $this->table));
             $stmt->bindValue(':uid', $userid, PDO::PARAM_STR);
             $stmt->bindValue(':auth', $authvalue, PDO::PARAM_STR);
             $stmt->bindValue(':started', time(), PDO::PARAM_INT);
+            $stmt->bindValue(':remotehost', $host, PDO::PARAM_STR);
+            $stmt->bindValue(':remoteip', $ip, PDO::PARAM_STR);
+            $stmt->bindValue(':useragent', $ua, PDO::PARAM_STR);
 
             $done = $stmt->execute();
         } catch (Exception $e) {
@@ -94,10 +101,14 @@ class KAALAuth {
     function refresh_auth($authvalue) {
         $pdo = $this->pdo;
         $done = false;
+        $ip = $_SERVER['REMOTE_ADDR'];
+        $host = empty($_SERVER['REMOTE_HOST']) ? $ip : $_SERVER['REMOTE_HOST'];
         try {
-            $stmt = $pdo->prepare(sprintf('UPDATE %s SET time = :time WHERE auth = :auth', $this->table));
+            $stmt = $pdo->prepare(sprintf('UPDATE %s SET time = :time, remoteip = :remoteip, remotehost = :remotehost WHERE auth = :auth', $this->table));
             $stmt->bindValue(':time', time(), PDO::PARAM_INT);
             $stmt->bindValue(':auth', $authvalue, PDO::PARAM_INT);
+            $stmt->bindValue(':remotehost', $host, PDO::PARAM_STR);
+            $stmt->bindValue(':remoteip', $ip, PDO::PARAM_STR);
 
             $done = $stmt->execute();
         } catch (Exception $e) {
@@ -131,4 +142,57 @@ class KAALAuth {
         }
     }
 
+    function get_auth_token () {
+        try {
+            $authContent = explode(' ', $_SERVER['HTTP_AUTHORIZATION']);
+            if (count($authContent) !== 2) { throw new Exception(('Wrong auth header')); }
+            return $authContent[1];
+        } catch (Exception $e) {
+            error_log(sprintf('kaal-auth <get-id>, "%s"', $e->getMessage()));
+        }
+    }
+
+    function get_active_connection ($userid) {
+        $pdo = $this->pdo;
+        $connections = [];
+        try {
+            $stmt = $pdo->prepare(sprintf('SELECT * FROM %s WHERE userid = :userid', $this->table));
+            $stmt->bindValue(':userid', $userid, PDO::PARAM_INT);
+            $stmt->execute();
+            while (($row = $stmt->fetch(PDO::FETCH_ASSOC))) {
+                if (time() - intVal($row['time'], 10) > $this->timeout) {
+                    $del = $pdo->prepare(sprintf('DELETE FROM %s WHERE auth = :auth', $this->table));
+                    $del->bindValue(':auth', $row['auth'], PDO::PARAM_STR);
+                    $del->execute();
+                } else {
+                   $connections[] = [
+                    'uid' => $row['uid'],
+                    'useragent' => $row['useragent'],
+                    'remoteip' => $row['remoteip'],
+                    'remotehost' => $row['remotehost']
+                   ];
+                }
+            }
+        } catch(Exception $e) {
+            error_log(sprintf('kaal-auth <get-active-connection>, "%s"', $e->getMessage()));
+        } finally {
+            return $connections;
+        }
+    }
+
+    function del_specific_connection ($connectionid) {
+        $pdo = $this->pdo;
+
+    }
+
+    function del_all_connections ($userid) {
+        $pdo = $this->pdo;
+        try {
+            $stmt = $pdo->prepare(sprintf('DELETE FROM %s WHERE userid = :userid', $this->table));
+            $stmt->bindValue(':userid', $userid, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch(Exception $e) {
+            error_log(sprintf('kaal-auth <del-all-connections>, "%s"', $e->getMessage()));
+        } 
+    }
 }

@@ -167,7 +167,6 @@
               return KAPerson.load(userid)
             })
             .then(user => {
-              console.log(user)
               window.logged = true
               window.level = parseInt(user.level)
               let main = document.getElementsByTagName('main')[0]

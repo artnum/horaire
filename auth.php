@@ -66,6 +66,42 @@ try {
             if (empty($data['person_id'])) { throw new Exception(); }
             echo json_encode(['userid' => intval($data['person_id'])]);
             break;
+        case 'active':
+            $token = $KAuth->get_auth_token();
+            if (!$KAuth->check_auth($token)) { throw new Exception(); }
+            $userid = $KAuth->get_id($token);
+            if (empty($content['userid'])) { throw new Exception(); }
+            $stmt =$pdo->prepare('SELECT "person_id", "person_level" FROM "person" WHERE "person_id" = :id');
+            $stmt->bindValue(':id', intval($userid), PDO::PARAM_INT);
+            $stmt->execute();
+            if ($stmt->rowCount() !== 1) { throw new Exception(); }
+            $data = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (intval($data['person_level']) > 16) { 
+                if (intval($data['person_id']) !== intval($content['userid'])) {
+                    throw new Exception(); 
+                }
+            }
+            $connections = $KAuth->get_active_connection($content['userid']);
+            echo json_encode(['userid' => intval($content['userid']), 'connections' => $connections]);
+            break;
+        case 'disconnect':
+            $token = $KAuth->get_auth_token();
+            if (!$KAuth->check_auth($token)) { throw new Exception(); }
+            $userid = $KAuth->get_id($token);
+            if (empty($content['userid'])) { throw new Exception(); }
+            $stmt =$pdo->prepare('SELECT "person_id", "person_level" FROM "person" WHERE "person_id" = :id');
+            $stmt->bindValue(':id', intval($userid), PDO::PARAM_INT);
+            $stmt->execute();
+            if ($stmt->rowCount() !== 1) { throw new Exception(); }
+            $data = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (intval($data['person_level']) > 16) { 
+                if (intval($data['person_id']) !== intval($content['userid'])) {
+                    throw new Exception(); 
+                }
+            }
+            if (!$KAuth->del_all_connections($content['userid'])) { throw new Exception(); }
+            echo json_encode(['userid' => intval($content['userid'])]);
+            break;
     }
 } catch (Exception $e) {
     $msg = $e->getMessage();

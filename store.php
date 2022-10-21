@@ -67,14 +67,18 @@ if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
 } else {
   $authContent = explode(' ', $_SERVER['HTTP_AUTHORIZATION']);
   if (count($authContent) !== 2) {
-    http_response_code(401);
-    exit(0);
+    if (!($http_request->getCollection() === 'Person' && $http_request->getItem() === '_query')) {
+      http_response_code(401);
+      exit(0);
+    }
   }
 
   $kauth = new KAALAuth($pdo);
   if (!$kauth->check_auth(trim($authContent[1]))) {
-    http_response_code(401);
-    exit(0);
+    if (!($http_request->getCollection() === 'Person' && $http_request->getItem() === '_query')) {
+      http_response_code(401);
+      exit(0);
+    }
   }
 }
 

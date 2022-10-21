@@ -54,6 +54,9 @@
 <script src="../node_modules/artnum/DTable.js"></script>
 <script src="js/admin.js"></script>
 <script>
+  const base = window.location.pathname.split('/')
+  while (!base[0]) { base.shift() }
+  const KLoginInstance = (new KLogin(new URL(`${window.location.origin}/${base.shift()}/`)))
   function makeKey (password) {
     var iteration = Math.floor(Math.random() * 1000) + 2000 // between 2000 and 2999 iteration
     var salt = sjcl.random.randomWords(4, 2)
@@ -159,6 +162,41 @@
    })
  }
 
+ function showConnections (userId, username) {
+  return new Promise((resolve, reject) => {
+
+    KLoginInstance.getActive(userId)
+    .then(connections => {
+
+      const popup = window.Admin.popup(`<form>
+        <input type="hidden" value="${userId}" name="user" />
+        <table>
+          <tr><th>Navigateur</th><th>Adresse IP</th><th>Nom d'hote</th></tr>
+        </table>
+        <button type="submit">Déconnecter</button>
+        </form>
+        `, `Connections pour ${username}`, {closable: true})
+
+      const form = popup.getElementsByTagName('form')[0]
+      form.addEventListener('submit', event => {
+        event.preventDefault()
+        const data = new FormData(event.target)
+        KLoginInstance.disconnect(data.get('user'))
+        .then(_ => {
+          getUser(data.get('user'))
+          popup.close()
+        })
+      })
+      const table = popup.getElementsByTagName('TABLE')[0]
+      for (const connection of connections) {
+        const tr = document.createElement('TR')
+        tr.innerHTML = `<td>${connection.useragent}</td><td>${connection.remoteip}</td><td>${connection.remotehost}</td>`
+        table.appendChild(tr)
+      }
+    })
+  })
+ }
+
  const levels = {
    256: 'Ajout de temps',
    128: 'Gestion de projet',
@@ -195,8 +233,8 @@
          <td>
          <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="edit">Modifier</button>
          <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="pricing">Tarif horaire</button>
-         <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="delete">Supprimer</button></td>
-`
+         <button data-user="${entry.id}" type="button" data-action="connections">Connections (${entry._connections.length})</button>
+         <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="delete">Supprimer</button></td>`
      }
      resolve(tr)
    })
@@ -304,7 +342,10 @@
         case 'pricing':
           setUserPrice(node.dataset.id, event.target.dataset.username)
           break
-        }
+        case 'connections':
+          showConnections(node.dataset.id, node.dataset.username)
+          break
+      }
     })
     loadUsers()
   } 
@@ -443,7 +484,15 @@
         if (response.ok) {
           response.json().then(result => {
             if (result.length === 1) {
-              newEntry(Array.isArray(result.data) ? result.data[0] : result.data).then(html => replaceAddEntry(html))
+              const entry = Array.isArray(result.data) ? result.data[0] : result.data
+              KLoginInstance.getActive(entry.id)
+              .then(connections => {
+                entry._connections = connections
+                newEntry(entry)
+                .then(html => {
+                  replaceAddEntry(html)
+                })
+              })
             }
           })
         }
@@ -455,14 +504,19 @@
     Artnum.Query.exec(Artnum.Path.url('Person', {params: {'search.deleted': '-'}})).then(function (person) {
       if (person.success && person.length > 0) {
         for (var i = 0; i < person.length; i++) {
-          var entry = person.data[i]
+          const entry = person.data[i]
           /*if (admin.indexOf(entry.username) !== -1) {
             entry.admin = true
           } else {
             entry.admin = false
           }*/
-          newEntry(entry).then((html) => {
-            replaceAddEntry(html)
+          KLoginInstance.getActive(entry.id)
+          .then(connections => {
+            entry._connections = connections
+            newEntry(entry)
+            .then((html) => {
+              replaceAddEntry(html)
+            })
           })
         }
       } 

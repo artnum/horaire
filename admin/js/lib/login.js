@@ -111,3 +111,36 @@ KLogin.prototype.login = function (userid, password) {
         })
     })
 }
+
+KLogin.prototype.disconnect = function (userid) {
+    return new Promise((resolve, reject) => {
+        return fetch (new URL('auth.php/disconnect', this.base), {method: 'POST', body: JSON.stringify({userid: userid})})
+        .then(response => {
+            if (!response.ok) { return reject(new Error('Cannot disconnect')) }
+            return response.json()
+        })
+        .then(result => {
+            resolve(result.userid)
+        })
+        .catch(e => {
+            reject(new Error('login error', {cause: e}))
+        })
+    })
+}
+
+KLogin.prototype.getActive = function (userid) {
+    return new Promise((resolve, reject) => {
+        fetch (new URL('auth.php/active', this.base), {method: 'POST', body: JSON.stringify({userid: userid})})
+        .then(response => {
+            if (!response.ok) { return reject(new Error('Cannot get active connection')) }
+            return response.json()
+        })
+        .then(result => {
+            if (!result.connections) { return reject(new Error('Cannot get active connection'))}
+            resolve(result.connections)
+        })
+        .catch(e => {
+            reject(new Error('login error', {cause: e}))
+        })
+    })
+}
