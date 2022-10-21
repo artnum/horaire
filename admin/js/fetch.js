@@ -25,7 +25,10 @@ fetch = function (url, params = {}) {
     })
     .then(response => {
         if (response.ok) { fetch.success++ }
-        else { fetch.failed++}
+        else { 
+          if (response.status === 401) { window.location.reload() }
+          fetch.failed++
+        }
         resolve(response)
     })
     .catch(e => {
