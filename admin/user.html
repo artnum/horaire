@@ -218,7 +218,7 @@
             const time = new Date()
             time.setTime(parseInt(connection.time) * 1000)
             const tr = document.createElement('TR')
-            tr.innerHTML = `<td>${time.toLocaleString()}</td><td>${connection.useragent}</td><td>${connection.remoteip}</td><td>${connection.remotehost}</td>`
+            tr.innerHTML = `<td>${time.toLocaleString()}</td><td class="ka-ua">${connection.useragent}</td><td>${connection.remoteip}</td><td>${connection.remotehost}</td>`
             table.appendChild(tr)
           }
         })

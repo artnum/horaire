@@ -430,3 +430,8 @@ fieldset.half {
     min-height: 480px;;
     max-height: 480px;;
 }
+
+.ka-ua {
+    max-width: 32ch !important;
+    overflow-wrap: break-word;
+}
