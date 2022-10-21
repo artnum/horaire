@@ -125,6 +125,7 @@
         })
         form.addEventListener('submit', (event) => {
           event.preventDefault()
+          let disconnect = false
           let content = window.Admin.getForm(event.target)
           Artnum.Query.exec(Artnum.Path.url('Person', { params: { 'search.username': content.username } })).then((result) => {
             if (!result.success || result.length > 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
@@ -136,7 +137,7 @@
             }
             let mapping = { username: 'username', name: 'name', efficiency: 'efficiency', level: 'level', order: 'order' }
             let body = { disabled: content.disabled ? '1' : '0' }
-            if (body.disabled === '1') { KLoginInstance.disconnect(userId) }
+            if (body.disabled === '1') { disconnect = true }
             for (let i in mapping) {
               if (content[i] && content[i] !== null) {
                 body[mapping[i]] = content[i]
@@ -156,14 +157,18 @@
                 alert('Mot de passe trop court, veuillez entrer au moins 6 caractères')
                 return
               }
-              Object.assign(body, makeKey(content.password))
+              Object.assign(body, makeKey(content.password))        
+              disconnect = true
             }
             if (content.user) { body.id = content.user }
             Artnum.Query.exec(Artnum.Path.url(`Person/${content.user}`), { method: body.id ? 'PATCH' : 'POST', body: body }).then((result) => {
               if (result.success) {
                 let uid = result.data[0].id
-                Artnum.Query.exec(Artnum.Path.url(`Person/${uid}`)).then((result) => {
+                Artnum.Query.exec(Artnum.Path.url(`Person/${uid}`))
+                .then((result) => {
                   if (!result.success || result.length !== 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
+                  if (disconnect) { KLoginInstance.disconnect(userId) }
+
                   const entry = Array.isArray(result.data) ? result.data[0] : result.data
                   entry._connections = []
                   newEntry(entry)
