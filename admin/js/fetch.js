@@ -26,7 +26,6 @@ fetch = function (url, params = {}) {
     .then(response => {
         if (response.ok) { fetch.success++ }
         else { 
-          if (response.status === 401) { window.location.hash = ''; window.location.reload() }
           fetch.failed++
         }
         resolve(response)
