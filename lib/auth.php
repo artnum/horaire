@@ -104,12 +104,9 @@ class KAALAuth {
         $ip = $_SERVER['REMOTE_ADDR'];
         $host = empty($_SERVER['REMOTE_HOST']) ? $ip : $_SERVER['REMOTE_HOST'];
         try {
-            $stmt = $pdo->prepare(sprintf('UPDATE %s SET time = :time, remoteip = :remoteip, remotehost = :remotehost WHERE auth = :auth', $this->table));
+            $stmt = $pdo->prepare(sprintf('UPDATE %s SET time = :time WHERE auth = :auth', $this->table));
             $stmt->bindValue(':time', time(), PDO::PARAM_INT);
             $stmt->bindValue(':auth', $authvalue, PDO::PARAM_INT);
-            $stmt->bindValue(':remotehost', $host, PDO::PARAM_STR);
-            $stmt->bindValue(':remoteip', $ip, PDO::PARAM_STR);
-
             $done = $stmt->execute();
         } catch (Exception $e) {
             error_log(sprintf('kaal-auth <add-auth>, "%s"', $e->getMessage()));
