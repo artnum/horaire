@@ -21,7 +21,7 @@
             userUI.run()
 
             userUI.addEventListener('user-login', event => {
-                const timeUI = new TimeInteractUI(event.detail.userId)
+                const timeUI = new TimeInteractUI(event.detail.userId, event.detail.workday)
                 timeUI.run()
                 timeUI.addEventListener('user-logout', event => {
                     userUI.run()

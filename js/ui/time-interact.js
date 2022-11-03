@@ -1,4 +1,4 @@
-function TimeInteractUI (userId) {
+function TimeInteractUI (userId, workday = 'nyyyyyn') {
     this.eventTarget = new EventTarget()
 
     this.mustHave = {
@@ -22,21 +22,20 @@ function TimeInteractUI (userId) {
         remark: null,
     }
     this.userId = userId
-    const date =  new Date()
+    let date =  new Date()
     const dates = []
     this.strDates = []
     date.setHours(12, 0, 0, 0)
-    dates.push(date)
-    this.strDates.push(DataUtils.shortDate(date))
-    for (let day = KAAL.limits.lateDay - 1; day > 0; day--) {
-        const d = new Date()
-        d.setTime(dates[dates.length - 1].getTime())
-        do {
+    for (let day = KAAL.limits.lateDay; day > 0; day--) {
+        const d = new Date(date.getTime())
+        d.setTime(date.getTime())
+        while (workday.charAt(d.getDay()) === 'n') {
             d.setTime(d.getTime() - 86400000)
             d.setHours(12, 0, 0, 0)
-        } while (d.getDay() === 0 || d.getDay() === 6)
+        } 
         dates.push(d)
         this.strDates.push(DataUtils.shortDate(d))
+        date = new Date(d.getTime() - 86400000)
     }
     this.dates = dates
 

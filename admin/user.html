@@ -38,6 +38,16 @@
           <option value="16">Gestion de tout</option>
         </select></label><br />
       <label for="order">Ordre au planning : <input name="order" type="text" /><br>
+        Jour de travail :
+        <label><input type="checkbox" checked name="workday_1"> Lundi</label>
+        <label><input type="checkbox" checked name="workday_2"> Mardi</label>
+        <label><input type="checkbox" checked name="workday_3"> Mercredi</label>
+        <label><input type="checkbox" checked name="workday_4"> Jeudi</label>
+        <label><input type="checkbox" checked name="workday_5"> Vendredi</label>
+        <label><input type="checkbox" name="workday_6"> Samedi</label>
+        <label><input type="checkbox" name="workday_0"> Dimanche</label>
+        <br>
+
         <input type="submit" value="Ajouter" />
     </form>
     <h2>Utilisateurs existants</h2>
@@ -101,6 +111,15 @@
          <label for="password">Mot de passe : <input type="password" name="password" value=""></label><br><span class="notice" data-name="password-modified">Le mot de passe ne sera pas modifié</span><br>
          <label for="disabled"> Désactiver : <input type="checkbox" name="disabled" ${user.disabled === '0' ? '' : 'checked'} /></label><br>
          <label for="order">Ordre au planning : <input name="order" type="text" value="${user.order}"/><br>
+          Jour de travail : 
+          <label><input type="checkbox" checked name="workday_1"> Lundi</label>
+          <label><input type="checkbox" checked name="workday_2"> Mardi</label>
+          <label><input type="checkbox" checked name="workday_3"> Mercredi</label>
+          <label><input type="checkbox" checked name="workday_4"> Jeudi</label>
+          <label><input type="checkbox" checked name="workday_5"> Vendredi</label>
+          <label><input type="checkbox" name="workday_6"> Samedi</label>
+          <label><input type="checkbox" name="workday_0"> Dimanche</label>
+         <br>
          <button type="submit">Sauver</button><button type="reset">Annuler</button>
          </form>
        `, `Modifier utilisateur ${user.name}`, { closable: true })
@@ -136,7 +155,7 @@
               }
             }
             let mapping = { username: 'username', name: 'name', efficiency: 'efficiency', level: 'level', order: 'order' }
-            let body = { disabled: content.disabled ? '1' : '0' }
+            let body = { disabled: content.disabled ? '1' : '0', workday: 'nyyyyyn' }
             if (body.disabled === '1') { disconnect = true }
             for (let i in mapping) {
               if (content[i] && content[i] !== null) {
@@ -145,6 +164,15 @@
                 body[mapping[i]] = ''
               }
             }
+            let workday = ['n', 'y', 'y', 'y', 'y', 'y', 'n']
+            content.workday_0 ? workday[0] = 'y' : workday[0] = 'n'
+            content.workday_1 ? workday[1] = 'y' : workday[1] = 'n'
+            content.workday_2 ? workday[2] = 'y' : workday[2] = 'n'
+            content.workday_3 ? workday[3] = 'y' : workday[3] = 'n'
+            content.workday_4 ? workday[4] = 'y' : workday[4] = 'n'
+            content.workday_5 ? workday[5] = 'y' : workday[5] = 'n'
+            content.workday_6 ? workday[6] = 'y' : workday[6] = 'n'
+            body.workday = workday.join('')
             body.efficiency = parseFloat(body.efficiency)
             if (body.efficiency < 0.1 || body.efficiency > 2.0) {
               alert(`Une efficacité de ${body.efficiency} n'est pas acceptable, la valeur doit être entre 0.1 et 2.0`)
@@ -157,7 +185,7 @@
                 alert('Mot de passe trop court, veuillez entrer au moins 6 caractères')
                 return
               }
-              Object.assign(body, makeKey(content.password))        
+              Object.assign(body, makeKey(content.password))
               disconnect = true
             }
             if (content.user) { body.id = content.user }
@@ -165,21 +193,21 @@
               if (result.success) {
                 let uid = result.data[0].id
                 Artnum.Query.exec(Artnum.Path.url(`Person/${uid}`))
-                .then((result) => {
-                  if (!result.success || result.length !== 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
-                  if (disconnect) { KLoginInstance.disconnect(userId) }
+                  .then((result) => {
+                    if (!result.success || result.length !== 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
+                    if (disconnect) { KLoginInstance.disconnect(userId) }
 
-                  const entry = Array.isArray(result.data) ? result.data[0] : result.data
-                  entry._connections = []
-                  newEntry(entry)
-                  .then((html) => {
-                    replaceAddEntry(html)
-                    let p = event.target
-                    while (p && !p.classList.contains('popup')) { p = p.parentNode }
-                    p.dispatchEvent(new CustomEvent('close'))
-                    resolve()
+                    const entry = Array.isArray(result.data) ? result.data[0] : result.data
+                    entry._connections = []
+                    newEntry(entry)
+                      .then((html) => {
+                        replaceAddEntry(html)
+                        let p = event.target
+                        while (p && !p.classList.contains('popup')) { p = p.parentNode }
+                        p.dispatchEvent(new CustomEvent('close'))
+                        resolve()
+                      })
                   })
-                })
               }
             })
           })
@@ -290,9 +318,9 @@
     var forms = document.getElementsByTagName('FORM')
     forms[0].addEventListener('submit', async function (event) {
       event.preventDefault()
-      var user = { name: null, efficiency: 1.0, key: null, keyopt: null, password: null, admin: false, user: false, username: null, order: 0 }
+      var user = { name: null, efficiency: 1.0, key: null, keyopt: null, password: null, admin: false, user: false, username: null, order: 0, workday: 'nyyyyyn' }
 
-
+      let workday = ['n', 'y', 'y', 'y', 'y', 'y', 'n']
         ;['INPUT', 'SELECT'].forEach((ename) => {
           let inputs = event.target.getElementsByTagName(ename)
           for (var i = 0; i < inputs.length; i++) {
@@ -323,9 +351,17 @@
                 user.order = parseInt(inputs[i].value)
                 inputs[i].value = 0
                 break
+              case 'workday_0': inputs[i].checked ? workday[0] = 'y' : workday[0] = 'n'; break
+              case 'workday_1': inputs[i].checked ? workday[1] = 'y' : workday[1] = 'n'; break
+              case 'workday_2': inputs[i].checked ? workday[2] = 'y' : workday[2] = 'n'; break
+              case 'workday_3': inputs[i].checked ? workday[3] = 'y' : workday[3] = 'n'; break
+              case 'workday_4': inputs[i].checked ? workday[4] = 'y' : workday[4] = 'n'; break
+              case 'workday_5': inputs[i].checked ? workday[5] = 'y' : workday[5] = 'n'; break
+              case 'workday_6': inputs[i].checked ? workday[6] = 'y' : workday[6] = 'n'; break
             }
           }
         })
+      user.workday = workday.join('')
 
       var exists = await Artnum.Query.exec(Artnum.Path.url('Person', { params: { 'search.username': user.username } }))
       if (exists.success && exists.length > 0) {
@@ -334,7 +370,7 @@
       }
 
       if (user.key && user.name && user.keyopt && user.username && user.level) {
-        Artnum.Query.exec(Artnum.Path.url('Person'), { method: 'POST', body: { order: user.order, level: user.level, name: user.name, key: user.key, keyopt: user.keyopt, username: user.username } }).then(function (result) {
+        Artnum.Query.exec(Artnum.Path.url('Person'), { method: 'POST', body: { order: user.order, level: user.level, name: user.name, key: user.key, keyopt: user.keyopt, username: user.username, workday: user.workday } }).then(function (result) {
           if (!result.success && result.length !== 1) {
             alert('Erreur de création des utilisateur')
           } else {

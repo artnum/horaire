@@ -12,8 +12,10 @@ UserInteractUI.prototype.run = function () {
                 return klogin.getUser()
             })
             .then(userid => {
-                this.eventTarget.dispatchEvent(new CustomEvent('user-login', {detail: {userId: userid}}))
-
+                return KAPerson.load(userid)
+            })
+            .then(user => {
+                this.eventTarget.dispatchEvent(new CustomEvent('user-login', {detail: {userId: user.uid, workday: user.workday}}))
             })
             .catch(() => {
                 this.listActive()
@@ -84,7 +86,10 @@ UserInteractUI.prototype.doLogin = function (event) {
 
     klogin.login(form.dataset.userId, password)
     .then(token => {
-        this.eventTarget.dispatchEvent(new CustomEvent('user-login', {detail: {userId: form.dataset.userId}}))
+        return KAPerson.load(form.dataset.userId)
+    })
+    .then(user => {
+        this.eventTarget.dispatchEvent(new CustomEvent('user-login', {detail: {userId: user.uid, workday: user.workday}}))
         MsgInteractUI('info', 'Authentification réussie')
         window.requestAnimationFrame(() => {
             for (const userbox of userboxes) {
@@ -105,34 +110,6 @@ UserInteractUI.prototype.doLogin = function (event) {
             form.parentNode.parentNode.removeChild(form.parentNode)
         })
     })
-
-    /*
-    KAPerson.load(form.dataset.userId)
-    .then(person => {
-        const keyopt = person.get('keyopt').split(' ', 2)
-        const hashedPassword = sjcl.codec.base64.fromBits(sjcl.misc.pbkdf2(password, sjcl.codec.base64.toBits(keyopt[1]), parseInt(keyopt[0]))) //=== this.entry.key) {
-        if (hashedPassword === person.get('key')) {
-            MsgInteractUI('info', 'Authentification réussie')
-            this.eventTarget.dispatchEvent(new CustomEvent('user-login', {detail: {userId: person.uid}}))
-            window.requestAnimationFrame(() => {
-                for (const userbox of userboxes) {
-                    container.removeChild(userbox)
-                }
-            })
-        } else {
-            MsgInteractUI('error', 'Erreur d\'authentification')
-            window.requestAnimationFrame(() => {
-                for (const userbox of userboxes) {
-                    userbox.style.removeProperty('display')
-                }
-            })
-        }
-
-        window.requestAnimationFrame(() => {
-            form.parentNode.parentNode.removeChild(form.parentNode)
-        })
-    })
-    */
 }
 
 UserInteractUI.prototype.cancelLogin = function () {
