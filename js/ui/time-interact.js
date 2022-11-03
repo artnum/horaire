@@ -343,27 +343,35 @@ TimeInteractUI.prototype.loadProject = function () {
         .then(projects => {
             const container = document.querySelector('div.ka-main-bottom')
             for (const project of projects.data) {
-                const kaproject = KAProject.create(project)
-                const div = document.createElement('DIV')
-                div.classList.add('ka-project')
-                div.dataset.project = kaproject.id
-                div.dataset.reference = kaproject.reference.toLowerCase()
-                div.innerHTML = `<span class="reference">${kaproject.reference}</span><span class="name">${kaproject.name}</span>`
-                window.requestAnimationFrame(() => {
-                    container.appendChild(div)
-                })
-                div.addEventListener('click', event => {
-                    let node = event.target
-                    while (node && !node.dataset.project) {
-                        if (node.classList.contains('ka-project-detail') || node.classList.contains('ka-previous-time')) { return } // we click on detail, so we don't handle event there
-                        node = node.parentNode 
-                    }
-                    this.selectProject(node.dataset.project)
-                })
+              this.createProjectNode(project, container)
             }
             resolve()
         })
     })
+}
+
+TimeInteractUI.prototype.createProjectNode = function (project, container) {
+    const kaproject = KAProject.create(project)
+    const div = document.createElement('DIV')
+    div.classList.add('ka-project')
+    div.dataset.project = kaproject.id
+    div.dataset.reference = kaproject.reference.toLowerCase()
+    div.innerHTML = `<span class="reference">${kaproject.reference}</span><span class="name">${kaproject.name}</span>`
+    window.requestAnimationFrame(() => {
+        container.appendChild(div)
+    })
+    div.addEventListener('click', event => {
+        let node = event.target
+        while (node && !node.dataset.project) {
+            if (node.classList.contains('ka-project-detail') || node.classList.contains('ka-previous-time')) { return } // we click on detail, so we don't handle event there
+            node = node.parentNode 
+        }
+        if (node.dataset.project === this.hasSet.project) {
+            return this.closeProject(node)
+        }
+        this.selectProject(node.dataset.project)
+    })
+    return div
 }
 
 TimeInteractUI.prototype.showUser = function () {
@@ -418,28 +426,33 @@ TimeInteractUI.prototype.showHeader = function () {
 
         const searchDiv = document.createElement('DIV')
         searchDiv.classList.add('ka-search')
-        searchDiv.innerHTML = `<input type="text" placeholder="Chercher une référence">`
+        searchDiv.innerHTML = `<input type="text" placeholder="Chercher une référence ou nom de projet">`
 
         searchDiv.firstElementChild.addEventListener('keyup', event => {
-            if (event.target.value === '') {
+            const search = event.target.value.split(' ')
+            kafetch(KAAL.url('Project/_query'), {method: 'POST', body: JSON.stringify({
+                '#and': {
+                    deleted: '-',
+                    '#or': {
+                        reference: `*${search[0]}*`,
+                        name: `*${search.join('*')}*`
+                    }
+                }
+            })})
+            .then(projects => {
                 const nodes = container.querySelectorAll('.ka-project')
-
                 for (const node of nodes) {
-                    node.style.removeProperty('display' )   
-                }
-                return
-            } 
-            const search = event.target.value.toLowerCase()
-            const nodes = container.querySelectorAll('.ka-project')
-
-            for (const node of nodes) {
-                const label = node.querySelector('span.name')
-                if (!node.dataset.reference.startsWith(search) && label.textContent.toLowerCase().includes(search) === false) {
                     node.style.setProperty('display', 'none')
-                } else {
-                    node.style.removeProperty('display' )   
                 }
-            }
+                for (const project of projects.data) {
+                    const node = document.querySelector(`[data-project="${project.id}"]`)
+                    if (!node) {
+                        this.createProjectNode(project, container)
+                    } else {
+                        node.style.removeProperty('display' )   
+                    }
+                }
+            })
         })
         window.requestAnimationFrame(() => {
             container.appendChild(searchDiv)
@@ -636,23 +649,31 @@ TimeInteractUI.prototype.openProject = function (project) {
 TimeInteractUI.prototype.selectProject = function (projectId) {
     return new Promise (resolve => {
         const container = document.querySelector('div.ka-main-bottom')
-        new Promise(resolve => {
+        new Promise((resolve, reject) => {
             if (this.hasSet.project) {
-                const prevProject = this.hasSet.project
                 const closeProject = container.querySelector(`div.ka-project[data-project="${this.hasSet.project}"`)
                 this.closeProject(closeProject)
                 .then(() => {
-
                     return resolve()
                 })
             } else {
                 return resolve()
             }
         })
-        .then(() => {
+        .then (() => {
             const openProject = container.querySelector(`div.ka-project[data-project="${projectId}"]`)
+            if (openProject) { return Promise.resolve(openProject) }
+            return new Promise(resolve => {
+                kafetch(KAAL.url(`Project/${projectId}`))
+                .then(project => {
+                    resolve(this.createProjectNode(project.data[0], container))
+                })
+            })
+        })
+        .then(openProject => {
             this.openProject(openProject)
             .then(() => {
+                this.hasSet.project = projectId
                 return this.showRecentTime()
 
             })
@@ -660,7 +681,9 @@ TimeInteractUI.prototype.selectProject = function (projectId) {
                 resolve()
             })
         })
-
+        .catch(_ => {
+            // nothing
+        })
     })
 }
 
@@ -1123,7 +1146,7 @@ TimeInteractUI.prototype.addTime = function (event) {
         }
     }
 
-    if (this.day === null) { this.alert('Le jour est manquant'); return }
+    if (this.day === null || this.day === undefined) { this.alert('Le jour est manquant'); return }
     const formData = new FormData(event.target)
     const time = DataUtils.strToDuration(formData.get('time'))
     if (time <= 0) {
