@@ -102,24 +102,24 @@
          <label for="name">Nom : <input type="text" name="name" value="${user.name}" /></label><br>
          <label for="efficiency">Efficacité : <input name="efficiency" type="text" value="${user.efficiency}"></label> (min: 0.1, max: 2.0)<br>
          <label for="level">Niveau d'accèss : <select name="level">
-            <option value="256">Ajout temps</option>
-            <option value="128">Gestion projet</option>
-            <option value="64">Gestion projet et processus </option>
-            <option value="32">Gestion temps, projet et processus</option>
-            <option value="16">Gestion de tout</option>
+            <option value="256" ${parseInt(user.level) === 256 ? 'selected' : ''}>Ajout temps</option>
+            <option value="128" ${parseInt(user.level) === 128 ? 'selected' : ''}>Gestion projet</option>
+            <option value="64" ${parseInt(user.level) === 64 ? 'selected' : ''}>Gestion projet et processus </option>
+            <option value="32" ${parseInt(user.level) === 32 ? 'selected' : ''}>Gestion temps, projet et processus</option>
+            <option value="16" ${parseInt(user.level) === 16 ? 'selected' : ''}>Gestion de tout</option>
          </select></label><br/>
          <label for="password">Mot de passe : <input type="password" name="password" value=""></label><br><span class="notice" data-name="password-modified">Le mot de passe ne sera pas modifié</span><br>
          <label for="disabled"> Désactiver : <input type="checkbox" name="disabled" ${user.disabled === '0' ? '' : 'checked'} /></label><br>
          <label for="order">Ordre au planning : <input name="order" type="text" value="${user.order}"/><br>
-          Jour de travail : 
-          <label><input type="checkbox" checked name="workday_1"> Lundi</label>
-          <label><input type="checkbox" checked name="workday_2"> Mardi</label>
-          <label><input type="checkbox" checked name="workday_3"> Mercredi</label>
-          <label><input type="checkbox" checked name="workday_4"> Jeudi</label>
-          <label><input type="checkbox" checked name="workday_5"> Vendredi</label>
-          <label><input type="checkbox" name="workday_6"> Samedi</label>
-          <label><input type="checkbox" name="workday_0"> Dimanche</label>
-         <br>
+          Jour de travail : <br>
+          <label><input type="checkbox" ${user.workday.charAt(1) === 'y' ? 'checked' : ''} name="workday_1"> Lundi</label>
+          <label><input type="checkbox" ${user.workday.charAt(2) === 'y' ? 'checked' : ''} name="workday_2"> Mardi</label>
+          <label><input type="checkbox" ${user.workday.charAt(3) === 'y' ? 'checked' : ''} name="workday_3"> Mercredi</label><br>
+          <label><input type="checkbox" ${user.workday.charAt(4) === 'y' ? 'checked' : ''} name="workday_4"> Jeudi</label>
+          <label><input type="checkbox" ${user.workday.charAt(5) === 'y' ? 'checked' : ''} name="workday_5"> Vendredi</label>
+          <label><input type="checkbox" ${user.workday.charAt(6) === 'y' ? 'checked' : ''} name="workday_6"> Samedi</label><br>
+          <label><input type="checkbox" ${user.workday.charAt(0) === 'y' ? 'checked' : ''} name="workday_0"> Dimanche</label>
+         <br><br>
          <button type="submit">Sauver</button><button type="reset">Annuler</button>
          </form>
        `, `Modifier utilisateur ${user.name}`, { closable: true })
