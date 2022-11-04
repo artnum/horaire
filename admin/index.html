@@ -151,44 +151,67 @@
   }
 
   window.addEventListener('load', (event) => {
-    let base = window.location.pathname.split('/')
-    while (!base[0]) { base.shift() }
+    function checkBuildNumberAndReload() {
+        return new Promise(resolve => {
+            const currentBuild = localStorage.getItem('kaal-build-number')
+            fetch(new URL(`../build_number`, window.location))
+                .then(response => {
+                    if (!response.ok) { throw new Error() }
+                    return response.text()
+                })
+                .then(buildNumber => {
+                    localStorage.setItem('kaal-build-number', buildNumber)
+                    if (parseInt(currentBuild) !== parseInt(buildNumber)) {
+                        throw new Error()
+                    }
+                    resolve()
+                })
+                .catch(_ => {
+                    window.location.reload(true)
+                    resolve()
+                })
+        })
+    }
+    checkBuildNumberAndReload()
+    .then(() => {
+      let base = window.location.pathname.split('/')
+      while (!base[0]) { base.shift() }
 
-    let url = new URL(`${window.location.origin}/${base.shift()}/`)
-    const klogin = new KLogin(url)
-    klogin.getToken()
-      .then(token => {
-        if (token) {
-          klogin.check(token)
-            .then(() => {
-              return klogin.getUser()
-            })
-            .then(userid => {
-              return KAPerson.load(userid)
-            })
-            .then(user => {
-              window.logged = true
-              window.level = parseInt(user.level)
-              let main = document.getElementsByTagName('main')[0]
-              main.innerHTML = ''
-              if (location.search) {
-                window.location = location.search.substring(1)
-                return
-              }
-              open(main)
-            })
-            .catch(() => {
-              let main = document.getElementsByTagName('main')[0]
-              main.innerHTML = ''
-              login(main)
-            })
-        } else {
-          let main = document.getElementsByTagName('main')[0]
-          main.innerHTML = ''
-          login(main)
-        }
+      let url = new URL(`${window.location.origin}/${base.shift()}/`)
+      const klogin = new KLogin(url)
+      klogin.getToken()
+        .then(token => {
+          if (token) {
+            klogin.check(token)
+              .then(() => {
+                return klogin.getUser()
+              })
+              .then(userid => {
+                return KAPerson.load(userid)
+              })
+              .then(user => {
+                window.logged = true
+                window.level = parseInt(user.level)
+                let main = document.getElementsByTagName('main')[0]
+                main.innerHTML = ''
+                if (location.search) {
+                  window.location = location.search.substring(1)
+                  return
+                }
+                open(main)
+              })
+              .catch(() => {
+                let main = document.getElementsByTagName('main')[0]
+                main.innerHTML = ''
+                login(main)
+              })
+          } else {
+            let main = document.getElementsByTagName('main')[0]
+            main.innerHTML = ''
+            login(main)
+          }
+        })
       })
-
   })
 </script>
 </html>

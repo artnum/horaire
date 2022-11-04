@@ -20,14 +20,14 @@
 <script>
     function checkBuildNumberAndReload() {
         return new Promise(resolve => {
-            const currentBuild = localStorage.getItem('kairos-build-number')
+            const currentBuild = localStorage.getItem('kaal-build-number')
             fetch(new URL(`build_number`, window.location))
                 .then(response => {
                     if (!response.ok) { throw new Error() }
                     return response.text()
                 })
                 .then(buildNumber => {
-                    localStorage.setItem('kairos-build-number', buildNumber)
+                    localStorage.setItem('kaal-build-number', buildNumber)
                     if (parseInt(currentBuild) !== parseInt(buildNumber)) {
                         throw new Error()
                     }
