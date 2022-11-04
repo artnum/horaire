@@ -1,22 +1,48 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script src="node_modules/sjcl/sjcl.js"></script>
-        <script src="conf/kaal.js"></script>
-        <script src="js/index.js"></script>
-        <link href="css/kaproject.css" rel="stylesheet" />
-    </head>
-    <body>
-        <div class="ka-container">
-            <div class="ka-head"></div>
-            <div class="ka-main-top"></div>
-            <div class="ka-main-bottom"></div>
-            <div class="ka-foot"></div>
-        </div>
-    </body>
-    <script>
-        window.onload = () => {
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="node_modules/sjcl/sjcl.js"></script>
+    <script src="conf/kaal.js"></script>
+    <script src="js/index.js"></script>
+    <link href="css/kaproject.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div class="ka-container">
+        <div class="ka-head"></div>
+        <div class="ka-main-top"></div>
+        <div class="ka-main-bottom"></div>
+        <div class="ka-foot"></div>
+    </div>
+</body>
+<script>
+    function checkBuildNumberAndReload() {
+        return new Promise(resolve => {
+            const currentBuild = localStorage.getItem('kairos-build-number')
+            fetch(new URL(`build_number`, window.location))
+                .then(response => {
+                    if (!response.ok) { throw new Error() }
+                    return response.text()
+                })
+                .then(buildNumber => {
+                    localStorage.setItem('kairos-build-number', buildNumber)
+                    if (parseInt(currentBuild) !== parseInt(buildNumber)) {
+                        throw new Error()
+                    }
+                    resolve()
+                })
+                .catch(_ => {
+                    window.location.reload(true)
+                    resolve()
+                })
+        })
+    }
+
+    window.onload = () => {
+        checkBuildNumberAndReload()
+        .then(() => {
             const userUI = new UserInteractUI()
             userUI.run()
 
@@ -27,6 +53,8 @@
                     userUI.run()
                 })
             })
-        }
-    </script>
+        })
+    }
+</script>
+
 </html>
