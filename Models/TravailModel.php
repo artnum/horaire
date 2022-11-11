@@ -55,7 +55,7 @@ class TravailModel extends artnum\SQL {
     return array(NULL, 0);    
   }
 
-  function _write($data, $id = NULL) {
+  function _write($data, &$id = NULL) {
     global $MSGSrv;
     $result = parent::_write($data, $id);
     if ($result['count'] > 0) {
@@ -82,5 +82,21 @@ class TravailModel extends artnum\SQL {
     }
     return $result;
   }
+
+  function get_owner($data, $id = null) {
+    if ($id === null) { return -1; }
+    try {
+      $db = $this->get_db(true);
+      $stmt = $db->prepare('SELECT project_manager FROM project WHERE project_id = (SELECT travail_project FROM travail WHERE travail_id = :id)');
+      $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+      $stmt->execute();
+      $row = $stmt->fetch(PDO::FETCH_NUM);
+      if (!$row) { throw new Exception('null'); }
+      return $row[0];
+    } catch(Exception $e) {
+      return -1;
+    }
+  }
+
 }
 ?>

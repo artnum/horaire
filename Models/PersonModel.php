@@ -3,6 +3,7 @@ class PersonModel extends artnum\SQL {
   function __construct($db, $config) {
     $this->kconf = $config;
     parent::__construct($db, 'person', 'person_id', []);
+    $this->conf('owner', 'person_id');
     $this->conf('auto-increment', true);
     $this->conf('create', 'person_created');
     $this->conf('create.ts', true);

@@ -5,6 +5,7 @@ class ProjectModel extends artnum\SQL {
   function __construct($db, $config) {
     $this->kconf = $config;
     parent::__construct($db, 'project', 'project_id', []);
+    $this->conf('owner', 'project_manager');
     $this->conf('auto-increment', true);
     $this->conf('datetime', array('project_closed', 'project_opened', 'project_targetEnd'));
     $this->conf('create', 'project_created');
@@ -16,7 +17,7 @@ class ProjectModel extends artnum\SQL {
     $this->conf('hook-path', 'exec/hooks');
     $this->conf('ignored', array('year'));
   }
-  function _write($arg, $id = NULL) {    
+  function _write($arg, &$id = NULL) {    
     $hook_succeed = false;
     if (!$this->conf('hook-path') || $id !== NULL) {
       $hook_succeed = true;

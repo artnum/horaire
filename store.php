@@ -6,6 +6,8 @@ require('conf/wesrv.php');
 require('wesrv/lib/msg.php');
 require('lib/auth.php');
 
+use artnum\JStore\ACL;
+
 $MSGSrv = new \wesrv\msg(WESRV_IP, WESRV_PORT, WESRV_KEY);
 $ini_conf = load_ini_configuration();
 $KConf = new KConf($ini_conf);
@@ -59,6 +61,8 @@ if (!empty($_SERVER['HTTP_X_CLIENT_ID'])) {
   $KConf->setVar('clientid', '');
 }
 
+/* Authorization */
+$kauth = new KAALAuth($pdo);
 if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
   if (!($http_request->getCollection() === 'Person' && $http_request->getItem() === '_query')) {
     http_response_code(401);
@@ -73,7 +77,6 @@ if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
     }
   }
 
-  $kauth = new KAALAuth($pdo);
   if (!$kauth->check_auth(trim($authContent[1]))) {
     if (!($http_request->getCollection() === 'Person' && $http_request->getItem() === '_query')) {
       http_response_code(401);
@@ -82,5 +85,18 @@ if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
   }
 }
 
-$store->run($KConf);
+/* Access */
+$acl = new ACL([]);
+
+$acl->addRule('*', -1, ACL::LEVEL_ANY, true);
+
+$store->init($KConf);
+
+if ($acl->check($store->getCollection(), $kauth->get_current_userid(), $store->getOperation(), $store->getOwner())) {
+  $store->setAcl($acl);
+  $store->run($KConf);
+  exit(0);
+}
+
+http_response_code(403);
 ?>

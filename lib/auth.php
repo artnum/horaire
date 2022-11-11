@@ -7,6 +7,11 @@ class KAALAuth {
         $this->pdo = $pdo;
         $this->table = $table;
         $this->timeout = 86400; // 24h
+        $this->current_userid = -1;
+    }
+
+    function get_current_userid() {
+        return $this->current_userid;
     }
 
     function generate_auth ($userid, $hpw) {
@@ -88,6 +93,7 @@ class KAALAuth {
                     $del->execute();
                 } else {
                     $matching = true;
+                    $this->current_userid = $row['userid'];
                     break;
                 }
             }
