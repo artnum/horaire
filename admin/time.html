@@ -510,14 +510,14 @@ function addTime (event) {
   document.querySelector('input[name="day4"]').checked = true
   document.querySelector('input[name="day5"]').checked = true
   if (hour.value !== 0) {
-
+    const useRepetition = form.upTo !== null
     let upTo = new Date(form.day)
     if (form.upTo !== null) {
       upTo = new Date(form.upTo)
     }
 
     for (let day = new Date(form.day); day.toISOString().split('T')[0] <= upTo.toISOString().split('T')[0]; day.setTime(day.getTime() + 86400000)) {
-      if (form[`day${day.getDay()}`] === false) { continue; }
+      if (useRepetition && form[`day${day.getDay()}`] === false) { continue; }
       Artnum.Query.exec(Artnum.Path.url(dataSource), {method: 'POST',
         body: {day: day.toISOString().split('T')[0], value: hour.value, person: form.person, project: form.project, process: form.process, comment: form.comment}}).then(function (result) {
         if (result.success && result.length === 1) {
