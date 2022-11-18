@@ -36,6 +36,7 @@ if (!empty($_GET['auth'])) {
   $KAIROSClient->setAuth($_GET['auth']);
 }
 
+
 if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
   $st = $pdo->prepare('SELECT * FROM "project" WHERE "project_id" = :id');
   if (!$st) {
@@ -101,6 +102,26 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
         $colorType = $status['data'][0]['color'];
       } 
     }
+    $reservations = $KAIROSClient->post(['affaire' => $_GET['travail'], 'deleted' => '--'], 'Reservation/_query');
+    $begin = null;
+    $end = null;
+    foreach ($reservations['data'] as $r) {
+      if (!$r) { continue; }
+      if (!isset($r['begin']) || !isset($r['end'])) { continue; }
+      if ($r['status'] === $data['travail_status']) {
+        if ($begin === null || $end === null) {
+          $begin = new DateTime($r['begin']);
+          $end = new DateTime($r['end']);
+          continue;
+        }
+        if ($begin->getTimestamp() > (new DateTime($r['begin']))->getTimestamp()) {
+          $begin = new DateTime($r['begin']);
+        }
+        if ($end->getTimestamp() < (new DateTime($r['end']))->getTimestamp()) {
+          $end = new DateTime($r['end']);
+        }
+      }
+    }
   
     $DATE;
     if (isset($data['travail_id'])) {
@@ -121,7 +142,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->set('color-type', $colorType);
     $PDF->set('work-type', $process);
     $PDF->AddPage('P', 'a4');
-    $PDF->SetFont('helvetica', '', 12);   
+    $PDF->SetFont('helvetica', '', 12);
   
     $PDF->block('head');
     $PDF->SetFontSize(3.2);
@@ -234,16 +255,20 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       'EEEE, dd MMMM y'
     );
     
-    if (empty($data['travail_begin']) || is_null($data['travail_begin'])) {
-      $data['travail_begin'] = new DateTime();
-    } else {
-      $data['travail_begin'] = new DateTime($data['travail_begin']);
+    if ($begin === null) {
+      if (empty($data['travail_begin']) || is_null($data['travail_begin'])) {
+        $begin = new DateTime();
+      } else {
+        $begin = new DateTime($data['travail_begin']);
+      }
     }
 
-    if (empty($data['travail_end']) || is_null($data['travail_end'])) {
-      $data['travail_end'] =  $data['travail_begin'];
-    } else {
-      $data['travail_end'] = new DateTime($data['travail_end']);
+    if ($end) {
+      if (empty($data['travail_end']) || is_null($data['travail_end'])) {
+        $end =  $begin;
+      } else {
+        $end = new DateTime($data['travail_end']);
+      }
     }
 
     $PDF->block('description');
@@ -253,10 +278,10 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->tab(3);
     $PDF->printLn('Début : ', ['break' => false]);
     $PDF->SetFont('helvetica', 'B', 10);
-    $PDF->printLn(trim($dateFormater->format($data['travail_begin'])), ['break' => false]);
+    $PDF->printLn(trim($dateFormater->format($begin)), ['break' => false]);
 
     $PDF->tab(4);
-    $PDF->printTaggedLn(['Fin : ', '%h',  trim($dateFormater->format($data['travail_end'])), '%b'], ['align' => 'right']);
+    $PDF->printTaggedLn(['Fin : ', '%h',  trim($dateFormater->format($end)), '%b'], ['align' => 'right']);
     
 
     $PDF->hr();
