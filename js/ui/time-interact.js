@@ -22,22 +22,6 @@ function TimeInteractUI (userId, workday = 'nyyyyyn') {
         remark: null,
     }
     this.userId = userId
-    let date =  new Date()
-    const dates = []
-    this.strDates = []
-    date.setHours(12, 0, 0, 0)
-    for (let day = KAAL.limits.lateDay; day > 0; day--) {
-        const d = new Date(date.getTime())
-        d.setTime(date.getTime())
-        while (workday.charAt(d.getDay()) === 'n') {
-            d.setTime(d.getTime() - 86400000)
-            d.setHours(12, 0, 0, 0)
-        } 
-        dates.push(d)
-        this.strDates.push(DataUtils.shortDate(d))
-        date = new Date(d.getTime() - 86400000)
-    }
-    this.dates = dates
 
     if (window.location.hash) {
         this.loadProject()
@@ -149,6 +133,9 @@ TimeInteractUI.prototype.run = function () {
     })
     this.showUser()
     .then(() => {
+        return this.loadDates()
+    })
+    .then(() => {
         return this.showDates()
     })
     .then(() => {
@@ -175,8 +162,8 @@ TimeInteractUI.prototype.loadFromPlanning = function (date) {
                     target: this.userId,
                     deleted: '--',
                     '#and': {
-                        dbegin: ['>=', date.toISOString().split('T')[0], 'str'],
-                        dend: ['<=', date.toISOString().split('T')[0], 'str']
+                        dbegin: ['<=', date.toISOString().split('T')[0], 'str'],
+                        dend: ['>=', date.toISOString().split('T')[0], 'str']
                     }
                 }
             })
@@ -306,6 +293,54 @@ TimeInteractUI.prototype.joinProjectToTravail = function (travaux) {
             }
             return resolve(travaux)
         })
+    })
+}
+
+TimeInteractUI.prototype.loadDates = async function () {
+    return new Promise(async resolve => {
+        let date = new Date()
+        date.setHours(12, 0, 0, 0)
+        this.dates = []
+        this.strDates = []
+        date.setHours(12, 0, 0, 0)
+        for (let day = KAAL.limits.lateDay; day > 0; day--) {
+            const d = new Date(date.getTime())
+            d.setTime(date.getTime())
+            if (d.getDay() === 0 || d.getDay() === 6) {
+                const count = await new Promise(resolve => {
+                    kafetch(`${KAAL.kairos.url}/store/Reservation/_query`, {
+                        method:'POST', 
+                        body: JSON.stringify({
+                            '#and': {
+                                target: this.userId,
+                                deleted: '--',
+                                '#and': {
+                                    dbegin: ['<=', d.toISOString().split('T')[0], 'str'],
+                                    dend: ['>=', d.toISOString().split('T')[0], 'str']
+                                }
+                            }
+                        })            
+                    })
+                    .then(result => {
+                        resolve(result.length)
+                    })
+                    .catch(_ => {
+                        resolve(0)
+                    })
+                })
+                if (count > 0) {
+                    this.dates.push(d)
+                    this.strDates.push(DataUtils.shortDate(d)) 
+                } else {
+                    day++
+                }
+            } else {
+                this.dates.push(d)
+                this.strDates.push(DataUtils.shortDate(d))
+            }
+            date = new Date(d.getTime() - 86400000)
+        }
+        return resolve()
     })
 }
 
