@@ -263,7 +263,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       }
     }
 
-    if ($end) {
+    if ($end === null) {
       if (empty($data['travail_end']) || is_null($data['travail_end'])) {
         $end =  $begin;
       } else {
