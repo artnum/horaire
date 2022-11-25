@@ -7,6 +7,7 @@ require('wesrv/lib/msg.php');
 require('lib/auth.php');
 
 use artnum\JStore\ACL;
+use artnum\JStore\Audit;
 
 $MSGSrv = new \wesrv\msg(WESRV_IP, WESRV_PORT, WESRV_KEY);
 $ini_conf = load_ini_configuration();
@@ -94,7 +95,11 @@ $store->init($KConf);
 
 if ($acl->check($store->getCollection(), $kauth->get_current_userid(), $store->getOperation(), $store->getOwner())) {
   $store->setAcl($acl);
-  $store->run($KConf);
+  [$request, $response] = $store->run($KConf);
+  
+  $audit = new Audit();
+  $audit->audit($request, $response, $kauth->get_current_userid());
+
   exit(0);
 }
 
