@@ -7,7 +7,7 @@ require('wesrv/lib/msg.php');
 require('lib/auth.php');
 
 use artnum\JStore\ACL;
-use artnum\JStore\Audit;
+use artnum\JStore\SQLAudit;
 
 $MSGSrv = new \wesrv\msg(WESRV_IP, WESRV_PORT, WESRV_KEY);
 $ini_conf = load_ini_configuration();
@@ -16,6 +16,7 @@ $KConf = new KConf($ini_conf);
 $http_request = new artnum\HTTP\JsonRequest();
 $store = new artnum\JStore\Generic($http_request, true);
 $pdo = init_pdo($ini_conf);
+$logpdo = init_pdo($ini_conf, 'logdb');
 if (is_null($pdo)) {
   throw new Exception('Storage database not reachable');
   exit(0);
@@ -97,7 +98,7 @@ if ($acl->check($store->getCollection(), $kauth->get_current_userid(), $store->g
   $store->setAcl($acl);
   [$request, $response] = $store->run($KConf);
   
-  $audit = new Audit();
+  $audit = new SQLAudit($logpdo, true);
   $audit->audit($request, $response, $kauth->get_current_userid());
 
   exit(0);
