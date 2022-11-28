@@ -36,7 +36,6 @@ if (!empty($_GET['auth'])) {
   $KAIROSClient->setAuth($_GET['auth']);
 }
 
-
 if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
   $st = $pdo->prepare('SELECT * FROM "project" WHERE "project_id" = :id');
   if (!$st) {
@@ -97,7 +96,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $colorType = '#FFFFFF';
     if ($data['travail_status']) {
       $status = $KAIROSClient->get($data['travail_status'], 'Status');
-      if ($status['length'] === 1) {
+      if ($status && $status['length'] === 1) {
         $process = $status['data'][0]['name'];
         $colorType = $status['data'][0]['color'];
       } 
@@ -105,24 +104,26 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $reservations = $KAIROSClient->post(['affaire' => $_GET['travail'], 'deleted' => '--'], 'Reservation/_query');
     $begin = null;
     $end = null;
-    foreach ($reservations['data'] as $r) {
-      if (!$r) { continue; }
-      if (!isset($r['begin']) || !isset($r['end'])) { continue; }
-      if ($r['status'] === $data['travail_status']) {
-        if ($begin === null || $end === null) {
-          $begin = new DateTime($r['begin']);
-          $end = new DateTime($r['end']);
-          continue;
-        }
-        if ($begin->getTimestamp() > (new DateTime($r['begin']))->getTimestamp()) {
-          $begin = new DateTime($r['begin']);
-        }
-        if ($end->getTimestamp() < (new DateTime($r['end']))->getTimestamp()) {
-          $end = new DateTime($r['end']);
+    if ($reservations) {
+      foreach ($reservations['data'] as $r) {
+        if (!$r) { continue; }
+        if (!isset($r['begin']) || !isset($r['end'])) { continue; }
+        if ($r['status'] === $data['travail_status']) {
+          if ($begin === null || $end === null) {
+            $begin = new DateTime($r['begin']);
+            $end = new DateTime($r['end']);
+            continue;
+          }
+          if ($begin->getTimestamp() > (new DateTime($r['begin']))->getTimestamp()) {
+            $begin = new DateTime($r['begin']);
+          }
+          if ($end->getTimestamp() < (new DateTime($r['end']))->getTimestamp()) {
+            $end = new DateTime($r['end']);
+          }
         }
       }
     }
-  
+
     $DATE;
     if (isset($data['travail_id'])) {
       $date = new DateTime();
