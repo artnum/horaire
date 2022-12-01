@@ -1,44 +1,57 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <link rel="stylesheet" type="text/css" href="css/admin.css" />
   <link rel="stylesheet" type="text/css" href="css/dtable.css" />
   <title>Horaire</title>
   <link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
 </head>
+
 <body>
   <main id="project">
-  <h1>Projets</h1>
-  <h2>Nouveau projet</h2>
-  <form>
-    <fieldset name="general" id="general" class="half">
-      <legend>Général</legend>
-      <label for="reference">Numéro de chantier : </label><input name="reference" type="text" id="reference" /><br />
-      <br /><label for="year">Année : </label><input id="inYear" name="year" type="text" /><br>
-      <label for="name">Nom : </label><input name="name" type="text" /><br>
-      <label for="price">Prix de vente HT : </label><input name="price" type="text" /><br>
-      <label for="manager">Chef projet : </label><input name="manager" type="text" id="manager" /><br>
-      <label for="uncount">Heures non-comptabilisées : </label><input name="uncount" type="checkbox" /><br>
-    </fieldset>
-    <fieldset name="client" id="client" class="half">
-      <legend>Client</legend>
-    </fieldset>
-    <input type="submit" value="Ajouter"/><button type="submit" id="rDef"></button><button type="submit" id="rYear"></button><br>
-  </form>
-  <h2>Projets existants</h2>
-  <input type="radio" onchange="changeState(event)" checked="checked" id="stateOpen" name="state"><label for="stateOpen">Ouvert</label>
-  <input type="radio" onchange="changeState(event)" id="stateClosed" name="state"><label for="stateClosed">Fermé</label>
-  <input type="radio" onchange="changeState(event)" id="stateAny" name="state"><label for="stateAny">Tous</label>
-  <input type="button" onclick="exportAll()" value="Tout exporter"></input>
-  <table id="projects" data-source="Project">
-    <thead class="darkbg"><tr><th data-sort-type="string">Référence</th><th>Nom</th><th>Responsable</th></th><th data-sort-type="no">Action</th></tr></thead>
-    <tbody>
-    </tbody>
-  </table>
+    <h1>Projets</h1>
+    <h2>Nouveau projet</h2>
+    <form>
+      <fieldset name="general" id="general" class="half">
+        <legend>Général</legend>
+        <label for="reference">Numéro de chantier : </label><input name="reference" type="text" id="reference" /><br />
+        <br /><label for="year">Année : </label><input id="inYear" name="year" type="text" /><br>
+        <label for="name">Nom : </label><input name="name" type="text" /><br>
+        <label for="price">Prix de vente HT : </label><input name="price" type="text" /><br>
+        <label for="manager">Chef projet : </label><input name="manager" type="text" id="manager" /><br>
+        <label for="uncount">Heures non-comptabilisées : </label><input name="uncount" type="checkbox" /><br>
+      </fieldset>
+      <fieldset name="client" id="client" class="half">
+        <legend>Client</legend>
+      </fieldset>
+      <input type="submit" value="Ajouter" /><button type="submit" id="rDef"></button><button type="submit"
+        id="rYear"></button><br>
+    </form>
+    <h2>Projets existants</h2>
+    <input type="radio" onchange="changeState(event)" checked="checked" id="stateOpen" name="state"><label
+      for="stateOpen">Ouvert</label>
+    <input type="radio" onchange="changeState(event)" id="stateClosed" name="state"><label
+      for="stateClosed">Fermé</label>
+    <input type="radio" onchange="changeState(event)" id="stateAny" name="state"><label for="stateAny">Tous</label>
+    <input type="button" onclick="exportAll()" value="Tout exporter"></input>
+    <table id="projects" data-source="Project">
+      <thead class="darkbg">
+        <tr>
+          <th data-sort-type="string">Référence</th>
+          <th>Nom</th>
+          <th>Responsable</th>
+          </th>
+          <th data-sort-type="no">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
   </main>
 </body>
 <script>
-  window.KCORE =  { NoPopper: true }
+  window.KCORE = { NoPopper: true }
 </script>
 <script src="../conf/kaal.js"></script>
 <script src="js/lib/login.js"></script>
@@ -63,116 +76,121 @@
   const address = new Address(document.getElementById('client'))
 </script>
 <script>
- window.Conf = { workweek: 5, weekhours: 42 }
- window.Conf.workday = window.Conf.weekhours / window.Conf.workweek
+  window.Conf = { workweek: 5, weekhours: 42 }
+  window.Conf.workday = window.Conf.weekhours / window.Conf.workweek
 
- const APPConf = Conf
- var searchParams = {'search.closed': '-', 'search.deleted': '-', 'sort.reference': 'asc'}
- const RYName = `R${String(new Date().getFullYear()).substring(2)}`
- var References = { 'default': 1, RYName: 1 }
- var MyPopper = null
-
-
-function genRef (event) {
-   let r = document.getElementById('reference');
-   if (event.target) {
-     if (event.target.id === 'rDef') {
-       r.value = References.default
-     } else {
-       r.value = `${RYName}-${String(References.RYName).padStart(3, '0')}`
-     }
-   }
-}
- 
-function exportAll () {
-   if (!searchParams['search.closed']) {   
-     window.open(Artnum.Path.url('admin/exec/export/proj.php', {params: {state: 'alive'}}))
-   } else {
-     if (searchParams['search.closed'] === '-') {
-       window.open(Artnum.Path.url('admin/exec/export/proj.php', {params: {state: 'open'}}))
-     } else {
-       window.open(Artnum.Path.url('admin/exec/export/proj.php', {params: {state: 'closed'}}))
-     }
-   }
-}
- 
-function changeState (event) {
-  switch(event.target.id) {
-    case 'stateOpen': 
-      searchParams['search.closed'] = '-'
-      break;
-    case 'stateClosed':
-      searchParams['search.closed'] = '*'
-      break;
-    case 'stateAny': 
-      delete searchParams['search.closed']
-      break;
-  } 
-  load()
-}
-
-function createBTTravail (kaproject) {
-  const data = {
-    reference: `BT ${kaproject.reference}`,
-    project: kaproject.id
+  const APPConf = Conf
+  const searchBody = {
+    closed: '-',
+    deleted: '-'
   }
-  return new Promise((resovle, reject) => {
-    Artnum.Query.exec(Artnum.Path.url(`Travail/`), {method: 'POST', body: data})
-    .then((result) => {
-         if (result.success) {
-           let tid = result.data[0].id
-           UIKADisplayProject(kaproject.id)
-           .then(kaproject => {
-             showHideTravaux(kaproject, true)
-           })
-         } else {
-           alert('Une erreur est survenue')
-         }
-       })
-  })
-}
 
 
- async function newTravailEvent (event) {
-   let params = {}
-   if (event.target.dataset.travail) {
-     params.travail = event.target.dataset.travail
-   }
-   if (event.target.dataset.project) {
-     params.project = event.target.dataset.project
-   }
-   return newTravailPopup(params)
- }
- async function newTravailPopup (params) {
-   let query
-   if (params.travail) {
-     query = new Promise((resolve, reject) => {
-       Artnum.Query.exec(Artnum.Path.url(`Travail/${params.travail}`)).then((result) => {
-         if (!result.success || result.length !== 1) { reject(new Error('La mission est inexistante')); return }
-         let travail = Array.isArray(result.data) ? result.data[0] : result.data
-         Artnum.Query.exec(Artnum.Path.url(`Project/${params.project}`)).then((result) => {
-           if (!result.success || result.length !== 1) { reject(new Error('Le project est inexistant')); return }
-           resolve({project: Array.isArray(result.data) ? result.data[0] : result.data, travail: travail})
-         })
-       })
-     })
-   } else if(params.project) {
-     query = new Promise((resolve, reject) => {
-       Artnum.Query.exec(Artnum.Path.url(`Project/${params.project}`)).then((result) => {
-         if (!result.success || result.length !== 1) { reject(new Error('Le projet est inexistant')); return }
-         result.data = Array.isArray(result.data) ? result.data[0] : result.data
-         resolve({project: result.data, travail: {id: '', reference: params.first ? result.data.reference : '', meeting: '', contact: '', phone: '', description: '', time: 0}}) 
-       })
-     })
-   } else {
-     return;
-   }
-   query.then((result) => {
-     let project = result.project
-     let travail = result.travail
+  const RYName = `R${String(new Date().getFullYear()).substring(2)}`
+  var References = { 'default': 1, RYName: 1 }
+  var MyPopper = null
 
-     let time = (travail.time ? parseInt(travail.time) : 0) / 3600
-     let popup = window.Admin.popup(`<form>
+
+  function genRef(event) {
+    let r = document.getElementById('reference');
+    if (event.target) {
+      if (event.target.id === 'rDef') {
+        r.value = References.default
+      } else {
+        r.value = `${RYName}-${String(References.RYName).padStart(3, '0')}`
+      }
+    }
+  }
+
+  function exportAll() {
+    if (!searchBody.closed) {
+      window.open(Artnum.Path.url('admin/exec/export/proj.php', { params: { state: 'alive' } }))
+    } else {
+      if (searchBody.closed === '-') {
+        window.open(Artnum.Path.url('admin/exec/export/proj.php', { params: { state: 'open' } }))
+      } else {
+        window.open(Artnum.Path.url('admin/exec/export/proj.php', { params: { state: 'closed' } }))
+      }
+    }
+  }
+
+  function changeState(event) {
+    switch (event.target.id) {
+      case 'stateOpen':
+        searchBody.closed = '-'
+        break;
+      case 'stateClosed':
+        searchBody.closed = '*'
+        break;
+      case 'stateAny':
+        delete searchBody.closed
+        break;
+    }
+    load()
+  }
+
+  function createBTTravail(kaproject) {
+    const data = {
+      reference: `BT ${kaproject.reference}`,
+      project: kaproject.id
+    }
+    return new Promise((resovle, reject) => {
+      Artnum.Query.exec(Artnum.Path.url(`Travail/`), { method: 'POST', body: data })
+        .then((result) => {
+          if (result.success) {
+            let tid = result.data[0].id
+            UIKADisplayProject(kaproject.id)
+              .then(kaproject => {
+                showHideTravaux(kaproject, true)
+              })
+          } else {
+            alert('Une erreur est survenue')
+          }
+        })
+    })
+  }
+
+
+  async function newTravailEvent(event) {
+    let params = {}
+    if (event.target.dataset.travail) {
+      params.travail = event.target.dataset.travail
+    }
+    if (event.target.dataset.project) {
+      params.project = event.target.dataset.project
+    }
+    return newTravailPopup(params)
+  }
+  async function newTravailPopup(params) {
+    let query
+    if (params.travail) {
+      query = new Promise((resolve, reject) => {
+        Artnum.Query.exec(Artnum.Path.url(`Travail/${params.travail}`)).then((result) => {
+          if (!result.success || result.length !== 1) { reject(new Error('La mission est inexistante')); return }
+          let travail = Array.isArray(result.data) ? result.data[0] : result.data
+          Artnum.Query.exec(Artnum.Path.url(`Project/${params.project}`)).then((result) => {
+            if (!result.success || result.length !== 1) { reject(new Error('Le project est inexistant')); return }
+            resolve({ project: Array.isArray(result.data) ? result.data[0] : result.data, travail: travail })
+          })
+        })
+      })
+    } else if (params.project) {
+      query = new Promise((resolve, reject) => {
+        Artnum.Query.exec(Artnum.Path.url(`Project/${params.project}`)).then((result) => {
+          if (!result.success || result.length !== 1) { reject(new Error('Le projet est inexistant')); return }
+          result.data = Array.isArray(result.data) ? result.data[0] : result.data
+          resolve({ project: result.data, travail: { id: '', reference: params.first ? result.data.reference : '', meeting: '', contact: '', phone: '', description: '', time: 0 } })
+        })
+      })
+    } else {
+      return;
+    }
+    query.then((result) => {
+      let project = result.project
+      let travail = result.travail
+
+      let time = (travail.time ? parseInt(travail.time) : 0) / 3600
+      let popup = window.Admin.popup(`<form>
       <input type="hidden" value="${project.id}" name="project" />
       <label for="subref">Référence : </label><input name="subref" type="text" value="${travail.reference}" /> <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" value="${travail.meeting}" /><br>
       <label for="contact">Personne de contact : </label><input name="contact" type="text" value="${travail.contact}" /> <label for="cphone">Téléphone : </label><input name="cphone" type="text" value="${travail.phone}"/><br>
@@ -186,285 +204,287 @@ function createBTTravail (kaproject) {
       <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
      </form>`, `Travail pour ${project.reference} - ${project.name}`)
 
-     const s = new KSelectUI(popup.querySelector('input[name="status"]'), new STProcess(), {realSelect: true, allowFreeText: false})
+      const s = new KSelectUI(popup.querySelector('input[name="status"]'), new STProcess(), { realSelect: true, allowFreeText: false })
 
-    
-    KATravail.getByProject(project.id)
-    .then(travaux => {    
-      new KAList(popup.querySelector('input[name="group"]'), new KAGroup(travaux))
-    })
 
-     let form = popup.getElementsByTagName('form')[0]
-     form.addEventListener('reset', (event) => {
-       let p = event.target
-       while (!p.classList.contains('popup')) {
-         p = p.parentNode
-       }
-       p.dispatchEvent(new CustomEvent('close'))
-     })
-     
-     form.addEventListener('click', (event) => {
-       if (event.target.nodeName === 'BUTTON' && event.target.name === 'print') {
-         let node = event.target
-         while (node && node.nodeName !== 'FORM') { node = node.parentNode }
-         form.dispatchEvent(new CustomEvent('submit', {bubbles: true, cancelable: true, target: node, detail: {print: true}}))
-       }
-     })
-     form.addEventListener('submit', (event) => {
-       event.preventDefault()
-       let content = window.Admin.getForm(event.target)
-       let mapping = {group: 'group', project: 'project', description: 'description', subref: 'reference', meeting: 'meeting', contact: 'contact', cphone: 'phone', time: 'time', end: 'end', begin: 'begin', force: 'force', status: 'status'}
-       let data = travail.id !== '' ?  {id: travail.id} : {}
-       for (let i in mapping) {
-         data[mapping[i]] = '' // init to empty string
-         switch(i) {
-           default:
-             if (!content[i]) { break }
-             data[mapping[i]] = content[i]
-             break
-          case 'begin':
-           case 'end':
-             if (!content[i]) { break }
-             data[mapping[i]] = content[i].split('T')[0]
-             break
-           case 'force':
-             if (!content[i]) { data[mapping[i]] = 1.0; break }
-             data[mapping[i]] = parseFloat(content[i])
-             break
-           case 'time':
-             if(!content[i]) { data[mapping[i]] = 1.0; break }
-             let exp = /([0-9]+(?:[\.,][0-9]+)?)\s*([jJsS]?)/
-             let m
-             if ((m = exp.exec(content[i])) !== null) {
-               let x = parseFloat(m[1].replace(',', '.'))
+      KATravail.getByProject(project.id)
+        .then(travaux => {
+          new KAList(popup.querySelector('input[name="group"]'), new KAGroup(travaux))
+        })
 
-               switch(m[2]) {
-                 case 's':
-                 case 'S':
-                   x *= APPConf.weekhours
-                   break
-                 case 'j':
-                 case 'J':
-                   x *= APPConf.workday
-                   break
-               }
-               data[mapping[i]] = x * 3600 // stored in second
-             } else {
-               data[mapping[i]] = 1.0
-             }
-             break
-         }
-       }
-       Artnum.Query.exec(Artnum.Path.url(`Travail/${travail.id}`), {method: travail.id !== '' ? 'PUT' : 'POST', body: data}).then((result) => {
-         if (result.success) {
-           let tid = result.data[0].id
-           let p = event.target
-           while (!p.classList.contains('popup')) {
-             p = p.parentNode
-           }
-           p.dispatchEvent(new CustomEvent('close'))
-           UIKADisplayProject(project)
-           .then(kaproject => {
-             showHideTravaux(kaproject.id, true)
-             if (event.detail && event.detail.print) {
-               window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: kaproject.id, travail: tid, auth: localStorage.getItem('klogin-token')}}))                         
-             }
-           })
-         } else {
-           alert('Une erreur est survenue')
-         }
-       })
-     })
-  })
- }
- 
- var addRunning = false
- async function addProject (event) {
-   if (addRunning) { return } // avoid dblclick
-   addRunning = true
-   var form = event.target
-   for (; form.nodeName !== 'FORM'; form = form.parentNode);
-   Admin.setFormInputInvalid(form, '*', 'error', true)
-   var oform = Admin.getForm(form)
+      let form = popup.getElementsByTagName('form')[0]
+      form.addEventListener('reset', (event) => {
+        let p = event.target
+        while (!p.classList.contains('popup')) {
+          p = p.parentNode
+        }
+        p.dispatchEvent(new CustomEvent('close'))
+      })
 
-   let errors = false
-   if (!oform.name) {
-     Admin.setFormInputInvalid(form, 'name', 'Nom manquant')
-     errors = true
-   }
-
-   if (!oform.year) {
-     oform.year = String((new Date()).getFullYear())
-   } else {
-     if (String(parseInt(oform.year)) !== String(oform.year)) {
-       Admin.setFormInputInvalid(form, 'year', 'Format de l\'année non-reconnu')
-       errors = true
-     }
-   }
-   
-   if (!oform.reference) {
-     Admin.setFormInputInvalid(form, 'reference', 'Référence manquante')
-     errors = true
-   } else {
-     var res = await Artnum.Query.exec(Artnum.Path.url('Project', {params: {'search.reference': oform.reference, 'search.deleted': '-'}}))
-     if (res.success && res.length > 0) {
-       Admin.setFormInputInvalid(form, 'reference', 'Référence déjà existante')
-       errors = true
-     }
-   }
-  if (oform.price === '' || oform.price === null) { oform.price = 0.0 }
-  if (isNaN(parseFloat(oform.price))) {
-    Admin.setFormInputInvalid(form, 'price', 'Prix de vente invalide')
-    errors = true
-  }
-   if (errors) { addRunning = false; return }
-   
-   let client = ''
-   if (document.getElementById('client') && document.getElementById('client').dataset.id) {
-     client = `Contact/${document.getElementById('client').dataset.id}` 
-   }
-
-  Artnum.Query.exec(
-    Artnum.Path.url('Project'),
-    {method: 'POST', 
-      body: {
-        name: oform.name,
-        reference: (oform.reference ? oform.reference : null), 
-        uncount: oform.uncount? 1 : 0, 
-        year: oform.year,
-        price: parseFloat(oform.price),
-        client: client,
-        manager: document.getElementById('manager').dataset.value
-      }}).then(function (result) {
-    if (!result.success && result.length < 1) {
-      addRunning = false
-      alert('Erreur de création du projet')
-    } else {
-      let pId = result.data[0].id
-      Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`))
-      .then(function (result) {
-        if (result.success && result.length === 1) {
-          result.data = Array.isArray(result.data) ? result.data[0] : result.data
-          const ked = new KED()
-          let related = 'Projet'
-          if (String(result.data.reference).substring(0,1).toLowerCase() === 'r') {
-            related = 'Régie'
-          }
-          ked.createProject(result.data.id, result.data.reference, related)
-          
-          UIKADisplayProject(result.data)
-          .then(kaproject => {
-            if (String(kaproject.reference).startsWith('R')) {
-              newTravailPopup({project: kaproject.id, first: true})
-            } else {
-              createBTTravail(kaproject)
-            }
-            addRunning = false
-          })
-          Admin.setFormInputValue(form, 'reference')
-          Admin.setFormInputValue(form, 'name')
-        } else {
-          alert('Erreur création du projet')
-          addRunning = false
+      form.addEventListener('click', (event) => {
+        if (event.target.nodeName === 'BUTTON' && event.target.name === 'print') {
+          let node = event.target
+          while (node && node.nodeName !== 'FORM') { node = node.parentNode }
+          form.dispatchEvent(new CustomEvent('submit', { bubbles: true, cancelable: true, target: node, detail: { print: true } }))
         }
       })
+      form.addEventListener('submit', (event) => {
+        event.preventDefault()
+        let content = window.Admin.getForm(event.target)
+        let mapping = { group: 'group', project: 'project', description: 'description', subref: 'reference', meeting: 'meeting', contact: 'contact', cphone: 'phone', time: 'time', end: 'end', begin: 'begin', force: 'force', status: 'status' }
+        let data = travail.id !== '' ? { id: travail.id } : {}
+        for (let i in mapping) {
+          data[mapping[i]] = '' // init to empty string
+          switch (i) {
+            default:
+              if (!content[i]) { break }
+              data[mapping[i]] = content[i]
+              break
+            case 'begin':
+            case 'end':
+              if (!content[i]) { break }
+              data[mapping[i]] = content[i].split('T')[0]
+              break
+            case 'force':
+              if (!content[i]) { data[mapping[i]] = 1.0; break }
+              data[mapping[i]] = parseFloat(content[i])
+              break
+            case 'time':
+              if (!content[i]) { data[mapping[i]] = 1.0; break }
+              let exp = /([0-9]+(?:[\.,][0-9]+)?)\s*([jJsS]?)/
+              let m
+              if ((m = exp.exec(content[i])) !== null) {
+                let x = parseFloat(m[1].replace(',', '.'))
+
+                switch (m[2]) {
+                  case 's':
+                  case 'S':
+                    x *= APPConf.weekhours
+                    break
+                  case 'j':
+                  case 'J':
+                    x *= APPConf.workday
+                    break
+                }
+                data[mapping[i]] = x * 3600 // stored in second
+              } else {
+                data[mapping[i]] = 1.0
+              }
+              break
+          }
+        }
+        Artnum.Query.exec(Artnum.Path.url(`Travail/${travail.id}`), { method: travail.id !== '' ? 'PUT' : 'POST', body: data }).then((result) => {
+          if (result.success) {
+            let tid = result.data[0].id
+            let p = event.target
+            while (!p.classList.contains('popup')) {
+              p = p.parentNode
+            }
+            p.dispatchEvent(new CustomEvent('close'))
+            UIKADisplayProject(project)
+              .then(kaproject => {
+                showHideTravaux(kaproject.id, true)
+                if (event.detail && event.detail.print) {
+                  window.open(Artnum.Path.url('admin/exec/export/bon.php', { params: {pid: kaproject.id, travail: tid, auth: `Bearer ${localStorage.getItem('klogin-token')}` } }))
+                }
+              })
+          } else {
+            alert('Une erreur est survenue')
+          }
+        })
+      })
+    })
+  }
+
+  var addRunning = false
+  async function addProject(event) {
+    if (addRunning) { return } // avoid dblclick
+    addRunning = true
+    var form = event.target
+    for (; form.nodeName !== 'FORM'; form = form.parentNode);
+    Admin.setFormInputInvalid(form, '*', 'error', true)
+    var oform = Admin.getForm(form)
+
+    let errors = false
+    if (!oform.name) {
+      Admin.setFormInputInvalid(form, 'name', 'Nom manquant')
+      errors = true
     }
-  })
- }
 
- async function handleTravailButton (event) {
-   let button = event.target
+    if (!oform.year) {
+      oform.year = String((new Date()).getFullYear())
+    } else {
+      if (String(parseInt(oform.year)) !== String(oform.year)) {
+        Admin.setFormInputInvalid(form, 'year', 'Format de l\'année non-reconnu')
+        errors = true
+      }
+    }
 
-   switch(button.dataset.action) {
-     case 'edit':
-       newTravailEvent(event)
-       break
-     case 'print':
-       window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: button.dataset.project, travail: button.dataset.travail, auth: localStorage.getItem('klogin-token')}}))          
-       break;
-     case 'delete':
-       Artnum.Query.exec(Artnum.Path.url(`Travail/${button.dataset.travail}`)).then((result) => {
-         if(result.length === 1 && confirm(`Voulez-vous supprimer le travail ayant comme référence "${result.data.reference}" ?`)) {
-           Artnum.Query.exec(Artnum.Path.url(`Travail/${button.dataset.travail}`), {method: 'DELETE'}).then((result) => {
-             if (result.success) {
-               let tr = button
-               for (; tr && tr.nodeName !== 'TR'; tr = tr.parentNode) ;
-               window.requestAnimationFrame(() => {
-                 if (tr.parentNode) {
-                   tr.parentNode.removeChild(tr)
-                 }
-               })
-             }
-           })
-         }
-       })
-       break;
-   }
- }
- 
- async function delProject (event) {
-   if (!event || !event.target) { return }
-   var node = event.target
-   if (node.getAttribute('data-id')) {
-     var res = await Artnum.Query.exec(Artnum.Path.url('Project/' + node.getAttribute('data-id')), {method: 'DELETE', body: {id: node.getAttribute('data-id')}})
-     if (res.success) {
-       let tr = node
-       for (; tr.nodeName !== 'TR'; tr = tr.parentNode);
+    if (!oform.reference) {
+      Admin.setFormInputInvalid(form, 'reference', 'Référence manquante')
+      errors = true
+    } else {
+      var res = await Artnum.Query.exec(Artnum.Path.url('Project', { params: { 'search.reference': oform.reference, 'search.deleted': '-' } }))
+      if (res.success && res.length > 0) {
+        Admin.setFormInputInvalid(form, 'reference', 'Référence déjà existante')
+        errors = true
+      }
+    }
+    if (oform.price === '' || oform.price === null) { oform.price = 0.0 }
+    if (isNaN(parseFloat(oform.price))) {
+      Admin.setFormInputInvalid(form, 'price', 'Prix de vente invalide')
+      errors = true
+    }
+    if (errors) { addRunning = false; return }
 
-       window.requestAnimationFrame(() => {
-         let sub = tr.nextElementSibling;
-         while (sub) {
-           let next = sub.nextElementSibling
-           if (sub.dataset.parentId && sub.dataset.parentId === tr.getAttribute('data-id')) {
-             sub.parentNode.removeChild(sub)
-             sub = next
-           } else {
-             sub = null
-           }
-         }
-         tr.parentNode.removeChild(tr)
-       })
-     }
-   }
- }
- 
-async function evCloseProject (event) {
-  if (event && event.target) {
+    let client = ''
+    if (document.getElementById('client') && document.getElementById('client').dataset.id) {
+      client = `Contact/${document.getElementById('client').dataset.id}`
+    }
+
+    Artnum.Query.exec(
+      Artnum.Path.url('Project'),
+      {
+        method: 'POST',
+        body: {
+          name: oform.name,
+          reference: (oform.reference ? oform.reference : null),
+          uncount: oform.uncount ? 1 : 0,
+          year: oform.year,
+          price: parseFloat(oform.price),
+          client: client,
+          manager: document.getElementById('manager').dataset.value
+        }
+      }).then(function (result) {
+        if (!result.success && result.length < 1) {
+          addRunning = false
+          alert('Erreur de création du projet')
+        } else {
+          let pId = result.data[0].id
+          Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`))
+            .then(function (result) {
+              if (result.success && result.length === 1) {
+                result.data = Array.isArray(result.data) ? result.data[0] : result.data
+                const ked = new KED()
+                let related = 'Projet'
+                if (String(result.data.reference).substring(0, 1).toLowerCase() === 'r') {
+                  related = 'Régie'
+                }
+                ked.createProject(result.data.id, result.data.reference, related)
+
+                UIKADisplayProject(result.data)
+                  .then(kaproject => {
+                    if (String(kaproject.reference).startsWith('R')) {
+                      newTravailPopup({ project: kaproject.id, first: true })
+                    } else {
+                      createBTTravail(kaproject)
+                    }
+                    addRunning = false
+                  })
+                Admin.setFormInputValue(form, 'reference')
+                Admin.setFormInputValue(form, 'name')
+              } else {
+                alert('Erreur création du projet')
+                addRunning = false
+              }
+            })
+        }
+      })
+  }
+
+  async function handleTravailButton(event) {
+    let button = event.target
+
+    switch (button.dataset.action) {
+      case 'edit':
+        newTravailEvent(event)
+        break
+      case 'print':
+        window.open(Artnum.Path.url('admin/exec/export/bon.php', { params: { pid: button.dataset.project, travail: button.dataset.travail, auth: `Bearer ${localStorage.getItem('klogin-token')}` } }))
+        break;
+      case 'delete':
+        Artnum.Query.exec(Artnum.Path.url(`Travail/${button.dataset.travail}`)).then((result) => {
+          if (result.length === 1 && confirm(`Voulez-vous supprimer le travail ayant comme référence "${result.data.reference}" ?`)) {
+            Artnum.Query.exec(Artnum.Path.url(`Travail/${button.dataset.travail}`), { method: 'DELETE' }).then((result) => {
+              if (result.success) {
+                let tr = button
+                for (; tr && tr.nodeName !== 'TR'; tr = tr.parentNode);
+                window.requestAnimationFrame(() => {
+                  if (tr.parentNode) {
+                    tr.parentNode.removeChild(tr)
+                  }
+                })
+              }
+            })
+          }
+        })
+        break;
+    }
+  }
+
+  async function delProject(event) {
+    if (!event || !event.target) { return }
     var node = event.target
     if (node.getAttribute('data-id')) {
-      var close = (node.getAttribute('data-state') === 'open' ? (new Date()).toISOString() : null)
-      var res = await Artnum.Query.exec(Artnum.Path.url('Project/' + node.getAttribute('data-id')), {method: 'PATCH', body: {id: node.getAttribute('data-id'), closed: close}})
-      if (res.success && res.length === 1) {
-        let id = res.data[0].id
-        return UIKADisplayProject(res.data[0].id)
-      }
-    }  
-  } 
-}
+      var res = await Artnum.Query.exec(Artnum.Path.url('Project/' + node.getAttribute('data-id')), { method: 'DELETE', body: { id: node.getAttribute('data-id') } })
+      if (res.success) {
+        let tr = node
+        for (; tr.nodeName !== 'TR'; tr = tr.parentNode);
 
-async function evCancelEdit (event) {
-  if (event && event.target) {
-    for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
-    var tr = node
-    if (!tr.getAttribute('data-edit') || tr.getAttribute('data-edit') === '0') {
-      return
-    }
-    for (var td = node.firstChild; td; td = td.nextSibling) {
-      if (td.getAttribute('data-original-value')) {
-        td.innerHTML = td.getAttribute('data-original-value')
+        window.requestAnimationFrame(() => {
+          let sub = tr.nextElementSibling;
+          while (sub) {
+            let next = sub.nextElementSibling
+            if (sub.dataset.parentId && sub.dataset.parentId === tr.getAttribute('data-id')) {
+              sub.parentNode.removeChild(sub)
+              sub = next
+            } else {
+              sub = null
+            }
+          }
+          tr.parentNode.removeChild(tr)
+        })
       }
     }
-    event.target.parentNode.removeChild(event.target)
-    tr.setAttribute('data-edit', '0')
   }
-}
 
- function evEditProject (event) {
-   let pid = event.target.dataset.project
-   Artnum.Query.exec(Artnum.Path.url(`Project/${pid}`)).then((result) => {
-     if (!result.success || result.length !== 1) { alert('Projet inexistant'); console.log(result); return }
-     let project = Array.isArray(result.data) ? result.data[0] : result.data
-     let popup = window.Admin.popup(`<form>
+  async function evCloseProject(event) {
+    if (event && event.target) {
+      var node = event.target
+      if (node.getAttribute('data-id')) {
+        var close = (node.getAttribute('data-state') === 'open' ? (new Date()).toISOString() : null)
+        var res = await Artnum.Query.exec(Artnum.Path.url('Project/' + node.getAttribute('data-id')), { method: 'PATCH', body: { id: node.getAttribute('data-id'), closed: close } })
+        if (res.success && res.length === 1) {
+          let id = res.data[0].id
+          return UIKADisplayProject(res.data[0].id)
+        }
+      }
+    }
+  }
+
+  async function evCancelEdit(event) {
+    if (event && event.target) {
+      for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
+      var tr = node
+      if (!tr.getAttribute('data-edit') || tr.getAttribute('data-edit') === '0') {
+        return
+      }
+      for (var td = node.firstChild; td; td = td.nextSibling) {
+        if (td.getAttribute('data-original-value')) {
+          td.innerHTML = td.getAttribute('data-original-value')
+        }
+      }
+      event.target.parentNode.removeChild(event.target)
+      tr.setAttribute('data-edit', '0')
+    }
+  }
+
+  function evEditProject(event) {
+    let pid = event.target.dataset.project
+    Artnum.Query.exec(Artnum.Path.url(`Project/${pid}`)).then((result) => {
+      if (!result.success || result.length !== 1) { alert('Projet inexistant'); console.log(result); return }
+      let project = Array.isArray(result.data) ? result.data[0] : result.data
+      let popup = window.Admin.popup(`<form>
       <input type="hidden" value="${project.id}" name="project" />
       <label for="reference">Numéro de chantier : </label><input name="reference" type="text" value="${project.reference}" />
       <label for="name">Nom : </label><input name="name" type="text" value="${project.name}"/><br>
@@ -473,153 +493,153 @@ async function evCancelEdit (event) {
       <fieldset name="address"><legend>Adresse</legend></fieldset>
       <button type="submit">Sauver</button><button type="reset">Annuler</button>
      </form>`, `Projet ${project.reference} - ${project.name}`)
-     let form = popup.getElementsByTagName('FORM')[0]
-     let fs = form.getElementsByTagName('FIELDSET')
-     let addr
-     let fieldset
-     for (let i = 0; i < fs.length; i++) {
-      if (fs[i].getAttribute('name') === 'address') {
-        fieldset = fs[i]
-        addr = new window.Addr(fs[i])
-        break
+      let form = popup.getElementsByTagName('FORM')[0]
+      let fs = form.getElementsByTagName('FIELDSET')
+      let addr
+      let fieldset
+      for (let i = 0; i < fs.length; i++) {
+        if (fs[i].getAttribute('name') === 'address') {
+          fieldset = fs[i]
+          addr = new window.Addr(fs[i])
+          break
+        }
       }
-     }
-     addr.setAddressId(project.client)
-     popup.addEventListener('resize', () => {
-      addr.update()
-     })
-     
-     const managerSelect = new KSelectUI(popup.querySelector('input[name="manager"]'), new STPerson(), {realSelect: true, allowFreeText: false})
-     form.addEventListener('reset', (event) => {
-       let p = event.target
-       while (p && !p.classList.contains('popup')) { p = p.parentNode }
-       p.dispatchEvent(new CustomEvent('close'))
-     })
-     
-     form.addEventListener('submit', (event) => {
-       event.preventDefault()
-       let content = window.Admin.getForm(event.target)
-       let body = {
-            id: content.project,
-            name: content.name,
-            reference: content.reference,
-            price: content.price,
-            manager: managerSelect.value
-       }
-       if (fieldset.dataset.id) {
-         body.client = `Contact/${fieldset.dataset.id}`
-       }
-       Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`), {method: 'PUT', body: body}).then((result) => {
-         if (result.success) {
-           UIKADisplayProject(content.project)
-           .then(kaproject => {
-              let p = event.target
-              while (p && !p.classList.contains('popup')) { p = p.parentNode }
-              p.dispatchEvent(new CustomEvent('close'))
-           })
-         }
-       })
-     })
-   })
- }
+      addr.setAddressId(project.client)
+      popup.addEventListener('resize', () => {
+        addr.update()
+      })
 
- function newEntry (entry, travauxGroup) {
-   return new Promise(function (resolve, reject) {
-     if (entry.id) {
-       let reference = DataUtils.str(entry.reference).split('').reverse()
-       let newNextRef = []
-       let i
-       for (i = reference.shift(); i; i = reference.shift()) {
-         if (isNaN(parseInt(i))) {
-           reference.unshift(i)
-           break
-         } else {
-           newNextRef.unshift(i)
-         }
-       }
-       reference = reference.reverse().join('')
-       newNextRef = parseInt(newNextRef.join(''))
+      const managerSelect = new KSelectUI(popup.querySelector('input[name="manager"]'), new STPerson(), { realSelect: true, allowFreeText: false })
+      form.addEventListener('reset', (event) => {
+        let p = event.target
+        while (p && !p.classList.contains('popup')) { p = p.parentNode }
+        p.dispatchEvent(new CustomEvent('close'))
+      })
 
-       if (reference === '') {
-         if(parseInt(References.default) < newNextRef + 1) {
+      form.addEventListener('submit', (event) => {
+        event.preventDefault()
+        let content = window.Admin.getForm(event.target)
+        let body = {
+          id: content.project,
+          name: content.name,
+          reference: content.reference,
+          price: content.price,
+          manager: managerSelect.value
+        }
+        if (fieldset.dataset.id) {
+          body.client = `Contact/${fieldset.dataset.id}`
+        }
+        Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`), { method: 'PUT', body: body }).then((result) => {
+          if (result.success) {
+            UIKADisplayProject(content.project)
+              .then(kaproject => {
+                let p = event.target
+                while (p && !p.classList.contains('popup')) { p = p.parentNode }
+                p.dispatchEvent(new CustomEvent('close'))
+              })
+          }
+        })
+      })
+    })
+  }
+
+  function newEntry(entry, travauxGroup) {
+    return new Promise(function (resolve, reject) {
+      if (entry.id) {
+        let reference = DataUtils.str(entry.reference).split('').reverse()
+        let newNextRef = []
+        let i
+        for (i = reference.shift(); i; i = reference.shift()) {
+          if (isNaN(parseInt(i))) {
+            reference.unshift(i)
+            break
+          } else {
+            newNextRef.unshift(i)
+          }
+        }
+        reference = reference.reverse().join('')
+        newNextRef = parseInt(newNextRef.join(''))
+
+        if (reference === '') {
+          if (parseInt(References.default) < newNextRef + 1) {
             References.default = newNextRef + 1
             document.getElementById('rDef').innerHTML = `Ajouter projet ${newNextRef + 1}`
-         }
-       } else {
-         if (RYName === reference.substring(0, RYName.length) && References.RYName < newNextRef + 1) {
-           References.RYName = newNextRef + 1
-           document.getElementById('rYear').innerHTML = `Ajouter régie ${RYName}-${String(newNextRef + 1).padStart(3, '0')}`
-         }
-       }
-             
-       let exportButton = document.createElement('BUTTON')
-       exportButton.setAttribute('type', 'button')
-       exportButton.addEventListener('click', function (event) {
-         if (event && event.target) {
-           for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
-           window.open(Artnum.Path.url('admin/exec/export/project.php', {params: {pid: node.getAttribute('data-id')}}))
-         }
-       })
-       exportButton.innerHTML = 'Exporter'
+          }
+        } else {
+          if (RYName === reference.substring(0, RYName.length) && References.RYName < newNextRef + 1) {
+            References.RYName = newNextRef + 1
+            document.getElementById('rYear').innerHTML = `Ajouter régie ${RYName}-${String(newNextRef + 1).padStart(3, '0')}`
+          }
+        }
 
-       let printButton = document.createElement('BUTTON')
-       printButton.setAttribute('type', 'button')
-       printButton.addEventListener('click', function (event) {
-         if (event && event.target) {
-           for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
-           window.open(Artnum.Path.url('admin/exec/export/bon.php', {params: {pid: node.getAttribute('data-id'), auth: `Bearer ${localStorage.getItem('klogin-token')}`}}))
-         }
-       })
-       printButton.innerHTML = 'Imprimer'
+        let exportButton = document.createElement('BUTTON')
+        exportButton.setAttribute('type', 'button')
+        exportButton.addEventListener('click', function (event) {
+          if (event && event.target) {
+            for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
+            window.open(Artnum.Path.url('admin/exec/export/project.php', { params: { pid: node.getAttribute('data-id') } }))
+          }
+        })
+        exportButton.innerHTML = 'Exporter'
 
-       let closeButton = document.createElement('BUTTON')
-       closeButton.setAttribute('type', 'button')
-       closeButton.setAttribute('data-id', entry.id)
+        let printButton = document.createElement('BUTTON')
+        printButton.setAttribute('type', 'button')
+        printButton.addEventListener('click', function (event) {
+          if (event && event.target) {
+            for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
+            window.open(Artnum.Path.url('admin/exec/export/bon.php', { params: { pid: node.getAttribute('data-id'), auth: `Bearer ${localStorage.getItem('klogin-token')}` } }))
+          }
+        })
+        printButton.innerHTML = 'Imprimer'
 
-       if (entry.closed === null) {
-         closeButton.innerHTML = 'Clore'
-         closeButton.setAttribute('data-state', 'open')
-       } else {
-         closeButton.innerHTML = 'Réouvrir'
-         closeButton.setAttribute('data-state', 'close')
-       }
-       closeButton.addEventListener('click', evCloseProject)
-       
-       let editButton = document.createElement('BUTTON')
-       editButton.setAttribute('type', 'button')
-       editButton.innerHTML = 'Éditer'
-       editButton.dataset.project = entry.id
-       editButton.addEventListener('click', evEditProject)
+        let closeButton = document.createElement('BUTTON')
+        closeButton.setAttribute('type', 'button')
+        closeButton.setAttribute('data-id', entry.id)
 
-       let delButton = document.createElement('BUTTON')
-       delButton.setAttribute('type', 'button')
-       delButton.setAttribute('data-id', entry.id)
-       delButton.innerHTML = 'Supprimer'
-       delButton.addEventListener('click', delProject)
+        if (entry.closed === null) {
+          closeButton.innerHTML = 'Clore'
+          closeButton.setAttribute('data-state', 'open')
+        } else {
+          closeButton.innerHTML = 'Réouvrir'
+          closeButton.setAttribute('data-state', 'close')
+        }
+        closeButton.addEventListener('click', evCloseProject)
 
-       let newTravail = document.createElement('BUTTON')
-       newTravail.setAttribute('type', 'button')
-       newTravail.setAttribute('data-project', entry.id)
-       newTravail.innerHTML = 'Ajout travail'
-       newTravail.addEventListener('click', newTravailEvent)
-       
-       KAPerson.load(entry.manager).then((manager) => {
-         let frag = document.createDocumentFragment()
-         let tr = document.createElement('TR')
-         frag.appendChild(tr)
-         tr.setAttribute('data-id', entry.id)
-         tr.innerHTML = `<td data-name="reference" data-sort-value="${entry.reference}"  data-filter-value="${entry.reference}">${travauxGroup.length > 0 ? '<span>&#9205;</span> ' : ''}${(entry.reference ? entry.reference : '')}</td>
+        let editButton = document.createElement('BUTTON')
+        editButton.setAttribute('type', 'button')
+        editButton.innerHTML = 'Éditer'
+        editButton.dataset.project = entry.id
+        editButton.addEventListener('click', evEditProject)
+
+        let delButton = document.createElement('BUTTON')
+        delButton.setAttribute('type', 'button')
+        delButton.setAttribute('data-id', entry.id)
+        delButton.innerHTML = 'Supprimer'
+        delButton.addEventListener('click', delProject)
+
+        let newTravail = document.createElement('BUTTON')
+        newTravail.setAttribute('type', 'button')
+        newTravail.setAttribute('data-project', entry.id)
+        newTravail.innerHTML = 'Ajout travail'
+        newTravail.addEventListener('click', newTravailEvent)
+
+        KAPerson.load(entry.manager).then((manager) => {
+          let frag = document.createDocumentFragment()
+          let tr = document.createElement('TR')
+          frag.appendChild(tr)
+          tr.setAttribute('data-id', entry.id)
+          tr.innerHTML = `<td data-name="reference" data-sort-value="${entry.reference}"  data-filter-value="${entry.reference}">${travauxGroup.length > 0 ? '<span>&#9205;</span> ' : ''}${(entry.reference ? entry.reference : '')}</td>
                          <td data-name="name" data-type="text">${(entry.name ? entry.name : '')}</td>
                          <td data-name="manager" data-sort-value="${entry.manager !== null ? entry.manager : -1}" data-filter-value="${entry.manager !== null ? entry.manager : -1}">${manager.name}</td>`
-         if (travauxGroup.length > 0) {
-           tr.classList.add('extensible')
-           const subTable = document.createElement('TABLE')
-           subTable.classList.add('sub')
-           let trHeader = document.createElement('TR')
-           trHeader.innerHTML = '<th>Référence</th><th>Rendez-vous</th><th>Personne contact</th><th>Téléphone</th><th>Description</th><th></th>'
-           subTable.appendChild(trHeader)
-           let oddEven = 'even'
-           for (const group of travauxGroup.gets()) {
+          if (travauxGroup.length > 0) {
+            tr.classList.add('extensible')
+            const subTable = document.createElement('TABLE')
+            subTable.classList.add('sub')
+            let trHeader = document.createElement('TR')
+            trHeader.innerHTML = '<th>Référence</th><th>Rendez-vous</th><th>Personne contact</th><th>Téléphone</th><th>Description</th><th></th>'
+            subTable.appendChild(trHeader)
+            let oddEven = 'even'
+            for (const group of travauxGroup.gets()) {
               const tr = document.createElement('TR')
               tr.classList.add('subproject')
               tr.innerHTML = `<th colspan="6"> ${group ? $s(`Sous-chantier "${group}"`) : 'Général'}</th>`
@@ -627,192 +647,202 @@ async function evCancelEdit (event) {
               oddEven = 'even'
 
               travauxGroup.get(group)
-              .forEach((travail) => {
-                if (oddEven === 'odd') { oddEven = 'even' } else { oddEven = 'odd'}
-                const tr = document.createElement('TR')
-                tr.classList.add(oddEven)
-                tr.innerHTML = `<td data-sort-value="${$s(travail.reference)}">${$s(travail.reference)}</td><td>${$s(travail.meeting)}</td><td>${$s(travail.contact)}</td><td>${$s(travail.phone)}</td><td class="longtext">${$s(travail.description)}</td><td class="overflowable"><button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="edit">Éditer</button><button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="print">Imprimer</button><button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="delete">Supprimer</button></td>`
-                tr.addEventListener('click', (event) => {
-                  if (event.target.nodeName === 'BUTTON') {
-                    handleTravailButton(event)
-                  }
+                .forEach((travail) => {
+                  if (oddEven === 'odd') { oddEven = 'even' } else { oddEven = 'odd' }
+                  const tr = document.createElement('TR')
+                  tr.classList.add(oddEven)
+                  tr.innerHTML = `<td data-sort-value="${$s(travail.reference)}">${$s(travail.reference)}</td><td>${$s(travail.meeting)}</td><td>${$s(travail.contact)}</td><td>${$s(travail.phone)}</td><td class="longtext">${$s(travail.description)}</td><td class="overflowable"><button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="edit">Éditer</button><button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="print">Imprimer</button><button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="delete">Supprimer</button></td>`
+                  tr.addEventListener('click', (event) => {
+                    if (event.target.nodeName === 'BUTTON') {
+                      handleTravailButton(event)
+                    }
+                  })
+                  subTable.appendChild(tr)
                 })
-                subTable.appendChild(tr)
-              })
-           }
+            }
 
-           let sub = document.createElement('TR')
-           sub.dataset.sortIgnore = true
-           sub.setAttribute('data-parent-id', entry.id)
-           sub.classList.add('sub')
-           sub.innerHTML = '<td colspan="4"></td>'
-           sub.firstElementChild.appendChild(subTable)
-           frag.appendChild(sub)
-         }
-         
-         let td = document.createElement('TD')
-         td.appendChild(newTravail)
-         td.appendChild(editButton)
-         td.appendChild(exportButton)
-         td.appendChild(printButton)
-         td.appendChild(closeButton)
-         td.appendChild(delButton)
-         
-         tr.appendChild(td)
-         tr.firstElementChild.addEventListener('click', (evt) => {
-           showHideTravaux(evt.target)
-         }, {capture: true})
-         
-         resolve(frag)
-       })
-     } else {
-       reject()
-     }
-   })
-}
+            let sub = document.createElement('TR')
+            sub.dataset.sortIgnore = true
+            sub.setAttribute('data-parent-id', entry.id)
+            sub.classList.add('sub')
+            sub.innerHTML = '<td colspan="4"></td>'
+            sub.firstElementChild.appendChild(subTable)
+            frag.appendChild(sub)
+          }
 
- function showHideTravaux (node) {
-   if (typeof node === 'string') {
-     let table = document.getElementById('projects')
-     let tbody = table.firstElementChild
-     
-     while (tbody && tbody.nodeName !== 'TBODY') { tbody = tbody.nextElementSibling }
-     for (let i = tbody.firstElementChild; i; i = i.nextElementSibling) {
-       if (node === i.dataset.id) {
-         node = i
-         break
-       }
-     }
-   }
-   
-   for (; node && node.nodeName !== 'TR'; node = node.parentNode) ;
-   if (node && node.dataset && node.dataset.id) {
-     let sub = node.nextElementSibling
-     let open = false
-     for(; sub && sub.dataset.parentId && sub.dataset.parentId === node.dataset.id; sub = sub.nextElementSibling) {
-       if (!sub.dataset.open) {
-         sub.dataset.open = '1'
-         open = true
-       } else {
-         if (sub.dataset.open === '1') {
-           if (arguments[1]) { return }
-           sub.dataset.open = '0'
-         } else {
-           sub.dataset.open = '1';
-           open = true
-         }
-       }
+          let td = document.createElement('TD')
+          td.appendChild(newTravail)
+          td.appendChild(editButton)
+          td.appendChild(exportButton)
+          td.appendChild(printButton)
+          td.appendChild(closeButton)
+          td.appendChild(delButton)
 
-       if (open) {
-         node.firstElementChild.firstElementChild.innerHTML = '&#9207;'
-       } else {
-         node.firstElementChild.firstElementChild.innerHTML = '&#9205;'
-       }
-     }
-   }
- }
- 
- function replaceAddEntry (tr, id) {
-   let table = document.getElementById('projects')
-   let tbody = table.firstElementChild
+          tr.appendChild(td)
+          tr.firstElementChild.addEventListener('click', (evt) => {
+            showHideTravaux(evt.target)
+          }, { capture: true })
 
-   while (tbody && tbody.nodeName !== 'TBODY') { tbody = tbody.nextElementSibling }
-   for (let n = tbody.firstElementChild; n; n = n.nextSibling) {
-     if (n.dataset && n.dataset.parentId && String(n.dataset.parentId) === String(id)) {
-       for (let i = 0; i < tr.children.length; i++) {
-         if (tr.children[i] && tr.children[i].dataset && String(tr.children[i].dataset.parentId) === String(id)) {
-           tr.children[i].dataset.open = n.dataset.open ? n.dataset.open : '0'
-         }
-       }
-       n.parentNode.removeChild(n)
-       break
-     }
-   }
-   return Admin.insertEntry(tr, table, id)
- }
-
- function cleanTbody(table) {
-   return new Promise(function (resolve, reject) {
-     let tbody = table.firstElementChild
-     while (tbody && tbody.nodeName !== 'TBODY') { tbody = tbody.nextElementSibling }
-     if (tbody) {
-       window.requestAnimationFrame(function () {
-         tbody.innerHTML = ''
-         resolve();
-       })
-     }
-   })
- }
-
-function UIKADisplayProject (project) {
-  return new Promise ((resolve, reject) => {
-    new Promise ((resolve) => {
-      if (typeof project === 'object') {
-        resolve(KAProject.create(project))
+          resolve(frag)
+        })
       } else {
-        KAProject.load(project)
-        .then(kaproject => {
-          resolve(kaproject)
+        reject()
+      }
+    })
+  }
+
+  function showHideTravaux(node) {
+    if (typeof node === 'string') {
+      let table = document.getElementById('projects')
+      let tbody = table.firstElementChild
+
+      while (tbody && tbody.nodeName !== 'TBODY') { tbody = tbody.nextElementSibling }
+      for (let i = tbody.firstElementChild; i; i = i.nextElementSibling) {
+        if (node === i.dataset.id) {
+          node = i
+          break
+        }
+      }
+    }
+
+    for (; node && node.nodeName !== 'TR'; node = node.parentNode);
+    if (node && node.dataset && node.dataset.id) {
+      let sub = node.nextElementSibling
+      let open = false
+      for (; sub && sub.dataset.parentId && sub.dataset.parentId === node.dataset.id; sub = sub.nextElementSibling) {
+        if (!sub.dataset.open) {
+          sub.dataset.open = '1'
+          open = true
+        } else {
+          if (sub.dataset.open === '1') {
+            if (arguments[1]) { return }
+            sub.dataset.open = '0'
+          } else {
+            sub.dataset.open = '1';
+            open = true
+          }
+        }
+
+        if (open) {
+          node.firstElementChild.firstElementChild.innerHTML = '&#9207;'
+        } else {
+          node.firstElementChild.firstElementChild.innerHTML = '&#9205;'
+        }
+      }
+    }
+  }
+
+  function replaceAddEntry(tr, id) {
+    let table = document.getElementById('projects')
+    let tbody = table.firstElementChild
+
+    while (tbody && tbody.nodeName !== 'TBODY') { tbody = tbody.nextElementSibling }
+    for (let n = tbody.firstElementChild; n; n = n.nextSibling) {
+      if (n.dataset && n.dataset.parentId && String(n.dataset.parentId) === String(id)) {
+        for (let i = 0; i < tr.children.length; i++) {
+          if (tr.children[i] && tr.children[i].dataset && String(tr.children[i].dataset.parentId) === String(id)) {
+            tr.children[i].dataset.open = n.dataset.open ? n.dataset.open : '0'
+          }
+        }
+        n.parentNode.removeChild(n)
+        break
+      }
+    }
+    return Admin.insertEntry(tr, table, id)
+  }
+
+  function cleanTbody(table) {
+    return new Promise(function (resolve, reject) {
+      let tbody = table.firstElementChild
+      while (tbody && tbody.nodeName !== 'TBODY') { tbody = tbody.nextElementSibling }
+      if (tbody) {
+        window.requestAnimationFrame(function () {
+          tbody.innerHTML = ''
+          resolve();
         })
       }
     })
-    .then(kaproject => {
-      KATravail.getByProject(kaproject.id)
-      .then(travaux => {
-        return new KAGroup(travaux)
+  }
+
+  function UIKADisplayProject(project) {
+    return new Promise((resolve, reject) => {
+      new Promise((resolve) => {
+        if (typeof project === 'object') {
+          resolve(KAProject.create(project))
+        } else {
+          KAProject.load(project)
+            .then(kaproject => {
+              resolve(kaproject)
+            })
+        }
       })
-      .then(travauxGroup => {
-        return newEntry(kaproject, travauxGroup)
+        .then(kaproject => {
+          KATravail.getByProject(kaproject.id)
+            .then(travaux => {
+              return new KAGroup(travaux)
+            })
+            .then(travauxGroup => {
+              return newEntry(kaproject, travauxGroup)
+            })
+            .then(tr => {
+              replaceAddEntry(tr, kaproject.id)
+              resolve(kaproject)
+            })
+            .catch(error => {
+              reject(error)
+            })
+        })
+    })
+  }
+
+  var t = null
+  async function load() {
+    const managerSelect = new KSelectUI(document.getElementById('manager'), new STPerson(), { allowFreeText: false, realSelect: true })
+    document.getElementById('rDef').addEventListener('click', genRef)
+    document.getElementById('rYear').addEventListener('click', genRef)
+    document.getElementById('inYear').value = String((new Date()).getFullYear())
+    var forms = document.getElementsByTagName('FORM')
+    forms[0].addEventListener('submit', function (event) {
+      event.preventDefault()
+      addProject(event)
+    })
+    let qPrj = fetch(`${KAAL.getBase()}/Project/_query`, { method: 'POST', body: JSON.stringify(searchBody) })
+
+    await cleanTbody(document.getElementById('projects'))
+    qPrj
+      .then(response => {
+        if (!response.ok) { throw new Error('Erreur serveur', {cause: response})}
+        return response.json()
       })
-      .then(tr => {
-        replaceAddEntry(tr, kaproject.id)
-        resolve(kaproject)
+      .then(result => {
+        if (!result.success) { throw new Error('Erreur serveur')}
+        let node
+        for (node = document.getElementById('projects').firstChild; node.nodeName !== 'TBODY'; node = node.nextSibling);
+        for (const entry of result.data) {
+          UIKADisplayProject(entry)
+        }
       })
       .catch(error => {
-        reject(error)
+        console.warn(error)
       })
+
+    if (t) { return }
+    t = new Artnum.DTable({
+      table: 'projects', postsort: (table) => {
+        for (let i = table.firstElementChild; i; i = i.nextElementSibling) {
+          if (i.dataset.parentId) {
+            for (let j = table.firstElementChild; j; j = j.nextElementSibling) {
+              if (j.dataset.id === i.dataset.parentId) {
+                j.parentNode.insertBefore(i, j.nextElementSibling)
+                break
+              }
+            }
+          }
+        }
+      }
     })
-  })
-}
-
- var t = null
- async function load () {
-   const managerSelect = new KSelectUI(document.getElementById('manager'), new STPerson(), {allowFreeText: false, realSelect: true})
-   document.getElementById('rDef').addEventListener('click', genRef)
-   document.getElementById('rYear').addEventListener('click', genRef)
-   document.getElementById('inYear').value = String((new Date()).getFullYear())
-   var forms = document.getElementsByTagName('FORM')
-   forms[0].addEventListener('submit', function (event) {
-     event.preventDefault()
-     addProject(event)
-   })
-   let qPrj = Artnum.Query.exec(Artnum.Path.url('Project', {params: searchParams}))
-
-   await cleanTbody(document.getElementById('projects'))
-   qPrj.then((res) => {
-     if (res.success) {
-       let node
-       for (node = document.getElementById('projects').firstChild; node.nodeName !== 'TBODY'; node = node.nextSibling);
-       for (const entry of res.data) {
-        UIKADisplayProject(entry)
-       }
-     }
-   })
-
-   if (t) { return }
-   t = new Artnum.DTable({table: 'projects', postsort: (table) => {
-     for (let i = table.firstElementChild; i; i = i.nextElementSibling) {
-       if (i.dataset.parentId) {
-         for (let j = table.firstElementChild; j; j = j.nextElementSibling) {
-           if (j.dataset.id === i.dataset.parentId) {
-             j.parentNode.insertBefore(i, j.nextElementSibling)
-             break
-           }
-         }
-       }
-     }
-   }})
- }
- window.addEventListener('kcore-loaded', load)
+  }
+  window.addEventListener('kcore-loaded', load)
 </script>
+
 </html>
