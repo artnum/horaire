@@ -101,24 +101,27 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
         $colorType = $status['data'][0]['color'];
       } 
     }
-    $reservations = $KAIROSClient->post(['affaire' => $_GET['travail'], 'deleted' => '--'], 'Reservation/_query');
+
     $begin = null;
     $end = null;
-    if ($reservations) {
-      foreach ($reservations['data'] as $r) {
-        if (!$r) { continue; }
-        if (!isset($r['begin']) || !isset($r['end'])) { continue; }
-        if ($r['status'] === $data['travail_status']) {
-          if ($begin === null || $end === null) {
-            $begin = new DateTime($r['begin']);
-            $end = new DateTime($r['end']);
-            continue;
-          }
-          if ($begin->getTimestamp() > (new DateTime($r['begin']))->getTimestamp()) {
-            $begin = new DateTime($r['begin']);
-          }
-          if ($end->getTimestamp() < (new DateTime($r['end']))->getTimestamp()) {
-            $end = new DateTime($r['end']);
+    if (isset($_GET['travail'])) {
+      $reservations = $KAIROSClient->post(['affaire' => $_GET['travail'], 'deleted' => '--'], 'Reservation/_query');
+      if ($reservations) {
+        foreach ($reservations['data'] as $r) {
+          if (!$r) { continue; }
+          if (!isset($r['begin']) || !isset($r['end'])) { continue; }
+          if ($r['status'] === $data['travail_status']) {
+            if ($begin === null || $end === null) {
+              $begin = new DateTime($r['begin']);
+              $end = new DateTime($r['end']);
+              continue;
+            }
+            if ($begin->getTimestamp() > (new DateTime($r['begin']))->getTimestamp()) {
+              $begin = new DateTime($r['begin']);
+            }
+            if ($end->getTimestamp() < (new DateTime($r['end']))->getTimestamp()) {
+              $end = new DateTime($r['end']);
+            }
           }
         }
       }
