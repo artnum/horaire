@@ -271,7 +271,8 @@
         method = 'PATCH'
       }
       return new Promise(function (resolve, reject) {
-        Artnum.Query.exec(Artnum.Path.url(store + '/' + id), {method: method, body: body}).then(function (result) {
+        Artnum.Query.exec(Artnum.Path.url(store + '/' + id), {method: method, body: body})
+        .then(function (result) {
           if (result.success) {
             var newid = id
             if (method !== 'DELETE' && result.length === 1) {
@@ -351,7 +352,11 @@
 
       popup.insertBefore(titleNode, popup.firstChild)
       let content = document.createElement('DIV')
-      content.innerHTML = html
+      if (html instanceof HTMLElement) {
+        content.appendChild(html)
+      } else {
+        content.innerHTML = html
+      }
       content.setAttribute('name', 'popup-content')
       if (options.classes && Array.isArray(options.classes)) {
         options.classes.forEach(c => {
@@ -445,6 +450,23 @@
       }
 
       return x
+    },
+    getUrl: function (parturl, params = {})  {
+      return new Promise((resolve, reject) => {
+        const klogin = new KLogin(KAAL.getBase())
+        const url = new URL(parturl, KAAL.getBase())
+        Object.keys(params).forEach(k => {
+          url.searchParams.append(k, params[k])
+        })
+        klogin.getShareableToken(url.toString(), '', 600, true)
+        .then((token) => {
+          url.searchParams.append('access_token', token)
+          resolve(url)
+        })
+        .catch(reason => {
+          reject(new Error('Error', {cause: reason}))
+        })
+      })
     }
   }
   global.Admin = admin

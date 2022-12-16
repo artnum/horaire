@@ -103,15 +103,16 @@
   }
 
   function exportAll() {
+    const params = {state: 'closed'}
     if (!searchBody.closed) {
-      window.open(Artnum.Path.url('admin/exec/export/proj.php', { params: { state: 'alive' } }))
-    } else {
-      if (searchBody.closed === '-') {
-        window.open(Artnum.Path.url('admin/exec/export/proj.php', { params: { state: 'open' } }))
-      } else {
-        window.open(Artnum.Path.url('admin/exec/export/proj.php', { params: { state: 'closed' } }))
-      }
+      params.state = 'alive'
+    } else if (searchBody.closed === '-') {
+      params.state = 'open'
     }
+    Admin.getUrl('admin/exec/export/proj.php', params)
+    .then(url => {
+      window.open(url)
+    })
   }
 
   function changeState(event) {
@@ -285,7 +286,15 @@
               .then(kaproject => {
                 showHideTravaux(kaproject.id, true)
                 if (event.detail && event.detail.print) {
-                  window.open(Artnum.Path.url('admin/exec/export/bon.php', { params: {pid: kaproject.id, travail: tid, auth: `Bearer ${localStorage.getItem('klogin-token')}` } }))
+                  const klogin = new KLogin(KAAL.getBase())
+                  const url = new URL('admin/exec/export/bon.php', KAAL.getBase())
+                  url.searchParams.append('pid', kaproject.id)
+                  url.searchParams.append('tid', tid)
+                  klogin.getShareableToken(url.toString())
+                  .then(token => {
+                    url.searchParams.append('access_token', `${token}`)
+                    window.open(url)
+                  })
                 }
               })
           } else {
@@ -394,14 +403,76 @@
 
   async function handleTravailButton(event) {
     let button = event.target
+    const klogin = new KLogin(KAAL.getBase())
 
     switch (button.dataset.action) {
       case 'edit':
         newTravailEvent(event)
         break
       case 'print':
-        window.open(Artnum.Path.url('admin/exec/export/bon.php', { params: { pid: button.dataset.project, travail: button.dataset.travail, auth: `Bearer ${localStorage.getItem('klogin-token')}` } }))
+        (() => {
+          Admin.getUrl('admin/exec/export/bon.php', {pid: button.dataset.project, travail: button.dataset.travail})
+          .then((url) => {
+            window.open(url)
+          })
+        })()
         break;
+      case 'share':
+        (() => {
+          const url = new URL('admin/exec/export/bon.php', KAAL.getBase())
+          url.searchParams.append('pid',  button.dataset.project)
+          url.searchParams.append('travail', button.dataset.travail)
+          new Promise((resolve, reject) => {
+            const form = document.createElement('FORM')
+            form.innerHTML = `
+              <label>Commentaire : <input type="text" name="comment" /></label><br>              
+              <label>Permanent: <input type="checkbox" name="permanent" /></label><br>
+              <label>Durée [h]: <input type="text" name="duration" value="24" /></label><br>
+              <button type="submit">Partager</button> <button type="reset">Annuler</button>
+            `
+            const popup = window.Admin.popup(form, 'Paramètre du partage')
+            form.addEventListener('submit', event => {
+              event.preventDefault()
+              const data = new FormData(event.target)
+              const params = {
+                comment: data.get('comment'),
+                duration: 86400,
+                permanent: false
+              }
+              if (data.has('permanent')) {
+                params.permanent = true
+                params.duration = 0
+              } else {
+                try {
+                  const hours = parseFloat(data.get('duration'))
+                  params.duration = Math.round(hours * 3600)
+                } catch(_) {
+                  // nothing
+                }
+              }
+              popup.close()
+              resolve(params)
+            })
+            form.addEventListener('reset', event => {
+              popup.close()
+              reject()
+            })
+          })
+          .then(params => {
+            return klogin.getShareableToken(url.toString(), params.comment, params.duration)
+          })
+          .then(token => {
+            url.searchParams.append('access_token', token)
+            return navigator.clipboard.writeText(url.toString())
+          })
+          .then(_ => {
+            alert('Copié dans le presse papier')
+          })
+          .catch(e => {
+            console.log(e)
+          })
+        })()
+        break
       case 'delete':
         Artnum.Query.exec(Artnum.Path.url(`Travail/${button.dataset.travail}`)).then((result) => {
           if (result.length === 1 && confirm(`Voulez-vous supprimer le travail ayant comme référence "${result.data.reference}" ?`)) {
@@ -577,7 +648,10 @@
         exportButton.addEventListener('click', function (event) {
           if (event && event.target) {
             for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
-            window.open(Artnum.Path.url('admin/exec/export/project.php', { params: { pid: node.getAttribute('data-id') } }))
+            Admin.getUrl('admin/exec/export/project.php', { pid: node.getAttribute('data-id') })
+            .then(url => {
+              window.open(url)
+            })
           }
         })
         exportButton.innerHTML = 'Exporter'
@@ -587,7 +661,10 @@
         printButton.addEventListener('click', function (event) {
           if (event && event.target) {
             for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
-            window.open(Artnum.Path.url('admin/exec/export/bon.php', { params: { pid: node.getAttribute('data-id'), auth: `Bearer ${localStorage.getItem('klogin-token')}` } }))
+            Admin.getUrl('admin/exec/export/bon.php', { pid: node.getAttribute('data-id') })
+            .then(url => {
+              window.open(url)
+            })
           }
         })
         printButton.innerHTML = 'Imprimer'
@@ -651,7 +728,18 @@
                   if (oddEven === 'odd') { oddEven = 'even' } else { oddEven = 'odd' }
                   const tr = document.createElement('TR')
                   tr.classList.add(oddEven)
-                  tr.innerHTML = `<td data-sort-value="${$s(travail.reference)}">${$s(travail.reference)}</td><td>${$s(travail.meeting)}</td><td>${$s(travail.contact)}</td><td>${$s(travail.phone)}</td><td class="longtext">${$s(travail.description)}</td><td class="overflowable"><button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="edit">Éditer</button><button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="print">Imprimer</button><button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="delete">Supprimer</button></td>`
+                  tr.innerHTML = `
+                    <td data-sort-value="${$s(travail.reference)}">${$s(travail.reference)}</td>
+                    <td>${$s(travail.meeting)}</td>
+                    <td>${$s(travail.contact)}</td>
+                    <td>${$s(travail.phone)}</td>
+                    <td class="longtext">${$s(travail.description)}</td>
+                    <td class="overflowable">
+                      <button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="edit">Éditer</button>
+                      <button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="print">Imprimer</button>
+                      <button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="share">Partager PDF</button>
+                      <button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="delete">Supprimer</button>
+                    </td>`
                   tr.addEventListener('click', (event) => {
                     if (event.target.nodeName === 'BUTTON') {
                       handleTravailButton(event)

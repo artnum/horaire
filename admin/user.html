@@ -84,12 +84,6 @@
   const base = window.location.pathname.split('/')
   while (!base[0]) { base.shift() }
   const KLoginInstance = (new KLogin(new URL(`${window.location.origin}/${base.shift()}/`)))
-  function makeKey(password) {
-    var iteration = Math.floor(Math.random() * 1000) + 2000 // between 2000 and 2999 iteration
-    var salt = sjcl.random.randomWords(4, 2)
-    var outpass = sjcl.misc.pbkdf2(password, salt, iteration)
-    return { key: sjcl.codec.base64.fromBits(outpass), keyopt: String(iteration) + ' ' + sjcl.codec.base64.fromBits(salt) }
-  }
 
   function editUser(userId) {
     return new Promise((resolve, reject) => {
@@ -179,36 +173,50 @@
               return
             }
             body.level = parseInt(body.level)
-
+            let passGenerationPromise = Promise.resolve({})
             if (content.password) {
               if (content.password.length < 6) {
                 alert('Mot de passe trop court, veuillez entrer au moins 6 caractères')
                 return
               }
-              Object.assign(body, makeKey(content.password))
+              passGenerationPromise = new Promise((resolve, reject) => {
+                KLoginInstance.genPassword(content.password)
+                .then(pass => {
+                  resolve ({
+                    key: pass.derived,
+                    keyopt: `${pass.iterations} ${pass.salt}`
+                  })
+                })
+              })
+              
               disconnect = true
             }
             if (content.user) { body.id = content.user }
-            Artnum.Query.exec(Artnum.Path.url(`Person/${content.user}`), { method: body.id ? 'PATCH' : 'POST', body: body }).then((result) => {
-              if (result.success) {
-                let uid = result.data[0].id
-                Artnum.Query.exec(Artnum.Path.url(`Person/${uid}`))
-                  .then((result) => {
-                    if (!result.success || result.length !== 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
-                    if (disconnect) { KLoginInstance.disconnect(userId) }
 
-                    const entry = Array.isArray(result.data) ? result.data[0] : result.data
-                    entry._connections = []
-                    newEntry(entry)
-                      .then((html) => {
-                        replaceAddEntry(html)
-                        let p = event.target
-                        while (p && !p.classList.contains('popup')) { p = p.parentNode }
-                        p.dispatchEvent(new CustomEvent('close'))
-                        resolve()
-                      })
-                  })
-              }
+            passGenerationPromise
+            .then(passOptions => {
+              Object.assign(body, passOptions)
+              Artnum.Query.exec(Artnum.Path.url(`Person/${content.user}`), { method: body.id ? 'PATCH' : 'POST', body: body }).then((result) => {
+                if (result.success) {
+                  let uid = result.data[0].id
+                  Artnum.Query.exec(Artnum.Path.url(`Person/${uid}`))
+                    .then((result) => {
+                      if (!result.success || result.length !== 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
+                      if (disconnect) { KLoginInstance.disconnectAll(userId) }
+
+                      const entry = Array.isArray(result.data) ? result.data[0] : result.data
+                      entry._connections = []
+                      newEntry(entry)
+                        .then((html) => {
+                          replaceAddEntry(html)
+                          let p = event.target
+                          while (p && !p.classList.contains('popup')) { p = p.parentNode }
+                          p.dispatchEvent(new CustomEvent('close'))
+                          resolve()
+                        })
+                    })
+                }
+              })
             })
           })
         })
@@ -225,9 +233,11 @@
           const popup = window.Admin.popup(`<form>
         <input type="hidden" value="${userId}" name="user" />
         <table>
-          <tr><th>Temps</th><th>Navigateur</th><th>Adresse IP</th><th>Nom d'hote</th></tr>
+          <tr><th>Temps</th><th>Navigateur</th><th>Adresse IP</th><th>Nom d'hote</th><th>Partage</th><th>Jusqu'à</th><th>URL</th><th>Commentaire</th><th></th></tr>
         </table>
-        <button type="submit">Déconnecter</button>
+        <button value="dis-user" type="submit">Déconnecter utilisateur</button>
+        <button value="dis-share" type="submit">Déconnecter partages</button>
+        <button value="dis-all" type="submit">Déconnecter tout</button>
         </form>
         `, `Connections pour ${username}`, { closable: true })
 
@@ -235,18 +245,79 @@
           form.addEventListener('submit', event => {
             event.preventDefault()
             const data = new FormData(event.target)
-            KLoginInstance.disconnect(data.get('user'))
-              .then(_ => {
-                getUser(data.get('user'))
-                popup.close()
-              })
+            switch(event.submitter.value) {
+              default:
+                if (!String(event.submitter.value).startsWith('dis-one-')) { break; }
+                const parts = String(event.submitter.value).split('-')
+                KLoginInstance.disconnectById(parts.pop())
+                .then(_ => {
+                  getUser(data.get('user'))
+                  popup.close()
+                })
+                break
+              case 'dis-user':
+                KLoginInstance.disconnect(data.get('user'))
+                .then(_ => {
+                  getUser(data.get('user'))
+                  popup.close()
+                })
+                break;
+              case 'dis-all':
+                KLoginInstance.disconnectAll(data.get('user'))
+                .then(_ => {
+                  getUser(data.get('user'))
+                  popup.close()
+                })
+                break;
+              case 'dis-share':
+                KLoginInstance.disconnectShare(data.get('user'))
+                .then(_ => {
+                  getUser(data.get('user'))
+                  popup.close()
+                })
+                break;
+            }
           })
           const table = popup.getElementsByTagName('TABLE')[0]
           for (const connection of connections) {
             const time = new Date()
+            let url = ''
+            let share = 'Non'
+            let duration = parseInt(connection.duration)
+            switch(parseInt(connection.share)) {
+              case 1: 
+                const aUrl1 = new URL(`https://${connection.url}`)
+                aUrl1.searchParams.append('access_token', connection.auth)
+                share = 'Permanent'; 
+                duration = -1; 
+                url = `<a href="${aUrl1.toString()}">${connection.url}</a>`
+                break
+              case 2:
+                const aUrl2 = new URL(`https://${connection.url}`)
+                aUrl2.searchParams.append('access_token', connection.auth)
+                share = 'Temporaire';
+                url = `<a href="${aUrl2.toString()}">${connection.url}</a>`
+                break
+            }
+            time.setTime(parseInt(connection.time) * 1000)
+            if (duration === -1) { duration = '' }
+            else {
+              const upto = new Date()
+              upto.setTime(time.getTime() + (parseInt(connection.duration) * 1000))
+              duration = upto.toLocaleString()
+            }
             time.setTime(parseInt(connection.time) * 1000)
             const tr = document.createElement('TR')
-            tr.innerHTML = `<td>${time.toLocaleString()}</td><td class="ka-ua">${connection.useragent}</td><td>${connection.remoteip}</td><td>${connection.remotehost}</td>`
+            tr.innerHTML = `
+              <td>${time.toLocaleString()}</td>
+              <td class="ka-ua">${connection.useragent}</td>
+              <td>${connection.remoteip}</td>
+              <td>${connection.remotehost}</td>
+              <td>${share}</td>
+              <td>${duration}</td>
+              <td>${url}</td>
+              <td>${connection.comment}</td>
+              <td><button value="dis-one-${connection.uid}" type="submit">Déconnecter</button></type>`
             table.appendChild(tr)
           }
         })
@@ -320,6 +391,7 @@
       event.preventDefault()
       var user = { name: null, efficiency: 1.0, key: null, keyopt: null, password: null, admin: false, user: false, username: null, order: 0, workday: 'nyyyyyn' }
 
+      let genPasswordPromise = Promise.resolve({})
       let workday = ['n', 'y', 'y', 'y', 'y', 'y', 'n']
         ;['INPUT', 'SELECT'].forEach((ename) => {
           let inputs = event.target.getElementsByTagName(ename)
@@ -338,9 +410,15 @@
                 break
               case 'password':
                 user.password = inputs[i].value
-                var key = makeKey(user.password)
-                user.key = key.key
-                user.keyopt = key.keyopt
+                genPasswordPromise = new Promise((resolve, reject) => {
+                  KLoginInstance.genPassword(user.password)
+                  .then(pass => {
+                    resolve({
+                      key: pass.derived,
+                      keyopt: `${pass.iterations} ${pass.salt}`
+                    })
+                  })
+                })
                 inputs[i].value = ''
                 break
               case 'level':
@@ -368,18 +446,20 @@
         alert('Nom d\'utilisateur est déjà pris')
         return
       }
-
-      if (user.key && user.name && user.keyopt && user.username && user.level) {
-        Artnum.Query.exec(Artnum.Path.url('Person'), { method: 'POST', body: { order: user.order, level: user.level, name: user.name, key: user.key, keyopt: user.keyopt, username: user.username, workday: user.workday } }).then(function (result) {
-          if (!result.success && result.length !== 1) {
-            alert('Erreur de création des utilisateur')
-          } else {
-            Artnum.Query.exec(Artnum.Path.url('Person/' + result.data[0].id)).then(function (result) {
-              loadUsers()
-            })
-          }
-        })
-      }
+      genPasswordPromise.then(pass => {
+        Object.assign(user, pass)
+        if (user.key && user.name && user.keyopt && user.username && user.level) {
+          Artnum.Query.exec(Artnum.Path.url('Person'), { method: 'POST', body: { order: user.order, level: user.level, name: user.name, key: user.key, keyopt: user.keyopt, username: user.username, workday: user.workday } }).then(function (result) {
+            if (!result.success && result.length !== 1) {
+              alert('Erreur de création des utilisateur')
+            } else {
+              Artnum.Query.exec(Artnum.Path.url('Person/' + result.data[0].id)).then(function (result) {
+                loadUsers()
+              })
+            }
+          })
+        }
+      })
     })
     const UserTable = new Artnum.DTable({ table: 'users' })
     window.addEventListener('update', (event) => {
@@ -536,7 +616,7 @@
         if (!result.success || result.length !== 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
         let user = Array.isArray(result.data) ? result.data[0] : result.data
         if (confirm(`Voulez-vous vraiment supprimer l'utilisateur ${user.name} ?`)) {
-          KLoginInstance.disconnect(userId)
+          KLoginInstance.disconnectAll(userId)
           Artnum.Query.exec(Artnum.Path.url(`Person/${user.id}`), { method: 'DELETE', body: { id: user.id } }).then((result) => {
             if (result.success) { resolve(); return }
             reject()

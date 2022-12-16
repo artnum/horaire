@@ -71,9 +71,9 @@
     <input type="submit" value="Ajouter" />
   </form>
   <h2>Factures enregistrées</h2>
-  <div style="font-weight: bold; font-size: 16pt;"><a href="exec/export/bill.php" target="_blank">Exportation pour paiment</a></div>
+  <div style="font-weight: bold; font-size: 16pt;"><a href="exec/export/bill.php" onclick="doExport()" target="_blank">Exportation pour paiment</a></div>
   <div><form method="POST" onsubmit="doImport(event)" action="exec/import/bill.php" enctype="multipart/form-data"><input type="file" name="gfimport"><input type="submit" value="Reimportation"></form></div>
-  <div style="font-weight: bold; font-size: 16pt;"><a href="exec/export/bill.php?paid=1" target="_blank">Exportation facture payée</a></div>
+  <div style="font-weight: bold; font-size: 16pt;"><a href="exec/export/bill.php?paid=1" onclick="doExport({paid: 1})" target="_blank">Exportation facture payée</a></div>
   <br>
   <label><input type="radio" onchange="factureCre()" checked="checked"  name="type"> Créancier</label>
   <label><input type="radio" onchange="factureDeb()" name="type"> Débiteur</label>
@@ -122,104 +122,115 @@
   const address = new Address(document.getElementById('address'))
 </script>
 <script>
+  function doExport(params = {}) {
+    event.preventDefault()
+    Admin.getUrl('admin/exec/export/bill.php', params)
+    .then(url => {
+      window.open(url)
+    })
+  }
   function doImport(event) {
     let resDiv = Admin.popup('', 'Importation', {closable: true, supClasses: ['import']})
     event.preventDefault();
     let fd = new FormData(event.target)
-    fetch(new URL(`${KAAL.getBase()}/admin/exec/import/bill.php`), {method: 'POST', body: fd}).then(response => {
-      if (!response.ok) {
-        KAAL.error('Erreur d\'envoi du fichier')
-      } else {
-        response.json().then(result => {
-            resDiv.innerHTML = '<div>Importation effectuée ...</div>'
-            for (let i in result) {
-              let op = result[i]
-              if (op.type === 'none') { continue; } // nothing done
-              let opname = ''
-              switch (op.op) {
-                case 'update': opname = 'Mise à jour'; break
-                case 'add': opname = 'Ajout'; break
-                case 'delete': opname = 'Suppression'; break
-              }
-              let d = document.createElement('DIV')
-              switch (op.type) {
-                case 'facture':
-                  d.innerHTML = `Facture ${op.reference}`
-                  if (!op.options) {
-                    d.innerHTML += ` ${op.success ? 'ok' : 'échec'}`
-                  } else {
-                    if (op.options.client) {
-                      d.innerHTML += ` ${op.success ? 'ok' : 'échec'}, client trouvé pour "${op.options.original}"`
+    Admin.getUrl('/admin/exec/import/bill.php')
+    .then(url => {
+      fetch(url, {method: 'POST', body: fd})
+      .then(response => { 
+        if (!response.ok) {
+          KAAL.error('Erreur d\'envoi du fichier')
+        } else {
+          response.json().then(result => {
+              resDiv.innerHTML = '<div>Importation effectuée ...</div>'
+              for (let i in result) {
+                let op = result[i]
+                if (op.type === 'none') { continue; } // nothing done
+                let opname = ''
+                switch (op.op) {
+                  case 'update': opname = 'Mise à jour'; break
+                  case 'add': opname = 'Ajout'; break
+                  case 'delete': opname = 'Suppression'; break
+                }
+                let d = document.createElement('DIV')
+                switch (op.type) {
+                  case 'facture':
+                    d.innerHTML = `Facture ${op.reference}`
+                    if (!op.options) {
+                      d.innerHTML += ` ${op.success ? 'ok' : 'échec'}`
                     } else {
-                      if (op.options.proximity.length <= 0) {
-                        d.innerHTML += ` ${op.success ? 'ok' : 'échec'}, aucun client trouvé pour "${op.options.original}"`
+                      if (op.options.client) {
+                        d.innerHTML += ` ${op.success ? 'ok' : 'échec'}, client trouvé pour "${op.options.original}"`
                       } else {
-                        d.dataset.addMe = true
-                        d.innerHTML += ` ${op.success ? 'ok' : 'échec'}, choisir client pour "${op.options.original}"`
-                        let ul = document.createElement('ul')
-                        ul.dataset.id = op.id
-                        let i = 0                   
-                        for (let k in op.options.proximity) {
-                          let e = op.options.proximity[k]
-                          let li = document.createElement('LI')
-                          li.innerHTML = `<a href="#">${e[0]}</a>`
-                          li.dataset.id = k
-                          ul.appendChild(li)
-                          if (i === 10) {
+                        if (op.options.proximity.length <= 0) {
+                          d.innerHTML += ` ${op.success ? 'ok' : 'échec'}, aucun client trouvé pour "${op.options.original}"`
+                        } else {
+                          d.dataset.addMe = true
+                          d.innerHTML += ` ${op.success ? 'ok' : 'échec'}, choisir client pour "${op.options.original}"`
+                          let ul = document.createElement('ul')
+                          ul.dataset.id = op.id
+                          let i = 0                   
+                          for (let k in op.options.proximity) {
+                            let e = op.options.proximity[k]
                             let li = document.createElement('LI')
-                            li.innerHTML = ' ... plus .... '
+                            li.innerHTML = `<a href="#">${e[0]}</a>`
+                            li.dataset.id = k
                             ul.appendChild(li)
-                            li.addEventListener('click', event => {
-                              let n = event.target
-                              event.stopPropagation()
-                              event.preventDefault()
-                              let i = n.nextElementSibling
-                              n.parentNode.removeChild(n)
-                              while (i) {
-                                i.classList.remove('more')
-                                i = i.nextElementSibling
-                              }
-                            })
-                          } else {
-                            li.addEventListener('click', (event) => {
-                              let li = event.target
-                              while (li && li.nodeName !== 'LI') { li = li.parentNode }
-                              if (!li) { return }
-                              let ul = li
-                              while (ul && ul.nodeName !== 'UL') { ul = ul.parentNode }
-                              if (!ul) { return }
-                              ul.classList.add('inprogress')
-                              fetch(new URL(`${KAAL.getBase()}/Facture/${ul.dataset.id}`), {method: 'PATCH', body: JSON.stringify({
-                                id: ul.dataset.id,
-                                person: li.dataset.id
-                              })}).then(response => {
-                                if (response.ok) {
-                                  ul.parentNode.removeChild(ul)
+                            if (i === 10) {
+                              let li = document.createElement('LI')
+                              li.innerHTML = ' ... plus .... '
+                              ul.appendChild(li)
+                              li.addEventListener('click', event => {
+                                let n = event.target
+                                event.stopPropagation()
+                                event.preventDefault()
+                                let i = n.nextElementSibling
+                                n.parentNode.removeChild(n)
+                                while (i) {
+                                  i.classList.remove('more')
+                                  i = i.nextElementSibling
                                 }
                               })
-                            })
+                            } else {
+                              li.addEventListener('click', (event) => {
+                                let li = event.target
+                                while (li && li.nodeName !== 'LI') { li = li.parentNode }
+                                if (!li) { return }
+                                let ul = li
+                                while (ul && ul.nodeName !== 'UL') { ul = ul.parentNode }
+                                if (!ul) { return }
+                                ul.classList.add('inprogress')
+                                fetch(new URL(`${KAAL.getBase()}/Facture/${ul.dataset.id}`), {method: 'PATCH', body: JSON.stringify({
+                                  id: ul.dataset.id,
+                                  person: li.dataset.id
+                                })}).then(response => {
+                                  if (response.ok) {
+                                    ul.parentNode.removeChild(ul)
+                                  }
+                                })
+                              })
+                            }
+                            if (i > 10) { 
+                              li.classList.add('more')
+                            }
+                            i++
                           }
-                          if (i > 10) { 
-                            li.classList.add('more')
-                          }
-                          i++
+                          d.appendChild(ul)
                         }
-                        d.appendChild(ul)
                       }
                     }
-                  }
-                
-                  break
-                case 'repartition':                  
-                  d.innerHTML = `Répartition ${opname} ${op.success ? 'ok' : op.msg} `
-                  break
+                  
+                    break
+                  case 'repartition':                  
+                    d.innerHTML = `Répartition ${opname} ${op.success ? 'ok' : op.msg} `
+                    break
+                }
+                if (d.dataset.addMe) {
+                  resDiv.appendChild(d)
+                }
               }
-              if (d.dataset.addMe) {
-                 resDiv.appendChild(d)
-              }
-            }
-        })
-      }
+          })
+        }
+      })
     })
   }
   function SearchBill (param, term) {

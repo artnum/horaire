@@ -3,12 +3,23 @@ require('artnum/autoload.php');
 require('../../../lib/ini.php');
 require('../../../lib/dbs.php');
 require('../../../lib/urldn.php');
+require('../../../lib/auth.php');
 
 require('PHP_XLSXWriter/xlsxwriter.class.php');
 
 $project = 'tous';
+$BaseURL = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'];
 
 $ini_conf = load_ini_configuration();
+
+$authpdo = init_pdo($ini_conf, 'authdb');
+$KAuth = new KAALAuth($authpdo);
+
+if (!$KAuth->check_auth($KAuth->get_auth_token(), $BaseURL . '/' . $_SERVER['REQUEST_URI'])) {
+  http_response_code(401);
+  exit(0);
+}
+
 $db = init_pdo($ini_conf);
 if (is_null($db)) {
   throw new Exception('Storage database not reachable');
@@ -336,7 +347,8 @@ try {
       $SheetFacture['content'][] = ['Totaux', '', '', '=SUM(D2:D' . $line .  ')', '', '=SUM(F2:F' . $line .  ')']; 
    }
 
-   $total = $project['workcost'] + $amountByType[0] + $materielMontant;
+   $total = floatval($project['workcost']) + floatval($amountByType[0]) + floatval($materielMontant);
+   if ($total == 0) { $total = 1; }
 
    $writer->writeSheetRow('Résumé', ['Projet', $project['reference']], ['font-style' => 'bold']);
    $writer->writeSheetRow('Résumé', ['Responsable', $project['manager']]);
@@ -349,8 +361,10 @@ try {
    $writer->writeSheetRow('Résumé', ['dont'], ['font-style' => 'italic']);
    
    $i = 10;
+   $workcost = floatval($project['workcost']);
+   if ($workcost == 0) { $workcost = 1; }
    foreach ($processus as $k => $v) {
-      $writer->writeSheetRow('Résumé', ['',$k, strval(number_format(floatval($v) * 100 / floatval($project['workcost']), 2)) . ' %', $v, '', strval(number_format(floatval($v) * 100 / floatval($total), 2)) . ' %'], ['font-style' => 'italic'], ['string', 'string', 'string', 'price', 'string', 'string']);
+      $writer->writeSheetRow('Résumé', ['',$k, strval(number_format(floatval($v) * 100 / $workcost, 2)) . ' %', $v, '', strval(number_format(floatval($v) * 100 / $total, 2)) . ' %'], ['font-style' => 'italic'], ['string', 'string', 'string', 'price', 'string', 'string']);
       $i++;
    }
    $writer->writeSheetRow('Résumé', ['']);

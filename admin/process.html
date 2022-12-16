@@ -44,15 +44,15 @@
 <script src="js/admin.js"></script>
 <script>
 
-var searchParams = {'search.deleted': '-'}
+var searchParams = {'search.deleted': '0'}
 
 function changeState (event) {
   switch(event.target.id) {
     case 'stateOpen': 
-      searchParams['search.deleted'] = '-'
+      searchParams['search.deleted'] = '0'
       break;
     case 'stateClosed':
-      searchParams['search.deleted'] = '*'
+      searchParams['search.deleted'] = '>0'
       break;
     case 'stateAny': 
       delete searchParams['search.deleted']
@@ -195,9 +195,9 @@ async function evEditLine (event) {
           body[inputs[i].getAttribute('name')] = inputs[i].value
         }
 
-        var res = await Artnum.Query.exec(Artnum.Path.url(dataSource + '/' + body.id), {method: 'PATCH', body: body})
+        var res = await Artnum.Query.exec(Artnum.Path.url('../../planning/store/Status/' + body.id), {method: 'PATCH', body: body})
         if (res.success && res.length === 1) {
-          res = await Artnum.Query.exec(Artnum.Path.url(dataSource + '/' + res.data[0].id))
+          res = await Artnum.Query.exec(Artnum.Path.url('../../planning/store/Status/' + res.data[0].id))
           if (res.success && res.length === 1) {
             replaceAddEntry(newEntry(Array.isArray(res.data) ? res.data[0] : res.data))
           }
@@ -218,7 +218,7 @@ function newEntry (entry, edit = false) {
     closeButton.setAttribute('type', 'button')
     closeButton.setAttribute('data-id', entry.id)
 
-    if (entry.deleted === null) {
+    if (entry.deleted === '0') {
       closeButton.innerHTML = 'Supprimer'
       closeButton.addEventListener('click', evDeleteProcess)
     } else {
@@ -249,7 +249,7 @@ function replaceAddEntry (tr) {
 }
 
  async function load () {
-   let res = await Artnum.Query.exec(Artnum.Path.url('Process', {params: searchParams}))
+   let res = await kafetch('../../planning/store/Status/_query', {method: 'POST', body: JSON.stringify({type: 1})})
    if (res.success) {
      let  table = document.getElementById('projects')
      res.data.forEach(function (entry) {

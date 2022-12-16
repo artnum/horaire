@@ -2,6 +2,7 @@
 include('artnum/autoload.php');
 require('../../../lib/ini.php');
 require('../../../lib/dbs.php');
+require('../../../lib/auth.php');
 
 
 include('pdf.php');
@@ -12,11 +13,19 @@ $path = explode('/', $_SERVER['PHP_SELF']);
 for ($i = 0; $i < 4; $i++) {
   array_pop($path);
 }
+$BaseURL = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'];
+$ServerURL = $BaseURL . implode('/', $path);
 
-$ServerURL = $_SERVER['REQUEST_SCHEME'] .
-'://' .
-$_SERVER['SERVER_NAME'] .
-implode('/', $path);
+
+$ini_conf = load_ini_configuration();
+$pdo = init_pdo($ini_conf);
+$authpdo = init_pdo($ini_conf, 'authdb');
+$KAuth = new KAALAuth($authpdo);
+
+if (!$KAuth->check_auth($KAuth->get_auth_token(), $BaseURL . '/' . $_SERVER['REQUEST_URI'])) {
+  http_response_code(401);
+  exit(0);
+}
 
 $JClient = new artnum\JRestClient(
   $_SERVER['REQUEST_SCHEME'] .
@@ -24,17 +33,10 @@ $JClient = new artnum\JRestClient(
   $_SERVER['SERVER_NAME'] .
   implode('/', $path));
 
-if (!empty($_GET['auth'])) {
-  $JClient->setAuth($_GET['auth']);
-}
-
-$ini_conf = load_ini_configuration();
-$pdo = init_pdo($ini_conf);
+$JClient->setAuth($ini_conf['security']['authproxy']);
 
 $KAIROSClient = new artnum\JRestClient($ini_conf['kairos']['url'] . '/store/');
-if (!empty($_GET['auth'])) {
-  $KAIROSClient->setAuth($_GET['auth']);
-}
+$KAIROSClient->setAuth($ini_conf['security']['authproxy']);
 
 if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
   $st = $pdo->prepare('SELECT * FROM "project" WHERE "project_id" = :id');
@@ -86,7 +88,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       $uri = explode('/', $data['project_client']);
       if (count($uri) === 2) {
         $result = $JClient->get($uri[1], $uri[0]);
-        if ($result['length'] === 1) {
+        if (is_array($result) && $result['length'] === 1) {
           $client = $result['data'][0];
         }
       }

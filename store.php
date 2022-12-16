@@ -5,6 +5,7 @@ require('lib/dbs.php');
 require('conf/wesrv.php');
 require('wesrv/lib/msg.php');
 require('lib/auth.php');
+require('lib/user.php');
 
 use artnum\JStore\ACL;
 use artnum\JStore\SQLAudit;
@@ -63,8 +64,16 @@ if (!empty($_SERVER['HTTP_X_CLIENT_ID'])) {
   $KConf->setVar('clientid', '');
 }
 
-/* Authorization */
+$user = new KUser($pdo);
+
+/* Authentication */
 $kauth = new KAALAuth($pdo);
+
+if ($http_request->getCollection() === '.auth') {
+  $kauth->run($http_request->getItem(), $user);
+  exit(0);
+}
+
 if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
   if (!($http_request->getCollection() === 'Person' && $http_request->getItem() === '_query')) {
     http_response_code(401);
@@ -79,7 +88,7 @@ if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
     }
   }
 
-  if (!$kauth->check_auth(trim($authContent[1]))) {
+  if (!$kauth->check_auth(trim($authContent[1]), $http_request->getUrl())) {
     if (!($http_request->getCollection() === 'Person' && $http_request->getItem() === '_query')) {
       http_response_code(401);
       exit(0);
@@ -87,20 +96,19 @@ if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
   }
 }
 
-/* Access */
+/* Authorization */
 $acl = new ACL([]);
 
 $acl->addRule('*', -1, ACL::LEVEL_ANY, true);
 
-$store->init($KConf);
+/* Accounting */
+$audit = new SQLAudit($logpdo, true);
 
+$store->init($KConf);
 if ($acl->check($store->getCollection(), $kauth->get_current_userid(), $store->getOperation(), $store->getOwner())) {
   $store->setAcl($acl);
   [$request, $response] = $store->run($KConf);
-  
-  $audit = new SQLAudit($logpdo, true);
   $audit->audit($request, $response, $kauth->get_current_userid());
-
   exit(0);
 }
 
