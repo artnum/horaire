@@ -180,12 +180,9 @@
                 return
               }
               passGenerationPromise = new Promise((resolve, reject) => {
-                KLoginInstance.genPassword(content.password)
-                .then(pass => {
-                  resolve ({
-                    key: pass.derived,
-                    keyopt: `${pass.iterations} ${pass.salt}`
-                  })
+                KLoginInstance.setPassword(userId, content.password)
+                .then(user => {
+                  resolve(user)
                 })
               })
               
@@ -194,8 +191,7 @@
             if (content.user) { body.id = content.user }
 
             passGenerationPromise
-            .then(passOptions => {
-              Object.assign(body, passOptions)
+            .then(user => {
               Artnum.Query.exec(Artnum.Path.url(`Person/${content.user}`), { method: body.id ? 'PATCH' : 'POST', body: body }).then((result) => {
                 if (result.success) {
                   let uid = result.data[0].id
@@ -390,8 +386,7 @@
     forms[0].addEventListener('submit', async function (event) {
       event.preventDefault()
       var user = { name: null, efficiency: 1.0, key: null, keyopt: null, password: null, admin: false, user: false, username: null, order: 0, workday: 'nyyyyyn' }
-
-      let genPasswordPromise = Promise.resolve({})
+      let newPassword = ''
       let workday = ['n', 'y', 'y', 'y', 'y', 'y', 'n']
         ;['INPUT', 'SELECT'].forEach((ename) => {
           let inputs = event.target.getElementsByTagName(ename)
@@ -409,16 +404,7 @@
                 inputs[i].value = ''
                 break
               case 'password':
-                user.password = inputs[i].value
-                genPasswordPromise = new Promise((resolve, reject) => {
-                  KLoginInstance.genPassword(user.password)
-                  .then(pass => {
-                    resolve({
-                      key: pass.derived,
-                      keyopt: `${pass.iterations} ${pass.salt}`
-                    })
-                  })
-                })
+                newPassword = inputs[i].value
                 inputs[i].value = ''
                 break
               case 'level':
@@ -446,17 +432,20 @@
         alert('Nom d\'utilisateur est déjà pris')
         return
       }
-      genPasswordPromise.then(pass => {
-        Object.assign(user, pass)
-        if (user.key && user.name && user.keyopt && user.username && user.level) {
-          Artnum.Query.exec(Artnum.Path.url('Person'), { method: 'POST', body: { order: user.order, level: user.level, name: user.name, key: user.key, keyopt: user.keyopt, username: user.username, workday: user.workday } }).then(function (result) {
-            if (!result.success && result.length !== 1) {
-              alert('Erreur de création des utilisateur')
-            } else {
-              Artnum.Query.exec(Artnum.Path.url('Person/' + result.data[0].id)).then(function (result) {
-                loadUsers()
-              })
-            }
+
+      Artnum.Query.exec(Artnum.Path.url('Person'), { method: 'POST', body: { order: user.order, level: user.level, name: user.name, username: user.username, workday: user.workday } }).then(function (result) {
+        if (!result.success && result.length !== 1) {
+          alert('Erreur de création des utilisateur')
+        } else {
+          KLoginInstance.setPassword(result.data[0].id, newPassword)
+          .then(user => {
+            return user.userid
+          })
+          .then (userid => {
+            Artnum.Query.exec(Artnum.Path.url('Person/' + userid))
+          })  
+          .then(function (result) {
+            loadUsers()
           })
         }
       })

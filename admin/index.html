@@ -56,7 +56,7 @@
 
       const url = new URL(`${window.location.origin}/${base.shift()}/`)
 
-      const klogin = new KLogin(url)
+      const klogin = new KLogin(KAAL.getBase())
       klogin.getUserid(username)
         .then(userid => {
           return klogin.login(userid, password)
@@ -112,7 +112,7 @@
       case 'exit':
         let base = window.location.pathname.split('/')
         while (!base[0]) { base.shift() }
-        (new KLogin(new URL(`${window.location.origin}/${base.shift()}/`))).logout()
+        (new KLogin(KAAL.getBase())).logout()
         .then(_ => {
           window.location.hash = ''
           window.location.reload()
@@ -178,7 +178,7 @@
       while (!base[0]) { base.shift() }
 
       let url = new URL(`${window.location.origin}/${base.shift()}/`)
-      const klogin = new KLogin(url)
+      const klogin = new KLogin(KAAL.getBase())
       klogin.getToken()
         .then(token => {
           if (token) {

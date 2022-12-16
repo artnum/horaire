@@ -425,13 +425,14 @@ class KAALAuth {
                     if(empty($content['userid'])) { throw new Exception(); }
                     $data = $user->get($content['userid']);
                     if (!$data) { throw new Exception();}
-                    $auth = $this->generate_auth($data['id'], $data['key'], $cnonce, $hash);
+                    $auth = $this->generate_auth($data['id'], $data['key'], $cnonce, $data['algo']);
                     if (empty($auth)) { throw new Exception(); }
                     $response = [
                         'auth' => $auth,
                         'count' => $data['key_iterations'],
                         'salt' => $data['key_salt'],
-                        'userid' => intval($data['id'])
+                        'userid' => intval($data['id']),
+                        'algo' => $data['algo']
                     ];
                     echo json_encode($response);
                     break;
@@ -534,6 +535,32 @@ class KAALAuth {
                     if (!$conn) { throw new Exception(); }
                     $success = $this->del_all_connection_by_id($conn['uid']);
                     echo json_encode(['done' => $success]);
+                    break;
+                case 'setpassword':
+                    $token = $this->get_auth_token();
+                    if (!$this->check_auth($token)) { throw new Exception(); }
+                    if (empty($content['userid'])) { throw new Exception(); }
+                    if (empty($content['key'])) { throw new Exception(); }
+                    if (empty($content['salt'])) { throw new Exception(); }
+                    if (empty($content['iterations'])) { throw new Exception(); }
+                    if (empty($content['algo'])) { throw new Exception(); }
+                    $stmt =$this->pdo->prepare('SELECT "person_id", "person_level" FROM "person" WHERE "person_id" = :id');
+                    $stmt->bindValue(':id', intval($content['userid']), PDO::PARAM_INT);
+                    $stmt->execute();
+                    if ($stmt->rowCount() !== 1) { throw new Exception(); }
+                    $data = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if (intval($data['person_level']) > 16) {
+                        if (intval($data['person_id']) !== intval($content['userid'])) {
+                            throw new Exception(); 
+                        }
+                    }
+                    $user->setPassword($content['userid'], $content['key'],
+                        ['key_algo' => $content['algo'], 
+                        'key_iterations' => $content['iterations'],
+                        'key_salt' => $content['salt']
+                        ]
+                    );
+                    echo json_encode(['userid' => intval($content['userid'])]);
                     break;
             }
         } catch (Exception $e) {

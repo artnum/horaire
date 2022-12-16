@@ -1,9 +1,18 @@
 function KLogin (base = null) {
-    this.derive_halgo = 'SHA-256'
+    if (KLogin._instance) { return KLogin._instance }
     this.halgo = 'SHA-384'
-    this.halgo_length = 384
     this.pbkdf2_iterations = [100000, 200000]
     this.base = base || window.location
+    KLogin.instance = this
+}
+
+KLogin.prototype.getAlgoLength = function (algo) {
+    switch (algo) {
+        default:
+        case 'SHA-256': return 256
+        case 'SHA-384': return 384
+        case 'SHA-512': return 512
+    }
 }
 
 KLogin.prototype.getUserid = function (username) {
@@ -64,15 +73,15 @@ KLogin.prototype.genPassword = function (password) {
     return new Promise((resolve, reject) => {
         const outKey = {
             derived: '',
-            salt: new Uint8Array(this.derive_halgo_length / 8),
-            iterations: getRandomInt(this.pbkdf2_iterations[0], this.pbkdf2_iterations[1])
+            salt: new Uint8Array(this.getAlgoLength(this.halgo) / 8),
+            iterations: getRandomInt(this.pbkdf2_iterations[0], this.pbkdf2_iterations[1]),
+            algo: this.halgo
         }
         crypto.getRandomValues(outKey.salt)
         crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey'])
         .then(cryptokey => {
-            /* TODO length is set to 256 for compatibility purpose, must change */
-            return crypto.subtle.deriveKey({name: 'PBKDF2', hash: 'SHA-256', salt: outKey.salt, iterations: outKey.iterations}, 
-                cryptokey, {name: 'HMAC', hash: this.halgo, length: 256}, true, ['sign'])
+            return crypto.subtle.deriveKey({name: 'PBKDF2', hash: this.halgo, salt: outKey.salt, iterations: outKey.iterations}, 
+                cryptokey, {name: 'HMAC', hash: this.halgo, length: this.getAlgoLength(this.halgo)}, true, ['sign'])
         })
         .then(cryptokey => {
             return crypto.subtle.exportKey('raw', cryptokey)
@@ -88,21 +97,39 @@ KLogin.prototype.genPassword = function (password) {
     })
 }
 
+KLogin.prototype.setPassword = function (userid, password) {
+    return new Promise((resolve, reject) => {
+        this.genPassword(password)
+        .then(key => {
+            return fetch(new URL('.auth/setpassword', this.base), {method: 'POST', body:
+                JSON.stringify({userid: userid, key: key.derived, salt: key.salt, iterations: key.iterations, algo: key.algo })})
+        })
+        .then(response => {
+            return response.json()
+        })
+        .then(user => {
+            resolve(user)
+        })
+        .catch(e => {
+            reject(new Error('Password change failed', {cause: e}))
+        })
+    })
+}
+
 KLogin.prototype.genToken = function (params, password, nonce = null) {
     return new Promise ((resolve, reject) => {
         crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey'])
         .then(cryptokey => {
             const salt = this.b64ToArray(params.salt).buffer
-            /* TODO length is set to 256 for compatibility purpose, must change */
-            return crypto.subtle.deriveKey({name: 'PBKDF2', hash: 'SHA-256', salt: salt, iterations: parseInt(params.count)}, 
-                cryptokey, {name: 'HMAC', hash: this.halgo, length: 256}, false, ['sign'])
+            return crypto.subtle.deriveKey({name: 'PBKDF2', hash: this.halgo, salt: salt, iterations: parseInt(params.count)}, 
+                cryptokey, {name: 'HMAC', hash: this.halgo, length: this.getAlgoLength(this.halgo)}, false, ['sign'])
         })
         .then(key => {
             const auth = this.b64ToArray(params.auth)
             const sign = new Uint8Array(auth.length + (nonce === null ? 0 : nonce.length))
             sign.set(auth)
             if (nonce) { sign.set(nonce, auth.length) }
-            return crypto.subtle.sign({name: 'HMAC', hash: this.halgo, length: this.halgo_length}, key, sign)
+            return crypto.subtle.sign({name: 'HMAC', hash: this.halgo, length: this.getAlgoLength(this.halgo)}, key, sign)
         })
         .then(rawtoken => {
             resolve(this.arrayToB64(rawtoken))
@@ -199,7 +226,7 @@ KLogin.prototype.logout = function () {
 }
 
 KLogin.prototype.getNonce = function () {
-    const arr = new Uint8Array(this.halgo_length / 8)
+    const arr = new Uint8Array(this.getAlgoLength(this.halgo) / 8)
     crypto.getRandomValues(arr)
     return arr
 }
@@ -223,6 +250,14 @@ KLogin.prototype.login = function (userid, password) {
         const nonce = this.getNonce()
         this.init(userid, nonce)
         .then(params => {
+            if (params.algo) {
+                switch (params.algo) {
+                    default:
+                    case 'SHA-256': this.halgo = 'SHA-256'; break;
+                    case 'SHA-384': this.halgo = 'SHA-384'; break;
+                    case 'SHA-512': this.halgo = 'SHA-512'; break;
+                }
+            }
             return this.genToken(params, password, nonce)
         })
         .then(token => {
