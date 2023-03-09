@@ -133,7 +133,7 @@
     let resDiv = Admin.popup('', 'Importation', {closable: true, supClasses: ['import']})
     event.preventDefault();
     let fd = new FormData(event.target)
-    Admin.getUrl('/admin/exec/import/bill.php')
+    Admin.getUrl('admin/exec/import/bill.php')
     .then(url => {
       fetch(url, {method: 'POST', body: fd})
       .then(response => { 
