@@ -48,10 +48,79 @@ KAPlanningUI.prototype.render = function (reservations) {
                     content.innerHTML += `<span style="border: 2px solid ${kolor.foreground()};color: ${subkolor.foreground()}; background-color: ${subkolor.hex()};">${a.status.symbol} ${a.status.group}</span><span style="border: 2px solid transparent">${a.status.name}</span>`
                 })
             }
+
+            if (e.coworkers && e.coworkers.length > 0) {
+                let w = '<i class="fas fa-users"></i> Avec'
+                e.coworkers.forEach(c => { 
+                    content.innerHTML += `<span class="coworker">${w}</span><span class="coworker">${c}</span>`
+                    w = ''
+                })
+            }
+            const managers = []
+            if (e.affaire.manager) {
+                managers.push(e.affaire.manager.name)
+            }
+            if (e.technician) {
+                managers.push(e.technician.name)
+            }
+            if (managers.length > 0) {
+                let w = '<i class="fas fa-user-tie"></i> Boss'
+                managers.forEach(m => {
+                    content.innerHTML += `<span class="manager">${w}</span><span class="manager">${m}</span>`
+                    w = ''
+                })
+            }
             window.requestAnimationFrame(() => div.appendChild(content))
         })
 
-        resolve(this.domNode)
+        return resolve(this.domNode)
+    })
+}
+
+KAPlanningUI.prototype._loadCoworker = function (reservations) {
+    return new Promise(resolve => {
+        Promise.allSettled(reservations.map(e => 
+            kafetch(new URL('store/Reservation/_query', KAAL.kairos.url), {
+                method: 'POST',
+                body: JSON.stringify({
+                    affaire: e.affaire.id,
+                    dbegin: e.dbegin,
+                    target: ['!=', e.target]
+                })
+            })
+        ))
+        .then(responses => {
+            return responses.filter(e => e.status === 'fulfilled').map(e => e.value.data).flat()
+        })
+        .then(others => {
+            return Promise.allSettled(others.map(e =>
+                kafetch(new URL(`Person/${e.target}`, KAAL.getBase()))
+            ))
+            .then(responses => {
+                return responses.filter(e => e.status === 'fulfilled').map(e => e.value.data[0])
+            })
+            .then(users => {
+                others.forEach(o => {
+                    o.target = users[users.findIndex(u => u.id ===parseInt(o.target))]
+                })
+                return others
+            })
+        })
+        .then(others => {
+            reservations.forEach((r, idx, array) => {
+                others.forEach(o => {
+                    if (o.affaire === r.affaire.id && o.dbegin === r.dbegin) {
+                        if (!array[idx].coworkers) { array[idx].coworkers = [] }
+                        array[idx].coworkers.push(o.target.name)
+                    }
+                })
+            })
+            return resolve(reservations)
+        })
+        .catch(cause => {
+            console.log(cause)
+            return resolve(reservations)
+        })
     })
 }
 
@@ -195,7 +264,7 @@ KAPlanningUI.prototype.load = function () {
                             }
                         })
                     })
-                    return resolve(reservations)
+                    return resolve(this._loadCoworker(reservations))
                 })
             })
         })

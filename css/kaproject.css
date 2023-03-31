@@ -619,6 +619,16 @@ input {
     padding: 4px 4px;
 }
 
+.ka-forecast-project .coworker {
+    background-color: white;
+    color: black;
+}
+
+.ka-forecast-project .manager {
+    background-color:bisque;
+    color: black;
+}
+
 @media (max-width: 480px) {
     .ka-container {
         width: 100%;
