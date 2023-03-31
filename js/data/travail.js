@@ -32,7 +32,7 @@ KATravail.load = function (travailId) {
 
 KATravail.getByProject = function (projectId) {
     return new Promise((resolve, reject) => {
-        kafetch(`${KAAL.getBase()}/Travail/_query`, {method: 'POST', body: JSON.stringify({project: projectId})})
+        kafetch(`${KAAL.getBase()}/Travail/_query`, {method: 'POST', body: JSON.stringify({project: projectId, closed: 0})})
         .then(travaux => {
             if (travaux.length < 1) { resolve([]); return }
             const instances = []

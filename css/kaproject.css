@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600&family=B61&family=B612+Mono&display=swap');
+
 :root {
     --ka-button-background-color: darkblue;
     --ka-button-color: white;
@@ -10,11 +12,21 @@
     --ka-background-button-active-color: hsla(333, 49%, 49%, 0.3);
     --ka-border-button-active-color: hsla(333, 49%, 49%, 0.7);
     --ka-text-button-active-color: black;
+
+    --ka-text-default-font: 'B612', 'sans-serif';
+    --ka-text-default-font: 'B612 Mono', 'monospace';
+    --ka-text-button-font: 'Archivo Narrow', 'sans-serif';
+}
+
+.ka-forecast {
+    font-family: var(--ka-text-default-font);
 }
 
 body {
     padding: 0;
     margin: 0;
+    font-family: var(--ka-text-default-font);
+    font-size: 10pt;
 }
 
 .ka-head, .ka-foot, .ka-main-top, .ka-main-bottom {
@@ -35,9 +47,7 @@ body {
     border: 2px solid black;
     overflow: hidden;
     text-overflow: clip;
-    font-family: sans-serif;
     position: relative;
-    border-radius: 6px;
     box-sizing: border-box;
 }
 
@@ -95,24 +105,25 @@ body {
     background-color: white;
 }
 
-.ka-button {
+.ka-button, button, .ka-userbox {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     max-width: 100%;
     min-width: 100%;
-    min-height: 8ex;
-    max-height: 8ex;
+    min-height: 5ex;
+    max-height: 5ex;
     background-color: var(--ka-background-button-color);
-    border: 2px outset var(--ka-border-button-color);
+    border: 3px outset var(--ka-border-button-color);
     color: var(--ka-text-button-color);
     overflow: hidden;
     text-overflow: clip;
-    font-family: sans-serif;
-    border-radius: 6px;
+    font-family: var(--ka-text-button-font);
+    font-size: 14pt;
     user-select: none;
     cursor: pointer;
+    box-shadow: 1px 1px 1px gray;
 }
 
 .ka-button.ka-fat {
@@ -120,8 +131,8 @@ body {
 }
 
 .ka-button.ka-small {
-    min-height: 6ex;
-    max-height: 6ex;
+    min-height: 4ex;
+    max-height: 4ex;
 }
 .ka-light {
     font-weight: normal;
@@ -141,7 +152,7 @@ body {
 
 }
 
-.ka-button .ka-foldbottom, .ka-button .ka-foldtop {
+.ka-button .ka-foldbottom, .ka-button .ka-foldtop, button {
     box-sizing: border-box;
     padding: 0px 10px;
     width: 100%;
@@ -149,15 +160,15 @@ body {
 }
 
 .ka-button .ka-foldbottom {
-    background-color: var(--ka-background-button-active-color);
+    background-color: white;
     display: none;
 }
 
 .ka-button .ka-foldtop {
     user-select: none;
     cursor: pointer;
-    min-height: 8ex;
-    max-height: 8ex;
+    min-height: 5ex;
+    max-height: 5ex;
 }
 
 .ka-button.ka-open .ka-foldbottom {
@@ -174,11 +185,38 @@ body {
     max-height: max-content;
 }
 
-.ka-button:active  {
+.ka-button:active, button:active  {
     color: var(--ka-text-button-active-color);
     background-color: var(--ka-background-button-active-color);
     border-color: var(--ka-border-button-active-color);
     border-style: inset;
+    box-shadow: 1px 1px 1px black;
+}
+
+.ka-button2.stacked {
+    border: 3px outset;
+    margin: 3px 0px;
+}
+.ka-button2.stacked[data-open="true"] {
+    border: 3px inset;
+}
+
+.ka-button2.stacked[data-open="true"] > .name {
+    background-color: white;
+    color: black;
+}
+
+.ka-button2.stacked > span {
+    display: block;
+    min-width: calc(100% - 6px);
+}
+
+.ka-button2.no-description > .name {
+    display: none;
+}
+
+.ka-button2 {
+    color: black;
 }
 
 .ka-button2 > span {
@@ -189,6 +227,8 @@ body {
     max-height: 4ex;
     overflow: hidden;
     text-overflow: clip;
+    font-family: var(--ka-text-button-font);
+    font-size: 14pt;
 }
 
 .ka-button2 .name {
@@ -198,20 +238,14 @@ body {
 }
 
 .ka-button2[data-open="true"] > .reference {
-    background-color: white;
-    color: black;
-    transition: ease-in-out 0.3s;
+    background-color: transparent;
+    color: inherit;
 }
 
-.ka-button2[data-open="true"] > .name {
-    background-color: var(--ka-button-background-color);
-    color: var(--ka-button-color);
+.ka-button2[data-open="true"]  {
+    background-color: var(--ka-button-background-color) !important;
+    color: var(--ka-button-color) !important;
     transition:ease-in-out 0.3s;
-}
-
-.ka-userbox span {
-    font-size: 12px;
-    font-weight: normal;
 }
 
 .ka-project:hover > .reference {
@@ -230,10 +264,10 @@ body {
 
 .ka-project .reference {
     font-weight: bold;
-    color: white; 
-    background-color: darkblue;
+    color: white;
     min-width: 12ch;
     max-width: 12ch;
+    background-color: darkblue;
     overflow: hidden;
     margin:0;
 }
@@ -252,7 +286,7 @@ body {
 .ka-project-detail {
     padding: 0.2ex 0.2ch;
     clear:both;
-    border-top: 2px solid darkblue;
+    background-color: white;
 }
 
 .ka-project > .name {
@@ -267,15 +301,20 @@ body {
     transition:ease-in-out 0.3s;
 }
 
-.ka-project[data-open="true"] > .reference {
-    color: darkblue;
-    background-color: white;
+.ka-project[data-open="true"] {
+    color: white;
+    background-color: darkblue;
+    transition: ease-in-out 0.3s;
+}
+.ka-project[data-open="true"] > .name {
+    color: inherit;
+    background-color: inherit;
     transition: ease-in-out 0.3s;
 }
 
-.ka-project[data-open="true"] > .name {
-    color: white;
-    background-color: darkblue;
+.ka-project[data-open="true"] > .reference {
+    color: inherit;
+    background-color: inherit;
     transition:ease-in-out 0.3s;
 }
 
@@ -329,6 +368,8 @@ body {
 }
 
 .ka-project-detail .ka-subhead {
+    min-height: 5ex;
+    color: black;
     font-weight: bold;
     text-align: center;
 }
@@ -437,7 +478,7 @@ body {
     display: flex;
     justify-content: space-between;
     cursor: pointer;
-    font-family: monospace;
+    font-family: var(--ka-text-default-mono-font);
     margin: auto;
 }
 
@@ -551,6 +592,33 @@ input {
     font-size: 16px;
 }
 
+.ka-forecast h1 {
+    font-size: 14pt;
+    color: white;
+    background-color: black;
+    padding: 6px 0px;
+    text-align: center;
+}
+
+.ka-forecast h2 {
+    font-size: 12pt;
+    text-decoration: underline;
+    padding: 6px 0px;
+    text-align: center;
+}
+
+.ka-forecast-project {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    row-gap: 10px;
+    padding: 10px 5px;
+    margin: 4px 0px;
+}
+
+.ka-forecast-project > span {
+    padding: 4px 4px;
+}
+
 @media (max-width: 480px) {
     .ka-container {
         width: 100%;
@@ -566,13 +634,13 @@ input {
         column-gap: 4px;
     }
     
-    .ka-button, .ka-button .ka-foldtop {
-        min-height: 12ex;
-        max-height: 12ex;
+    .ka-button, .ka-button .ka-foldtop, button {
+        min-height: 6ex;
+        max-height: 6ex;
     }
 
-    .ka-button {
-        font-size: 12px;
+    .ka-button, .ka-button2 > span {
+        font-size: 14px !important;
     }
     .ka-project, .ka-userbox, .ka-login, .ka-date {
         min-height: 8ex;
@@ -600,4 +668,3 @@ input {
         width: calc(100% - 14px);
     }
 }
-

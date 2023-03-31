@@ -106,10 +106,30 @@ TimeInteractUI.prototype.showIndex = function () {
                 this.showRecentTime(container)
             })
         })
+        const forecast = KAButton('Mon planning provisoire', {click: true, fat: true})
+        forecast.addEventListener('submit', event => {
+            const planning = new KAPlanningUI(this.userId)
+            this.hideIndex()
+            .then(() => {
+                return planning.load()
+            })
+            .then(reservations => {
+                return planning.render(reservations)
+            })
+            .then(domNode => {
+                const container = document.querySelector('div.ka-main-bottom')
+                window.requestAnimationFrame(() => container.appendChild(domNode))
+            })
+            .catch(cause => {
+                console.log(cause)
+                MsgInteractUI('error', cause.message)
+            })
+        })
         const container = document.querySelector('div.ka-main-bottom')
         window.requestAnimationFrame(() => {
             container.appendChild(project)
             container.appendChild(hours)
+            container.appendChild(forecast)
         })
         return resolve()
     })
@@ -258,6 +278,8 @@ TimeInteractUI.prototype.joinAllToStatus = function (reservations) {
             if (results.length <= 0) { results.data = [] }
             const status = results.data
             for (const reservation of reservations) {
+                reservation.status = parseInt(reservation.status)
+                reservation.affaire.status = parseInt(reservation.affaire.status)
                 if (reservation.status === 0) {
                     reservation.status = reservation.affaire.status
                 }
@@ -627,7 +649,10 @@ TimeInteractUI.prototype.openProject = function (project) {
                     if (travaux.hasUngrouped()) {
                         for (const travail of travaux.get(groups.shift())) {
                             const div = document.createElement('DIV')
-                            div.classList.add('ka-button2')
+                            div.classList.add('ka-button2', 'stacked')
+                            if (travail.get('description').trim() === '') { 
+                                div.classList.add('no-description')
+                            }
                             div.innerHTML = `<span class="reference">${travail.get('reference')}</span> <span class="name">${travail.get('description')}</span>`
                             div.dataset.travail = travail.uid
                             chain.then(() => {
@@ -657,7 +682,10 @@ TimeInteractUI.prototype.openProject = function (project) {
                             })
                             for (const travail of travaux.get(group)) {
                                 const div = document.createElement('DIV')
-                                div.classList.add('ka-button2')
+                                div.classList.add('ka-button2', 'stacked')
+                                if (travail.get('description').trim() === '') { 
+                                    div.classList.add('no-description')
+                                }
                                 div.innerHTML = `<span class="reference">${travail.get('reference')}</span> <span class="name">${travail.get('description')}</span>`
                                 div.dataset.travail = travail.uid
                                 chain.then(() => {

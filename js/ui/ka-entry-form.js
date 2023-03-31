@@ -10,10 +10,11 @@ function KAEntryForm (project, affaire, status, reservation = null) {
         <button type="reset">Annuler</button>
     `
     const div = document.createElement('DIV')
+    const kolor = new Kolor(status.color)
     div.classList.add('ka-project-entry')
     div.innerHTML = `
         <span>${project.reference}</span>
-        <span style="background-color: ${status.color}">${status.name}</span>
+        <span style="background-color: ${status.color}; color: ${kolor.foreground()};">${status.name}</span>
         <span>${project.name}</span>
         <span>${affaire.reference}</span>
     `
