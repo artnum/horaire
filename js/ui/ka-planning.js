@@ -26,7 +26,7 @@ KAPlanningUI.prototype.render = function (reservations) {
             const div = nodes.has(e.dbegin) ? nodes.get(e.dbegin) : document.createElement('DIV')
             if (!div.parentNode) {
                 nodes.set(e.dbegin, div)
-                div.innerHTML = `<h2>${e.dbegin}</h2>`
+                div.innerHTML = `<h2>${DataUtils.textualShortDate(e.dbegin)}</h2>`
                 window.requestAnimationFrame(() => { this.domNode.appendChild(div) })
             }
 
