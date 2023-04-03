@@ -64,7 +64,7 @@ KAPlanningUI.prototype.render = function (reservations) {
                 managers.push(e.technician.name)
             }
             if (managers.length > 0) {
-                let w = '<i class="fas fa-user-tie"></i> Boss'
+                let w = '<i class="fas fa-drafting-compass"></i> Dessin'
                 managers.forEach(m => {
                     content.innerHTML += `<span class="manager">${w}</span><span class="manager">${m}</span>`
                     w = ''
