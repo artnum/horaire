@@ -26,7 +26,7 @@
             <th>Utilisateur</th>
             <th data-sort-type="float">Efficacité</th>
             <th data-sort-type="float">Prix horaire</th>
-            <th data-sort-type="bool">Actif</th>
+            <th data-sort-type="integer">Actif</th>
             <th data-sort-type="integer">Niveau</th>
             <th data-sort-type="integer">Ordre au planning</th>
             </th>
@@ -457,13 +457,15 @@
             }
           }
         }
+        let disabled = parseInt(entry.disabled)
+        if (isNaN(disabled)) { disabled = 0 }
 
         tr.innerHTML = `
          <td>${entry.name}</td>
          <td>${entry.username}</td>
          <td>${entry.efficiency}</td>
          <td>${entry.price}</td>
-         <td>${(entry.disabled === '0' ? 'oui' : 'non')}</td>
+         <td data-sort-value="${disabled}">${(disabled ? 'oui' : 'non')}</td>
          <td>${level}</td>
          <td>${entry.order}</td>
          <td>
