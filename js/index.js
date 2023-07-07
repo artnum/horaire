@@ -1,3 +1,25 @@
+function _throttle (fn, delay) {
+    let timeout = null
+    return function(...args) {
+        if (timeout) { return }
+        timeout = setTimeout(() => {
+            fn.call(this, ...args)
+            timeout = null
+        }, delay)
+    }
+}
+
+function _debounce (fn, delay) {
+    let timeout = null
+    return function(...args) {
+        if (timeout) { clearTimeout(timeout) }
+        timeout = setTimeout(() => {
+            fn.call(this, ...args)
+            timeout = null
+        }, delay)    
+    }
+}
+
 const imports = [
     [KAAL.url('admin/js/fetch.js'), 'script'],
     [KAAL.url('admin/js/lib/login.js'), 'script'],
@@ -14,9 +36,10 @@ const imports = [
     [KAAL.url('js/ui/ka-entry-form.js'), 'script'],
     [KAAL.url('js/ui/ka-planning.js'), 'script'],
     [KAAL.url('js/lib/color.js'), 'script'],
+    [KAAL.url('js/lib/empty.js'), 'script'],
     [KAAL.url('js/ui/time-interact.js'), 'script'],
     [KAAL.url('js/ui/user-interact.js'), 'script'],
-    [KAAL.url('js/ui/msg-interact.js'), 'script']
+    [KAAL.url('js/ui/msg-interact.js'), 'script'],
 ]
 
 window.addEventListener('DOMContentLoaded', event => {

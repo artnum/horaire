@@ -6,6 +6,7 @@ require('conf/wesrv.php');
 require('wesrv/lib/msg.php');
 require('lib/auth.php');
 require('lib/user.php');
+require('bizcuit-bexio/bexio.php');
 
 use artnum\JStore\ACL;
 use artnum\JStore\SQLAudit;
@@ -17,12 +18,14 @@ $KConf = new KConf($ini_conf);
 $http_request = new artnum\HTTP\JsonRequest();
 $store = new artnum\JStore\Generic($http_request, true);
 $pdo = init_pdo($ini_conf);
-$logpdo = init_pdo($ini_conf, 'logdb');
 if (is_null($pdo)) {
   throw new Exception('Storage database not reachable');
   exit(0);
 }
 $store->add_db('sql', $pdo);
+$store->add_db('bexio', new BizCuit\BexioCTX($KConf->get('bexio.token')));
+
+$logpdo = init_pdo($ini_conf, 'logdb');
 
 if (empty($ini_conf['addressbook']) || empty($ini_conf['addressbook']['servers'])) {
   throw new Exception('Addressbook not configured');
@@ -106,9 +109,13 @@ $audit = new SQLAudit($logpdo, true);
 
 $store->init($KConf);
 if ($acl->check($store->getCollection(), $kauth->get_current_userid(), $store->getOperation(), $store->getOwner())) {
-  $store->setAcl($acl);
-  [$request, $response] = $store->run($KConf);
-  $audit->audit($request, $response, $kauth->get_current_userid());
+  try {
+    $store->setAcl($acl);
+    [$request, $response] = $store->run($KConf);
+    $audit->audit($request, $response, $kauth->get_current_userid());
+  } catch (Exception $e) {
+    error_log($e->getMessage());
+  }
   exit(0);
 }
 

@@ -6,6 +6,8 @@
 @import 'list.css';
 
 :root {
+    --rose: hsla(333, 49%, 49%, 0.7);
+    --dark-rose: hsla(333, 90%, 20%, 0.7);
     --background-color: white;
     --title-background-color: black;
     --text-color: black;
@@ -88,11 +90,14 @@ input.error, select.error, textarea.error {
     background-color: var(--input-background-color-error)
 }
 
-input[type=submit], input[type=button], input[type=reset], button {
+input[type=submit], input[type=button], input[type=reset], button, .ka-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     background-color: var(--background-color) !important;
     color: var(--text-color) !important;
-    border: 2px solid gray;
+    border: 3px outset darkgray;
     margin: 5px;
     min-width: 100px;
     min-height: 1.8em;
@@ -100,15 +105,20 @@ input[type=submit], input[type=button], input[type=reset], button {
     font-weight: bold;
 }
 
-input[type=submit]:hover, input[type=button]:hover, input[type=reset]:hover, button:hover {
+input[type=submit]:hover, input[type=button]:hover, input[type=reset]:hover, button:hover, .ka-button:hover {
     background-color: rgba(200, 200, 200, 0.3) !important;
     border-color: black !important;
 }
 
-input[type=submit]:active, input[type=button]:active, input[type=reset]:active, button:active {
-    background-color: black !important;
+input[type=submit]:active, input[type=button]:active, input[type=reset]:active, button:active, .ka-button:active {
+    background-color: darkgray !important;
     color: white !important;
-    border-color: gray !important;
+    border: 3px inset darkgray !important;
+}
+
+input[type=submit][data-open="1"], input[type=button][data-open="1"], input[type=reset][data-open="1"], button[data-open="1"], .ka-button[data-open="1"] {
+    border: 3px inset darkgray !important;
+    background-color: var(--rose) !important;
 }
 
 label {
@@ -264,11 +274,11 @@ tr.sub[data-open="1"] {
     max-height: 80%;
 }
 
-body.AdminPopupModal {
+body.withUnderlayActive {
     overflow: hidden !important;
 }
 
-#ModalUnderlay {
+.ModalUnderlay {
     background-color: rgba(255, 255, 255, 0.6) !important;
     position: fixed;
     width: 100%;
@@ -283,6 +293,31 @@ div.popup * {
 }
 div.popup {
     filter: none !important;
+}
+
+.popup .popup-content {
+    overflow-y: scroll;
+}
+
+.popup.loading .popup-content * {
+    visibility: hidden;
+}
+
+.ka-contact-form.sending {
+    opacity: 0.3;
+}
+
+.ka-contacts.sending .ka-contact-result-set {
+    display: none;
+}
+
+.ka-contact-result-set {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+}
+
+.ka-contact-result-set .contact {
+    display: contents;
 }
 
 .popup .title {
@@ -434,4 +469,248 @@ fieldset.half {
 .ka-ua {
     max-width: 32ch !important;
     overflow-wrap: break-word;
+}
+
+.ka-project {
+    display: contents;
+    cursor: pointer;
+}
+
+.ka-project-list {
+    display: grid;
+    grid-template-columns: [first] 1fr [second] 2fr 1fr 1fr 2fr;
+    grid-auto-flow: row;
+}
+.ka-project > span.reference {
+    grid-column-start: first;
+}
+.ka-project > div.travail {
+    grid-column-start: second;
+    grid-column-end: span 4;
+    display: none;
+}
+
+.ka-project .onopen {
+    display: none;
+}
+
+.ka-project .onhover {
+    opacity: 0.3;
+}
+
+.ka-project[data-open="1"] .onopen, .ka-project[data-open="1"] .onhover {
+    display: unset;
+    opacity: unset;
+}
+
+.ka-project[data-open="1"] > span {
+    font-weight: bold;
+}
+
+.ka-project:hover .onhover {
+    opacity: unset;
+}
+
+.ka-navigation {
+    text-align: center;
+    margin: 2ex 0;
+}
+.ka-navigation a {
+    cursor: pointer;
+}
+.ka-navigation a:active {
+    color: var(--rose);
+}
+.ka-navigation a.inactive {
+    color: lightgrey !important;
+}
+
+.ka-navigation > span {
+    display: inline-block;
+    margin: 0 1ch;
+    min-width: 25ch;
+}
+
+.ka-project > * {
+    order: inherit;
+}
+
+.ka-project > span {
+    border-top: 2px solid darkgrey;
+}
+
+.ka-project[data-open="1"] > span {
+    background-color: lightgray;
+}
+
+.ka-project:hover  > span {
+    color: white;
+    background-color: lightslategrey;
+}
+
+.ka-project:nth-child(even) * {
+    background-color: #eeeeee;
+}
+
+.ka-project[data-open="1"] > div.travail {
+    display: grid;
+    grid-template-columns: [start] 2fr 1fr 1fr 1fr 2fr 2fr [end];
+}
+
+.ka-project-list-container {
+    display: flex;
+    flex-direction: column;
+}
+.ka-project-list.loading {
+    opacity: 0.7;
+}
+
+
+.ka-search-box {
+    display: grid;
+    grid-template-columns: 6fr 1fr 1fr 1fr;
+
+}
+
+.ka-project-header span {
+    cursor: pointer;
+    border: none;
+    align-items: center;
+    min-height: 4ex;
+    font-weight: bold;
+    background-color: black;
+    color: white;
+}
+
+.ka-project-header > span .sort {
+    display: none;
+}
+
+.ka-project-header > span[data-sorted="desc"] .sort.fa-sort-down {
+        display: unset;
+}
+.ka-project-header > span[data-sorted="asc"] .sort.fa-sort-up {
+    display: unset;
+}
+.ka-project-header:hover span {
+    background-color: black;
+}
+
+.ka-group {
+    display: contents;
+}
+
+.ka-group-content > span {
+    min-height: 2.8ex;
+}
+
+.ka-group-content > span.reference {
+    grid-column-start: start;
+}
+
+.ka-group-content > span.reference i {
+    margin: 0 1.6ch;
+} 
+
+.ka-group-header > span {
+    background-color: bisque !important;
+    font-weight: bold;
+    text-align: center;
+    grid-column-start: start;
+    grid-column-end: end;
+}
+
+.ka-group-supheader > span {
+    font-weight: bold;
+}
+
+#KAMsgLine {
+    display: flex;
+    position: fixed;
+    bottom: 0px;
+    width: calc(38% - 14px);
+    margin: 0;
+    left: calc(50% - ((38% - 14px) / 2));
+    padding: 5px;
+    justify-content: space-between;
+    cursor: pointer;
+    font-family: 'monospace';
+    margin: auto;
+    z-index: 999999;
+    font-size: small;
+}
+
+.ka-error {
+    border: 2px solid red;
+    background-color: lightpink;
+    color: black;
+}
+
+.ka-info {
+    border: 2px solid blue;
+    background-color: lightskyblue;
+    color: black;
+}
+
+label.inerror {
+    text-decoration: underline;
+    color: red;
+    font-weight: bold;
+}
+
+@media (min-width: 1080px) {
+    #KAMsgLine {
+        left: 0;
+        width: calc(100% - 14px);
+    }
+}
+
+.ka-contact-form fieldset.company div.person {
+    display: none;
+}
+
+.ka-contact-form fieldset.person div.company {
+    display: none;
+}
+
+.kmultiselect {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+.kmultiselect > div {
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px;
+    margin: 1px 1px;
+    border: solid 2px var(--dark-rose);
+    order: 1 !important;
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    grid-template-rows: 2fr 1fr;
+}
+
+.kmultiselect > div span {
+    display: inline-block;
+}
+
+.kmultiselect > div span.description {
+    text-align: right;
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+    grid-column-start: 1;
+    grid-column-end: 3;
+}
+
+
+.kmultiselect > div.selected {
+    background-color: var(--rose);
+    color: white;
+}
+.kmultiselect > div.add-new {
+    background-color: lightgray;
+    color: black;
+    border: none;
+    border-bottom: 1px solid black;
 }

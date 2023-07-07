@@ -15,42 +15,9 @@
 </head>
 
 <body>
-  <!--  <nav><ul><li><a href="index.html">Home</a></li>
-      <li><a href="project.html">Projets</a></li>
-      <li><a href="process.html">Processus</a></li>
-      <li><a href="time.html">Temps</a></li>
-    </ul>
-  </nav> //-->
   <main>
     <h1>Utilisateurs</h1>
-    <h2>Nouvel utilisateur</h2>
-    <form>
-      <label for="name">Nom : </label><input name="name" type="text" /><br>
-      <label for="username">Utilisateur : </label><input name="username" type="text" /><br>
-      <label for="efficiency">Efficacité : </label><input name="efficiency" type="text" value="1" /> (min: 0.1, max
-      2.0)<br>
-      <label for="password">Mot de passe : </label><input name="password" type="password" /><br>
-      <label for="level">Niveau d'accèss : <select name="level">
-          <option value="256">Ajout temps</option>
-          <option value="128">Gestion projet</option>
-          <option value="64">Gestion projet et processus </option>
-          <option value="32">Gestion temps, projet et processus</option>
-          <option value="16">Gestion de tout</option>
-        </select></label><br />
-      <label for="order">Ordre au planning : <input name="order" type="text" /><br>
-        Jour de travail :
-        <label><input type="checkbox" checked name="workday_1"> Lundi</label>
-        <label><input type="checkbox" checked name="workday_2"> Mardi</label>
-        <label><input type="checkbox" checked name="workday_3"> Mercredi</label>
-        <label><input type="checkbox" checked name="workday_4"> Jeudi</label>
-        <label><input type="checkbox" checked name="workday_5"> Vendredi</label>
-        <label><input type="checkbox" name="workday_6"> Samedi</label>
-        <label><input type="checkbox" name="workday_0"> Dimanche</label>
-        <br>
-
-        <input type="submit" value="Ajouter" />
-    </form>
-    <h2>Utilisateurs existants</h2>
+    <button onclick="editUser(null)">Ajouter un nouvel utilisateur</button>
     <form>
       <table id="users" data-source="Person">
         <thead class="darkbg">
@@ -71,9 +38,11 @@
       </table>
   </main>
 </body>
+<script src="../../kcore/index.js"></script>
 <script src="../conf/kaal.js"></script>
+<script src="../js/index.js"></script>
+<script src="js/index.js"></script>
 <script src="js/lib/login.js"></script>
-<script src="js/fetch.js"></script>
 <script src="../node_modules/sjcl/sjcl.js"></script>
 <script src="../node_modules/artnum/Date.js"></script>
 <script src="../node_modules/artnum/Path.js"></script>
@@ -87,136 +56,280 @@
 
   function editUser(userId) {
     return new Promise((resolve, reject) => {
-      Artnum.Query.exec(Artnum.Path.url(`Person/${userId}`)).then((result) => {
-        if (!result.success || result.length !== 1) { reject(new Error('Pas d\'utilisateur')); return }
-        let user = Array.isArray(result.data) ? result.data[0] : result.data
-        let popup = window.Admin.popup(`<form>
-         <input type="hidden" value="${user.id}" name="user" />
-         <label for="username">Nom d'utilisateur : <input type="text" name="username" value="${user.username}" /></label><br>
-         <label for="name">Nom : <input type="text" name="name" value="${user.name}" /></label><br>
-         <label for="efficiency">Efficacité : <input name="efficiency" type="text" value="${user.efficiency}"></label> (min: 0.1, max: 2.0)<br>
-         <label for="level">Niveau d'accèss : <select name="level">
-            <option value="256" ${parseInt(user.level) === 256 ? 'selected' : ''}>Ajout temps</option>
-            <option value="128" ${parseInt(user.level) === 128 ? 'selected' : ''}>Gestion projet</option>
-            <option value="64" ${parseInt(user.level) === 64 ? 'selected' : ''}>Gestion projet et processus </option>
-            <option value="32" ${parseInt(user.level) === 32 ? 'selected' : ''}>Gestion temps, projet et processus</option>
-            <option value="16" ${parseInt(user.level) === 16 ? 'selected' : ''}>Gestion de tout</option>
-         </select></label><br/>
-         <label for="password">Mot de passe : <input type="password" name="password" value=""></label><br><span class="notice" data-name="password-modified">Le mot de passe ne sera pas modifié</span><br>
-         <label for="disabled"> Désactiver : <input type="checkbox" name="disabled" ${user.disabled === '0' ? '' : 'checked'} /></label><br>
-         <label for="order">Ordre au planning : <input name="order" type="text" value="${user.order}"/><br>
-          Jour de travail : <br>
-          <label><input type="checkbox" ${user.workday.charAt(1) === 'y' ? 'checked' : ''} name="workday_1"> Lundi</label>
-          <label><input type="checkbox" ${user.workday.charAt(2) === 'y' ? 'checked' : ''} name="workday_2"> Mardi</label>
-          <label><input type="checkbox" ${user.workday.charAt(3) === 'y' ? 'checked' : ''} name="workday_3"> Mercredi</label><br>
-          <label><input type="checkbox" ${user.workday.charAt(4) === 'y' ? 'checked' : ''} name="workday_4"> Jeudi</label>
-          <label><input type="checkbox" ${user.workday.charAt(5) === 'y' ? 'checked' : ''} name="workday_5"> Vendredi</label>
-          <label><input type="checkbox" ${user.workday.charAt(6) === 'y' ? 'checked' : ''} name="workday_6"> Samedi</label><br>
-          <label><input type="checkbox" ${user.workday.charAt(0) === 'y' ? 'checked' : ''} name="workday_0"> Dimanche</label>
-         <br><br>
-         <button type="submit">Sauver</button><button type="reset">Annuler</button>
-         </form>
-       `, `Modifier utilisateur ${user.name}`, { closable: true })
-        let form = popup.getElementsByTagName('form')[0]
-        form.addEventListener('reset', (event) => {
-          let p = event.target
-          while (p && !p.classList.contains('popup')) { p = p.parentNode }
-          p.dispatchEvent(new CustomEvent('close'))
+      ; (() => {
+        if (userId) return kafetch2(`${KAAL.getBase()}/Person/${userId}`)
+        return Promise.resolve({
+          id: '',
+          username: '',
+          name: '',
+          efficiency: 1,
+          level: 256,
+          workday: 'yyyyynn',
+          order: -1,
+          disabled: 0
         })
-        form.addEventListener('keypress', (event) => {
-          if (event.target.nodeName === 'INPUT' && event.target.name === 'password') {
-            let node = event.target
-            while (node && node.nodeName !== 'FORM') { node = node.parentNode }
-            let nodes = node.getElementsByTagName('SPAN')
-            for (let n of nodes) {
-              if (n.dataset.name && n.dataset.name === 'password-modified') {
-                window.requestAnimationFrame(() => { n.parentNode.removeChild(n) })
-                break
-              }
-            }
-          }
-        })
-        form.addEventListener('submit', (event) => {
-          event.preventDefault()
-          let disconnect = false
-          let content = window.Admin.getForm(event.target)
-          Artnum.Query.exec(Artnum.Path.url('Person', { params: { 'search.username': content.username } })).then((result) => {
-            if (!result.success || result.length > 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
-            if (result.length === 1) {
-              if (result.data[0].id !== content.user) {
-                alert('Nom d\'utilisateur déjà existant, veuillez choisir un autre')
-                return
-              }
-            }
-            let mapping = { username: 'username', name: 'name', efficiency: 'efficiency', level: 'level', order: 'order' }
-            let body = { disabled: content.disabled ? '1' : '0', workday: 'nyyyyyn' }
-            if (body.disabled === '1') { disconnect = true }
-            for (let i in mapping) {
-              if (content[i] && content[i] !== null) {
-                body[mapping[i]] = content[i]
-              } else {
-                body[mapping[i]] = ''
-              }
-            }
-            let workday = ['n', 'y', 'y', 'y', 'y', 'y', 'n']
-            content.workday_0 ? workday[0] = 'y' : workday[0] = 'n'
-            content.workday_1 ? workday[1] = 'y' : workday[1] = 'n'
-            content.workday_2 ? workday[2] = 'y' : workday[2] = 'n'
-            content.workday_3 ? workday[3] = 'y' : workday[3] = 'n'
-            content.workday_4 ? workday[4] = 'y' : workday[4] = 'n'
-            content.workday_5 ? workday[5] = 'y' : workday[5] = 'n'
-            content.workday_6 ? workday[6] = 'y' : workday[6] = 'n'
-            body.workday = workday.join('')
-            body.efficiency = parseFloat(body.efficiency)
-            if (body.efficiency < 0.1 || body.efficiency > 2.0) {
-              alert(`Une efficacité de ${body.efficiency} n'est pas acceptable, la valeur doit être entre 0.1 et 2.0`)
-              return
-            }
-            body.level = parseInt(body.level)
-            let passGenerationPromise = Promise.resolve({})
-            if (content.password) {
-              if (content.password.length < 6) {
-                alert('Mot de passe trop court, veuillez entrer au moins 6 caractères')
-                return
-              }
-              passGenerationPromise = new Promise((resolve, reject) => {
-                KLoginInstance.setPassword(userId, content.password)
-                .then(user => {
-                  resolve(user)
+      })()
+        .then(userResponse => {
+          const user = Array.isArray(userResponse) ? userResponse[0] : userResponse
+          const popup = window.Admin.popup(`<form>
+          <input type="hidden" value="${user.id}" name="user" />
+          <label for="username">Nom d'utilisateur : <input type="text" name="username" value="${user.username}" /></label><br>
+          <label for="name">Nom : <input type="text" name="name" value="${user.name}" /></label><br>
+          <label for="bxuser">Utilisateur Bexio : <select type="text" name="bxuser">
+            <option value="0"> -- Aucun -- </option>
+            </select>
+            </label><br>
+          <label for="efficiency">Efficacité : <input name="efficiency" type="text" value="${user.efficiency}"></label> (min: 0.1, max: 2.0)<br>
+          <label for="level">Niveau d'accèss : <select name="level">
+              <option value="256" ${parseInt(user.level) === 256 ? 'selected' : ''}>Ajout temps</option>
+              <option value="128" ${parseInt(user.level) === 128 ? 'selected' : ''}>Gestion projet</option>
+              <option value="64" ${parseInt(user.level) === 64 ? 'selected' : ''}>Gestion projet et processus </option>
+              <option value="32" ${parseInt(user.level) === 32 ? 'selected' : ''}>Gestion temps, projet et processus</option>
+              <option value="16" ${parseInt(user.level) === 16 ? 'selected' : ''}>Gestion de tout</option>
+          </select></label><br/>
+          <label for="password">Mot de passe : <input type="password" name="password" value=""></label><br><span class="notice" data-name="password-modified">Le mot de passe ne sera pas modifié</span><br>
+          <label for="disabled"> Désactiver : <input type="checkbox" name="disabled" ${parseInt(user.disabled) === 0 ? '' : 'checked'} /></label><br>
+          <label for="order">Ordre au planning : <input name="order" type="text" value="${user.order}"/><br>
+            Jour de travail : <br>
+            <label><input type="checkbox" ${user.workday.charAt(1) === 'y' ? 'checked' : ''} name="workday_1"> Lundi</label>
+            <label><input type="checkbox" ${user.workday.charAt(2) === 'y' ? 'checked' : ''} name="workday_2"> Mardi</label>
+            <label><input type="checkbox" ${user.workday.charAt(3) === 'y' ? 'checked' : ''} name="workday_3"> Mercredi</label><br>
+            <label><input type="checkbox" ${user.workday.charAt(4) === 'y' ? 'checked' : ''} name="workday_4"> Jeudi</label>
+            <label><input type="checkbox" ${user.workday.charAt(5) === 'y' ? 'checked' : ''} name="workday_5"> Vendredi</label>
+            <label><input type="checkbox" ${user.workday.charAt(6) === 'y' ? 'checked' : ''} name="workday_6"> Samedi</label><br>
+            <label><input type="checkbox" ${user.workday.charAt(0) === 'y' ? 'checked' : ''} name="workday_0"> Dimanche</label>
+          <br>
+          <fieldset><legend>Groupes</legend>
+            <div name="groups"></div>
+          </fieldset>
+          <br>
+          <button type="submit">Sauver</button><button type="reset">Annuler</button>
+          </form>
+        `, user.id ? `Modifier utilisateur ${user.name}` : `Ajouter un nouvel utilisateur`, { closable: true, loading: true })
+
+          kafetch2(`${KAAL.getBase()}/GroupUser/_query`, { method: 'POST', body: { user: userId } })
+            .then(currentGroups => {
+              const ms = new KMultiSelectUI(new GroupStore(), currentGroups.map(g => g.group), () => {
+                return new Promise(resolve => {
+                  const newProjectForm = new UIKAGroupForm()
+                  const popup = window.Admin.popup(newProjectForm.domNode, 'Ajouter un groupe', { closable: true })
+                  newProjectForm.addEventListener('submit', event => {
+                    event.preventDefault()
+                    const gs = new GroupStore()
+                    const formData = event.detail
+                    gs.set({ name: formData.get('name'), description: formData.get('description') })
+                      .then(_ => {
+                        popup.close()
+                        resolve()
+                      })
+                      .catch(cause => {
+                        popup.close()
+                        resolve()
+                      })
+                  })
+                  newProjectForm.addEventListener('reset', event => {
+                    event.preventDefault()
+                    popup.close()
+                    resolve()
+                  })
                 })
               })
-              
-              disconnect = true
-            }
-            if (content.user) { body.id = content.user }
-
-            passGenerationPromise
-            .then(user => {
-              Artnum.Query.exec(Artnum.Path.url(`Person/${content.user}`), { method: body.id ? 'PATCH' : 'POST', body: body }).then((result) => {
-                if (result.success) {
-                  let uid = result.data[0].id
-                  Artnum.Query.exec(Artnum.Path.url(`Person/${uid}`))
-                    .then((result) => {
-                      if (!result.success || result.length !== 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
-                      if (disconnect) { KLoginInstance.disconnectAll(userId) }
-
-                      const entry = Array.isArray(result.data) ? result.data[0] : result.data
-                      entry._connections = []
-                      newEntry(entry)
-                        .then((html) => {
-                          replaceAddEntry(html)
-                          let p = event.target
-                          while (p && !p.classList.contains('popup')) { p = p.parentNode }
-                          p.dispatchEvent(new CustomEvent('close'))
-                          resolve()
-                        })
-                    })
-                }
+              const node = popup.querySelector('div[name="groups"]')
+              node.parentNode.replaceChild(ms.domNode, node)
+              ms.render()
+              return ms
+            })
+            .then(ms => {
+              return new Promise((resolve, reject) => {
+                kafetch2(`${KAAL.getBase()}/BXUser`)
+                .then(bexioUsers => {
+                  const select = popup.querySelector('select[name="bxuser"]')
+                  bexioUsers.forEach(bx => {
+                    const user = document.createElement('OPTION')
+                    user.value = bx.id
+                    user.innerHTML = `${bx.firstname} ${bx.lastname}`
+                    select.appendChild(user)
+                  })
+                  kafetch2(`${KAAL.getBase()}/PersonLink/_query`, {method: 'POST', body: {uid: userId, service: 'bexio'}})
+                  .then(relation => {
+                    if (relation.length <= 0) { return resolve(ms) }
+                    relation = relation[0]
+                    const relationDomNode = select.querySelector(`option[value="${relation.extid}"]`)
+                    if (relationDomNode) { relationDomNode.setAttribute('selected', '1') }
+                    return resolve(ms)
+                  })
+                })
               })
             })
-          })
+            .then(ms => {
+              const form = popup.getElementsByTagName('form')[0]
+              popup.loaded()
+              form.addEventListener('reset', (event) => {
+                popup.close()
+              })
+              form.addEventListener('keypress', (event) => {
+                if (event.target.nodeName === 'INPUT' && event.target.name === 'password') {
+                  let node = event.target
+                  while (node && node.nodeName !== 'FORM') { node = node.parentNode }
+                  let nodes = node.getElementsByTagName('SPAN')
+                  for (let n of nodes) {
+                    if (n.dataset.name && n.dataset.name === 'password-modified') {
+                      window.requestAnimationFrame(() => { n.parentNode.removeChild(n) })
+                      break
+                    }
+                  }
+                }
+              })
+
+              form.addEventListener('submit', (event) => {
+                event.preventDefault()
+                let disconnect = false
+                const content = window.Admin.getForm(event.target)
+
+                new Promise((resolve, reject) => {
+                  /* check if user exist */
+                  kafetch2(`${KAAL.getBase()}/Person/_query`, { method: 'POST', body: { username: content.username } })
+                    .then(user => {
+                      if (user.length > 0 && String(user[0].id) !== String(content.user)) { return reject('Utilisateur existant') }
+                      return resolve(content)
+                    })
+                })
+                  .then(content => {
+                    /* map content of form to query body */
+                    let mapping = { username: 'username', name: 'name', efficiency: 'efficiency', level: 'level', order: 'order' }
+                    let body = { disabled: content.disabled ? '1' : '0', workday: 'nyyyyyn' }
+                    for (let i in mapping) {
+                      if (content[i] && content[i] !== null) {
+                        body[mapping[i]] = content[i]
+                      } else {
+                        body[mapping[i]] = ''
+                      }
+                    }
+                    let workday = ['n', 'y', 'y', 'y', 'y', 'y', 'n']
+                    content.workday_0 ? workday[0] = 'y' : workday[0] = 'n'
+                    content.workday_1 ? workday[1] = 'y' : workday[1] = 'n'
+                    content.workday_2 ? workday[2] = 'y' : workday[2] = 'n'
+                    content.workday_3 ? workday[3] = 'y' : workday[3] = 'n'
+                    content.workday_4 ? workday[4] = 'y' : workday[4] = 'n'
+                    content.workday_5 ? workday[5] = 'y' : workday[5] = 'n'
+                    content.workday_6 ? workday[6] = 'y' : workday[6] = 'n'
+                    body.workday = workday.join('')
+                    body.efficiency = parseFloat(body.efficiency)
+
+                    if (body.efficiency < 0.1 || body.efficiency > 2.0) {
+                      return reject(`Une efficacité de ${body.efficiency} n'est pas acceptable, la valeur doit être entre 0.1 et 2.0`)
+                    }
+                    body.level = parseInt(body.level)
+                    if (content.user) { 
+                      body.id = parseInt(content.user) 
+                      if (isNaN(body.id)) { delete body.id }
+                    }
+                    
+                    if (content.password) {
+                      if (content.password.length < 6) {
+                        return reject('Mot de passe trop court, veuillez entrer au moins 6 caractères')
+                      }
+                    }
+
+                    return new Promise((resolve, reject) => {
+                      /* change user in db */
+                      const path = body.id ? `${KAAL.getBase()}/Person/${body.id}` : `${KAAL.getBase()}/Person`
+                      kafetch2(path, {method: body.id ? 'PATCH' : 'POST', body: body})
+                      .then(user => {
+                        return kafetch2(`${KAAL.getBase()}/Person/${user[0].id}`)
+                      })
+                      .then(user => {
+                        resolve(user[0])
+                      })
+                      .catch(cause => {
+                        reject(cause)
+                      })
+                    })
+
+                  })
+                  .then(user => {
+                    /* change password if needed */
+                    return new Promise((resolve, reject) => {
+                      if (!content.password) { return resolve(user) }
+                      KLoginInstance.setPassword(user.id, content.password)
+                      .then(_ => {
+                        return KLoginInstance.disconnectAll(user.id)
+                      })
+                      .then(_ => {
+                        return resolve(user)
+                      })
+                      .catch(cause => reject(cause))
+                    })
+                  })
+                  .then(user => {
+                    /* display new user, close popup */
+                    user._connections = []
+                    newEntry(user)
+                    .then(html => {
+                      replaceAddEntry(html)
+                      let p = event.target
+                      while (p && !p.classList.contains('popup')) { p = p.parentNode }
+                      popup.close()
+                    })
+                    return user
+                  })
+                  .then(user => {
+                    /* link user to external service id (only one yet) */
+                    return new Promise((resolve, reject) => {
+                        if (content.bxuser === '0') {
+                          kafetch2(`${KAAL.getBase()}/PersonLink/${user.id},bexio`, {method: 'DELETE'})
+                          .then(x => {
+                            return resolve(user)
+                          })
+                          .catch(cause => {
+                            reject(cause)
+                          })
+                        } else {
+                          kafetch2(`${KAAL.getBase()}PersonLink/${user.id},bexio`, {method: 'POST', body:{
+                            extid: content.bxuser,
+                            service: 'bexio',
+                            uid: user.id
+                          }})
+                          .then(_ => {
+                            return resolve(user)
+                          })
+                          .catch(cause => {
+                            reject(cause)
+                          })
+                        }
+                    })
+                  })
+                  .then(user => {
+                    /* set user groups */
+                    return new Promise((resolve, reject) => {
+                      Promise.all([
+                        kafetch2(`${KAAL.getBase()}/GroupUser/_query`, { method: 'POST', body: { user: user.id } }),
+                        ms.getSelected()
+                      ])
+                        .then(([currentGroups, selectedGroups]) => {
+                          Promise.allSettled(currentGroups.map(g => {
+                            if (selectedGroups.indexOf(String(g.group) === -1)) {
+                              return kafetch2(`${KAAL.getBase()}/GroupUser/${g.uid}`, { method: 'DELETE' })
+                            }
+                          }))
+                            .then(_ => {
+                              selectedGroups = selectedGroups.filter(g => !currentGroups.find(c => String(c.group)) !== g)
+                              return Promise.allSettled(selectedGroups.map(g => {
+                                return kafetch2(`${KAAL.getBase()}/GroupUser`, { method: 'POST', body: { group: g, user: user.id } })
+                              }))
+                            })
+                            .then(_ => {
+                              return resolve()
+                            })
+                        })
+                    })
+                  })
+                  .catch(cause => {
+                    alert(cause)
+                  })
+              })
+            })
         })
-      })
     })
   }
 
@@ -241,36 +354,36 @@
           form.addEventListener('submit', event => {
             event.preventDefault()
             const data = new FormData(event.target)
-            switch(event.submitter.value) {
+            switch (event.submitter.value) {
               default:
                 if (!String(event.submitter.value).startsWith('dis-one-')) { break; }
                 const parts = String(event.submitter.value).split('-')
                 KLoginInstance.disconnectById(parts.pop())
-                .then(_ => {
-                  getUser(data.get('user'))
-                  popup.close()
-                })
+                  .then(_ => {
+                    getUser(data.get('user'))
+                    popup.close()
+                  })
                 break
               case 'dis-user':
                 KLoginInstance.disconnect(data.get('user'))
-                .then(_ => {
-                  getUser(data.get('user'))
-                  popup.close()
-                })
+                  .then(_ => {
+                    getUser(data.get('user'))
+                    popup.close()
+                  })
                 break;
               case 'dis-all':
                 KLoginInstance.disconnectAll(data.get('user'))
-                .then(_ => {
-                  getUser(data.get('user'))
-                  popup.close()
-                })
+                  .then(_ => {
+                    getUser(data.get('user'))
+                    popup.close()
+                  })
                 break;
               case 'dis-share':
                 KLoginInstance.disconnectShare(data.get('user'))
-                .then(_ => {
-                  getUser(data.get('user'))
-                  popup.close()
-                })
+                  .then(_ => {
+                    getUser(data.get('user'))
+                    popup.close()
+                  })
                 break;
             }
           })
@@ -280,12 +393,12 @@
             let url = ''
             let share = 'Non'
             let duration = parseInt(connection.duration)
-            switch(parseInt(connection.share)) {
-              case 1: 
+            switch (parseInt(connection.share)) {
+              case 1:
                 const aUrl1 = new URL(`https://${connection.url}`)
                 aUrl1.searchParams.append('access_token', connection.auth)
-                share = 'Permanent'; 
-                duration = -1; 
+                share = 'Permanent';
+                duration = -1;
                 url = `<a href="${aUrl1.toString()}">${connection.url}</a>`
                 break
               case 2:
@@ -382,74 +495,6 @@
   }
 
   window.onload = async function () {
-    var forms = document.getElementsByTagName('FORM')
-    forms[0].addEventListener('submit', async function (event) {
-      event.preventDefault()
-      var user = { name: null, efficiency: 1.0, key: null, keyopt: null, password: null, admin: false, user: false, username: null, order: 0, workday: 'nyyyyyn' }
-      let newPassword = ''
-      let workday = ['n', 'y', 'y', 'y', 'y', 'y', 'n']
-        ;['INPUT', 'SELECT'].forEach((ename) => {
-          let inputs = event.target.getElementsByTagName(ename)
-          for (var i = 0; i < inputs.length; i++) {
-            switch (inputs[i].getAttribute('name')) {
-              case 'efficiency':
-                inputs[i].value = 1.0;
-                inputs[i].value = parseFloat(inputs[i].value)
-                if (inputs[i].value < 0.1 || inputs[i].value > 2.0) {
-                  alert(`Une efficacité de ${inputs[i].value} n'est pas acceptable, la valeur doit être entre 0.1 et 2.0`)
-                }
-              case 'name':
-              case 'username':
-                user[inputs[i].getAttribute('name')] = inputs[i].value
-                inputs[i].value = ''
-                break
-              case 'password':
-                newPassword = inputs[i].value
-                inputs[i].value = ''
-                break
-              case 'level':
-                user.level = parseInt(inputs[i].value)
-                inputs[i].value = 256
-                break
-              case 'order':
-                user.order = parseInt(inputs[i].value)
-                inputs[i].value = 0
-                break
-              case 'workday_0': inputs[i].checked ? workday[0] = 'y' : workday[0] = 'n'; break
-              case 'workday_1': inputs[i].checked ? workday[1] = 'y' : workday[1] = 'n'; break
-              case 'workday_2': inputs[i].checked ? workday[2] = 'y' : workday[2] = 'n'; break
-              case 'workday_3': inputs[i].checked ? workday[3] = 'y' : workday[3] = 'n'; break
-              case 'workday_4': inputs[i].checked ? workday[4] = 'y' : workday[4] = 'n'; break
-              case 'workday_5': inputs[i].checked ? workday[5] = 'y' : workday[5] = 'n'; break
-              case 'workday_6': inputs[i].checked ? workday[6] = 'y' : workday[6] = 'n'; break
-            }
-          }
-        })
-      user.workday = workday.join('')
-
-      var exists = await Artnum.Query.exec(Artnum.Path.url('Person', { params: { 'search.username': user.username } }))
-      if (exists.success && exists.length > 0) {
-        alert('Nom d\'utilisateur est déjà pris')
-        return
-      }
-
-      Artnum.Query.exec(Artnum.Path.url('Person'), { method: 'POST', body: { order: user.order, level: user.level, name: user.name, username: user.username, workday: user.workday } }).then(function (result) {
-        if (!result.success && result.length !== 1) {
-          alert('Erreur de création des utilisateur')
-        } else {
-          KLoginInstance.setPassword(result.data[0].id, newPassword)
-          .then(user => {
-            return user.userid
-          })
-          .then (userid => {
-            Artnum.Query.exec(Artnum.Path.url('Person/' + userid))
-          })  
-          .then(function (result) {
-            loadUsers()
-          })
-        }
-      })
-    })
     const UserTable = new Artnum.DTable({ table: 'users' })
     window.addEventListener('update', (event) => {
       if (!event.detail) { return }
@@ -472,6 +517,7 @@
           deleteUser(node.dataset.id).then(() => {
             window.requestAnimationFrame(() => node.parentNode.removeChild(node))
           })
+          break
         case 'pricing':
           setUserPrice(node.dataset.id, event.target.dataset.username)
           break
@@ -638,16 +684,10 @@
   }
 
   async function loadUsers() {
-    //var admin = await Artnum.Query.exec(Artnum.Path.url('admin/htpasswd.php'))
     Artnum.Query.exec(Artnum.Path.url('Person', { params: { 'search.deleted': '-' } })).then(function (person) {
       if (person.success && person.length > 0) {
         for (var i = 0; i < person.length; i++) {
           const entry = person.data[i]
-          /*if (admin.indexOf(entry.username) !== -1) {
-            entry.admin = true
-          } else {
-            entry.admin = false
-          }*/
           KLoginInstance.getActive(entry.id)
             .then(connections => {
               entry._connections = connections

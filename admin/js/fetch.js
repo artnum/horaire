@@ -50,6 +50,9 @@ fetch.success = 0
 
 function kafetch (url, params = {}) {
   return new Promise ((resolve, reject) => {
+    if (params.body && typeof params.body === 'object') {
+      params.body = JSON.stringify(params.body)
+    }
     fetch (url, params)
     .then(response => {
       if (!response.ok) { reject('Erreur communication'); return }
@@ -58,5 +61,24 @@ function kafetch (url, params = {}) {
     .then(result => {
       resolve(result)
     })
+    .catch(cause => {
+      reject(cause)
+    })
+  })
+}
+
+function kafetch2 (url, params = {}) {
+  return new Promise((resolve, reject) =>{
+    kafetch(url, params)
+    .then(result => {
+      if (result.length === 0) { return resolve([]) }
+      if (!result.data) { return resolve([]) }
+      if (!Array.isArray(result.data)) { return resolve([result.data]) }
+      return resolve(result.data)
+    })
+    .catch(cause => {
+      reject(new Error('Erreur réseau', {cause}))
+    })
+
   })
 }

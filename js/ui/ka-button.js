@@ -1,4 +1,4 @@
-function KAButton (content, options = {group: null, foldable: null, fat: false, click: false, small: false}) {
+function KAButton (content, options = {group: null, foldable: null, fat: false, click: false, small: false, selected: false}) {
     if (!KAButton.__groups) { KAButton.__groups = new Map() }
     if (!KAButton.__count) { KAButton.__count = 0 }
     
@@ -56,6 +56,7 @@ function KAButton (content, options = {group: null, foldable: null, fat: false, 
         node: this.domNode
     }
     this.domNode.dataset.open = '0'
+    if (options.selected) { this.domNode.dataset.open = '1' }
     interactPart.addEventListener('click', KAButton.toggleButton.bind(ctx))
     interactPart.addEventListener('select', KAButton.selectButton.bind(ctx))
     if (!options.click) {

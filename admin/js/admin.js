@@ -305,20 +305,23 @@
     },
 
     popup: function (html, title, options = {}) {
+      if (!this._popupCount) { 
+        this._popupCount = 0
+      }
       if (options.modal === undefined) {
         options.modal = true
       }
-      
+      const underlayName = `ModalUnderlay${++this._popupCount}`
       if (options.modal) {
         let underlay = document.createElement('DIV')
-        underlay.id = 'ModalUnderlay'
+        underlay.id = underlayName
+        underlay.classList.add('ModalUnderlay')
         if (typeof KZ === 'function') {
           underlay.style.zIndex = KZ()
         }
-        window.underlay = underlay
         window.requestAnimationFrame(() => {
           document.body.appendChild(underlay)
-          document.body.classList.add('AdminPopupModal')
+          document.body.classList.add('withUnderlayActive')
         })
       }
 
@@ -358,6 +361,7 @@
         content.innerHTML = html
       }
       content.setAttribute('name', 'popup-content')
+      content.classList.add('popup-content')
       if (options.classes && Array.isArray(options.classes)) {
         options.classes.forEach(c => {
           content.classList.add(c)
@@ -369,16 +373,25 @@
       content.close = function (event) {
         window.requestAnimationFrame(() => {
           this.parentNode.removeChild(this)
-          if (window.underlay) {
-            window.underlay.parentNode.removeChild(window.underlay)
-            window.underlay = null
-          }
-          if (document.body.classList.contains('AdminPopupModal')) {
-            document.body.classList.remove('AdminPopupModal')
+          const underlay = document.getElementById(underlayName)
+          if (underlay) {
+            underlay.parentNode.removeChild(underlay)
+            if (!document.body.querySelector('.ModalUnderlay')) {
+              document.body.classList.remove('withUnderlayActive')
+            }
           }
         })
       }.bind(popup)
 
+      content.loaded = function () {
+        window.requestAnimationFrame(() => {
+          this.classList.remove('loading')
+        })
+      }.bind(popup)
+
+      if (options.loading) {
+        popup.classList.add('loading')
+      }
       popup.addEventListener('close', content.close)
 
       window.requestAnimationFrame(() => {
