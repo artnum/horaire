@@ -775,8 +775,10 @@ UIKAProjectList.prototype.checkTravailData = function (travail) {
     return new Promise((resolve, reject) => {
         if (isIdEmpty(travail.status)) { return reject(new Error('Pas de processus', {cause: 'status'})) }
         if (isStringEmpty(travail.reference)) { return reject(new Error('Pas de référence', {cause: 'reference'})) }
-        if (isStringEmpty(travail.begin)) { return reject(new Error('Pas de début souhaité', {cause: 'begin'})) }
-        if (isStringEmpty(travail.end)) { return reject(new Error('Pas de fin souhaitée', {cause: 'end'})) }
+        /*if (isStringEmpty(travail.begin)) { return reject(new Error('Pas de début souhaité', {cause: 'begin'})) }
+        if (isStringEmpty(travail.end)) { return reject(new Error('Pas de fin souhaitée', {cause: 'end'})) }*/
+        if (isStringEmpty(travail.begin)) { travail.begin = new Date().toISOString().split('T')[0] }
+        if (isStringEmpty(travail.end)) { travail.end = new Date().toISOString().split('T')[0] }
         if (isIntEmpty(travail.force)) {
             travail.force = 0
         }
