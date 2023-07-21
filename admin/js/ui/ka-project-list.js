@@ -744,7 +744,7 @@ UIKAProjectList.prototype.editProject = function (projectId) {
                 .catch(cause => {
                     const label = form.querySelector(`label[for="${cause.cause}"]`)
                     window.requestAnimationFrame(() => {
-                        label.classList.add('inerror')
+                        if (label) { label.classList.add('inerror') }
                     })
                     new MsgInteractUI('error', cause.message)
                 })
