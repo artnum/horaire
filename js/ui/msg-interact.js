@@ -1,6 +1,6 @@
 function MsgInteractUI (type = 'error', message) {
     if (message instanceof Error) {
-        message = error.message
+        message = message.message
     }
 
     new Promise(resolve => {

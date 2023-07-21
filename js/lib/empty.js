@@ -17,3 +17,7 @@ function isFloatEmpty (float) {
     if (float === null || float === undefined || isNaN(parseFloat(float))) { return true }
     return false
 }
+
+function arrayFirstNonEmptyString (array) {
+    return array.find(item => typeof item === 'string' && !isStringEmpty(item))
+}

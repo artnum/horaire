@@ -64,6 +64,7 @@ KEDPacket.prototype.send = function () {
         .then (json => {
             resolve(json)
         })
+        .catch(cause => reject(cause))
     })
 }
 
@@ -74,17 +75,18 @@ KED.prototype.packet = function () {
 }
 
 KED.prototype.createProject = function (id, reference, related) {
-    if (this.uri === null) { return }
-    const packet = this.packet()
-    
-    packet
-        .op('create-tag')
-        .path('')
-        .name(reference)
-        .set('related', [related])
-        .send()
-        .then(response => {
-            console.log(response)
-        })
-        .catch(reason => { console.log(reason) })
+    return new Promise((resolve, reject) => {
+        if (this.uri === null) {  return reject('Erreur de configuration') }
+        const packet = this.packet()
+        packet
+            .op('create-tag')
+            .path('')
+            .name(reference)
+            .set('related', [related])
+            .send()
+            .then(response => {
+                resolve(response)
+            })
+            .catch(cause => { reject(cause) })
+    })
 }

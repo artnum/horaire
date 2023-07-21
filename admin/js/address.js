@@ -226,7 +226,7 @@ export class Address {
     }
 
     searchAddress(value) {
-        this.contactStore.search(event.target.value)
+        this.contactStore.search(value)
             .then((list) => {
                 this.SAddr.showList(list)
             })

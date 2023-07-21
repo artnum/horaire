@@ -63,6 +63,13 @@ input, select, textarea, button {
     padding: 5px;
 }
 
+input:read-only {
+    background-color: lightgray;
+    font-weight: bold;
+    border-bottom: 2px solid darkgray;
+
+}
+
 input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] {
     background-color: rgba(255, 0, 0, 0.2);
     border-bottom: 2px solid red;
@@ -90,6 +97,11 @@ input.error, select.error, textarea.error {
     background-color: var(--input-background-color-error)
 }
 
+input[type=submit].danger, input[type=button].danger, input[type=reset].danger, button.danger, .ka-button.danger {
+        color: darkred !important;
+        border: 3px outset red !important;
+} 
+
 input[type=submit], input[type=button], input[type=reset], button, .ka-button {
     display: inline-flex;
     align-items: center;
@@ -104,6 +116,15 @@ input[type=submit], input[type=button], input[type=reset], button, .ka-button {
     white-space: nowrap;
     font-weight: bold;
 }
+
+input[type=submit].danger:hover, input[type=button].danger:hover, input[type=reset].danger:hover, button.danger:hover, .ka-button.danger:hover {
+    background-color: lightpink !important;
+    border-color: red !important;
+} 
+
+input[type=submit].danger:active, input[type=button].danger:active, input[type=reset].danger:active, button.danger:active, .ka-button.danger:active {
+    color:darkred !important;
+} 
 
 input[type=submit]:hover, input[type=button]:hover, input[type=reset]:hover, button:hover, .ka-button:hover {
     background-color: rgba(200, 200, 200, 0.3) !important;
@@ -303,6 +324,44 @@ div.popup {
     visibility: hidden;
 }
 
+.project-list-parent {
+    min-height: 800px;
+}
+
+.ka-contact-container-old  .ka-selected-contact .ka-contact-old {
+    background-color:cornsilk;
+}
+
+.ka-contact-container-old .ka-contact-old {
+    cursor: pointer;
+    margin: 1ex 0;
+    background-color: ghostwhite;
+}
+
+.ka-contact-container-old .ka-contact-old .names {
+    font-weight: bold;
+}
+
+.ka-contact-container-old .ka-contact-old .organization {
+    font-style: italic;
+}
+.ka-contact-container-old .ka-contact {
+    max-height: 300px;
+    overflow-y: scroll;
+    padding-left: 40px;
+    padding-right: 40px;
+    border: 3px inset lightgray;
+}
+
+.ka-contact-container-old .ka-contact.empty {
+    border: none;
+}
+
+.ka-contact-container-old input[name="search"] {
+    min-width: 40ch;
+    font-weight: bold;
+}
+
 .ka-contact-form.sending {
     opacity: 0.3;
 }
@@ -417,20 +476,6 @@ td[name="hour"] span, td[name="date"] span {
     background-color: var(--highlight-bgcolor);
     cursor: pointer;
 }
-
-
-span.addMore:before {
-    cursor: pointer;
-    font-size: 24px;
-    display: inline-block;
-    font-family: FontAwesome;
-    font-variant: normal;
-    font-weight: normal;
-    content: '\f141';
-    padding: 5px;
-    margin: 5px;
-}
-
 
 .darkbg, .darkbg * {
     color: var(--fg-color-on-dark) !important;
@@ -646,6 +691,12 @@ fieldset.half {
     color: black;
 }
 
+.ka-warning, .ka-warn {
+    border: 2px solid orangered;
+    background-color: lightsalmon;
+    color: black;
+}
+
 .ka-info {
     border: 2px solid blue;
     background-color: lightskyblue;
@@ -713,4 +764,36 @@ label.inerror {
     color: black;
     border: none;
     border-bottom: 1px solid black;
+}
+
+button.addMore {
+    margin: 0;
+    padding: 0;
+    border: none;
+    min-width: auto;
+    width: auto;
+    min-height: auto;
+    height: auto;
+}
+
+button.addMore:active {
+    background-color: darkgray !important;
+    color: white !important;
+    border: none !important;
+}
+
+button.addMore:before {
+    cursor: pointer;
+    font-size: 24px;
+    display: inline-block;
+    font-family: FontAwesome;
+    font-variant: normal;
+    font-weight: normal;
+    content: '\f141';
+    padding: 5px;
+    margin: 5px;
+}
+
+.ka-org-form .ka-person-visible {
+    display: none;
 }

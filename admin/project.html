@@ -4,6 +4,7 @@
 <head>
   <link rel="stylesheet" type="text/css" href="css/admin.css" />
   <link rel="stylesheet" type="text/css" href="css/dtable.css" />
+  <link href="../css/fontawesome-all.min.css" rel="stylesheet" />
   <title>Horaire</title>
   <link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
 </head>
@@ -13,46 +14,29 @@
     <h1>Projets</h1>
     <h2>Nouveau projet</h2>
     <form>
-      <fieldset name="general" id="general" class="half">
+      <fieldset name="general" id="general">
         <legend>Général</legend>
+        <input type="hidden" name="type" value="project" />
         <label for="reference">Numéro de chantier : </label><input name="reference" type="text" id="reference" /><br />
         <br /><label for="year">Année : </label><input id="inYear" name="year" type="text" /><br>
         <label for="name">Nom : </label><input name="name" type="text" /><br>
         <label for="price">Prix de vente HT : </label><input name="price" type="text" /><br>
         <label for="manager">Chef projet : </label><input name="manager" type="text" id="manager" /><br>
         <label for="uncount">Heures non-comptabilisées : </label><input name="uncount" type="checkbox" /><br>
+        <label for="client">Client : </label><span name="clientContainer"></span><br>
+        <input type="submit" value="Créer le projet" /><br>
       </fieldset>
-      <fieldset name="client" id="client" class="half">
-        <legend>Client</legend>
-      </fieldset>
-      <input type="submit" value="Ajouter" /><button type="submit" id="rDef"></button><button type="submit"
-        id="rYear"></button><br>
     </form>
     <h2>Projets existants</h2>
-    <input type="radio" onchange="changeState(event)" checked="checked" id="stateOpen" name="state"><label
-      for="stateOpen">Ouvert</label>
-    <input type="radio" onchange="changeState(event)" id="stateClosed" name="state"><label
-      for="stateClosed">Fermé</label>
-    <input type="radio" onchange="changeState(event)" id="stateAny" name="state"><label for="stateAny">Tous</label>
     <input type="button" onclick="exportAll()" value="Tout exporter"></input>
-    <table id="projects" data-source="Project">
-      <thead class="darkbg">
-        <tr>
-          <th data-sort-type="string">Référence</th>
-          <th>Nom</th>
-          <th>Responsable</th>
-          </th>
-          <th data-sort-type="no">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-      </tbody>
-    </table>
+
+    <div class="project-list-parent"></div>
   </main>
 </body>
 <script>
   window.KCORE = { NoPopper: true }
 </script>
+<script src="../../kcore/index.js"></script>
 <script src="../conf/kaal.js"></script>
 <script src="js/lib/login.js"></script>
 <script src="../node_modules/sjcl/sjcl.js"></script>
@@ -70,11 +54,7 @@
 <script src="js/addr.js" type="module"></script>
 <script src="js/ked.js"></script>
 <script src="../js/index.js"></script>
-<script src="../../kcore/index.js"></script>
-<script type="module">
-  import { Address } from './js/address.js'
-  const address = new Address(document.getElementById('client'))
-</script>
+<script src="js/index.js"></script>
 <script>
   window.Conf = { workweek: 5, weekhours: 42 }
   window.Conf.workday = window.Conf.weekhours / window.Conf.workweek
@@ -85,22 +65,9 @@
     deleted: '-'
   }
 
-
   const RYName = `R${String(new Date().getFullYear()).substring(2)}`
   var References = { 'default': 1, RYName: 1 }
   var MyPopper = null
-
-
-  function genRef(event) {
-    let r = document.getElementById('reference');
-    if (event.target) {
-      if (event.target.id === 'rDef') {
-        r.value = References.default
-      } else {
-        r.value = `${RYName}-${String(References.RYName).padStart(3, '0')}`
-      }
-    }
-  }
 
   function exportAll() {
     const params = {state: 'closed'}
@@ -519,20 +486,7 @@
     }
   }
 
-  async function evCloseProject(event) {
-    if (event && event.target) {
-      var node = event.target
-      if (node.getAttribute('data-id')) {
-        var close = (node.getAttribute('data-state') === 'open' ? (new Date()).toISOString() : null)
-        var res = await Artnum.Query.exec(Artnum.Path.url('Project/' + node.getAttribute('data-id')), { method: 'PATCH', body: { id: node.getAttribute('data-id'), closed: close } })
-        if (res.success && res.length === 1) {
-          let id = res.data[0].id
-          return UIKADisplayProject(res.data[0].id)
-        }
-      }
-    }
-  }
-
+  
   async function evCancelEdit(event) {
     if (event && event.target) {
       for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
@@ -548,70 +502,6 @@
       event.target.parentNode.removeChild(event.target)
       tr.setAttribute('data-edit', '0')
     }
-  }
-
-  function evEditProject(event) {
-    let pid = event.target.dataset.project
-    Artnum.Query.exec(Artnum.Path.url(`Project/${pid}`)).then((result) => {
-      if (!result.success || result.length !== 1) { alert('Projet inexistant'); console.log(result); return }
-      let project = Array.isArray(result.data) ? result.data[0] : result.data
-      let popup = window.Admin.popup(`<form>
-      <input type="hidden" value="${project.id}" name="project" />
-      <label for="reference">Numéro de chantier : </label><input name="reference" type="text" value="${project.reference}" />
-      <label for="name">Nom : </label><input name="name" type="text" value="${project.name}"/><br>
-      <label for="price">Prix de vente HT : </label><input name="price" type="text" value="${project.price}"/>
-      <label for="price">Chef de projet : </label><input name="manager" type="text" value="${project.manager === null ? '' : project.manager}"/><br>
-      <fieldset name="address"><legend>Adresse</legend></fieldset>
-      <button type="submit">Sauver</button><button type="reset">Annuler</button>
-     </form>`, `Projet ${project.reference} - ${project.name}`)
-      let form = popup.getElementsByTagName('FORM')[0]
-      let fs = form.getElementsByTagName('FIELDSET')
-      let addr
-      let fieldset
-      for (let i = 0; i < fs.length; i++) {
-        if (fs[i].getAttribute('name') === 'address') {
-          fieldset = fs[i]
-          addr = new window.Addr(fs[i])
-          break
-        }
-      }
-      addr.setAddressId(project.client)
-      popup.addEventListener('resize', () => {
-        addr.update()
-      })
-
-      const managerSelect = new KSelectUI(popup.querySelector('input[name="manager"]'), new STPerson(), { realSelect: true, allowFreeText: false })
-      form.addEventListener('reset', (event) => {
-        let p = event.target
-        while (p && !p.classList.contains('popup')) { p = p.parentNode }
-        p.dispatchEvent(new CustomEvent('close'))
-      })
-
-      form.addEventListener('submit', (event) => {
-        event.preventDefault()
-        let content = window.Admin.getForm(event.target)
-        let body = {
-          id: content.project,
-          name: content.name,
-          reference: content.reference,
-          price: content.price,
-          manager: managerSelect.value
-        }
-        if (fieldset.dataset.id) {
-          body.client = `Contact/${fieldset.dataset.id}`
-        }
-        Artnum.Query.exec(Artnum.Path.url(`Project/${content.project}`), { method: 'PUT', body: body }).then((result) => {
-          if (result.success) {
-            UIKADisplayProject(content.project)
-              .then(kaproject => {
-                let p = event.target
-                while (p && !p.classList.contains('popup')) { p = p.parentNode }
-                p.dispatchEvent(new CustomEvent('close'))
-              })
-          }
-        })
-      })
-    })
   }
 
   function newEntry(entry, travauxGroup) {
@@ -643,31 +533,6 @@
           }
         }
 
-        let exportButton = document.createElement('BUTTON')
-        exportButton.setAttribute('type', 'button')
-        exportButton.addEventListener('click', function (event) {
-          if (event && event.target) {
-            for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
-            Admin.getUrl('admin/exec/export/project.php', { pid: node.getAttribute('data-id') })
-            .then(url => {
-              window.open(url)
-            })
-          }
-        })
-        exportButton.innerHTML = 'Exporter'
-
-        let printButton = document.createElement('BUTTON')
-        printButton.setAttribute('type', 'button')
-        printButton.addEventListener('click', function (event) {
-          if (event && event.target) {
-            for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
-            Admin.getUrl('admin/exec/export/bon.php', { pid: node.getAttribute('data-id') })
-            .then(url => {
-              window.open(url)
-            })
-          }
-        })
-        printButton.innerHTML = 'Imprimer'
 
         let closeButton = document.createElement('BUTTON')
         closeButton.setAttribute('type', 'button')
@@ -681,12 +546,6 @@
           closeButton.setAttribute('data-state', 'close')
         }
         closeButton.addEventListener('click', evCloseProject)
-
-        let editButton = document.createElement('BUTTON')
-        editButton.setAttribute('type', 'button')
-        editButton.innerHTML = 'Éditer'
-        editButton.dataset.project = entry.id
-        editButton.addEventListener('click', evEditProject)
 
         let delButton = document.createElement('BUTTON')
         delButton.setAttribute('type', 'button')
@@ -881,53 +740,112 @@
             })
         })
     })
-  }
+  } 
 
   var t = null
-  async function load() {
+
+  function checkProjectData (project) {
+    return Promise.resolve()
+  }
+
+  function load() {
+    const projecList = new UIKAProjectList()
+    /*const contactForm = new UIKAContactForm()
+    const projectForm = new UIKAProjectForm()*/
+    const contactOld = new UIKAContactOld()
+
+    kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
+    .then(r => {
+      const node = document.body.querySelector('input[name="reference"]')
+
+      const buttons = [
+          new KAButton(`Projet`, {group: 'reference', selected: true}),
+          new KAButton(`Régie`, {group: 'reference'}),
+      ]
+      buttons[0].addEventListener('submit', _ => {
+        document.body.querySelector('input[name="type"]').value = 'project'
+        kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
+        .then(r => {
+          node.value = `${r[0].project}`
+         })
+      })
+      buttons[1].addEventListener('submit', _ => {
+        document.body.querySelector('input[name="type"]').value = 'regie'
+        kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
+        .then(r => {
+          node.value = `${r[0].regie}`
+        })
+      })
+      
+
+      node.value = r[0].project
+      window.requestAnimationFrame(() => {
+        node.parentNode.insertBefore(buttons[1], node.nextElementSibling)
+        node.parentNode.insertBefore(buttons[0], node.nextElementSibling)
+      })
+    })
+
+    /*window.requestAnimationFrame(() => document.body.appendChild(contactForm.domNode))
+    window.requestAnimationFrame(() => document.body.appendChild(projectForm.domNode))*/
+    window.requestAnimationFrame(() => document.body.querySelector('.project-list-parent').appendChild(projecList.domNode))
+    projecList.textSearch('*')
+
+    window.requestAnimationFrame(() => document.body.querySelector('span[name="clientContainer"]').appendChild(contactOld.domNode))
+
     const managerSelect = new KSelectUI(document.getElementById('manager'), new STPerson(), { allowFreeText: false, realSelect: true })
-    document.getElementById('rDef').addEventListener('click', genRef)
-    document.getElementById('rYear').addEventListener('click', genRef)
+    /*document.getElementById('rDef').addEventListener('click', genRef)
+    document.getElementById('rYear').addEventListener('click', genRef)*/
     document.getElementById('inYear').value = String((new Date()).getFullYear())
     var forms = document.getElementsByTagName('FORM')
     forms[0].addEventListener('submit', function (event) {
       event.preventDefault()
-      addProject(event)
-    })
-    let qPrj = fetch(`${KAAL.getBase()}/Project/_query`, { method: 'POST', body: JSON.stringify(searchBody) })
-
-    await cleanTbody(document.getElementById('projects'))
-    qPrj
-      .then(response => {
-        if (!response.ok) { throw new Error('Erreur serveur', {cause: response})}
-        return response.json()
-      })
-      .then(result => {
-        if (!result.success) { throw new Error('Erreur serveur')}
-        let node
-        for (node = document.getElementById('projects').firstChild; node.nodeName !== 'TBODY'; node = node.nextSibling);
-        for (const entry of result.data) {
-          UIKADisplayProject(entry)
-        }
-      })
-      .catch(error => {
-        console.warn(error)
-      })
-
-    if (t) { return }
-    t = new Artnum.DTable({
-      table: 'projects', postsort: (table) => {
-        for (let i = table.firstElementChild; i; i = i.nextElementSibling) {
-          if (i.dataset.parentId) {
-            for (let j = table.firstElementChild; j; j = j.nextElementSibling) {
-              if (j.dataset.id === i.dataset.parentId) {
-                j.parentNode.insertBefore(i, j.nextElementSibling)
-                break
-              }
-            }
-          }
-        }
+      const form = event.currentTarget
+      const data = new FormData(form)
+      
+      const project = {
+        year: data.get('year'),
+        name: data.get('name'),
+        client: `Contact/${contactOld.getClientId()}`,
+        manager: managerSelect.value,
+        price: data.get('price'),
+        uncount: data.get('uncount') === 'on' ? 1 : 0
       }
+      kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
+      .then(r => {
+        project.reference = r[0][data.get('type')]
+        return projecList.checkProjectData(project)
+      })
+      .then(project => {
+        return kafetch2(`${KAAL.getBase()}/Project/`, {method: 'POST', body: project})
+
+      })
+      .then(project => {
+        return kafetch2(`${KAAL.getBase()}/Project/${project[0].id}`)
+      })
+      .then(project => {
+        ; (() => {
+          const ked = new KED()
+          const related = data.get('type') === 'project' ? 'Project' : 'Régie'
+          ked.createProject(project[0].id, project[0].reference, related)
+          .catch(_ => {
+            new MsgInteractUI('warning', 'Création du projet sur KED échouée')
+          })
+        })()
+        return projecList.renderProject(project[0])
+      })
+      .then(projectNode => {
+        return projecList.insertProjectNode(projectNode, true)
+      })
+      .then(_ => {
+        form.reset()
+        contactOld.clearResult()
+        contactOld.unselectContact()
+        new MsgInteractUI('info', 'Création du projet effectuée')
+      })
+      .catch(cause => {
+        new MsgInteractUI('error', cause)
+      })
+
     })
   }
   window.addEventListener('kcore-loaded', load)

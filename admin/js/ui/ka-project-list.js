@@ -65,6 +65,7 @@ function UIKAProjectList () {
     this.searchBox.parentNode.appendChild(buttons[2])
 
     this.projectList = this.domNode.querySelector('.ka-project-list')
+    this.projectListHeader = this.projectList.firstElementChild
 
     Array.from(this.projectList.querySelectorAll('span'))
         .forEach(element => {
@@ -86,6 +87,12 @@ function UIKAProjectList () {
                 this.sort(event.currentTarget.classList.item(0), asc)
             })
         })
+}
+
+UIKAProjectList.prototype.resetSortHeader = function () {
+    for (let node = this.projectListHeader.firstElementChild; node; node = node.nextElementSibling) {
+        requestAnimationFrame(() => delete node.dataset.sorted)
+    }
 }
 
 UIKAProjectList.prototype.renderNavigation = function () {
@@ -171,6 +178,9 @@ UIKAProjectList.prototype.textSearch = function (text) {
     this.currentSearchValue = text
     this.currentState = this.selectedState
     this.currentOffset = this.offset
+
+    this.resetSortHeader()
+
     const expr = KQueryExpr.fromString(text, {attribute: ['name', 'reference']})
     const query = {deleted: '--'}
     if (this.selectedState === 'open') { query.closed = '--' }
@@ -181,12 +191,13 @@ UIKAProjectList.prototype.textSearch = function (text) {
     .then(_ => window.requestAnimationFrame(() => this.projectList.classList.remove('loading')))
 }
 
-UIKAProjectList.prototype.toggleProjectFolding = function (domNode) {
+UIKAProjectList.prototype.toggleProjectFolding = function (domNode, forceOpen = false) {
     const projectId = domNode.id.split('-')[1]
     for(const node of this.projectList.querySelectorAll('.ka-project[data-open="1"]')) {
+        if (node === domNode) { continue }
         window.requestAnimationFrame(() => node.dataset.open = '0')
     }
-    if (domNode.dataset.open === '1') { 
+    if (domNode.dataset.open === '1' && !forceOpen) { 
         return window.requestAnimationFrame(() => domNode.dataset.open = '0')
     }
     window.requestAnimationFrame(() => domNode.dataset.open = '1')
@@ -263,6 +274,12 @@ UIKAProjectList.prototype.renderProject = function (project) {
             </div>
         `
         domNode.addEventListener('click', event => {
+            let node = event.target
+            while (node) {
+                if (node.classList.contains('travail')) { return }
+                if (node.classList.contains('ka-project')) { break }
+                node = node.parentNode
+            }
             this.toggleProjectFolding(event.currentTarget)
         })
 
@@ -274,7 +291,30 @@ UIKAProjectList.prototype.renderProject = function (project) {
                 })
             })
 
-        return resolve(domNode)    
+        return resolve(domNode)
+    })
+}
+
+UIKAProjectList.prototype.reloadOpenProject = function (projectId) {
+    return new Promise((resolve, reject) => {
+        const currentPos = window.scrollY
+        kafetch2(`${KAAL.getBase()}/Project/${projectId}`)
+        .then(project => {
+            if (project.length !== 1) { throw new Error('Projet introuvable') }
+            return this.associateProject(project[0])
+        })
+        .then(project => {
+            return this.renderProject(project)
+        })
+        .then(domNode => {
+            this.insertProjectNode(domNode, true)
+            return domNode
+        })
+        .then(domNode => {
+            setTimeout(() => window.scroll(0, currentPos), 250)
+            resolve(domNode)
+        })
+        .catch(cause => reject(cause))
     })
 }
 
@@ -286,7 +326,15 @@ UIKAProjectList.prototype.buttonInteractWithProject = function (projectId, inter
         case 'close': return this.closeProject(projectId)
         case 'open': return this.openProject(projectId)
         case 'delete': return this.deleteProject(projectId)
-        case 'add-work': return this.addTravailToProject(projectId)
+        case 'add-work': return this.addEditTravailToProject(projectId)
+    }
+}
+
+UIKAProjectList.prototype.buttonInteractWithTravail = function (projectId, travailId, interaction) {
+    switch(interaction) {
+        case 'edit': return this.addEditTravailToProject(projectId, travailId)
+        case 'print': return this.printTravail(projectId, travailId)
+        case 'delete': return this.deleteTravail(travailId)
     }
 }
 
@@ -331,8 +379,8 @@ UIKAProjectList.prototype.loadTravaux = function (projectId) {
                         if (isStringEmpty(t.group)) { t.group = 'Général'}
                         return t
                     }))
-            })            
-        })
+            })
+        }).catch(cause => reject(cause))
     })
 }
 
@@ -341,6 +389,7 @@ UIKAProjectList.prototype.renderTravail = function (travail) {
     domNode.style.setProperty('--status-color', travail.status.color)
     domNode.classList.add('ka-group', 'ka-group-content')
     domNode.id = `travail-${travail.id}`
+    domNode.dataset.projectId = travail.project
     domNode.dataset.mygroup = String(travail.group).toLowerCase()
     domNode.innerHTML = `
         <span class="reference"><i class="fas fa-square" style="color: var(--status-color);"></i>${travail.reference ?? ''}</span>
@@ -354,6 +403,16 @@ UIKAProjectList.prototype.renderTravail = function (travail) {
             <button class="onhover" data-action="delete">Supprimer</button>
         </span>
     `
+    domNode.addEventListener('click', event => {
+        const travailId = String(event.currentTarget.id).split('-').pop()
+        if (!travailId) { return }
+
+        this.buttonInteractWithTravail(
+            event.currentTarget.dataset.projectId,
+            travailId,
+            event.target.dataset.action
+        )
+    })
     return domNode
 }
 
@@ -383,7 +442,7 @@ UIKAProjectList.prototype.removeProjectNode = function (projectId) {
     }
 }
 
-UIKAProjectList.prototype.insertProjectNode = function (domNode) {
+UIKAProjectList.prototype.insertProjectNode = function (domNode, forceOpen = false) {
     return new Promise(resolve => {
         const prevNode = document.getElementById(domNode.id)
         let openIt = false
@@ -399,13 +458,13 @@ UIKAProjectList.prototype.insertProjectNode = function (domNode) {
                     prevNode.parentNode.replaceChild(domNode, prevNode)
                     return resolve()
                 }
-                this.projectList.appendChild(domNode)
+                this.projectList.insertBefore(domNode, this.projectListHeader.nextElementSibling)
                 return resolve()
             })
         })
         .then(_ => {
-            if (openIt) {
-                this.toggleProjectFolding(domNode)
+            if (openIt || forceOpen) {
+                this.toggleProjectFolding(domNode, forceOpen)
             }
             return resolve()
         })
@@ -418,7 +477,6 @@ UIKAProjectList.prototype.insertProjectNode = function (domNode) {
  */
 UIKAProjectList.prototype.associateProject = function (project) {
     return new Promise((resolve, reject) => {
-        console.log(project)
         const requests = []
         if (project.client !== '' 
                 && project.client !== null
@@ -443,7 +501,6 @@ UIKAProjectList.prototype.associateProject = function (project) {
         }
         Promise.all(requests)
         .then(([client, manager]) => {
-            
             if (client) { project.client = client[0] }
             if (manager) { project.manager = manager[0] }
             return resolve(project)
@@ -506,8 +563,10 @@ UIKAProjectList.prototype.search = function (query = {}) {
                         p.client = clients.find(c => String(p.client).endsWith(String(c.uid)))
                         if (p.client === undefined) { p.client = null }
                         return p
-                    })    
-                return resolve(projects)
+                    })
+                /* we insert in front of the list, so reverse the order here 
+                   allow to have it in ID order which is the last created first */
+                return resolve(projects.reverse())
             })
         })
         .catch(cause => {
@@ -550,10 +609,51 @@ UIKAProjectList.prototype.openProject = function (projectId) {
  */
 UIKAProjectList.prototype.deleteProject = function (projectId) {
     return new Promise((resolve, reject) => {
-        kafetch2(`${KAAL.getBase()}/Project/${projectId}`, {method: 'DELETE'})
-            .then(_ => this.removeProjectNode(projectId))
-            .then(_ => resolve())
-            .catch(cause => reject(new Error('Erreur suppression du project', {cause})))
+        Promise.all([
+            kafetch2(`${KAAL.getBase()}/Project/${projectId}`),
+            kafetch2(`${KAAL.getBase()}/Travail/_query`, {method: 'POST', body: {project: projectId}})
+        ])
+        .then(([project, travaux]) => {
+            if (project.length !== 1) { throw new Error('') }
+            const popup = window.Admin.popup(`
+                <form>
+                Confirmer la suppression du projet ${project[0].reference}<br>
+                ${travaux.length > 0 ? '<label><input type="checkbox" name="deleteTravaux" checked> Supprimer les travaux et tâches associées</label><br>' : ''}
+                <button type="submit">Supprimer</button> <button type="reset">Annuler</button>
+                </form>
+            `, 'Confirmation de suppression')
+            const form = popup.querySelector('form')
+            form.addEventListener('submit', event => {
+                event.preventDefault()
+                const data = new FormData(event.currentTarget)
+                ; (() => {
+                    if (data.get('deleteTravaux')) {
+                        return Promise.all(travaux.map(t => {
+                            return new Promise((resolve, reject) => {
+                                this.deleteAssociateReservation(t.id)
+                                .then(_ => {
+                                    return this.doDeleteTravail(t.id)
+                                })
+                                .then(_ => resolve())
+                                .catch(cause => reject(cause))
+                            })
+                        }))
+                    }
+                    return Promise.resolve()
+                })()
+                .then(_ => {
+                    kafetch2(`${KAAL.getBase()}/Project/${projectId}`, {method: 'DELETE'})
+                    .then(_ => this.removeProjectNode(projectId))
+                    .then(_ => { popup.close(); resolve() })
+                })
+            })
+            form.addEventListener('reset', _ => {
+                popup.close()
+            })                
+        })
+        .catch(cause => {
+            new MsgInteractUI('error', 'Suppression du projet impossible')
+        })
     })
 }
 
@@ -566,21 +666,29 @@ UIKAProjectList.prototype.editProject = function (projectId) {
     return new Promise((resolve, reject) => {
         kafetch2(`${KAAL.getBase()}/Project/${projectId}`)
         .then(project => {
+
             if (project.length !== 1) { throw new Error('Erreur chargement project')}
             project = project[0]
 
             const popup = window.Admin.popup(`
                 <form>
                     <input type="hidden" value="${project.id}" name="project" />
-                    <label for="reference">Numéro de chantier : </label><input name="reference" type="text" value="${project.reference ?? ''}" />
+                    <label for="reference">Numéro de chantier : </label><input readonly name="reference" type="text" value="${project.reference ?? ''}" />
                     <label for="name">Nom : </label><input name="name" type="text" value="${project.name ?? ''}"/><br>
                     <label for="price">Prix de vente HT : </label><input name="price" type="text" value="${project.price ?? ''}"/>
                     <label for="manager">Chef de projet : </label><input name="manager" type="text" value="${project.manager ?? ''}"/><br>
-                    <fieldset name="address"><legend>Adresse</legend></fieldset>
+                    <label for="client">Client : </label><div class="contact"></div><br>
                     <button type="submit">Sauver</button><button type="reset">Annuler</button>
                 </form>`,
                 `Projet ${project.reference} - ${project.name}`
             )
+
+            const kaoldcontact = new UIKAContactOld()
+            window.requestAnimationFrame(() => { popup.querySelector('div.contact').appendChild(kaoldcontact.domNode) })
+            if (!isStringEmpty(project.client)) {
+                kaoldcontact.setResult(project.client)
+            }
+
             const managerSelect = new KSelectUI(popup.querySelector('input[name="manager"]'), new STPerson(), { realSelect: true, allowFreeText: false })
             const form = popup.getElementsByTagName('FORM')[0]
             form.addEventListener('keydown', event => {
@@ -604,7 +712,11 @@ UIKAProjectList.prototype.editProject = function (projectId) {
                     name: data.get('name'),
                     reference: data.get('reference'),
                     price: data.get('price'),
-                    manager: managerSelect.value
+                    manager: managerSelect.value,
+                    client: ''
+                }
+                if (kaoldcontact.clientid !== null) { 
+                    project.client = `Contact/${kaoldcontact.clientid}`
                 }
                 this.checkProjectData(project)
                 .then(project => {
@@ -616,10 +728,7 @@ UIKAProjectList.prototype.editProject = function (projectId) {
                         return this.associateProject(project[0])
                     })
                     .then(project => {
-                        return this.renderProject(project)
-                    })
-                    .then(node => {
-                        return this.insertProjectNode(node)
+                        this.reloadOpenProject(project.id)
                     })
                     .then(_ => {
                         popup.close()
@@ -651,6 +760,7 @@ UIKAProjectList.prototype.checkProjectData = function (project) {
         if (isIdEmpty(project.manager)) { return reject(new Error('Pas de chef de projet', {cause: 'manager'})) }
         if (isStringEmpty(project.reference)) { return reject(new Error('Pas de référence', {cause: 'reference'})) }
         if (isStringEmpty(project.name)) { return reject(new Error('Pas de nom', {cause: 'name'})) }
+        if (isStringEmpty(project.client) || project.client === 'Contact/null') { return reject(new Error('Pas de client', {cause: 'client'})) }
         return resolve(project)
     })
 }
@@ -661,7 +771,6 @@ UIKAProjectList.prototype.checkTravailData = function (travail) {
         if (isStringEmpty(travail.reference)) { return reject(new Error('Pas de référence', {cause: 'reference'})) }
         if (isStringEmpty(travail.begin)) { return reject(new Error('Pas de début souhaité', {cause: 'begin'})) }
         if (isStringEmpty(travail.end)) { return reject(new Error('Pas de fin souhaitée', {cause: 'end'})) }
-
         if (isIntEmpty(travail.force)) {
             travail.force = 0
         }
@@ -673,29 +782,52 @@ UIKAProjectList.prototype.checkTravailData = function (travail) {
     })
 }
 
-UIKAProjectList.prototype.addTravailToProject = function (projectId) {
+UIKAProjectList.prototype.addEditTravailToProject = function (projectId, travailId = null) {
     return new Promise((resolve, reject) => {
-        kafetch2(`${KAAL.getBase()}/Project/${projectId}`)
-        .then(project => {
+       ; (() => {
+        const req = [kafetch2(`${KAAL.getBase()}/Project/${projectId}`)]
+        if (travailId) {
+            req.push(kafetch2(`${KAAL.getBase()}/Travail/${travailId}`))
+        } else {
+            req.push(Promise.resolve(
+                [{
+                    reference: '',
+                    meeting: '',
+                    contact: '',
+                    phone: '',
+                    status: '',
+                    group: '',
+                    begin: '',
+                    end: '',
+                    time: '',
+                    force: '',
+                    description: ''
+                }]
+            ))
+        }
+        return Promise.all(req)
+       })()
+        .then(([project, travail]) => {
             project = project[0]
+            travail = travail[0]
             const popup = window.Admin.popup(`
                 <form>
-                    <label for="reference">Référence : </label><input name="reference" type="text" value="" /> 
-                    <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" value="" />
+                    <label for="reference">Référence : </label><input name="reference" type="text" value="${travail.reference ?? ''}" /> 
+                    <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" value="${travail.meeting ?? ''}" />
                     <br>
-                    <label for="contact">Personne de contact : </label><input name="contact" type="text" value="" /> 
-                    <label for="phone">Téléphone : </label><input name="phone" type="text" value=""/>
+                    <label for="contact">Personne de contact : </label><input name="contact" type="text" value="${travail.contact ?? ''}" /> 
+                    <label for="phone">Téléphone : </label><input name="phone" type="text" value="${travail.phone ?? ''}"/>
                     <br>
-                    <label for="group">Sous-chantier: </label><input name="group" type="text" value=""/> 
-                    <label for="process">Processus : </label><input name="status" value=""></input>
+                    <label for="group">Sous-chantier: </label><input name="group" type="text" value="${travail.group ?? ''}"/> 
+                    <label for="process">Processus : </label><input name="status" value="${travail.status ?? ''}"></input>
                     <br>
-                    <label for="begin">Début souhaité :</label><input name="begin" type="date" value=""/>
-                    <label for="end">Fin souhaitée : </label><input name="end" type="date" value=""/>
+                    <label for="begin">Début souhaité :</label><input name="begin" type="date" value="${travail.begin ?? ''}"/>
+                    <label for="end">Fin souhaitée : </label><input name="end" type="date" value="${travail.end ?? ''}"/>
                     <br>
-                    <label for="time">Temps total du projet : <input name="time" type="text" value=""></label>
-                    <label for="force">Nombre de personne : <input name="force" type="text" value="" /></label><br>
+                    <label for="time">Temps total du projet : <input name="time" type="text" value="${travail.time ?? ''}"></label>
+                    <label for="force">Nombre de personne : <input name="force" type="text" value="${travail.force ?? ''}" /></label><br>
                     <label for="description>">Description du travail</label><br>
-                    <textarea name="description"></textarea><br>
+                    <textarea name="description">${travail.description ?? ''}</textarea><br>
                     <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
                 </form>`, 
                 `Travail pour ${project.reference} - ${project.name}`
@@ -728,155 +860,118 @@ UIKAProjectList.prototype.addTravailToProject = function (projectId) {
                     description: data.get('description'),
                     project: projectId
                 }
-                console.log(travail)
 
                 this.checkTravailData(travail)
                 .then(travail => {
+                    if (travailId !== null) { 
+                        travail.id = travailId
+                        return kafetch2(`${KAAL.getBase()}/Travail/${travailId}`, {method: 'PUT', body: travail})
+                    }
+                    return kafetch2(`${KAAL.getBase()}/Travail`, {method: 'POST', body: travail})
+                })
+                .then(travail => {
+                    if (travail.length !== 1) { /* error */ }
+                    return kafetch2(`${KAAL.getBase()}/Travail/${travail[0].id}`)
+                })
+                .then(travail => {
+                    return kafetch2(`${KAAL.getBase()}/Project/${travail[0].project}`)
+                })
+                .then(project => {
+                    return this.reloadOpenProject(project[0].id)
+                })
+                .then(_ => {
+                    popup.close()
+                    return resolve()
+                })
+                .catch(cause => {
+                    new MsgInteractUI('error', cause)
                 })
             })
         })
     })
-
 }
 
-async function newTravailPopup(params) {
-    let query
-    if (params.travail) {
-      query = new Promise((resolve, reject) => {
-        Artnum.Query.exec(Artnum.Path.url(`Travail/${params.travail}`)).then((result) => {
-          if (!result.success || result.length !== 1) { reject(new Error('La mission est inexistante')); return }
-          let travail = Array.isArray(result.data) ? result.data[0] : result.data
-          Artnum.Query.exec(Artnum.Path.url(`Project/${params.project}`)).then((result) => {
-            if (!result.success || result.length !== 1) { reject(new Error('Le project est inexistant')); return }
-            resolve({ project: Array.isArray(result.data) ? result.data[0] : result.data, travail: travail })
-          })
+UIKAProjectList.prototype.editTravail = function(projectId, travailId) {
+    return this.addEditTravailToProject(projectId, travailId)
+}
+
+UIKAProjectList.prototype.deleteAssociateReservation = function (travailId) {
+    return new Promise((resolve, reject) => {
+        kafetch2(`${KAAL.kairos.url}/store/Reservation/_query`, {method: 'POST', body: {affaire: travailId, deleted: '--'}})
+        .then(reservations => {
+            return Promise.allSettled(reservations.map(r => {
+                kafetch2(`${KAAL.kairos.url}/store/Reservation/${r.id}`, {method: 'DELETE'})
+            }))
         })
-      })
-    } else if (params.project) {
-      query = new Promise((resolve, reject) => {
-        Artnum.Query.exec(Artnum.Path.url(`Project/${params.project}`)).then((result) => {
-          if (!result.success || result.length !== 1) { reject(new Error('Le projet est inexistant')); return }
-          result.data = Array.isArray(result.data) ? result.data[0] : result.data
-          resolve({ project: result.data, travail: { id: '', reference: params.first ? result.data.reference : '', meeting: '', contact: '', phone: '', description: '', time: 0 } })
+        .then(_ => {
+            resolve()
         })
-      })
-    } else {
-      return;
-    }
-    query.then((result) => {
-      let project = result.project
-      let travail = result.travail
-
-      let time = (travail.time ? parseInt(travail.time) : 0) / 3600
-      let popup = window.Admin.popup(`<form>
-      <label for="subref">Référence : </label><input name="subref" type="text" value="${travail.reference}" /> <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" value="${travail.meeting}" /><br>
-      <label for="contact">Personne de contact : </label><input name="contact" type="text" value="${travail.contact}" /> <label for="cphone">Téléphone : </label><input name="cphone" type="text" value="${travail.phone}"/><br>
-      <label for="group">Sous-chantier: </label><input name="group" type="text" value="${$i(travail.group)}"/> <label for="process">Processus : </label>
-      <input name="status" value="${travail.status ?? ''}"></input>
-      <br>
-      <label for="begin">Début souhaité :</label><input name="begin" type="date" value="${travail.begin ? travail.begin : ''}"/><label for="end">Fin souhaitée : </label><input name="end" type="date" value="${travail.end ? travail.end : ''}"/><br>
-      <label for="time">Temps total du projet : <input name="time" type="text" value="${time}"></label><label for="force">Nombre de personne : <input name="force" type="text" value="${travail.force ? travail.force : 1}" /></label><br>
-      <label for="description>">Description du travail</label><br>
-      <textarea name="description">${travail.description ? travail.description : ''}</textarea><br>
-      <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
-    </form>`, `Travail pour ${project.reference} - ${project.name}`)
-
-      const s = new KSelectUI(popup.querySelector('input[name="status"]'), new STProcess(), { realSelect: true, allowFreeText: false })
-
-
-      KATravail.getByProject(project.id)
-        .then(travaux => {
-          new KAList(popup.querySelector('input[name="group"]'), new KAGroup(travaux))
+        .catch(cause => {
+            reject(cause)
         })
-
-      let form = popup.getElementsByTagName('form')[0]
-      form.addEventListener('reset', (event) => {
-        let p = event.target
-        while (!p.classList.contains('popup')) {
-          p = p.parentNode
-        }
-        p.dispatchEvent(new CustomEvent('close'))
-      })
-
-      form.addEventListener('click', (event) => {
-        if (event.target.nodeName === 'BUTTON' && event.target.name === 'print') {
-          let node = event.target
-          while (node && node.nodeName !== 'FORM') { node = node.parentNode }
-          form.dispatchEvent(new CustomEvent('submit', { bubbles: true, cancelable: true, target: node, detail: { print: true } }))
-        }
-      })
-      form.addEventListener('submit', (event) => {
-        event.preventDefault()
-        let content = window.Admin.getForm(event.target)
-        let mapping = { group: 'group', project: 'project', description: 'description', subref: 'reference', meeting: 'meeting', contact: 'contact', cphone: 'phone', time: 'time', end: 'end', begin: 'begin', force: 'force', status: 'status' }
-        let data = travail.id !== '' ? { id: travail.id } : {}
-        for (let i in mapping) {
-          data[mapping[i]] = '' // init to empty string
-          switch (i) {
-            default:
-              if (!content[i]) { break }
-              data[mapping[i]] = content[i]
-              break
-            case 'begin':
-            case 'end':
-              if (!content[i]) { break }
-              data[mapping[i]] = content[i].split('T')[0]
-              break
-            case 'force':
-              if (!content[i]) { data[mapping[i]] = 1.0; break }
-              data[mapping[i]] = parseFloat(content[i])
-              break
-            case 'time':
-              if (!content[i]) { data[mapping[i]] = 1.0; break }
-              let exp = /([0-9]+(?:[\.,][0-9]+)?)\s*([jJsS]?)/
-              let m
-              if ((m = exp.exec(content[i])) !== null) {
-                let x = parseFloat(m[1].replace(',', '.'))
-
-                switch (m[2]) {
-                  case 's':
-                  case 'S':
-                    x *= APPConf.weekhours
-                    break
-                  case 'j':
-                  case 'J':
-                    x *= APPConf.workday
-                    break
-                }
-                data[mapping[i]] = x * 3600 // stored in second
-              } else {
-                data[mapping[i]] = 1.0
-              }
-              break
-          }
-        }
-        Artnum.Query.exec(Artnum.Path.url(`Travail/${travail.id}`), { method: travail.id !== '' ? 'PUT' : 'POST', body: data }).then((result) => {
-          if (result.success) {
-            let tid = result.data[0].id
-            let p = event.target
-            while (!p.classList.contains('popup')) {
-              p = p.parentNode
-            }
-            p.dispatchEvent(new CustomEvent('close'))
-            UIKADisplayProject(project)
-              .then(kaproject => {
-                showHideTravaux(kaproject.id, true)
-                if (event.detail && event.detail.print) {
-                  const klogin = new KLogin(KAAL.getBase())
-                  const url = new URL('admin/exec/export/bon.php', KAAL.getBase())
-                  url.searchParams.append('pid', kaproject.id)
-                  url.searchParams.append('tid', tid)
-                  klogin.getShareableToken(url.toString())
-                  .then(token => {
-                    url.searchParams.append('access_token', `${token}`)
-                    window.open(url)
-                  })
-                }
-              })
-          } else {
-            alert('Une erreur est survenue')
-          }
-        })
-      })
     })
-  }
+}
+
+UIKAProjectList.prototype.doDeleteTravail = function (travailId) {
+    return kafetch2(`${KAAL.getBase()}/Travail/${travailId}`, {method: 'DELETE'})
+}
+
+UIKAProjectList.prototype.deleteTravail = function (travailId) {
+    return new Promise((resolve, reject) => {
+        Promise.all([
+            kafetch2(`${KAAL.getBase()}/Travail/${travailId}`),
+            kafetch2(`${KAAL.kairos.url}/store/Reservation/_query`, {method: 'POST', body: {affaire: travailId, deleted: '--'}})
+        ])
+        .then(([travail, reservations]) => {
+            if (travail.length !== 1) { throw new Error('') }
+            const taskMsg = (
+                reservations.length > 1 ? 
+                    `Supprimer les ${reservations.length} tâche planifiées associées.` :
+                    `Supprimer la tâche planifiée associée.`
+            )
+            const popup = window.Admin.popup(`
+                <form>
+                Confirmez la suppression du travail "${travail[0].reference}".<br>
+                ${reservations.length > 0 ? `<label><input type="checkbox" name="deleteReservations" checked> ${taskMsg}</label>` : ''}
+                <br>
+                <button type="submit">Suppression</button> <button type="reset">Annuler</button>
+                </form>
+            `, `Confirmation de suppression`)
+            const form = popup.querySelector('form')
+            form.addEventListener('submit', event => {
+                event.preventDefault()
+                ; (() => {
+                    const data = new FormData(event.currentTarget)
+                    if (data.get('deleteReservations')) {
+                        return this.deleteAssociateReservation(travailId)
+                    }
+                    return Promise.resolve()
+                })()
+                .then (_ => {
+                    return this.doDeleteTravail(travailId)
+                })
+                .then(x => {
+                    new MsgInteractUI('info', 'Travail supprimé')
+                    popup.close()
+                })
+                .catch(cause => {
+                    new MsgInteractUI('error', cause)
+                })
+            })
+            form.addEventListener('reset', event => {
+                popup.close()
+            })
+
+        })
+    })
+}
+
+UIKAProjectList.prototype.printTravail = function (projectId, travailId) {
+    return new Promise(resolve => {
+        Admin.getUrl('admin/exec/export/bon.php', {pid: projectId, travail: travailId})
+        .then((url) => {
+            window.open(url)
+            resolve()
+        })
+    })
+}
