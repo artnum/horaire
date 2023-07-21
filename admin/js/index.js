@@ -10,7 +10,6 @@ const adminImports = [
     [KAAL.url('admin/js/store/bx-rogeneric.js'), 'script'],
     [KAAL.url('admin/js/store/group.js'), 'script'],
     [KAAL.url('admin/js/string.js'), 'script']
-
 ]
 
 window.addEventListener('DOMContentLoaded', event => {
