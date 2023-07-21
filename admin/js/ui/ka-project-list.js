@@ -1,8 +1,8 @@
 function UIKAProjectList () {
     this.currentSearchValue = ''
-    this.currentState = 'open'
+    this.currentState = 'any'
     this.currentOffset = 0
-    this.selectedState = 'open'
+    this.selectedState = 'any'
     this.lastResultCount = 0
     this.limit = 50
     this.offset = 0
@@ -27,9 +27,9 @@ function UIKAProjectList () {
     this.navigation = this.domNode.querySelector('div.ka-navigation')
 
     const buttons = [
-        new KAButton('Ouvert', {group: 'state', selected: true}),
+        new KAButton('Ouvert', {group: 'state'}),
         new KAButton('Fermé', {group: 'state'}),
-        new KAButton('Tous', {group: 'state'})
+        new KAButton('Tous', {group: 'state', selected: true})
     ]
 
     buttons[0].addEventListener('submit', _ => {
