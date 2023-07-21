@@ -256,6 +256,11 @@ UIKAProjectList.prototype.renderProject = function (project) {
         const domNode = document.createElement('DIV')
         domNode.id = `project-${project.id}`
         domNode.classList.add('ka-project')
+        if (project.closed) {
+            domNode.classList.add('ka-project-closed')
+        } else {
+            domNode.classList.add('ka-project-open')
+        }
 
         domNode.innerHTML = `
             <span class="reference">${project.reference ?? ''}</span>

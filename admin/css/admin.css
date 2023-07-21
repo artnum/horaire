@@ -521,6 +521,15 @@ fieldset.half {
     cursor: pointer;
 }
 
+.ka-project-closed .reference::after {
+    font-variant: small-caps;
+    vertical-align: bottom;
+    font-size: 12px;
+    content: ' [fermé]';
+    color: darkred;
+}
+
+
 .ka-project-list {
     display: grid;
     grid-template-columns: [first] 1fr [second] 2fr 1fr 1fr 2fr;
