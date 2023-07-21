@@ -16,6 +16,7 @@
 </body>
 <script src="../conf/kaal.js"></script>
 <script src="js/lib/login.js"></script>
+<script src="js/lib/revision.js"></script>
 <script src="js/fetch.js"></script>
 <script src="../js/data/person.js"></script>
 <script src="../js/data/utils.js"></script>
@@ -152,27 +153,6 @@
   }
 
   window.addEventListener('load', (event) => {
-    function checkBuildNumberAndReload() {
-      return new Promise(resolve => {
-        fetch(`${KAAL.getBase()}/revision.php`)
-        .then(response => {
-            if (!response.ok) { throw new Error() }
-            return response.json()
-        })
-        .then(r=>{
-            const current = localStorage.getItem('kaal-revision')
-            if (r.revision !== current) {
-                window.location.reload()
-                localStorage.setItem('kaal-revision', r.revision)
-                return
-            }
-            resolve()
-        })
-        .catch(_ => {
-          resolve()
-        })
-      })
-    }
     checkBuildNumberAndReload()
     .then(() => {
       let base = window.location.pathname.split('/')

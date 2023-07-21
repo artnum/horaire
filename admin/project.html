@@ -13,7 +13,7 @@
   <main id="project">
     <h1>Projets</h1>
     <h2>Nouveau projet</h2>
-    <form>
+    <form id="projectform">
       <fieldset name="general" id="general">
         <legend>Général</legend>
         <input type="hidden" name="type" value="project" />
@@ -28,7 +28,7 @@
       </fieldset>
     </form>
     <h2>Projets existants</h2>
-    <input type="button" onclick="exportAll()" value="Tout exporter"></input>
+    <input type="button" name="exportall" value="Tout exporter"></input>
 
     <div class="project-list-parent"></div>
   </main>
@@ -39,6 +39,7 @@
 <script src="../../kcore/index.js"></script>
 <script src="../conf/kaal.js"></script>
 <script src="js/lib/login.js"></script>
+<script src="js/lib/revision.js"></script>
 <script src="../node_modules/sjcl/sjcl.js"></script>
 <script src="../node_modules/artnum/Date.js"></script>
 <script src="../node_modules/artnum/Path.js"></script>
@@ -59,691 +60,6 @@
   window.Conf = { workweek: 5, weekhours: 42 }
   window.Conf.workday = window.Conf.weekhours / window.Conf.workweek
 
-  const APPConf = Conf
-  const searchBody = {
-    closed: '-',
-    deleted: '-'
-  }
-
-  const RYName = `R${String(new Date().getFullYear()).substring(2)}`
-  var References = { 'default': 1, RYName: 1 }
-  var MyPopper = null
-
-  function exportAll() {
-    const params = {state: 'closed'}
-    if (!searchBody.closed) {
-      params.state = 'alive'
-    } else if (searchBody.closed === '-') {
-      params.state = 'open'
-    }
-    Admin.getUrl('admin/exec/export/proj.php', params)
-    .then(url => {
-      window.open(url)
-    })
-  }
-
-  function changeState(event) {
-    switch (event.target.id) {
-      case 'stateOpen':
-        searchBody.closed = '-'
-        break;
-      case 'stateClosed':
-        searchBody.closed = '*'
-        break;
-      case 'stateAny':
-        delete searchBody.closed
-        break;
-    }
-    load()
-  }
-
-  function createBTTravail(kaproject) {
-    const data = {
-      reference: `BT ${kaproject.reference}`,
-      project: kaproject.id
-    }
-    return new Promise((resovle, reject) => {
-      Artnum.Query.exec(Artnum.Path.url(`Travail/`), { method: 'POST', body: data })
-        .then((result) => {
-          if (result.success) {
-            let tid = result.data[0].id
-            UIKADisplayProject(kaproject.id)
-              .then(kaproject => {
-                showHideTravaux(kaproject, true)
-              })
-          } else {
-            alert('Une erreur est survenue')
-          }
-        })
-    })
-  }
-
-
-  async function newTravailEvent(event) {
-    let params = {}
-    if (event.target.dataset.travail) {
-      params.travail = event.target.dataset.travail
-    }
-    if (event.target.dataset.project) {
-      params.project = event.target.dataset.project
-    }
-    return newTravailPopup(params)
-  }
-  async function newTravailPopup(params) {
-    let query
-    if (params.travail) {
-      query = new Promise((resolve, reject) => {
-        Artnum.Query.exec(Artnum.Path.url(`Travail/${params.travail}`)).then((result) => {
-          if (!result.success || result.length !== 1) { reject(new Error('La mission est inexistante')); return }
-          let travail = Array.isArray(result.data) ? result.data[0] : result.data
-          Artnum.Query.exec(Artnum.Path.url(`Project/${params.project}`)).then((result) => {
-            if (!result.success || result.length !== 1) { reject(new Error('Le project est inexistant')); return }
-            resolve({ project: Array.isArray(result.data) ? result.data[0] : result.data, travail: travail })
-          })
-        })
-      })
-    } else if (params.project) {
-      query = new Promise((resolve, reject) => {
-        Artnum.Query.exec(Artnum.Path.url(`Project/${params.project}`)).then((result) => {
-          if (!result.success || result.length !== 1) { reject(new Error('Le projet est inexistant')); return }
-          result.data = Array.isArray(result.data) ? result.data[0] : result.data
-          resolve({ project: result.data, travail: { id: '', reference: params.first ? result.data.reference : '', meeting: '', contact: '', phone: '', description: '', time: 0 } })
-        })
-      })
-    } else {
-      return;
-    }
-    query.then((result) => {
-      let project = result.project
-      let travail = result.travail
-
-      let time = (travail.time ? parseInt(travail.time) : 0) / 3600
-      let popup = window.Admin.popup(`<form>
-      <input type="hidden" value="${project.id}" name="project" />
-      <label for="subref">Référence : </label><input name="subref" type="text" value="${travail.reference}" /> <label for="meeting">Rendez-vous :</label><input name="meeting" type="text" value="${travail.meeting}" /><br>
-      <label for="contact">Personne de contact : </label><input name="contact" type="text" value="${travail.contact}" /> <label for="cphone">Téléphone : </label><input name="cphone" type="text" value="${travail.phone}"/><br>
-      <label for="group">Sous-chantier: </label><input name="group" type="text" value="${$i(travail.group)}"/> <label for="process">Processus : </label>
-      <input name="status" value="${travail.status ?? ''}"></input>
-      <br>
-      <label for="begin">Début souhaité :</label><input name="begin" type="date" value="${travail.begin ? travail.begin : ''}"/><label for="end">Fin souhaitée : </label><input name="end" type="date" value="${travail.end ? travail.end : ''}"/><br>
-      <label for="time">Temps total du projet : <input name="time" type="text" value="${time}"></label><label for="force">Nombre de personne : <input name="force" type="text" value="${travail.force ? travail.force : 1}" /></label><br>
-      <label for="description>">Description du travail</label><br>
-      <textarea name="description">${travail.description ? travail.description : ''}</textarea><br>
-      <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
-     </form>`, `Travail pour ${project.reference} - ${project.name}`)
-
-      const s = new KSelectUI(popup.querySelector('input[name="status"]'), new STProcess(), { realSelect: true, allowFreeText: false })
-
-
-      KATravail.getByProject(project.id)
-        .then(travaux => {
-          new KAList(popup.querySelector('input[name="group"]'), new KAGroup(travaux))
-        })
-
-      let form = popup.getElementsByTagName('form')[0]
-      form.addEventListener('reset', (event) => {
-        let p = event.target
-        while (!p.classList.contains('popup')) {
-          p = p.parentNode
-        }
-        p.dispatchEvent(new CustomEvent('close'))
-      })
-
-      form.addEventListener('click', (event) => {
-        if (event.target.nodeName === 'BUTTON' && event.target.name === 'print') {
-          let node = event.target
-          while (node && node.nodeName !== 'FORM') { node = node.parentNode }
-          form.dispatchEvent(new CustomEvent('submit', { bubbles: true, cancelable: true, target: node, detail: { print: true } }))
-        }
-      })
-      form.addEventListener('submit', (event) => {
-        event.preventDefault()
-        let content = window.Admin.getForm(event.target)
-        let mapping = { group: 'group', project: 'project', description: 'description', subref: 'reference', meeting: 'meeting', contact: 'contact', cphone: 'phone', time: 'time', end: 'end', begin: 'begin', force: 'force', status: 'status' }
-        let data = travail.id !== '' ? { id: travail.id } : {}
-        for (let i in mapping) {
-          data[mapping[i]] = '' // init to empty string
-          switch (i) {
-            default:
-              if (!content[i]) { break }
-              data[mapping[i]] = content[i]
-              break
-            case 'begin':
-            case 'end':
-              if (!content[i]) { break }
-              data[mapping[i]] = content[i].split('T')[0]
-              break
-            case 'force':
-              if (!content[i]) { data[mapping[i]] = 1.0; break }
-              data[mapping[i]] = parseFloat(content[i])
-              break
-            case 'time':
-              if (!content[i]) { data[mapping[i]] = 1.0; break }
-              let exp = /([0-9]+(?:[\.,][0-9]+)?)\s*([jJsS]?)/
-              let m
-              if ((m = exp.exec(content[i])) !== null) {
-                let x = parseFloat(m[1].replace(',', '.'))
-
-                switch (m[2]) {
-                  case 's':
-                  case 'S':
-                    x *= APPConf.weekhours
-                    break
-                  case 'j':
-                  case 'J':
-                    x *= APPConf.workday
-                    break
-                }
-                data[mapping[i]] = x * 3600 // stored in second
-              } else {
-                data[mapping[i]] = 1.0
-              }
-              break
-          }
-        }
-        Artnum.Query.exec(Artnum.Path.url(`Travail/${travail.id}`), { method: travail.id !== '' ? 'PUT' : 'POST', body: data }).then((result) => {
-          if (result.success) {
-            let tid = result.data[0].id
-            let p = event.target
-            while (!p.classList.contains('popup')) {
-              p = p.parentNode
-            }
-            p.dispatchEvent(new CustomEvent('close'))
-            UIKADisplayProject(project)
-              .then(kaproject => {
-                showHideTravaux(kaproject.id, true)
-                if (event.detail && event.detail.print) {
-                  const klogin = new KLogin(KAAL.getBase())
-                  const url = new URL('admin/exec/export/bon.php', KAAL.getBase())
-                  url.searchParams.append('pid', kaproject.id)
-                  url.searchParams.append('tid', tid)
-                  klogin.getShareableToken(url.toString())
-                  .then(token => {
-                    url.searchParams.append('access_token', `${token}`)
-                    window.open(url)
-                  })
-                }
-              })
-          } else {
-            alert('Une erreur est survenue')
-          }
-        })
-      })
-    })
-  }
-
-  var addRunning = false
-  async function addProject(event) {
-    if (addRunning) { return } // avoid dblclick
-    addRunning = true
-    var form = event.target
-    for (; form.nodeName !== 'FORM'; form = form.parentNode);
-    Admin.setFormInputInvalid(form, '*', 'error', true)
-    var oform = Admin.getForm(form)
-
-    let errors = false
-    if (!oform.name) {
-      Admin.setFormInputInvalid(form, 'name', 'Nom manquant')
-      errors = true
-    }
-
-    if (!oform.year) {
-      oform.year = String((new Date()).getFullYear())
-    } else {
-      if (String(parseInt(oform.year)) !== String(oform.year)) {
-        Admin.setFormInputInvalid(form, 'year', 'Format de l\'année non-reconnu')
-        errors = true
-      }
-    }
-
-    if (!oform.reference) {
-      Admin.setFormInputInvalid(form, 'reference', 'Référence manquante')
-      errors = true
-    } else {
-      var res = await Artnum.Query.exec(Artnum.Path.url('Project', { params: { 'search.reference': oform.reference, 'search.deleted': '-' } }))
-      if (res.success && res.length > 0) {
-        Admin.setFormInputInvalid(form, 'reference', 'Référence déjà existante')
-        errors = true
-      }
-    }
-    if (oform.price === '' || oform.price === null) { oform.price = 0.0 }
-    if (isNaN(parseFloat(oform.price))) {
-      Admin.setFormInputInvalid(form, 'price', 'Prix de vente invalide')
-      errors = true
-    }
-    if (errors) { addRunning = false; return }
-
-    let client = ''
-    if (document.getElementById('client') && document.getElementById('client').dataset.id) {
-      client = `Contact/${document.getElementById('client').dataset.id}`
-    }
-
-    Artnum.Query.exec(
-      Artnum.Path.url('Project'),
-      {
-        method: 'POST',
-        body: {
-          name: oform.name,
-          reference: (oform.reference ? oform.reference : null),
-          uncount: oform.uncount ? 1 : 0,
-          year: oform.year,
-          price: parseFloat(oform.price),
-          client: client,
-          manager: document.getElementById('manager').dataset.value
-        }
-      }).then(function (result) {
-        if (!result.success && result.length < 1) {
-          addRunning = false
-          alert('Erreur de création du projet')
-        } else {
-          let pId = result.data[0].id
-          Artnum.Query.exec(Artnum.Path.url(`Project/${pId}`))
-            .then(function (result) {
-              if (result.success && result.length === 1) {
-                result.data = Array.isArray(result.data) ? result.data[0] : result.data
-                const ked = new KED()
-                let related = 'Projet'
-                if (String(result.data.reference).substring(0, 1).toLowerCase() === 'r') {
-                  related = 'Régie'
-                }
-                ked.createProject(result.data.id, result.data.reference, related)
-
-                UIKADisplayProject(result.data)
-                  .then(kaproject => {
-                    if (String(kaproject.reference).startsWith('R')) {
-                      newTravailPopup({ project: kaproject.id, first: true })
-                    } else {
-                      createBTTravail(kaproject)
-                    }
-                    addRunning = false
-                  })
-                Admin.setFormInputValue(form, 'reference')
-                Admin.setFormInputValue(form, 'name')
-              } else {
-                alert('Erreur création du projet')
-                addRunning = false
-              }
-            })
-        }
-      })
-  }
-
-  async function handleTravailButton(event) {
-    let button = event.target
-    const klogin = new KLogin(KAAL.getBase())
-
-    switch (button.dataset.action) {
-      case 'edit':
-        newTravailEvent(event)
-        break
-      case 'print':
-        (() => {
-          Admin.getUrl('admin/exec/export/bon.php', {pid: button.dataset.project, travail: button.dataset.travail})
-          .then((url) => {
-            window.open(url)
-          })
-        })()
-        break;
-      case 'share':
-        (() => {
-          const url = new URL('admin/exec/export/bon.php', KAAL.getBase())
-          url.searchParams.append('pid',  button.dataset.project)
-          url.searchParams.append('travail', button.dataset.travail)
-          new Promise((resolve, reject) => {
-            const form = document.createElement('FORM')
-            form.innerHTML = `
-              <label>Commentaire : <input type="text" name="comment" /></label><br>              
-              <label>Permanent: <input type="checkbox" name="permanent" /></label><br>
-              <label>Durée [h]: <input type="text" name="duration" value="24" /></label><br>
-              <button type="submit">Partager</button> <button type="reset">Annuler</button>
-            `
-            const popup = window.Admin.popup(form, 'Paramètre du partage')
-            form.addEventListener('submit', event => {
-              event.preventDefault()
-              const data = new FormData(event.target)
-              const params = {
-                comment: data.get('comment'),
-                duration: 86400,
-                permanent: false
-              }
-              if (data.has('permanent')) {
-                params.permanent = true
-                params.duration = 0
-              } else {
-                try {
-                  const hours = parseFloat(data.get('duration'))
-                  params.duration = Math.round(hours * 3600)
-                } catch(_) {
-                  // nothing
-                }
-              }
-              popup.close()
-              resolve(params)
-            })
-            form.addEventListener('reset', event => {
-              popup.close()
-              reject()
-            })
-          })
-          .then(params => {
-            return klogin.getShareableToken(url.toString(), params.comment, params.duration)
-          })
-          .then(token => {
-            url.searchParams.append('access_token', token)
-            return navigator.clipboard.writeText(url.toString())
-          })
-          .then(_ => {
-            alert('Copié dans le presse papier')
-          })
-          .catch(e => {
-            console.log(e)
-          })
-        })()
-        break
-      case 'delete':
-        Artnum.Query.exec(Artnum.Path.url(`Travail/${button.dataset.travail}`)).then((result) => {
-          if (result.length === 1 && confirm(`Voulez-vous supprimer le travail ayant comme référence "${result.data.reference}" ?`)) {
-            Artnum.Query.exec(Artnum.Path.url(`Travail/${button.dataset.travail}`), { method: 'DELETE' }).then((result) => {
-              if (result.success) {
-                let tr = button
-                for (; tr && tr.nodeName !== 'TR'; tr = tr.parentNode);
-                window.requestAnimationFrame(() => {
-                  if (tr.parentNode) {
-                    tr.parentNode.removeChild(tr)
-                  }
-                })
-              }
-            })
-          }
-        })
-        break;
-    }
-  }
-
-  async function delProject(event) {
-    if (!event || !event.target) { return }
-    var node = event.target
-    if (node.getAttribute('data-id')) {
-      var res = await Artnum.Query.exec(Artnum.Path.url('Project/' + node.getAttribute('data-id')), { method: 'DELETE', body: { id: node.getAttribute('data-id') } })
-      if (res.success) {
-        let tr = node
-        for (; tr.nodeName !== 'TR'; tr = tr.parentNode);
-
-        window.requestAnimationFrame(() => {
-          let sub = tr.nextElementSibling;
-          while (sub) {
-            let next = sub.nextElementSibling
-            if (sub.dataset.parentId && sub.dataset.parentId === tr.getAttribute('data-id')) {
-              sub.parentNode.removeChild(sub)
-              sub = next
-            } else {
-              sub = null
-            }
-          }
-          tr.parentNode.removeChild(tr)
-        })
-      }
-    }
-  }
-
-  
-  async function evCancelEdit(event) {
-    if (event && event.target) {
-      for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
-      var tr = node
-      if (!tr.getAttribute('data-edit') || tr.getAttribute('data-edit') === '0') {
-        return
-      }
-      for (var td = node.firstChild; td; td = td.nextSibling) {
-        if (td.getAttribute('data-original-value')) {
-          td.innerHTML = td.getAttribute('data-original-value')
-        }
-      }
-      event.target.parentNode.removeChild(event.target)
-      tr.setAttribute('data-edit', '0')
-    }
-  }
-
-  function newEntry(entry, travauxGroup) {
-    return new Promise(function (resolve, reject) {
-      if (entry.id) {
-        let reference = DataUtils.str(entry.reference).split('').reverse()
-        let newNextRef = []
-        let i
-        for (i = reference.shift(); i; i = reference.shift()) {
-          if (isNaN(parseInt(i))) {
-            reference.unshift(i)
-            break
-          } else {
-            newNextRef.unshift(i)
-          }
-        }
-        reference = reference.reverse().join('')
-        newNextRef = parseInt(newNextRef.join(''))
-
-        if (reference === '') {
-          if (parseInt(References.default) < newNextRef + 1) {
-            References.default = newNextRef + 1
-            document.getElementById('rDef').innerHTML = `Ajouter projet ${newNextRef + 1}`
-          }
-        } else {
-          if (RYName === reference.substring(0, RYName.length) && References.RYName < newNextRef + 1) {
-            References.RYName = newNextRef + 1
-            document.getElementById('rYear').innerHTML = `Ajouter régie ${RYName}-${String(newNextRef + 1).padStart(3, '0')}`
-          }
-        }
-
-
-        let closeButton = document.createElement('BUTTON')
-        closeButton.setAttribute('type', 'button')
-        closeButton.setAttribute('data-id', entry.id)
-
-        if (entry.closed === null) {
-          closeButton.innerHTML = 'Clore'
-          closeButton.setAttribute('data-state', 'open')
-        } else {
-          closeButton.innerHTML = 'Réouvrir'
-          closeButton.setAttribute('data-state', 'close')
-        }
-        closeButton.addEventListener('click', evCloseProject)
-
-        let delButton = document.createElement('BUTTON')
-        delButton.setAttribute('type', 'button')
-        delButton.setAttribute('data-id', entry.id)
-        delButton.innerHTML = 'Supprimer'
-        delButton.addEventListener('click', delProject)
-
-        let newTravail = document.createElement('BUTTON')
-        newTravail.setAttribute('type', 'button')
-        newTravail.setAttribute('data-project', entry.id)
-        newTravail.innerHTML = 'Ajout travail'
-        newTravail.addEventListener('click', newTravailEvent)
-
-        KAPerson.load(entry.manager).then((manager) => {
-          let frag = document.createDocumentFragment()
-          let tr = document.createElement('TR')
-          frag.appendChild(tr)
-          tr.setAttribute('data-id', entry.id)
-          tr.innerHTML = `<td data-name="reference" data-sort-value="${entry.reference}"  data-filter-value="${entry.reference}">${travauxGroup.length > 0 ? '<span>&#9205;</span> ' : ''}${(entry.reference ? entry.reference : '')}</td>
-                         <td data-name="name" data-type="text">${(entry.name ? entry.name : '')}</td>
-                         <td data-name="manager" data-sort-value="${entry.manager !== null ? entry.manager : -1}" data-filter-value="${entry.manager !== null ? entry.manager : -1}">${manager.name}</td>`
-          if (travauxGroup.length > 0) {
-            tr.classList.add('extensible')
-            const subTable = document.createElement('TABLE')
-            subTable.classList.add('sub')
-            let trHeader = document.createElement('TR')
-            trHeader.innerHTML = '<th>Référence</th><th>Rendez-vous</th><th>Personne contact</th><th>Téléphone</th><th>Description</th><th></th>'
-            subTable.appendChild(trHeader)
-            let oddEven = 'even'
-            for (const group of travauxGroup.gets()) {
-              const tr = document.createElement('TR')
-              tr.classList.add('subproject')
-              tr.innerHTML = `<th colspan="6"> ${group ? $s(`Sous-chantier "${group}"`) : 'Général'}</th>`
-              subTable.appendChild(tr)
-              oddEven = 'even'
-
-              travauxGroup.get(group)
-                .forEach((travail) => {
-                  if (oddEven === 'odd') { oddEven = 'even' } else { oddEven = 'odd' }
-                  const tr = document.createElement('TR')
-                  tr.classList.add(oddEven)
-                  tr.innerHTML = `
-                    <td data-sort-value="${$s(travail.reference)}">${$s(travail.reference)}</td>
-                    <td>${$s(travail.meeting)}</td>
-                    <td>${$s(travail.contact)}</td>
-                    <td>${$s(travail.phone)}</td>
-                    <td class="longtext">${$s(travail.description)}</td>
-                    <td class="overflowable">
-                      <button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="edit">Éditer</button>
-                      <button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="print">Imprimer</button>
-                      <button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="share">Partager PDF</button>
-                      <button type="button" data-travail="${travail.id.toId()}" data-project="${entry.id.toId()}" data-action="delete">Supprimer</button>
-                    </td>`
-                  tr.addEventListener('click', (event) => {
-                    if (event.target.nodeName === 'BUTTON') {
-                      handleTravailButton(event)
-                    }
-                  })
-                  subTable.appendChild(tr)
-                })
-            }
-
-            let sub = document.createElement('TR')
-            sub.dataset.sortIgnore = true
-            sub.setAttribute('data-parent-id', entry.id)
-            sub.classList.add('sub')
-            sub.innerHTML = '<td colspan="4"></td>'
-            sub.firstElementChild.appendChild(subTable)
-            frag.appendChild(sub)
-          }
-
-          let td = document.createElement('TD')
-          td.appendChild(newTravail)
-          td.appendChild(editButton)
-          td.appendChild(exportButton)
-          td.appendChild(printButton)
-          td.appendChild(closeButton)
-          td.appendChild(delButton)
-
-          tr.appendChild(td)
-          tr.firstElementChild.addEventListener('click', (evt) => {
-            showHideTravaux(evt.target)
-          }, { capture: true })
-
-          resolve(frag)
-        })
-      } else {
-        reject()
-      }
-    })
-  }
-
-  function showHideTravaux(node) {
-    if (typeof node === 'string') {
-      let table = document.getElementById('projects')
-      let tbody = table.firstElementChild
-
-      while (tbody && tbody.nodeName !== 'TBODY') { tbody = tbody.nextElementSibling }
-      for (let i = tbody.firstElementChild; i; i = i.nextElementSibling) {
-        if (node === i.dataset.id) {
-          node = i
-          break
-        }
-      }
-    }
-
-    for (; node && node.nodeName !== 'TR'; node = node.parentNode);
-    if (node && node.dataset && node.dataset.id) {
-      let sub = node.nextElementSibling
-      let open = false
-      for (; sub && sub.dataset.parentId && sub.dataset.parentId === node.dataset.id; sub = sub.nextElementSibling) {
-        if (!sub.dataset.open) {
-          sub.dataset.open = '1'
-          open = true
-        } else {
-          if (sub.dataset.open === '1') {
-            if (arguments[1]) { return }
-            sub.dataset.open = '0'
-          } else {
-            sub.dataset.open = '1';
-            open = true
-          }
-        }
-
-        if (open) {
-          node.firstElementChild.firstElementChild.innerHTML = '&#9207;'
-        } else {
-          node.firstElementChild.firstElementChild.innerHTML = '&#9205;'
-        }
-      }
-    }
-  }
-
-  function replaceAddEntry(tr, id) {
-    let table = document.getElementById('projects')
-    let tbody = table.firstElementChild
-
-    while (tbody && tbody.nodeName !== 'TBODY') { tbody = tbody.nextElementSibling }
-    for (let n = tbody.firstElementChild; n; n = n.nextSibling) {
-      if (n.dataset && n.dataset.parentId && String(n.dataset.parentId) === String(id)) {
-        for (let i = 0; i < tr.children.length; i++) {
-          if (tr.children[i] && tr.children[i].dataset && String(tr.children[i].dataset.parentId) === String(id)) {
-            tr.children[i].dataset.open = n.dataset.open ? n.dataset.open : '0'
-          }
-        }
-        n.parentNode.removeChild(n)
-        break
-      }
-    }
-    return Admin.insertEntry(tr, table, id)
-  }
-
-  function cleanTbody(table) {
-    return new Promise(function (resolve, reject) {
-      let tbody = table.firstElementChild
-      while (tbody && tbody.nodeName !== 'TBODY') { tbody = tbody.nextElementSibling }
-      if (tbody) {
-        window.requestAnimationFrame(function () {
-          tbody.innerHTML = ''
-          resolve();
-        })
-      }
-    })
-  }
-
-  function UIKADisplayProject(project) {
-    return new Promise((resolve, reject) => {
-      new Promise((resolve) => {
-        if (typeof project === 'object') {
-          resolve(KAProject.create(project))
-        } else {
-          KAProject.load(project)
-            .then(kaproject => {
-              resolve(kaproject)
-            })
-        }
-      })
-        .then(kaproject => {
-          KATravail.getByProject(kaproject.id)
-            .then(travaux => {
-              return new KAGroup(travaux)
-            })
-            .then(travauxGroup => {
-              return newEntry(kaproject, travauxGroup)
-            })
-            .then(tr => {
-              replaceAddEntry(tr, kaproject.id)
-              resolve(kaproject)
-            })
-            .catch(error => {
-              reject(error)
-            })
-        })
-    })
-  } 
-
-  var t = null
-
   function initForm (form, buttonProject) {
     form.reset()
     buttonProject.dispatchEvent(new CustomEvent('select'))
@@ -751,106 +67,126 @@
   }
 
   function load() {
-    const projecList = new UIKAProjectList()
-    /*const contactForm = new UIKAContactForm()
-    const projectForm = new UIKAProjectForm()*/
-    const contactOld = new UIKAContactOld()
-    const buttons = [
-          new KAButton(`Projet`, {group: 'reference', selected: true}),
-          new KAButton(`Régie`, {group: 'reference'}),
-      ]
+    checkBuildNumberAndReload('project')
+    .then(() => {
+      const projectForm = document.getElementById('projectform')
 
-    kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
-    .then(r => {
-      const node = document.body.querySelector('input[name="reference"]')
+      const projecList = new UIKAProjectList()
+      /*const contactForm = new UIKAContactForm()
+      const projectForm = new UIKAProjectForm()*/
+      const contactOld = new UIKAContactOld()
+      const buttons = [
+            new KAButton(`Projet`, {group: 'reference', selected: true}),
+            new KAButton(`Régie`, {group: 'reference'}),
+        ]
 
-      buttons[0].addEventListener('submit', _ => {
-        document.body.querySelector('input[name="type"]').value = 'project'
-        kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
-        .then(r => {
-          node.value = `${r[0].project}`
-         })
-      })
-      buttons[1].addEventListener('submit', _ => {
-        document.body.querySelector('input[name="type"]').value = 'regie'
-        kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
-        .then(r => {
-          node.value = `${r[0].regie}`
+
+      const allExportButton = document.body.querySelector('input[name="exportall"]')
+      allExportButton.addEventListener('click', event => {
+        const params = {state: 'open'}
+        switch(projecList.selectedState) {
+          case 'open': break
+          case 'close': params.state = 'closed'; break
+          case 'any': params.state = 'alive'; break
+        }
+        console.log(params, projecList.selectedState, projecList.currentState)
+        Admin.getUrl('admin/exec/export/proj.php', params)
+        .then(url => {
+          window.open(url)
         })
       })
-      
 
-      node.value = r[0].project
-      window.requestAnimationFrame(() => {
-        node.parentNode.insertBefore(buttons[1], node.nextElementSibling)
-        node.parentNode.insertBefore(buttons[0], node.nextElementSibling)
-      })
-    })
-
-    /*window.requestAnimationFrame(() => document.body.appendChild(contactForm.domNode))
-    window.requestAnimationFrame(() => document.body.appendChild(projectForm.domNode))*/
-    window.requestAnimationFrame(() => document.body.querySelector('.project-list-parent').appendChild(projecList.domNode))
-    projecList.textSearch('*')
-
-    window.requestAnimationFrame(() => document.body.querySelector('span[name="clientContainer"]').appendChild(contactOld.domNode))
-
-    const managerSelect = new KSelectUI(document.getElementById('manager'), new STPerson(), { allowFreeText: false, realSelect: true })
-    /*document.getElementById('rDef').addEventListener('click', genRef)
-    document.getElementById('rYear').addEventListener('click', genRef)*/
-    document.getElementById('inYear').value = String((new Date()).getFullYear())
-    var forms = document.getElementsByTagName('FORM')
-    forms[0].addEventListener('submit', function (event) {
-      event.preventDefault()
-      const form = event.currentTarget
-      const data = new FormData(form)
-      
-      const project = {
-        year: data.get('year'),
-        name: data.get('name'),
-        client: `Contact/${contactOld.getClientId()}`,
-        manager: managerSelect.value,
-        price: data.get('price'),
-        uncount: data.get('uncount') === 'on' ? 1 : 0
-      }
       kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
       .then(r => {
-        project.reference = r[0][data.get('type')]
-        return projecList.checkProjectData(project)
-      })
-      .then(project => {
-        return kafetch2(`${KAAL.getBase()}/Project/`, {method: 'POST', body: project})
+        const node = document.body.querySelector('input[name="reference"]')
 
-      })
-      .then(project => {
-        return kafetch2(`${KAAL.getBase()}/Project/${project[0].id}`)
-      })
-      .then(project => {
-        ; (() => {
-          const ked = new KED()
-          const related = data.get('type') === 'project' ? 'Project' : 'Régie'
-          ked.createProject(project[0].id, project[0].reference, related)
-          .catch(_ => {
-            //new MsgInteractUI('warning', 'Création du projet sur KED échouée')
+        buttons[0].addEventListener('submit', _ => {
+          document.body.querySelector('input[name="type"]').value = 'project'
+          kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
+          .then(r => {
+            node.value = `${r[0].project}`
           })
-        })()
-        return projecList.associateProject(project[0])
-      })
-      .then(project => {
-        return projecList.renderProject(project)
-      })
-      .then(projectNode => {
-        return projecList.insertProjectNode(projectNode, true)
-      })
-      .then(_ => {
-        initForm(form, buttons[0])
-        contactOld.clearResult()
-        contactOld.unselectContact()
-        new MsgInteractUI('info', 'Création du projet effectuée')
-      })
-      .catch(cause => {
-        new MsgInteractUI('error', cause)
+        })
+        buttons[1].addEventListener('submit', _ => {
+          document.body.querySelector('input[name="type"]').value = 'regie'
+          kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
+          .then(r => {
+            node.value = `${r[0].regie}`
+          })
+        })
+        
+
+        node.value = r[0].project
+        window.requestAnimationFrame(() => {
+          node.parentNode.insertBefore(buttons[1], node.nextElementSibling)
+          node.parentNode.insertBefore(buttons[0], node.nextElementSibling)
+        })
       })
 
+      /*window.requestAnimationFrame(() => document.body.appendChild(contactForm.domNode))
+      window.requestAnimationFrame(() => document.body.appendChild(projectForm.domNode))*/
+      window.requestAnimationFrame(() => document.body.querySelector('.project-list-parent').appendChild(projecList.domNode))
+      projecList.textSearch('*')
+
+      window.requestAnimationFrame(() => document.body.querySelector('span[name="clientContainer"]').appendChild(contactOld.domNode))
+
+      const managerSelect = new KSelectUI(document.getElementById('manager'), new STPerson(), { allowFreeText: false, realSelect: true })
+      /*document.getElementById('rDef').addEventListener('click', genRef)
+      document.getElementById('rYear').addEventListener('click', genRef)*/
+      document.getElementById('inYear').value = String((new Date()).getFullYear())
+      projectForm.addEventListener('submit', function (event) {
+        event.preventDefault()
+        const form = event.currentTarget
+        const data = new FormData(form)
+        
+        const project = {
+          year: data.get('year'),
+          name: data.get('name'),
+          client: `Contact/${contactOld.getClientId()}`,
+          manager: managerSelect.value,
+          price: data.get('price'),
+          uncount: data.get('uncount') === 'on' ? 1 : 0
+        }
+        kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
+        .then(r => {
+          project.reference = r[0][data.get('type')]
+          return projecList.checkProjectData(project)
+        })
+        .then(project => {
+          return kafetch2(`${KAAL.getBase()}/Project/`, {method: 'POST', body: project})
+
+        })
+        .then(project => {
+          return kafetch2(`${KAAL.getBase()}/Project/${project[0].id}`)
+        })
+        .then(project => {
+          ; (() => {
+            const ked = new KED()
+            const related = data.get('type') === 'project' ? 'Project' : 'Régie'
+            ked.createProject(project[0].id, project[0].reference, related)
+            .catch(_ => {
+              //new MsgInteractUI('warning', 'Création du projet sur KED échouée')
+            })
+          })()
+          return projecList.associateProject(project[0])
+        })
+        .then(project => {
+          return projecList.renderProject(project)
+        })
+        .then(projectNode => {
+          return projecList.insertProjectNode(projectNode, true)
+        })
+        .then(_ => {
+          initForm(form, buttons[0])
+          contactOld.clearResult()
+          contactOld.unselectContact()
+          new MsgInteractUI('info', 'Création du projet effectuée')
+        })
+        .catch(cause => {
+          new MsgInteractUI('error', cause)
+        })
+
+      })
     })
   }
   window.addEventListener('kcore-loaded', load)
