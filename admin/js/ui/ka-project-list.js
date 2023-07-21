@@ -722,7 +722,11 @@ UIKAProjectList.prototype.editProject = function (projectId) {
                     client: ''
                 }
                 if (kaoldcontact.clientid !== null) { 
-                    project.client = `Contact/${kaoldcontact.clientid}`
+                    if (String(kaoldcontact.clientid).startsWith('Contact')) {
+                        project.client = kaoldcontact.clientid
+                    } else { /* sandwich */
+                        project.client = `Contact/${kaoldcontact.clientid}`
+                    }
                 }
                 this.checkProjectData(project)
                 .then(project => {
