@@ -744,8 +744,10 @@
 
   var t = null
 
-  function checkProjectData (project) {
-    return Promise.resolve()
+  function initForm (form, buttonProject) {
+    form.reset()
+    buttonProject.dispatchEvent(new CustomEvent('select'))
+    document.getElementById('inYear').value = String((new Date()).getFullYear())
   }
 
   function load() {
@@ -753,15 +755,15 @@
     /*const contactForm = new UIKAContactForm()
     const projectForm = new UIKAProjectForm()*/
     const contactOld = new UIKAContactOld()
+    const buttons = [
+          new KAButton(`Projet`, {group: 'reference', selected: true}),
+          new KAButton(`Régie`, {group: 'reference'}),
+      ]
 
     kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
     .then(r => {
       const node = document.body.querySelector('input[name="reference"]')
 
-      const buttons = [
-          new KAButton(`Projet`, {group: 'reference', selected: true}),
-          new KAButton(`Régie`, {group: 'reference'}),
-      ]
       buttons[0].addEventListener('submit', _ => {
         document.body.querySelector('input[name="type"]').value = 'project'
         kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
@@ -828,7 +830,7 @@
           const related = data.get('type') === 'project' ? 'Project' : 'Régie'
           ked.createProject(project[0].id, project[0].reference, related)
           .catch(_ => {
-            new MsgInteractUI('warning', 'Création du projet sur KED échouée')
+            //new MsgInteractUI('warning', 'Création du projet sur KED échouée')
           })
         })()
         return projecList.renderProject(project[0])
@@ -837,7 +839,7 @@
         return projecList.insertProjectNode(projectNode, true)
       })
       .then(_ => {
-        form.reset()
+        initForm(form, buttons[0])
         contactOld.clearResult()
         contactOld.unselectContact()
         new MsgInteractUI('info', 'Création du projet effectuée')
