@@ -255,6 +255,7 @@ UIKAProjectList.prototype.renderProject = function (project) {
     return new Promise(resolve => {
         const domNode = document.createElement('DIV')
         domNode.id = `project-${project.id}`
+        domNode.dataset.id = project.id
         domNode.classList.add('ka-project')
         if (project.closed) {
             domNode.classList.add('ka-project-closed')
@@ -833,7 +834,7 @@ UIKAProjectList.prototype.addEditTravailToProject = function (projectId, travail
                     <label for="force">Nombre de personne : <input name="force" type="text" value="${travail.force ?? ''}" /></label><br>
                     <label for="description>">Description du travail</label><br>
                     <textarea name="description">${travail.description ?? ''}</textarea><br>
-                    <button type="submit">Sauver</button><button name="print" type="button">Sauver et imprimer</button><button type="reset">Annuler</button>
+                    <button type="submit">Sauver</button><button name="print" type="submit">Sauver et imprimer</button><button type="reset">Annuler</button>
                 </form>`, 
                 `Travail pour ${project.reference} - ${project.name}`
             )
@@ -849,6 +850,7 @@ UIKAProjectList.prototype.addEditTravailToProject = function (projectId, travail
             })
             form.addEventListener('submit', event => {
                 event.preventDefault()
+                const submitter = event.submitter
                 data = new FormData(event.currentTarget)
                 const travail = {
                     reference: data.get('reference'),
@@ -884,8 +886,11 @@ UIKAProjectList.prototype.addEditTravailToProject = function (projectId, travail
                 .then(project => {
                     return this.reloadOpenProject(project[0].id)
                 })
-                .then(_ => {
+                .then(domNode => {
                     popup.close()
+                    if (submitter.name === 'print') {
+                        return this.printTravail(domNode.dataset.id, travailId)
+                    }
                     return resolve()
                 })
                 .catch(cause => {
