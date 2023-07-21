@@ -36,7 +36,7 @@ function UIKAContactOld () {
     this.domNode.classList.add('ka-contact-container-old')
     this.domNode.innerHTML = `
         <div class="ka-selected-contact"></div>
-        <input type="text" name="search" autocomplete="off" placeholder="Recherche client existant" /> ou <button type="button" name="add">Créer nouveau client</button>
+        <input type="text" name="search" autocomplete="off" placeholder="Rechercher un client existant" /> ou <button type="button" name="add">Créer nouveau client</button>
         <div class="ka-contact empty"></div>
     `
     this.searchInput = this.domNode.querySelector('input[name="search"]')
