@@ -110,7 +110,7 @@ class ProjectModel extends artnum\SQL {
       if ($currentYear !== $y) {
         $projectRef = $currentYear . '01';
       } else {
-        $n = sprintf("%02d", (intval($project['maxref']) - (intval($y)*100000)) + 1);
+        $n = sprintf("%03d", (intval($project['maxref']) - (intval($y)*100000)) + 1);
         $projectRef = $y . $n;
       }
     }
