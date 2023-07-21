@@ -833,7 +833,10 @@
             //new MsgInteractUI('warning', 'Création du projet sur KED échouée')
           })
         })()
-        return projecList.renderProject(project[0])
+        return projecList.associateProject(project[0])
+      })
+      .then(project => {
+        return projecList.renderProject(project)
       })
       .then(projectNode => {
         return projecList.insertProjectNode(projectNode, true)
