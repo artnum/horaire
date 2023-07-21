@@ -16,8 +16,8 @@ if (is_file('private/VERSION') && is_readable('private/VERSION')) {
 }
 
 $key = 'unconfigured key';
-if (is_file('conf/location.ini') && is_readable('conf/location.ini')) {
-   $key = hash_file('md5', 'conf/location.ini');
+if (is_file('conf/kaal.ini') && is_readable('conf/kaal.ini')) {
+   $key = hash_file('md5', 'conf/kaal.ini');
 }
 $revision = hash_hmac('md5', $version, $key);
 
