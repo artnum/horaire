@@ -770,7 +770,7 @@ UIKAProjectList.prototype.checkProjectData = function (project) {
         if (isIdEmpty(project.manager)) { return reject(new Error('Pas de chef de projet', {cause: 'manager'})) }
         if (isStringEmpty(project.reference)) { return reject(new Error('Pas de référence', {cause: 'reference'})) }
         if (isStringEmpty(project.name)) { return reject(new Error('Pas de nom', {cause: 'name'})) }
-        if (isStringEmpty(project.client) || project.client === 'Contact/null') { return reject(new Error('Pas de client', {cause: 'client'})) }
+        //if (isStringEmpty(project.client) || project.client === 'Contact/null') { return reject(new Error('Pas de client', {cause: 'client'})) }
         return resolve(project)
     })
 }
