@@ -9,7 +9,9 @@ function isIdEmpty (id) {
 }
 
 function isStringEmpty (string) {
-    if (string === null || string === undefined || String(string).length === 0 || String(string).trim().length === 0) { return true }
+    if (string === undefined) { return true }
+    if (string === null) { return true }
+    if (String(string).length === 0 || String(string).trim().length === 0) { return true }
     return false
 }
 

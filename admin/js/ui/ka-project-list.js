@@ -263,41 +263,45 @@ UIKAProjectList.prototype.renderProject = function (project) {
             domNode.classList.add('ka-project-open')
         }
 
-        domNode.innerHTML = `
-            <span class="reference">${project.reference ?? ''}</span>
-            <span class="name">${project.name ?? ''}</span>
-            <span class="client">${project.client?.displayname ?? ''}</span>
-            <span class="manager">${project.manager?.name ?? ''}</span>
-            <span class="tooling">
-                <button class="onhover" data-action="add-work">Ajout travail</button>
-                <button class="onhover" data-action="edit">Éditer</button>
-                <button class="onhover" data-action="export">Exporter</button>
-                <button class="onhover" data-action="print">Imprimer</button>
-                <button class="onopen" data-action="${project.closed ? 'open' : 'close'}">${project.closed ? 'Ouvrir' : 'Clore'}</button>
-                <button class="onopen" data-action="delete">Supprimer</button>
-            </span>
-            <div class="travail">
-            </div>
-        `
-        domNode.addEventListener('click', event => {
-            let node = event.target
-            while (node) {
-                if (node.classList.contains('travail')) { return }
-                if (node.classList.contains('ka-project')) { break }
-                node = node.parentNode
-            }
-            this.toggleProjectFolding(event.currentTarget)
-        })
-
-        Array.from(domNode.querySelectorAll('button'))
-            .forEach(button => {
-                button.addEventListener('click', event => {
-                    event.stopPropagation()
-                    this.buttonInteractWithProject(project.id, button.dataset.action)
-                })
+        const KContactOld = new UIKAContactOld()
+        KContactOld.simplifyContact(project.client)
+        .then(client => {
+            domNode.innerHTML = `
+                <span class="reference">${project.reference ?? ''}</span>
+                <span class="name">${project.name ?? ''}</span>
+                <span class="client">${client.custom4 === 'BEXIO' ? `<img title="Client archivé" src="${KAAL.getBase()}/resources/images/bexio-icon.png" />&nbsp;` : ''}${client.state === 'archived' ? `<img src="${KAAL.getBase()}/resources/images/archive.png" />&nbsp;` : ''} ${client.displayname ?? ''}</span>
+                <span class="manager">${project.manager?.name ?? ''}</span>
+                <span class="tooling">
+                    <button class="onhover" data-action="add-work">Ajout travail</button>
+                    <button class="onhover" data-action="edit">Éditer</button>
+                    <button class="onhover" data-action="export">Exporter</button>
+                    <button class="onhover" data-action="print">Imprimer</button>
+                    <button class="onopen" data-action="${project.closed ? 'open' : 'close'}">${project.closed ? 'Ouvrir' : 'Clore'}</button>
+                    <button class="onopen" data-action="delete">Supprimer</button>
+                </span>
+                <div class="travail">
+                </div>
+            `
+            domNode.addEventListener('click', event => {
+                let node = event.target
+                while (node) {
+                    if (node.classList.contains('travail')) { return }
+                    if (node.classList.contains('ka-project')) { break }
+                    node = node.parentNode
+                }
+                this.toggleProjectFolding(event.currentTarget)
             })
 
-        return resolve(domNode)
+            Array.from(domNode.querySelectorAll('button'))
+                .forEach(button => {
+                    button.addEventListener('click', event => {
+                        event.stopPropagation()
+                        this.buttonInteractWithProject(project.id, button.dataset.action)
+                    })
+                })
+
+            return resolve(domNode)
+        })
     })
 }
 
@@ -543,7 +547,7 @@ UIKAProjectList.prototype.search = function (query = {}) {
             
 
             Promise.all(
-                [Promise.allSettled(clients.map(client => kafetch2(`${KAAL.getBase()}/${client}`)))
+                [Promise.allSettled(clients.map(client => kafetch2(`${KAAL.getBase()}/${client}?short=1`)))
                 .then(responses => {
                     return responses
                         .filter(r => r.status === 'fulfilled')
@@ -763,14 +767,12 @@ UIKAProjectList.prototype.editProject = function (projectId) {
 UIKAProjectList.prototype.checkProjectData = function (project) {
     return new Promise((resolve ,reject) => {
         if (isFloatEmpty(project.price)) { 
-            if (parseFloat(project.price) !== 0.0) {
-                return reject(new Error('Pas de prix', {cause: 'price'})) 
-            }
+            return reject(new Error('Pas de prix', {cause: 'price'})) 
         }
         if (isIdEmpty(project.manager)) { return reject(new Error('Pas de chef de projet', {cause: 'manager'})) }
         if (isStringEmpty(project.reference)) { return reject(new Error('Pas de référence', {cause: 'reference'})) }
         if (isStringEmpty(project.name)) { return reject(new Error('Pas de nom', {cause: 'name'})) }
-        //if (isStringEmpty(project.client) || project.client === 'Contact/null') { return reject(new Error('Pas de client', {cause: 'client'})) }
+        if (isStringEmpty(project.client) || project.client === 'Contact/null') { return reject(new Error('Pas de client', {cause: 'client'})) }
         return resolve(project)
     })
 }

@@ -45,21 +45,45 @@ function UIKAContactOld () {
     
     const addClientButton = this.domNode.querySelector('button[name="add"]')
     addClientButton.addEventListener('click', event => {
-        this.editProjectForm()
-        .then(formNode => {
-            const popup = window.Admin.popup(formNode, 'Ajouter client')
-            formNode.addEventListener('reset', _ => {
+        new Promise((resolve, reject) => {
+            const popup = Admin.popup(`<form>La création de contact ne peut pas encore être faite sur Bexio.<br>
+            Utilisez l'interface Bexio pour ceci.<br>
+            <button type="submit">Créer un contact local</button> <button type="reset">Ok je vais sur Bexio</button>
+            `, 'Non implémenté')
+            popup.addEventListener('submit', event => {
+                event.preventDefault()
                 popup.close()
+                resolve()
             })
-            formNode.addEventListener('contact-written', event => {
-                this.selectContact(event.detail)
+            popup.addEventListener('reset', event => {
+                event.preventDefault()
                 popup.close()
+                window.open('https://office.bexio.com/index.php/kontakt/edit', '_blank')
+                reject('Bexio')
             })
+        })
+        .then(_ => {
+            this.editProjectForm()
+            .then(formNode => {
+                const popup = window.Admin.popup(formNode, 'Ajouter client')
+                formNode.addEventListener('reset', _ => {
+                    popup.close()
+                })
+                formNode.addEventListener('contact-written', event => {
+                    this.selectContact(event.detail)
+                    popup.close()
+                })
+            })
+        })
+        .catch(cause => {
+            console.log(cause)
         })
     })
 
     this.searchInput.addEventListener('keydown', event => this.handleKeyInput(event))
-    this.searchInput.addEventListener('keyup', event => kthrottle(this.handleKeyInput(event), 120))
+    this.searchInput.addEventListener('keyup', kdebounce(event => {
+        this.handleKeyInput(event)
+    }, 60))
 
 }
 
@@ -74,14 +98,15 @@ UIKAContactOld.prototype.handleKeyInput = function (event) {
                     event.preventDefault()
                     break
             }
-            break
+            return
         case 'keyup':
-            const value = event.currentTarget.value
+            const value = this.searchInput.value
+            if (value.length === 0) { this.clearResult(); return }
             if (event.key !== 'Enter') {
                 if (value === this.currentValue) { return }
                 this.currentValue = value
             }
-            if (value.length === 0) { this.clearResult(); return }
+            this.startWaitSearch()
             this.search(value)
             .then(contacts => {
                 const empty = contacts.length <= 0
@@ -90,7 +115,11 @@ UIKAContactOld.prototype.handleKeyInput = function (event) {
                     this.result.classList.add('empty')
                 })
 
-                return contacts.splice(contacts.length - 20)
+                return contacts.sort((c1, c2) => { 
+                    if (c1.custom4 === 'BEXIO' && c2.custom4 !== 'BEXIO') { return 1 }
+                    if (c1.custom4 === 'BEXIO' && c2.custom4 === 'BEXIO') { return 0 }
+                    if (c1.custom4 !== 'BEXIO' && c2.custom4 === 'BEXIO') { return -1 }
+                }).splice(contacts.length - 20).reverse()
             })
             .then(contacts => {
                 return Promise.allSettled(contacts.map(c => this.renderContact(c)))
@@ -99,10 +128,19 @@ UIKAContactOld.prototype.handleKeyInput = function (event) {
                 return nodes.filter(s => s.status === 'fulfilled').map(s => s.value)
             })
             .then(nodes => {
+                this.endWaitSearch()
                 return this.renderResult(nodes)
             })
             break
     }
+}
+
+UIKAContactOld.prototype.startWaitSearch = function () {
+    window.requestAnimationFrame(() => this.domNode.classList.add('updating-in-progress'))
+}
+
+UIKAContactOld.prototype.endWaitSearch = function () {
+    window.requestAnimationFrame(() => this.domNode.classList.remove('updating-in-progress'))
 }
 
 UIKAContactOld.prototype.setResult = function (contactId) {
@@ -226,7 +264,9 @@ UIKAContactOld.prototype.search = function (searchValue) {
             o: `*${value}*`
         }
     })
-    return kafetch2(`${KAAL.getBase()}/Contact/_query`, {
+    const url = new URL(`${KAAL.getBase()}/Contact/_query`)
+    url.searchParams.append('limit', 20)
+    return kafetch2(url, {
         method: 'POST',
         body
     })
@@ -235,6 +275,7 @@ UIKAContactOld.prototype.search = function (searchValue) {
 UIKAContactOld.prototype.simplifyContact = function (contact) {
     return new Promise((resolve, reject) => {
         const sContact = {
+            displayname: '',
             firstname: '',
             lastname: '',
             address: '',
@@ -245,21 +286,26 @@ UIKAContactOld.prototype.simplifyContact = function (contact) {
             url: '',
             country: '',
             organization: '',
-            type: 'person'
+            type: 'person',
+            custom4: 'LOCAL',
+            state: 'active'
         }
+        if (!contact) { return resolve(sContact) }
 
         if (Array.isArray(contact)) { contact = contact.pop() }
         sContact.id = contact.IDent
+        sContact.state = contact.state
         if (contact.type !== 'person') { sContact.type = 'organization' }
         if (sContact.type === 'organization') {
             if (!isStringEmpty(contact.o)) { sContact.firstname = contact.o }
+            if (!isStringEmpty(contact.description)) { sContact.lastname = contact.description }
         } else {
             if (!isStringEmpty(contact.givenname)) { sContact.firstname = contact.givenname }
             if (!isStringEmpty(contact.sn)) { sContact.lastname = contact.sn }
             if (!isStringEmpty(contact.o)) { sContact.organization = contact.o }
-
         }
-        
+        sContact.displayname = [sContact.firstname, sContact.lastname].join(' ')
+
         if (Array.isArray(contact.mobile)) {
             sContact.phone = arrayFirstNonEmptyString(contact.mobile)
         } else {
@@ -316,9 +362,11 @@ UIKAContactOld.prototype.simplifyContact = function (contact) {
             if (!isStringEmpty(contact.c)) { sContact.country = contact.c }
         }
 
-        if (!isStringEmpty(sContact.url) && (!sContact.url.startsWith('http:') || !sContact.url.startsWith('https:'))) {
+        if (!isStringEmpty(sContact.url) && (!sContact.url.startsWith('http:') && !sContact.url.startsWith('https:'))) {
             sContact.url = `https://${sContact.url}` // default to https
         }
+
+        sContact.custom4 = contact.custom4
 
         return resolve(sContact)
     })
@@ -333,13 +381,13 @@ UIKAContactOld.prototype.renderContact = function (contact, notSelectable = fals
             contactNode.classList.add('ka-contact-old')
             contactNode.dataset.id = contact.id
             contactNode.innerHTML = `
-                <div class="names">${contact.firstname} ${contact.lastname}</div>
+                <div class="names">${contact.custom4 === 'BEXIO' ? `<img src="${KAAL.getBase()}/resources/images/bexio-icon.png" />&nbsp;` : ''}${contact.firstname} ${contact.lastname}</div>
                 ${(contact.type === 'person' && !isStringEmpty(contact.organization)) ? `<div class="organization">${contact.organization}</div>` : ''}
                 <div class="address">${contact.address}</div>
                 <div class="locality">${!isStringEmpty(contact.country) ? `${contact.country}-` : ''}${contact.postcode} ${contact.locality}</div>
-                <div class="phone">${!isStringEmpty(contact.phone) ? `<a href="tel:${contact.phone}">` : ''}${contact.phone}${!isStringEmpty(contact.phone) ? '</a>' :'' }</div>
-                <div class="mail">${!isStringEmpty(contact.mail) ? `<a href="mailto:${contact.mail}">` : ''}${contact.mail}${!isStringEmpty(contact.mail) ? '</a>' :'' }</div>
-                <div class="url">${!isStringEmpty(contact.url) ? `<a target="_blank" href="${contact.url}">` : ''}${contact.url}${!isStringEmpty(contact.url) ? '</a>' :'' }</div>
+                <div class="phone">${!isStringEmpty(contact.phone) ? `<a href="tel:${contact.phone}">${contact.phone}</a>` : '' }</div>
+                <div class="mail">${!isStringEmpty(contact.mail) ? `<a href="mailto:${contact.mail}">${contact.mail}</a>` : '' }</div>
+                <div class="url">${!isStringEmpty(contact.url) ? `<a target="_blank" href="${contact.url}">${contact.url}</a>` :'' }</div>
             `
             if (!notSelectable) { 
                 contactNode.addEventListener('click', event => {
@@ -372,6 +420,16 @@ UIKAContactOld.prototype.editProjectForm = function (contactId = null) {
             return this.loadContact(contactId)
         })()
         .then(contact => {
+            if (contact.custom4 !== 'BEXIO') { return contact }
+            return new Promise((resolve, reject) => {
+                const popup = Admin.popup('<form>Les contacts Bexio ne peuvent pas être modifié actuellement<br><button type="submit">Ok</button></form>', 'Non implémenté')
+                popup.addEventListener('submit', event => {
+                    event.preventDefault()
+                    popup.close()
+                    return reject('Bexio')
+                })
+            })
+        }).then(contact => {
             const form = document.createElement('FORM')
             form.classList.add(contact.type === 'person'? 'ka-person-form' : 'ka-org-form')
             form.innerHTML = `
@@ -504,6 +562,9 @@ UIKAContactOld.prototype.editProjectForm = function (contactId = null) {
             })
 
             resolve(form)
+        })
+        .catch(cause => {
+            console.log(cause)
         })
     })
 }

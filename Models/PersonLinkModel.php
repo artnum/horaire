@@ -49,7 +49,7 @@ class PersonLinkModel extends artnum\SQL {
       return $entry;
    }
 
-   function _read($id) {
+   function _read($id, $options = null) {
       $ids = $this->parseId($id);
       $db = $this->get_db(false);
       if (!$db) { throw new Exception('No database available'); }

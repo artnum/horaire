@@ -22,8 +22,10 @@ if (is_null($pdo)) {
   throw new Exception('Storage database not reachable');
   exit(0);
 }
+$bexioDB = new BizCuit\BexioCTX($KConf->get('bexio.token'));
 $store->add_db('sql', $pdo);
-$store->add_db('bexio', new BizCuit\BexioCTX($KConf->get('bexio.token')));
+$store->add_db('bexio', $bexioDB);
+$KConf->setVar('bexioDB', $bexioDB);
 
 $logpdo = init_pdo($ini_conf, 'logdb');
 

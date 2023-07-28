@@ -530,6 +530,15 @@ fieldset.half {
 }
 
 
+@keyframes showUpdatingProgress {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+.updating-in-progress * {
+    cursor: wait;
+}
+
 .ka-project-list {
     display: grid;
     grid-template-columns: [first] 1fr [second] 2fr 1fr 1fr 2fr;
@@ -597,7 +606,12 @@ fieldset.half {
     background-color: lightgray;
 }
 
-.ka-project:hover  > span {
+.ka-project:hover > span {
+    color: white;
+    background-color: lightslategrey;
+}
+
+.ka-project:hover > span > img {
     color: white;
     background-color: lightslategrey;
 }
