@@ -267,7 +267,7 @@ UIKAProjectList.prototype.renderProject = function (project) {
         KContactOld.simplifyContact(project.client)
         .then(client => {
             domNode.innerHTML = `
-                <span class="reference">${project.reference ?? ''}</span>
+                <span class="reference">${project.reference ?? ''}${project.extid ? `&nbsp;<img src="${KAAL.getBase()}/resources/images/bexio-sync.png" />` : ''}</span>
                 <span class="name">${project.name ?? ''}</span>
                 <span class="client">${client.custom4 === 'BEXIO' ? `<img title="Client archivé" src="${KAAL.getBase()}/resources/images/bexio-icon.png" />&nbsp;` : ''}${client.state === 'archived' ? `<img src="${KAAL.getBase()}/resources/images/archive.png" />&nbsp;` : ''} ${client.displayname ?? ''}</span>
                 <span class="manager">${project.manager?.name ?? ''}</span>
@@ -629,6 +629,7 @@ UIKAProjectList.prototype.deleteProject = function (projectId) {
                 <form>
                 Confirmer la suppression du projet ${project[0].reference}<br>
                 ${travaux.length > 0 ? '<label><input type="checkbox" name="deleteTravaux" checked> Supprimer les travaux et tâches associées</label><br>' : ''}
+                ${project[0].extid ? '<label><input type="checkbox" name="deleteBexioProject" checked> Supprimer sur Bexio</label><br>' : ''}
                 <button type="submit">Supprimer</button> <button type="reset">Annuler</button>
                 </form>
             `, 'Confirmation de suppression')
@@ -651,6 +652,14 @@ UIKAProjectList.prototype.deleteProject = function (projectId) {
                     }
                     return Promise.resolve()
                 })()
+                .then(_ => {
+                    ; (() => {
+                        if (data.get('deleteBexioProject')) {
+                            return kafetch2(`${KAAL.getBase()}/BXProject/${project[0].extid}`, {method: 'DELETE'})
+                        }
+                        return Promise.resolve()
+                    })()
+                })
                 .then(_ => {
                     kafetch2(`${KAAL.getBase()}/Project/${projectId}`, {method: 'DELETE'})
                     .then(_ => this.removeProjectNode(projectId))
@@ -676,30 +685,47 @@ UIKAProjectList.prototype.editProject = function (projectId) {
     return new Promise((resolve, reject) => {
         kafetch2(`${KAAL.getBase()}/Project/${projectId}`)
         .then(project => {
-
             if (project.length !== 1) { throw new Error('Erreur chargement project')}
             project = project[0]
-
             const popup = window.Admin.popup(`
                 <form>
                     <input type="hidden" value="${project.id}" name="project" />
                     <label for="reference">Numéro de chantier : </label><input readonly name="reference" type="text" value="${project.reference ?? ''}" />
                     <label for="name">Nom : </label><input name="name" type="text" value="${project.name ?? ''}"/><br>
-                    <label for="price">Prix de vente HT : </label><input name="price" type="text" value="${project.price ?? ''}"/>
+                    <label for="price">Prix de vente HT : </label><input name="price" type="text" value="${project.price ?? ''}"/><br>
+                    <label for="extid">Projet bexio : <input name="extid" type="text" value="${project.extid ?? ''}" /> 
+                        ${project.extid ? '' : '<button type="submit" name="bxcreate">ou créer sur bexio</button>'}<br/>
                     <label for="manager">Chef de projet : </label><input name="manager" type="text" value="${project.manager ?? ''}"/><br>
                     <label for="client">Client : </label><div class="contact"></div><br>
                     <button type="submit">Sauver</button><button type="reset">Annuler</button>
                 </form>`,
                 `Projet ${project.reference} - ${project.name}`
             )
-
+         
             const kaoldcontact = new UIKAContactOld()
             window.requestAnimationFrame(() => { popup.querySelector('div.contact').appendChild(kaoldcontact.domNode) })
             if (!isStringEmpty(project.client)) {
+                const buttons = popup.querySelectorAll('button')
+                window.requestAnimationFrame(() => {
+                    buttons.forEach(button => button.disabled = true)
+                    popup.classList.add('updating-in-progress')
+                })
                 kaoldcontact.setResult(project.client)
+                .then(_ => {
+                    window.requestAnimationFrame(() => {
+                        buttons.forEach(button => button.disabled = false)
+                        popup.classList.remove('updating-in-progress')
+                    })
+                })
             }
 
+            const bxProjectSelect = new KSelectUI(
+                    popup.querySelector('input[name="extid"]'),
+                    new BXROGenericStore('BXProject', {idName: 'id', label: 'name', name: 'name'}),
+                    { realSelect: true, allowFreeText: false, allowNone: true }
+                )
             const managerSelect = new KSelectUI(popup.querySelector('input[name="manager"]'), new STPerson(), { realSelect: true, allowFreeText: false })
+
             const form = popup.getElementsByTagName('FORM')[0]
             form.addEventListener('keydown', event => {
                 Array.from(form.querySelectorAll('label.inerror'))
@@ -715,6 +741,8 @@ UIKAProjectList.prototype.editProject = function (projectId) {
             })
             form.addEventListener('reset', () => popup.close() )
             form.addEventListener('submit', event => {
+                const submitter = event.submitter.name
+                window.requestAnimationFrame(() => { popup.classList.add('updating-in-progress') })
                 event.preventDefault()
                 const data = new FormData(event.currentTarget)
                 const project = {
@@ -723,7 +751,8 @@ UIKAProjectList.prototype.editProject = function (projectId) {
                     reference: data.get('reference'),
                     price: data.get('price'),
                     manager: managerSelect.value,
-                    client: ''
+                    client: '',
+                    extid: submitter === 'bxcreate' ? '_create' : (bxProjectSelect.value == 0 ? '_unlink' : bxProjectSelect.value)
                 }
                 if (kaoldcontact.clientid !== null) { 
                     if (String(kaoldcontact.clientid).startsWith('Contact')) {
@@ -746,6 +775,7 @@ UIKAProjectList.prototype.editProject = function (projectId) {
                     })
                     .then(_ => {
                         popup.close()
+                        if (submitter === 'bxcreate') { this.editProject(projectId) }
                         resolve()
                     })
                 })

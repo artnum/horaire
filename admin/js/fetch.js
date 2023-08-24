@@ -67,10 +67,17 @@ function kafetch (url, params = {}) {
   })
 }
 
+const KAFetchChannel = new BroadcastChannel('fetch-channel')
+
 function kafetch2 (url, params = {}) {
   return new Promise((resolve, reject) =>{
     kafetch(url, params)
     .then(result => {
+      if (result.softErrors.filter(e => e.service === 'bexio' && e.message === 'down').length > 0) {
+        KAFetchChannel.postMessage('bexio-down')
+      } else {
+        KAFetchChannel.postMessage('bexio-up')
+      }
       if (result.length === 0) { return resolve([]) }
       if (!result.data) { return resolve([]) }
       if (!Array.isArray(result.data)) { return resolve([result.data]) }

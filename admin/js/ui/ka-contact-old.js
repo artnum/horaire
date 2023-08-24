@@ -144,17 +144,23 @@ UIKAContactOld.prototype.endWaitSearch = function () {
 }
 
 UIKAContactOld.prototype.setResult = function (contactId) {
-    this.loadContact(contactId)
-    .then(contact =>{
-        this.clientid = contactId
-        return this.renderContact(contact)
-    })
-    .then(node => {
-        this.searchInput.dataset.id = node.dataset.id
-        this.createSelectContactInteraction(node)
-        window.requestAnimationFrame(() => {
-            if (this.selectedContact.firstElementChild) { this.selectedContact.removeChild(this.selectedContact.firstElementChild) }
-            this.selectedContact.appendChild(node)
+    return new Promise(resolve => {
+        this.loadContact(contactId)
+        .then(contact =>{
+            this.clientid = contactId
+            return this.renderContact(contact)
+        })
+        .then(node => {
+            this.searchInput.dataset.id = node.dataset.id
+            this.createSelectContactInteraction(node)
+            window.requestAnimationFrame(() => {
+                if (this.selectedContact.firstElementChild) { this.selectedContact.removeChild(this.selectedContact.firstElementChild) }
+                this.selectedContact.appendChild(node)
+            })
+            resolve()
+        })
+        .catch(_ => {
+            resolve()
         })
     })
 }
@@ -219,6 +225,7 @@ UIKAContactOld.prototype.selectContact = function (contact) {
 UIKAContactOld.prototype.selectResult = function (contactId) {
     return new Promise ((resolve, reject) => {
         this.clientid = contactId
+        if (!this.result.firstElementChild) { return }
         const originalNode = this.result.firstElementChild.querySelector(`div[data-id="${contactId}"]`)
         if (!originalNode) { return reject('')}
         const node = originalNode.cloneNode(true)

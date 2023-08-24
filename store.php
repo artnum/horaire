@@ -27,6 +27,10 @@ $store->add_db('sql', $pdo);
 $store->add_db('bexio', $bexioDB);
 $KConf->setVar('bexioDB', $bexioDB);
 
+$memcache = new Memcached();
+$memcache->addServer('localhost', 11211);
+$KConf->setVar('bxcache', [$memcache, $ini_conf['storage']['bxcache'], 60]);
+
 $logpdo = init_pdo($ini_conf, 'logdb');
 
 if (empty($ini_conf['addressbook']) || empty($ini_conf['addressbook']['servers'])) {

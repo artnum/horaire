@@ -35,7 +35,8 @@ BXROGenericStore.prototype.get = function (id) {
 BXROGenericStore.prototype.query = function (txt) {
     return new Promise((resolve, reject) => {
         if (typeof txt === 'object') { txt = Object.values(txt)[0].replace('*', '') }
-        fetch(`${this.Store}`)
+        const request = {[this.fieldMapping.name]: ['~', txt]}
+        fetch(`${this.Store}/_query`, {method: 'POST', body: JSON.stringify(request)})
             .then(response => {
                 if (!response.ok) { return { length: 0, data: [] } }
                 return response.json()
@@ -63,6 +64,5 @@ BXROGenericStore.prototype.query = function (txt) {
 BXROGenericStore.prototype.getIdentity = function (object) {
     let idName = 'id'
     if (this.fieldMapping.idName) { idName = this.fieldMapping.idName }
-    console.log(idName, object[idName])
     return object[idName]
 }

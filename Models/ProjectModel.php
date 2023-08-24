@@ -1,7 +1,14 @@
 <?PHP
 /* create table if not exists hProject (hProject_id INTEGER PRIMARY KEY AUTOINCREMENT, hProject_name VARCHAR(255), hProject_closed DATETIME NULL, hProject_opened DATETIME NULL); */
 
+require('lib/bexio.php');
+
 class ProjectModel extends artnum\SQL {
+  protected $kconf;
+  protected $bxcache;
+
+  use BexioJSONCache;
+
   function __construct($db, $config) {
     $this->kconf = $config;
     parent::__construct($db, 'project', 'project_id', []);
@@ -16,9 +23,107 @@ class ProjectModel extends artnum\SQL {
     $this->conf('delete.ts', true);
     $this->conf('hook-path', 'exec/hooks');
     $this->conf('ignored', array('year'));
+
+    $cacheopts = $config->getVar('bxcache');
+    $this->bxcache = new BexioCache($cacheopts[0], $cacheopts[1], $cacheopts[2]);
   }
   
-  function _write($arg, &$id = NULL) {    
+  function getBxProjectStatus ($bxDb, $name = 'Offen') {
+    $bxPrjStatus = new BizCuit\BexioProjectStatus($bxDb);
+    $results = $bxPrjStatus->list();
+
+    foreach($results as $result) {
+      if ($result->name === $name) { return $result->id; }
+    }
+    return 1;
+  }
+
+  function getBxProjectType ($bxDb, $name = 'Kundenprojekt') {
+    $bxPrjType = new BizCuit\BexioProjectType($bxDb);
+    $results = $bxPrjType->list();
+
+    foreach($results as $result) {
+      if ($result->name === $name) { return $result->id; }
+    }
+    return 1;
+  }
+
+  function unlinkBxProject ($project) {
+    $db = $this->get_db();
+    $stmt = $db->prepare("UPDATE project SET project_extid = NULL WHERE project_id = :id");
+    $stmt->bindValue(':id', $project, PDO::PARAM_INT);
+    return $stmt->execute();
+  }
+
+  function createEditBxProject ($project, $bxId = null) {
+    $bexioDB = $this->kconf->getVar('bexioDB');
+    $bexioProject = new BizCuit\BexioProject($bexioDB);
+
+    if ($bxId === null) {
+      $bxProject = $bexioProject->new();
+    } else {
+      $bxProject = $bexioProject->get($bxId);
+    }
+
+    $db = $this->get_db(true);
+    $stmt = $db->prepare("SELECT personlink_extid FROM personlink WHERE personlink_service = 'bexio' AND personlink_uid = :manager");
+    $stmt->bindValue(':manager', $project['manager'], PDO::PARAM_INT);
+    if (!$stmt->execute()) { $bxProject->user_id = 1; }
+    if ($stmt->rowCount() < 1) { $bxProject->user_id = 1; }
+    $dbData = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$dbData) { $bxProject->user_id = 1; }
+    else { $bxProject->user_id = $dbData['personlink_extid']; }
+
+    $bxProject->name = $project['reference'] . ' ' . $project['name'];
+
+    $bxProject->pr_project_type_id = $this->getBxProjectType($bexioDB);
+    $bxProject->pr_state_id = $this->getBxProjectStatus($bexioDB);
+    
+    $contact = explode('/', $project['client']);
+    $contact = array_pop($contact);
+    if (!str_starts_with($contact, '@bx_')) { return null; }
+    $bxProject->contact_id = substr($contact, 4);
+
+    $object = $bexioProject->set($bxProject);
+    $this->store_cache($object->getType() . '/' . $object->getId(), $object->toJson(), 1);
+    return $object;
+  }
+
+  function _write($arg, &$id = NULL) {
+    try {
+      if ($this->kconf->getVar('bexioDB')) {
+        if (!is_null($id) && !empty($arg['extid']) && $arg['extid'] === '_unlink') {
+          $this->unlinkBxProject($id);
+          unset($arg['extid']);
+        } else {
+          if ($id === null || (!empty($arg['extid']) && $arg['extid'] === '_create')) {
+            $bxProject = $this->createEditBxProject($arg);
+            $arg['extid'] = $bxProject->id;
+          } else {
+            $extid = null;
+            $db = $this->get_db(true);
+            $stmt = $db->prepare("SELECT project_extid FROM project WHERE project_id = :id");
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            if ($stmt->execute()) {
+              if ($stmt->rowCount() > 0) {
+                $dbData = $stmt->fetch(PDO::FETCH_ASSOC);
+                $extid = $dbData['project_extid'];
+              }
+            }
+            if (!$extid && $arg['extid']) { $extid = $arg['extid']; }
+            if ($extid && !empty($arg['manager']) && !empty($arg['reference']) && !empty($arg['name'])) {
+              $bxProject = $this->createEditBxProject($arg, $extid);
+              $extid = $bxProject->id;
+            }
+            $arg['extid'] = $extid;
+          }
+        }
+      }
+    } catch (Exception $e) {
+      error_log('Bexio error : ' . $e->getMessage());
+      $this->response->softError('bexio', $e);
+    }
+
     $hook_succeed = false;
     if (!$this->conf('hook-path') || $id !== NULL) {
       $hook_succeed = true;
@@ -41,39 +146,6 @@ class ProjectModel extends artnum\SQL {
     $ret = null;
     if ($hook_succeed) {
       $ret = parent::_write($arg, $id);
-      /*
-      $bxtoken = $this->kconf->get('bexio.token');
-      if ($id === NULL && $ret['count'] === 1 && $bxtoken) {
-        try {
-          $ctx = new BexioCTX($bxtoken);
-          $db = $this->get_db(false);
-
-          $stmt = $db->prepare(sprintf('SELECT * FROM %s WHERE %s = :prjid', $this->Table, $this->IDName));
-          $stmt->bindValue(':prjid', $ret['id'], PDO::PARAM_INT);
-          $stmt->execute();
-          $row = $stmt->fetch();
-
-          $bxcol = new BexioProject($ctx);
-          $bxproj = $bxcol->new();
-          $bxproj->name =  $row['project_reference'] . ' ' . $row['project_name'];
-          $bxproj->user_id = 1;
-          $bxproj->pr_state_id = 1;
-          $bxproj->pr_project_type_id = 1;
-          $bxproj->contact_id = 1;
-          
-          $result = $bxcol->store($bxproj);
-          
-          $stmt = $db->prepare(sprintf('UPDATE %s SET project_extid = :bxid WHERE %s = :prjid', $this->Table, $this->IDName));
-          $stmt->bindValue(':bxid', $result->id, PDO::PARAM_INT);
-          $stmt->bindValue(':prjid', $row['project_id'], PDO::PARAM_INT);
-          $stmt->execute();
-          
-        } catch(Exception $e) {
-          error_log('exception');
-          error_log($e->getMessage());
-        }
-      }
-      */
     }
     return $ret;
   }

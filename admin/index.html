@@ -8,6 +8,7 @@
 </head>
 
 <body>
+  <div class="bexiodown">Bexio déconnecté</div>
   <header>
     <h1>Administration</h1>
   </header>
@@ -90,6 +91,27 @@
     exec({target: node, preventDefault: function () {} })
   })
 
+  ; (() => {
+    const fetchChannel = new BroadcastChannel('fetch-channel')
+    let DownTiming = 0
+    let WarningSet = false
+    fetchChannel.onmessage = message => {
+      switch (message.data) {
+        case 'bexio-down':
+          DownTiming = performance.now()
+          if (WarningSet) { return }
+          WarningSet = true
+          return window.requestAnimationFrame(() => document.body.classList.add('bexio-down'))
+        case 'bexio-up':
+          if (performance.now() - DownTiming < 10000) { return }
+          if (!WarningSet) { return }
+          WarningSet = false
+          return  window.requestAnimationFrame(() => document.body.classList.remove('bexio-down'))
+      }
+    }
+  })()
+
+
   function exec(event) {
     event.preventDefault()
     let main = event.target
@@ -149,7 +171,6 @@
         window.requestAnimationFrame(() => ref.appendChild(div))
       }
     })
-
   }
 
   window.addEventListener('load', (event) => {

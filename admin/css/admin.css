@@ -453,6 +453,25 @@ body.pageview main {
     transition: 0.6s, background-color 0s;
 }
 
+body .bexiodown {
+    display: none;
+}
+
+
+body.bexio-down .bexiodown {
+    border: 2px solid black;
+    font-weight: bold;
+    padding: 5px;
+    display: block;
+    position: fixed;
+    background-color: red;
+    color: yellow;
+    font-size: 16px;
+    z-index: 99999;
+    left: 0;
+    bottom: 0;
+}
+
 table#projects tr.extensible td[data-name="reference"] {
     cursor: pointer;
     text-decoration: underline;

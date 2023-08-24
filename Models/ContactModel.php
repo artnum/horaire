@@ -1,9 +1,17 @@
 <?PHP
 
+require('lib/bexio.php');
+
 class ContactModel extends artnum\LDAP {
   protected $kconf;
+  protected $bxcache;
+
+  use BexioJSONCache;
+
   function __construct($db, $config)  {
     $this->kconf = $config;
+    $cacheopts = $config->getVar('bxcache');
+    $this->bxcache = new BexioCache($cacheopts[0], $cacheopts[1], $cacheopts[2]);
     parent::__construct($db,
       $this->kconf->get('trees.contacts'), 
       [
@@ -52,13 +60,24 @@ class ContactModel extends artnum\LDAP {
     if ($value === null) { return false; }
     return true;
   }
-
+  
+  function search_id ($body) {
+    $h = hash_init('xxh3');
+    usort($body, fn($a, $b) => strcasecmp($a['field'], $b['field']));
+    array_reduce($body, function ($carry, $item) {
+        hash_update($carry, $item['field'] . $item['criteria'] . $item['value'] );
+        return $carry;
+    }, $h);
+    return hash_final($h);
+  }
+  
   function bx_to_ldap ($bxcontact, $noquery = false) {
     $contact = new stdClass();
     $contact->IDent = '@bx_' . $bxcontact->id;
     $contact->uid = $contact->IDent;
     $contact->custom4 = 'BEXIO';
-    $contact->state = $bxcontact->_archived ? 'archived' : 'active';
+    $contact->state = 'active';
+    if (isset($bxcontact->_archived)) { $contact->state = $bxcontact->_archived ? 'archived' : 'active'; }
     if ($bxcontact->contact_type_id == 1) {
       $contact->type = 'oragnization';
       $contact->o = $bxcontact->name_1;
@@ -116,9 +135,8 @@ class ContactModel extends artnum\LDAP {
         if (count($relations) > 0) {
           $company = null;
 
-          $bxContact = new BizCuit\BexioContact($bexioDB);
           foreach($relations as $relation) {
-            $c = $bxContact->get($relation->contact_id);
+            $c = $this->getBexioContact($relation->contact_id);
             if ($c->contact_type_id === 1) {
               $company = $c;
               break;
@@ -135,27 +153,58 @@ class ContactModel extends artnum\LDAP {
     }
     if (isset($contact->l)) { $contact->locality = implode(' ', [$contact->postalcode, $contact->l]); }
     if (!empty($contact->c)) {
+      if (empty($contact->locality)) { $contact->locality = ''; }
       $contact->locality = $contact->c . '-' . $contact->locality;
     }
     return $contact;
   }
 
+  function getBexioContact ($id) {
+    $bexioDB = $this->kconf->getVar('bexioDB');
+    if (!$bexioDB) { throw new Exception('Database unavailable'); }
+    $cached = $this->bxcache->get('Contact/' . $id);
+    if ($cached) {
+      $contact = json_decode($cached);
+    } else {
+      $bxContact = new BizCuit\BexioContact($bexioDB);
+      try {
+        try {
+          $contact = $bxContact->get($id);
+          $jsonObject = $contact->toJson();
+          $cached = $this->bxcache->put('Contact/' . $contact->getId(), $jsonObject);
+          $this->store_cache('Contact/' . $contact->getId(), $jsonObject, 1);
+          $contact->_archived = false;
+        } catch (Exception $e) {
+          // try to get archived value
+          $contact = $bxContact->get($id, ['show_archived' => 'true']);
+          $jsonObject = $contact->toJson();
+          $cached = $this->bxcache->put('Contact/' . $contact->getId(), $jsonObject);
+          $this->store_cache('Contact/' . $contact->getId(), $jsonObject, 1);
+          $contact->_archived = true;
+        }
+      } catch (Exception $e) {
+        switch ($e->getCode()) {
+          case 0:
+          case 304:
+          case 429:
+          case 500:
+          case 503:
+            $this->response->softError('bexio', 'down', 500);
+            [$count, $object] = $this->read_cache('Contact/' . $id);
+            if ($count > 0) { return json_decode($object); }
+        }
+        throw $e;
+      }
+    }
+    return $contact;
+  } 
+
   function _read($dn, $options = null) {
     if (str_starts_with($dn, '@bx_')) {
       $noquery = false;
       if (isset($options['short'])) { $noquery = true; }
-      $bexioDB = $this->kconf->getVar('bexioDB');
-      if (!$bexioDB) { throw new Exception('Database unavailable'); }
       $id = substr($dn, 4);
-      $bxContact = new BizCuit\BexioContact($bexioDB);
-      try {
-        $contact = $bxContact->get($id);
-        $contact->_archived = false;
-      } catch (Exception $e) {
-        // try to get archived value
-        $contact = $bxContact->get($id, ['show_archived' => 'true']);
-        $contact->_archived = true;
-      }
+      $contact = $this->getBexioContact($id);
       $contact = $this->bx_to_ldap($contact, $noquery);
       $this->response->start_output();
       $this->response->echo(json_encode($contact));
@@ -178,27 +227,76 @@ class ContactModel extends artnum\LDAP {
       }
     }
 
-    $flatquery = $this->flatten_query($body);
-    $bexioDB = $this->kconf->getVar('bexioDB');
-    if (!$bexioDB) { throw new Exception('Database unavailable'); }
-    $bxContact = new BizCuit\BexioContact($bexioDB);
-
-
     $count = 0;
-    $bxresults = [];
-    $this->response->start_output();
+    try {
+      $flatquery = $this->flatten_query($body);
+      $bexioDB = $this->kconf->getVar('bexioDB');
+      if (!$bexioDB) { throw new Exception('Database unavailable'); }
+      $bxContact = new BizCuit\BexioContact($bexioDB);
+      $searchId = 'Contact/#s_' . $this->search_id($flatquery) . ':0-500';
+      $cached = $this->bxcache->get($searchId);
 
-    foreach ($flatquery as $queryelement) {
-      $query = $bxContact->newQuery();
-      $query->add($queryelement['field'], $queryelement['value'], $queryelement['criteria']);
-      $results = $bxContact->search($query, $offset, $limit);
-      foreach($results as $result) {
-        if (!isset($bxresults[$result->id])) {
-          $bxresults[$result->id] = true;
-          $result = $this->bx_to_ldap($result, true);
+      if ($cached) {
+        $cached = json_decode($cached);
+        $this->response->start_output();
+        foreach ($cached as $itemid) {
+          $item = $this->bxcache->get('Contact/' . $itemid);
+          if (!$item) { continue; }
+          $item = json_decode($item);
           $count++;
-          $this->response->print($result);
+          $item = $this->bx_to_ldap($item, true);
+          $this->response->print($item);
         }
+      } else {
+        $bxresults = [];
+        $this->response->start_output();
+        $tocache = [];
+        foreach ($flatquery as $queryelement) {
+          $query = $bxContact->newQuery();
+          $query->add($queryelement['field'], $queryelement['value'], $queryelement['criteria']);
+          $results = $bxContact->search($query, $offset, $limit);
+          foreach($results as $result) {
+            if (isset($bxresults[$result->id])) { continue; }
+            $tocache[] = $result->getId();
+            $jsonObject = $result->toJson();
+            $this->bxcache->put('Contact/' . $result->getId(), $jsonObject);
+            $this->store_cache('Contact/' . $result->getId(), $jsonObject, 1);
+            $bxresults[$result->id] = true;
+            $result = $this->bx_to_ldap($result, true);
+            $count++;
+            $this->response->print($result);
+          }
+        }
+        $jsonObject = json_encode($tocache);
+        $this->bxcache->put($searchId, $jsonObject);
+        $this->store_cache($searchId, $jsonObject, $count);
+      }
+    } catch (Exception $e) {
+      switch($e->getCode()) {
+        case 0: // connection error like network down
+        case 304: // not changed, so ok to serve from cache
+        case 429: // ratelimit kick in, ok to serve from cache
+        case 500: // bexio server having bugs, ok to serve from cache
+        case 503: // bexio server under maintenance, ok to serve from cache 
+          $count = 0;
+          $this->response->softError('bexio', 'down', 500);
+          $this->response->start_output();
+          foreach($this->search_cache('Contact', $searchId) as $item) {
+            $item = json_decode($item);
+            $item = $this->bx_to_ldap($item, true);
+            $this->response->print($item);
+            $count++;
+          }
+          if ($count === 0) {
+            foreach ($this->query_cache('Contact', $flatquery, true) as $item) {
+              $item = $this->bx_to_ldap(json_decode($item));
+              $this->response->print($item);
+              $count++;
+            }
+          }
+          break;
+        default:
+          break;
       }
     }
 
