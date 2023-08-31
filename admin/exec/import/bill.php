@@ -241,7 +241,7 @@ function add_bill ($rowId, $row, $fdb, $cdb, $type) {
             break;
     }
 
-    $stmt;
+    $stmt = null;
     $fdb->beginTransaction();
     if ($dbclient === null) {
         $stmt = $fdb->prepare('INSERT INTO "facture" 
@@ -366,7 +366,7 @@ foreach (['Créanciers', 'Débiteurs'] as $sheetname) {
         if (trim($id[0]) === 'F') {
             // facture
             $stmt = $db->prepare('SELECT *,COALESCE((SELECT CAST(SUM("paiement_amount") AS FLOAT) FROM "paiement" WHERE "paiement_facture" = "facture_id"),0.0) AS facture_paid FROM facture WHERE facture_id = :id');
-            $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
+            $stmt->bindValue(':id', $id[1], PDO::PARAM_INT);
             $stmt->execute();
             $facture = $stmt->fetch();
             
@@ -427,9 +427,9 @@ foreach (['Créanciers', 'Débiteurs'] as $sheetname) {
                 try {
                     $stmt = $db->prepare('UPDATE facture SET ' . implode(', ', $st_up) . ' WHERE facture_id = :id');
                     foreach ($up as $v) {
-                        $stmt->bindParam(':' . $v[0], $v[1], $v[2]);
+                        $stmt->bindValue(':' . $v[0], $v[1], $v[2]);
                     }
-                    $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
+                    $stmt->bindValue(':id', $id[1], PDO::PARAM_INT);
                     $out[$i + $offset]['success'] = $stmt->execute();
                 } catch(Exception $e) {
                     $out[$i + $offset]['success'] = false;
@@ -482,7 +482,7 @@ foreach (['Créanciers', 'Débiteurs'] as $sheetname) {
                     if (!empty(trim($row[DEL_CELL]))) {
                         try {
                             $stmt = $db->prepare('DELETE FROM repartition WHERE repartition_id = :id');
-                            $stmt->bindParam(':id', $id[1], PDO::PARAM_STR);
+                            $stmt->bindValue(':id', $id[1], PDO::PARAM_STR);
                             $stmt->execute();
                             $out[$i + $offset] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'delete', 'success' => true];
                         } catch (Exception $e) {
@@ -495,9 +495,9 @@ foreach (['Créanciers', 'Débiteurs'] as $sheetname) {
                                 $tva = floatval($row[TVA_CELL]);
                                 $amount =  floatval($row[REP_CELL]) / (1 + ($tva / 100));
                                 $stmt = $db->prepare('UPDATE repartition SET repartition_tva = :tva, repartition_value = :amount WHERE repartition_id = :id');
-                                $stmt->bindParam(':tva', strval($tva), PDO::PARAM_STR);
-                                $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
-                                $stmt->bindParam(':amount', strval($amount), PDO::PARAM_STR);
+                                $stmt->bindValue(':tva', strval($tva), PDO::PARAM_STR);
+                                $stmt->bindValue(':id', $id[1], PDO::PARAM_INT);
+                                $stmt->bindValue(':amount', strval($amount), PDO::PARAM_STR);
                                 $stmt->execute();
                                 $out[$i + $offset] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'update', 'success' => true];
                             } catch (Exception $e) {
@@ -511,8 +511,8 @@ foreach (['Créanciers', 'Débiteurs'] as $sheetname) {
                                     $amount = floatval($row[REP_CELL]) / (1 + (floatval($repartition['repartition_tva']) / 100));
                                     /* stored in db without tva so calculate amount without tva  */
                                     $stmt = $db->prepare('UPDATE repartition SET repartition_value = :amount WHERE repartition_id = :id');
-                                    $stmt->bindParam(':amount', strval($amount), PDO::PARAM_STR);
-                                    $stmt->bindParam(':id', $id[1], PDO::PARAM_INT);
+                                    $stmt->bindValue(':amount', strval($amount), PDO::PARAM_STR);
+                                    $stmt->bindValue(':id', $id[1], PDO::PARAM_INT);
                                     $stmt->execute();
                                     $out[$i + $offset] = ['type' => 'repartition', 'id' => $id[1], 'op' => 'update', 'success' => true];
                                 } catch (Exception $e) {
