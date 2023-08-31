@@ -310,7 +310,7 @@ abstract class BexioModel
             $limit = [0, 500];
             if (!empty($arg['limit'])) { 
                 $limit = $this->parseLimit($arg['limit']);
-                $strLimit = ':' . limit[0] . '-' ($limit[0] + $limit[1]);
+                $strLimit = ':' . $limit[0] . '-' ($limit[0] + $limit[1]);
             }
             /* Get cache first */
             $serachId = $this->api->getType() . '/#list' . $strLimit;
