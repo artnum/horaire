@@ -339,6 +339,7 @@ abstract class BexioModel
                 $tocache[] = $item->getId();
                 $jsonObject = $item->toJson();
                 $this->bxcache->put($item->getType() . '/' . $item->getId(), $jsonObject);
+                $this->store_cache($item->getType() . '/' . $item->getId(), $jsonObject, 1);
                 $this->response->echo($jsonObject);
                 $count++;
                 $first = false;
