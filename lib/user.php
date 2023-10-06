@@ -4,7 +4,7 @@ class KUser implements artnum\JStore\AuthUser {
         $this->pdo = $pdo;
     }
     public function get($id) {
-        $stmt =$this->pdo->prepare('SELECT "person_id", "person_key", "person_keyopt" FROM "person" WHERE "person_id" = :id AND "person_disabled" = 0 AND "person_deleted" IS NULL');
+        $stmt =$this->pdo->prepare('SELECT "person_username", "person_name", "person_id", "person_key", "person_keyopt" FROM "person" WHERE "person_id" = :id AND "person_disabled" = 0 AND "person_deleted" IS NULL');
         $stmt->bindValue(':id', intval($id), PDO::PARAM_INT);
         $stmt->execute();
         if ($stmt->rowCount() !== 1) { throw new Exception(); }
@@ -25,7 +25,9 @@ class KUser implements artnum\JStore\AuthUser {
             'key_iterations' => intval($keyopts[0]),
             'key' => $data['person_key'],
             'id' => $data['person_id'],
-            'algo' => $algo
+            'algo' => $algo,
+            'name' => $data['person_name'],
+            'username' => $data['person_username']
         ];
     }
     public function getByUsername($username) {
