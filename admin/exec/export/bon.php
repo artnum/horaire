@@ -1,8 +1,10 @@
 <?PHP
+require('../../../vendor/autoload.php');
 include('artnum/autoload.php');
 require('../../../lib/ini.php');
 require('../../../lib/dbs.php');
 require('../../../lib/auth.php');
+require('../../../lib/user.php');
 
 
 include('pdf.php');
@@ -16,16 +18,37 @@ for ($i = 0; $i < 4; $i++) {
 $BaseURL = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'];
 $ServerURL = $BaseURL . implode('/', $path);
 
+/* don't let access_token leak into database */
+$MyURL = $BaseURL . $_SERVER['PHP_SELF'] . '?';
+foreach($_GET as $k => $v) {
+  if ($k === 'access_token') { continue; }
+  $parmas[] = $k . '=' . $v;
+}
+$MyURL .= implode('&', $parmas);
 
 $ini_conf = load_ini_configuration();
 $pdo = init_pdo($ini_conf);
 $authpdo = init_pdo($ini_conf, 'authdb');
 $KAuth = new KAALAuth($authpdo);
+$KUser = new KUser($pdo);
 
 if (!$KAuth->check_auth($KAuth->get_auth_token(), $BaseURL . '/' . $_SERVER['REQUEST_URI'])) {
   http_response_code(401);
   exit(0);
 }
+$audit_pdo = init_pdo($ini_conf, 'logdb');
+$Audit = new artnum\JStore\SQLAudit($audit_pdo);
+
+$dateFormater = new IntlDateFormatter(
+  'fr_CH',  IntlDateFormatter::FULL,
+  IntlDateFormatter::FULL,
+  'Europe/Zurich',
+  IntlDateFormatter::GREGORIAN,
+  'EEEE, dd MMMM y'
+);
+
+
+$print_info = $dateFormater->format(new DateTime()) . ' par ' . $KUser->get($KAuth->get_current_userid())['name'];
 
 $JClient = new artnum\JRestClient(
   $_SERVER['REQUEST_SCHEME'] .
@@ -51,26 +74,54 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     die('Erreur');
   }
 
+
   if (isset($_GET['travail']) && is_numeric($_GET['travail'])) {
     $st = $pdo->prepare('SELECT * FROM "travail" WHERE "travail_id" = :id AND "travail_project" = :project');
     if (!$st) { die('Erreur'); }
     $st->bindParam(':id', $_GET['travail'], PDO::PARAM_INT);
     $st->bindParam(':project', $_GET['pid'], PDO::PARAM_INT);
     if (!$st->execute()) { die('Erreur'); }
-    if (!($tdata = array($st->fetch()))) { die('Erreur'); }
+    $Audit->new_action('PRINT', 'Project', $_GET['pid'], $KAuth->get_current_userid(), $MyURL); 
+    if (!($tdata = [$st->fetch()])) { die('Erreur'); }
   } else {
     $st = $pdo->prepare('SELECT * FROM "travail" WHERE "travail_project" = :project');
     if (!$st) { die('Erreur de base de données'); }
     $st->bindParam(':project', $_GET['pid'], PDO::PARAM_INT);
     if (!$st->execute()) { die('Erreur de base de données'); }
-    if (!($tdata = $st->fetchAll())) { $tdata = array(array('travail_reference' => '', 'travail_meeting' => '', 'travail_contact' => '', 'travail_phone' => '', 'travail_progress' => '', 'travail_status' => '')); }
+    $Audit->new_action('PRINT', 'Project', $_GET['pid'], $KAuth->get_current_userid(), $MyURL); 
+    if (!($tdata = $st->fetchAll())) { 
+      $tdata = [
+        [
+          'travail_id' => NULL,
+          'travail_reference' => '',
+          'travail_meeting' => '',
+          'travail_contact' => '',
+          'travail_phone' => '',
+          'travail_progress' => '',
+          'travail_status' => ''
+        ]
+      ]; 
+    }
+  }
+  foreach ($tdata as &$travail) {
+    if ($travail['travail_id'] == NULL) { 
+      $createAction = $Audit->get_item_action('CREATE', 'Project', $pdata['project_id']);
+      if ($createAction) { $createAction['_user'] = $KUser->get($createAction['userid']); }
+      $travail['_create'] = $createAction;
+      continue;
+    }
+    $createAction = $Audit->get_item_action('CREATE', 'Travail', $travail['travail_id']);
+    if ($createAction) { $createAction['_user'] = $KUser->get($createAction['userid']); }
+    $travail['_create'] = $createAction;
+    $Audit->new_action('PRINT', 'Travail', $travail['travail_id'], $KAuth->get_current_userid(), $MyURL);
+
   }
 
   $Filename= sprintf('%s.pdf', $pdata['project_reference']);
-  $PDF = new HorairePDF(array(
+  $PDF = new HorairePDF([
     'doctype' => substr($pdata['project_reference'], 0, 1),
     'name' => $pdata['project_name']
-  ));
+  ]);
 
   $PDF->addTaggedFont('h', 'helvetica', '', '');
   $PDF->addTaggedFont('b', 'helvetica', 'B', '');
@@ -93,6 +144,18 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
         }
       }
     }
+
+    $data['create_travail_info'] = '';
+    if ($t['_create']) {
+      $time = new DateTime();
+      $time->setTimestamp($t['_create']['time']);
+      $data['create_travail_info'] = $dateFormater->format($time);
+      if ($t['_create']['_user']) {
+        $data['create_travail_info'] .= ' par ' . $t['_create']['_user']['name'];
+      }
+    }
+
+    $data['print_travail_info'] = $print_info;
   
     $process = null;
     $colorType = '#FFFFFF';
@@ -170,12 +233,12 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetY($y + 8);
     $PDF->squaredFrame(37, array('line-type' => 'dotted', 'square' => 9, 'lined' => true));
     $PDF->SetY($y);
-
-    foreach(array('bon_number' => 'N° de bon',
+    
+    foreach(['bon_number' => 'N° de bon',
                   'travail_reference' => 'Référence',
-                  'travail_meeting' => 'Rendez-vous',
-                  'travail_contact' => 'Personne de contact',
-                  'travail_phone' => 'Téléphone') as $item => $label) {
+                  'create_travail_info' => 'Création',
+                  'print_travail_info' => 'Impression',
+                  'travail_phone' => 'Téléphone'] as $item => $label) {
       $PDF->tab(1);
       $PDF->SetFont('helvetica', '', 8);
       $PDF->printLn($label);
@@ -188,9 +251,9 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->reset();
     $PDF->SetY($y);
 
-    foreach(array('1' => 'Client',
+    foreach(['1' => 'Client',
                   '2' => 'Téléphone',
-                  '3' => 'Adresse') as $item => $label) {
+                  '3' => 'Adresse'] as $item => $label) {
       if ($client === null) { continue ; }
       $PDF->SetFont('helvetica', '', 8);
       $PDF->printLn($label);
@@ -252,14 +315,6 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
           break;
       }
     }
-
-    $dateFormater = new IntlDateFormatter(
-      'fr_CH',  IntlDateFormatter::FULL,
-      IntlDateFormatter::FULL,
-      'Europe/Zurich',
-      IntlDateFormatter::GREGORIAN,
-      'EEEE, dd MMMM y'
-    );
     
     if ($begin === null) {
       if (empty($data['travail_begin']) || is_null($data['travail_begin'])) {
@@ -312,7 +367,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->block('main-head');
     $PDF->background_block($colorType);
     $PDF->setColor($PDF->getBWFromColor($colorType));
-    foreach(array('Date' => 30, 'Employé' => 90, 'Tarif' => 15, 'Heure' => 15, 'Total' => 0) as $label => $w) {
+    foreach(['Date' => 30, 'Employé' => 90, 'Tarif' => 15, 'Heure' => 15, 'Total' => 0] as $label => $w) {
       $sX = $PDF->GetX();
       $PDF->printTaggedLn(['%h', $label], ['break' => false]);
       $PDF->SetX($PDF->GetX() +  ($w - ($PDF->GetX() - $sX)));
@@ -326,7 +381,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->br();
     $PDF->Line($PDF->lMargin, $y + $PDF->FontSize, ceil($PDF->w - $PDF->rMargin), $y + $PDF->FontSize);
     $PDF->SetXY($PDF->lMargin, $PDF->GetY());
-    $PDF->squaredFrame($bHeight, array('square' => 5, 'lined' => true, 'line-type'=>'dotted'));
+    $PDF->squaredFrame($bHeight, ['square' => 5, 'lined' => true, 'line-type'=>'dotted']);
     $PDF->SetY($PDF->GetY() + $bHeight + 2);
     $str = 'Total main d\'œuvre : ';
     $PDF->SetX(floor($furtherX - $PDF->GetStringWidth($str)));
@@ -346,7 +401,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->block('matos-head');
     $PDF->background_block($colorType);
     $PDF->setColor($PDF->getBWFromColor($colorType));
-    foreach(array('Matériaux' => 100, 'Qté' => 20, "Unité" => 20, 'Prix unité' => 20, 'Total' => 0) as $label => $w) {
+    foreach(['Matériaux' => 100, 'Qté' => 20, "Unité" => 20, 'Prix unité' => 20, 'Total' => 0] as $label => $w) {
       $sX = $PDF->GetX();
       $PDF->printTaggedLn(['%h', $label], ['break' => false]);
       $PDF->SetX($PDF->GetX() +  ($w - ($PDF->GetX() - $sX)));
@@ -361,7 +416,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->setColor('black');
     $PDF->Line($PDF->lMargin, $y + $PDF->FontSize, ceil($PDF->w - $PDF->rMargin), $y + $PDF->FontSize);
     $PDF->SetXY($PDF->lMargin, $PDF->GetY());
-    $PDF->squaredFrame($bHeight, array('square' => 5, 'lined' => true, 'line-type'=>'dotted'));
+    $PDF->squaredFrame($bHeight, ['square' => 5, 'lined' => true, 'line-type'=>'dotted']);
     $PDF->SetY($PDF->GetY() + $bHeight + 2);
     $str = 'Total matériel et autres charges : ';
     $PDF->SetX(floor($furtherX - $PDF->GetStringWidth($str)));
@@ -378,23 +433,21 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->printLn('Observations/remarques');
     $bHeight = 15;
     $PDF->br();
-    $PDF->squaredFrame($bHeight, array('up-to' => 262, 'square' => 5, 'lined' => true, 'line-type'=>'dotted'));  
+    $PDF->squaredFrame($bHeight, ['up-to' => 262, 'square' => 5, 'lined' => true, 'line-type'=>'dotted']);
 
     $PDF->block('sign');
     $PDF->SetFont('helvetica', '', 10);
     $PDF->br();
-    $PDF->printLn('Date :', array('break' => false));
+    $PDF->printLn('Date :', ['break' => false]);
     $PDF->drawLine(ceil($PDF->GetX()  + 3), ceil($PDF->GetY() + 3), floor($PDF->getTab(1) - $PDF->GetX() -5), 0, 'dotted');
     $PDF->tab(1);
-    $PDF->printLn('Signature du donneur d\'ordre :', array('break' => false));
+    $PDF->printLn('Signature du donneur d\'ordre :', ['break' => false]);
     $PDF->drawLine(ceil($PDF->GetX()  + 3), ceil($PDF->GetY() + 3), floor($PDF->w - $PDF->rMargin - $PDF->GetX() - 3), 0, 'dotted');
     $PDF->br(); $PDF->br();
-    $PDF->printLn('Nom et prénom du signataire si différent du haut :', array('break' => false));
+    $PDF->printLn('Nom et prénom du signataire si différent du haut :', ['break' => false]);
     $PDF->drawLine(ceil($PDF->GetX()  + 3), ceil($PDF->GetY() + 3), floor($PDF->w - $PDF->rMargin - $PDF->GetX() - 3), 0, 'dotted');
     $PDF->close_block();
 
   }
   $PDF->Output($Filename, 'I');
 }
-
-?>
