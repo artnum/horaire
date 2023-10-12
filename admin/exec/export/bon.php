@@ -9,7 +9,29 @@ require('../../../lib/user.php');
 
 include('pdf.php');
 include('artnum/bvrkey.php');
-include('../../../lib/barcode/barcode.php');
+
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\Logo\Logo;
+use Endroid\QrCode\Writer\PngWriter;
+use Endroid\QrCode\ErrorCorrectionLevel;
+
+function genQRImage ($txt, $filename, $size = 116, $icon = 'clock') {
+  $qrCode = QrCode::create($txt);
+  /* at 300dpi 46mm with 7mm logo */
+  $qrCode->setErrorCorrectionLevel(ErrorCorrectionLevel::High);
+  $qrCode->setEncoding(new Encoding('UTF-8'));
+  $qrCode->setSize($size);
+  $qrCode->setMargin(10);
+
+  $logo = Logo::create(__DIR__ . '/../../../resources/' . $icon .  '.png');
+  $logo->setResizeToWidth(sqrt(($size * $size * 4 / 100)));
+
+  $writer = new PngWriter();
+  $writer->write($qrCode, $logo, null, ['compression_level' => 0])->saveToFile($filename);
+}
+
+$ADD_PAGE_SEPARATION = false;
 
 $path = explode('/', $_SERVER['PHP_SELF']);
 for ($i = 0; $i < 4; $i++) {
@@ -47,8 +69,11 @@ $dateFormater = new IntlDateFormatter(
   'EEEE, dd MMMM y'
 );
 
-
-$print_info = $dateFormater->format(new DateTime()) . ' par ' . $KUser->get($KAuth->get_current_userid())['name'];
+try {
+  $print_info = $dateFormater->format(new DateTime()) . ' par ' . $KUser->get($KAuth->get_current_userid())['name'];
+} catch (Exception $e) {
+  $print_info = $dateFormater->format(new DateTime());
+}
 
 $JClient = new artnum\JRestClient(
   $_SERVER['REQUEST_SCHEME'] .
@@ -84,6 +109,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $Audit->new_action('PRINT', 'Project', $_GET['pid'], $KAuth->get_current_userid(), $MyURL); 
     if (!($tdata = [$st->fetch()])) { die('Erreur'); }
   } else {
+    $ADD_PAGE_SEPARATION = true;
     $st = $pdo->prepare('SELECT * FROM "travail" WHERE "travail_project" = :project');
     if (!$st) { die('Erreur de base de données'); }
     $st->bindParam(':project', $_GET['pid'], PDO::PARAM_INT);
@@ -132,6 +158,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
   $PDF->addTab(60);
   $PDF->addTab('right');
 
+  $BLK_COUNT = 0;
   foreach($tdata as $t) {
     $data = array_merge($pdata, $t);
     $client = null;
@@ -192,17 +219,10 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       }
     }
 
-    $DATE;
     if (isset($data['travail_id'])) {
-      $date = new DateTime();
-      $date->setTimestamp(intval($data['travail_created']));
-      $DATE = $date->format('d.m.Y');
       $data['bon_number'] = $data['project_reference'] . '.' . $data['travail_id'];
       $barcode_value = $ServerURL . '/#travail/' . sprintf('%u', $data['travail_id']);
     } else {
-      $date = new DateTime();
-      $date->setTimestamp(intval($data['project_created']));
-      $DATE =  $date->format('d.m.Y');
       $data['bon_number'] = $data['project_reference'];
       $barcode_value = $ServerURL . '/#project/' . sprintf('%u', $data['project_id']);
     }
@@ -213,32 +233,33 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->AddPage('P', 'a4');
     $PDF->SetFont('helvetica', '', 12);
   
-    $PDF->block('head');
+    $PDF->block('head' . $BLK_COUNT);
     $PDF->SetFontSize(3.2);
     if (!empty($data['travail_group'])) { $PDF->printTaggedLn(['%h', 'Sous-projet : ', '%b', $data['travail_group']]); $PDF->br(); }
     $PDF->SetFont('helvetica', '', 7);
-
+    /*
     $bcGen = new barcode_generator();
     $img = $bcGen->render_image('qr', $barcode_value, ['w' => 140]);
     imagepng($img, sys_get_temp_dir() . '/' . base64_encode($barcode_value) . '.png');
-    $PDF->Image(sys_get_temp_dir() . '/' . base64_encode($barcode_value) . '.png', 170, 2, 0, 0, 'PNG');
-    
+    */
+
     $y = $PDF->GetY();
     $x = $PDF->GetX();
-    $PDF->SetXY(184, 5); 
-    $PDF->printLn($DATE, ['break' => false]);
+    $PDF->SetXY(174.5, 6); 
+    $PDF->printLn('Noter les heures', ['break' => false]);
     $PDF->SetXY($x, $y);
 
     $y = $PDF->GetY();
     $PDF->SetY($y + 8);
-    $PDF->squaredFrame(37, array('line-type' => 'dotted', 'square' => 9, 'lined' => true));
+    $PDF->squaredFrame(47, array('line-type' => 'dotted', 'square' => 9.3, 'lined' => true));
     $PDF->SetY($y);
     
     foreach(['bon_number' => 'N° de bon',
                   'travail_reference' => 'Référence',
                   'create_travail_info' => 'Création',
                   'print_travail_info' => 'Impression',
-                  'travail_phone' => 'Téléphone'] as $item => $label) {
+                  'travail_phone' => 'Téléphone',
+                  'travail_contact' => 'Personne de contact'] as $item => $label) {
       $PDF->tab(1);
       $PDF->SetFont('helvetica', '', 8);
       $PDF->printLn($label);
@@ -306,13 +327,34 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
             }
           }
 
+          while (count($address) < 3) {
+            $address[] = '';
+          }
+
+          $first = true;
           foreach($address as $line) {
+            if (!$first) {
+              $PDF->SetFont('helvetica', '', 8);
+              $PDF->printLn('');
+            }
             $PDF->SetFont('helvetica', 'B', 10);
             $PDF->printLn($line);
-            $PDF->SetFont('helvetica', '', 8);
-            $PDF->printLn('');
+            $first = false;
           }
           break;
+      }
+    }
+
+    if ($data['project_manager'] !== null && !empty($data['project_manager'])) {
+      $PDF->SetFont('helvetica', '', 8);
+      $PDF->printLn('Chef de projet');
+      try {
+        $manager = $KUser->get($data['project_manager']);
+        $PDF->SetFont('helvetica', 'B', 10);
+        $PDF->printLn($manager['name']);
+      } catch (Exception $e) {
+        $PDF->SetFont('helvetica', 'B', 10);
+        $PDF->printLn('');
       }
     }
     
@@ -332,7 +374,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       }
     }
 
-    $PDF->block('description');
+    $PDF->block('description' . $BLK_COUNT);
     $PDF->SetFont('helvetica', 'B', 10);
     $PDF->printLn('Description du travail', ['break' => false]);
     $PDF->SetFont('helvetica', '', 10);
@@ -344,19 +386,36 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->tab(4);
     $PDF->printTaggedLn(['Fin : ', '%h',  trim($dateFormater->format($end)), '%b'], ['align' => 'right']);
     
+    $QRCodeYRelative = $PDF->GetY();
 
     $PDF->hr();
     $PDF->SetFont('helvetica', '', 10);
     if (!empty($data['travail_description'])) {
+      $y = $PDF->GetY();
       $lines = preg_split('/\r?\n|\r/', $data['travail_description']);
+      $printParams = ['multiline' => true];
+      if (!empty($travail['travail_urlgps'])) {
+        $printParams['max-width'] = 150;
+      }
       foreach ($lines as $line) {
-        $PDF->printLn($line, ['multiline' => true]);
+        $PDF->printLn($line, $printParams);
+        if (isset($printParams['max-width']) && $PDF->GetY() - $y > 30) {
+          if ($PDF->GetY() - $y < 34) {
+            $PDF->SetFont('helvetica', '', 4);
+            $PDF->printLn('');
+            $PDF->SetFont('helvetica', '', 10);
+
+          }
+          unset($printParams['max-width']);
+        }
       }
     }
 
     $PDF->br();
-    $PDF->block('worktime');
-    $bHeight = 25;
+    $PDF->close_block();
+    $PDF->block('worktime' . $BLK_COUNT);
+
+    $bHeight = 15;
     $PDF->SetFont('helvetica', 'B', 10);
     $PDF->printLn('Main d\'œuvre');
     $PDF->br();
@@ -364,7 +423,8 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetFont('helvetica', '', 10);
     $furtherX = 0;
     $PDF->Line($PDF->lMargin, ceil($y - $PDF->FontSize), ceil($PDF->w - $PDF->rMargin), ceil($y - $PDF->FontSize));
-    $PDF->block('main-head');
+
+    $PDF->block('main-head' . $BLK_COUNT);
     $PDF->background_block($colorType);
     $PDF->setColor($PDF->getBWFromColor($colorType));
     foreach(['Date' => 30, 'Employé' => 90, 'Tarif' => 15, 'Heure' => 15, 'Total' => 0] as $label => $w) {
@@ -388,17 +448,17 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->printLn($str);
     $PDF->Line($PDF->lMargin, $PDF->GetY(), ceil($PDF->w - $PDF->rMargin), $PDF->GetY());
     
-    $PDF->block('others');
+    $PDF->block('others' . $BLK_COUNT);
     $PDF->br();
     $PDF->SetFont('helvetica', 'B', 10);
     $PDF->printLn('Matériel utilisé et autres charge');
     $PDF->br();
-    $bHeight = 20;
+    $bHeight = 10;
     $y = $PDF->GetY();
     $PDF->SetFont('helvetica', '', 10);
     $furtherX = 0;
     $PDF->Line($PDF->lMargin, $y - $PDF->FontSize, ceil($PDF->w - $PDF->rMargin), $y - $PDF->FontSize);
-    $PDF->block('matos-head');
+    $PDF->block('matos-head' . $BLK_COUNT);
     $PDF->background_block($colorType);
     $PDF->setColor($PDF->getBWFromColor($colorType));
     foreach(['Matériaux' => 100, 'Qté' => 20, "Unité" => 20, 'Prix unité' => 20, 'Total' => 0] as $label => $w) {
@@ -426,16 +486,41 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetFont('helvetica', 'B', 12);
     $PDF->printLn('Total');
     $PDF->Line($PDF->lMargin, $PDF->GetY(), ceil($PDF->w - $PDF->rMargin), $PDF->GetY());    
+    $END_OF_TEXT_POSITION = $PDF->GetY();
+    
+    genQRImage($barcode_value, sys_get_temp_dir() . '/' . base64_encode($barcode_value) . '.png');
+    $PDF->Image(sys_get_temp_dir() . '/' . base64_encode($barcode_value) . '.png', 167, 8, 0, 0, 'PNG');
 
-    $PDF->block('remarks');
+    if (!empty($travail['travail_urlgps'])) {
+      $QRPosition = $QRCodeYRelative + 0.8;
+      genQRImage($travail['travail_urlgps'], sys_get_temp_dir() . '/' . base64_encode($travail['travail_urlgps']) . '.png', 110, 'gps');
+      $PDF->Image(sys_get_temp_dir() . '/' . base64_encode($travail['travail_urlgps']) . '.png', 167, $QRPosition, 0, 0, 'PNG');
+      $PDF->Image(__DIR__ . '/../../../resources/tap.png', 194, $QRPosition + 27, 6, 6, 'PNG');
+      $PDF->Link(167, $QRPosition, 35, 35, $travail['travail_urlgps']);
+      $PDF->SetFont('helvetica', '', 7);
+      $PDF->SetXY(173, $QRPosition + 2);
+      $PDF->printLn('Localisation GPS', ['break' => false]);
+    }
+    
+    $page_added = false;
+    $up_to = 262;
+    if ($END_OF_TEXT_POSITION > 250) {
+      $up_to = 80;
+      $PDF->Image(__DIR__ . '/../../../resources/rotate-page.png', 196, 286, 6, 6, 'PNG');
+      $page_added = true;
+      $PDF->AddPage();
+    }
+
+
+    $PDF->block('remarks' . $BLK_COUNT);
     $PDF->br();
     $PDF->SetFont('helvetica', 'B', 10);
     $PDF->printLn('Observations/remarques');
     $bHeight = 15;
     $PDF->br();
-    $PDF->squaredFrame($bHeight, ['up-to' => 262, 'square' => 5, 'lined' => true, 'line-type'=>'dotted']);
+    $PDF->squaredFrame($bHeight, ['up-to' => $up_to, 'square' => 5, 'lined' => true, 'line-type'=>'dotted']);
 
-    $PDF->block('sign');
+    $PDF->block('sign' . $BLK_COUNT);
     $PDF->SetFont('helvetica', '', 10);
     $PDF->br();
     $PDF->printLn('Date :', ['break' => false]);
@@ -448,6 +533,10 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->drawLine(ceil($PDF->GetX()  + 3), ceil($PDF->GetY() + 3), floor($PDF->w - $PDF->rMargin - $PDF->GetX() - 3), 0, 'dotted');
     $PDF->close_block();
 
+    if ($ADD_PAGE_SEPARATION && !$page_added) {
+      $PDF->AddBlankPage();
+    }
+    $BLK_COUNT++;
   }
   $PDF->Output($Filename, 'I');
 }

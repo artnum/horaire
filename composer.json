@@ -1,5 +1,6 @@
 {
     "require": {
-        "setasign/tfpdf": "^1.33"
+        "setasign/tfpdf": "^1.33",
+        "endroid/qr-code": "^5.0"
     }
 }
