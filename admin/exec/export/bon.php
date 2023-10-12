@@ -410,8 +410,12 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
         }
       }
     }
-
     $PDF->br();
+    if (!empty($travail['travail_urlgps'])) {
+      while ($PDF->GetY() < 120) {
+        $PDF->br();
+      }
+    }
     $PDF->close_block();
     $PDF->block('worktime' . $BLK_COUNT);
 
@@ -485,26 +489,35 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetY($PDF->GetY() + 2);
     $PDF->SetFont('helvetica', 'B', 12);
     $PDF->printLn('Total');
-    $PDF->Line($PDF->lMargin, $PDF->GetY(), ceil($PDF->w - $PDF->rMargin), $PDF->GetY());    
+    $PDF->Line($PDF->lMargin, $PDF->GetY(), ceil($PDF->w - $PDF->rMargin), $PDF->GetY());
     $END_OF_TEXT_POSITION = $PDF->GetY();
     
-    genQRImage($barcode_value, sys_get_temp_dir() . '/' . base64_encode($barcode_value) . '.png');
-    $PDF->Image(sys_get_temp_dir() . '/' . base64_encode($barcode_value) . '.png', 167, 8, 0, 0, 'PNG');
+    $qrfilename = sys_get_temp_dir() . '/' . md5($barcode_value) . '.png';
+    genQRImage($barcode_value, $qrfilename);
+    if (is_file($qrfilename)) {
+
+      $PDF->Image($qrfilename, 167, 8, 0, 0, 'PNG');
+      @unlink($qrfilename);
+    }
 
     if (!empty($travail['travail_urlgps'])) {
       $QRPosition = $QRCodeYRelative + 0.8;
-      genQRImage($travail['travail_urlgps'], sys_get_temp_dir() . '/' . base64_encode($travail['travail_urlgps']) . '.png', 110, 'gps');
-      $PDF->Image(sys_get_temp_dir() . '/' . base64_encode($travail['travail_urlgps']) . '.png', 167, $QRPosition, 0, 0, 'PNG');
-      $PDF->Image(__DIR__ . '/../../../resources/tap.png', 194, $QRPosition + 27, 6, 6, 'PNG');
-      $PDF->Link(167, $QRPosition, 35, 35, $travail['travail_urlgps']);
-      $PDF->SetFont('helvetica', '', 7);
-      $PDF->SetXY(173, $QRPosition + 2);
-      $PDF->printLn('Localisation GPS', ['break' => false]);
+      $qrfilename = sys_get_temp_dir() . '/' . md5($travail['travail_urlgps']) . '.png';
+      genQRImage($travail['travail_urlgps'], $qrfilename, 110, 'gps');
+      if (is_file($qrfilename)) {
+        $PDF->Image($qrfilename, 167, $QRPosition, 0, 0, 'PNG');
+        $PDF->Image(__DIR__ . '/../../../resources/tap.png', 194, $QRPosition + 27, 6, 6, 'PNG');
+        $PDF->Link(167, $QRPosition, 35, 35, $travail['travail_urlgps']);
+        $PDF->SetFont('helvetica', '', 7);
+        $PDF->SetXY(173, $QRPosition + 2);
+        $PDF->printLn('Localisation GPS', ['break' => false]);
+        @unlink($qrfilename);
+      }
     }
     
     $page_added = false;
     $up_to = 262;
-    if ($END_OF_TEXT_POSITION > 250) {
+    if ($END_OF_TEXT_POSITION > 210) {
       $up_to = 80;
       $PDF->Image(__DIR__ . '/../../../resources/rotate-page.png', 196, 286, 6, 6, 'PNG');
       $page_added = true;
