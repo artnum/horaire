@@ -870,6 +870,7 @@ UIKAProjectList.prototype.addEditTravailToProject = function (projectId, travail
                     <br>
                     <label for="time">Temps total du projet : <input name="time" type="text" value="${travail.time ?? ''}"></label>
                     <label for="force">Nombre de personne : <input name="force" type="text" value="${travail.force ?? ''}" /></label><br>
+                    <label for="force">Localisation GPS : <input class="longer" name="urlgps" type="text" value="${travail.urlgps ?? ''}" /></label><br>
                     <label for="description>">Description du travail</label><br>
                     <textarea name="description">${travail.description ?? ''}</textarea><br>
                     <button type="submit">Sauver</button><button name="print" type="submit">Sauver et imprimer</button><button type="reset">Annuler</button>
@@ -903,7 +904,8 @@ UIKAProjectList.prototype.addEditTravailToProject = function (projectId, travail
                     time: data.get('time'),
                     force: data.get('force'),
                     description: data.get('description'),
-                    project: projectId
+                    project: projectId,
+                    urlgps: data.get('urlgps')
                 }
 
                 this.checkTravailData(travail)

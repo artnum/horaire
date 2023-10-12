@@ -151,6 +151,10 @@ input[type=text] {
     min-width: 24ch;
 }
 
+input.longer[type=text] {
+    min-width: 64ch;
+}
+
 main.flex {
     display: flex;
     justify-content: center;
@@ -838,4 +842,32 @@ button.addMore:before {
 
 .ka-org-form .ka-person-visible {
     display: none;
+}
+
+.ka-bxfacture-list {
+    display: flex;
+    flex-direction: row;
+    min-width: 100%;
+    min-height: 100vh;
+}
+
+.ka-bxfacture-list .preview {
+    min-width: 50%;
+    min-height: 100%;
+} 
+.ka-bxfacture-list .preview object {
+    width: 100%;
+    height: 100%;
+}
+
+.paiement .ka-button[data-open="1"].level1 {
+    background-color: yellow !important;
+}
+
+.paiement .ka-button[data-open="1"].level2 {
+    background-color: orange !important;
+}
+
+.paiement .ka-button[data-open="1"].level3 {
+    background-color: red !important;
 }
