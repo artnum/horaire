@@ -13,22 +13,25 @@ include('artnum/bvrkey.php');
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\Logo\Logo;
-use Endroid\QrCode\Writer\PngWriter;
-use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\ErrorCorrectionLevel;;
 
-function genQRImage ($txt, $filename, $size = 116, $icon = 'clock') {
+function genQRImage ($txt, $size = 30, $icon = 'clock') {
   $qrCode = QrCode::create($txt);
   /* at 300dpi 46mm with 7mm logo */
   $qrCode->setErrorCorrectionLevel(ErrorCorrectionLevel::High);
   $qrCode->setEncoding(new Encoding('UTF-8'));
   $qrCode->setSize($size);
-  $qrCode->setMargin(10);
+  $qrCode->setMargin(3);
+  $qrCode->setRoundBlockSizeMode(RoundBlockSizeMode::Margin);
 
   $logo = Logo::create(__DIR__ . '/../../../resources/' . $icon .  '.png');
   $logo->setResizeToWidth(sqrt(($size * $size * 4 / 100)));
 
-  $writer = new PngWriter();
-  $writer->write($qrCode, $logo, null, ['compression_level' => 0])->saveToFile($filename);
+  return [$qrCode, $logo];
+
+  /*$writer = new PngWriter();
+  $writer->write($qrCode, $logo, null, ['compression_level' => 0])->saveToFile($filename);*/
 }
 
 $ADD_PAGE_SEPARATION = false;
@@ -144,7 +147,9 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
   }
 
   $Filename= sprintf('%s.pdf', $pdata['project_reference']);
-  $PDF = new HorairePDF([
+  class FPDF extends HorairePDF {}
+
+  $PDF = new FPDF([
     'doctype' => substr($pdata['project_reference'], 0, 1),
     'name' => $pdata['project_name']
   ]);
@@ -399,7 +404,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       }
       foreach ($lines as $line) {
         $PDF->printLn($line, $printParams);
-        if (isset($printParams['max-width']) && $PDF->GetY() - $y > 30) {
+        if (isset($printParams['max-width']) && $PDF->GetY() - $y > 36) {
           if ($PDF->GetY() - $y < 34) {
             $PDF->SetFont('helvetica', '', 4);
             $PDF->printLn('');
@@ -491,39 +496,49 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->printLn('Total');
     $PDF->Line($PDF->lMargin, $PDF->GetY(), ceil($PDF->w - $PDF->rMargin), $PDF->GetY());
     $END_OF_TEXT_POSITION = $PDF->GetY();
-    
-    $qrfilename = sys_get_temp_dir() . '/' . md5($barcode_value) . '.png';
-    genQRImage($barcode_value, $qrfilename);
-    if (is_file($qrfilename)) {
+    try {
 
-      $PDF->Image($qrfilename, 167, 8, 0, 0, 'PNG');
-      @unlink($qrfilename);
+      [$qr, $logo] = genQRImage($barcode_value);
+      (new PdfWriter())->write($qr, $logo, null, [
+        PdfWriter::WRITER_OPTION_PDF => $PDF, 
+        PdfWriter::WRITER_OPTION_X => 167, 
+        PdfWriter::WRITER_OPTION_Y => 8,
+        PdfWriter::WRITER_OPTION_UNIT => 'mm']);
+      $PDF->Link(167, 8, 35, 35, $travail['travail_urlgps']);
+    } catch(Exception $e) {
+      error_log('QRCode generation failed : ' . $e->getMessage());
     }
 
+
     if (!empty($travail['travail_urlgps'])) {
-      $QRPosition = $QRCodeYRelative + 0.8;
-      $qrfilename = sys_get_temp_dir() . '/' . md5($travail['travail_urlgps']) . '.png';
-      genQRImage($travail['travail_urlgps'], $qrfilename, 110, 'gps');
-      if (is_file($qrfilename)) {
-        $PDF->Image($qrfilename, 167, $QRPosition, 0, 0, 'PNG');
-        $PDF->Image(__DIR__ . '/../../../resources/tap.png', 194, $QRPosition + 27, 6, 6, 'PNG');
-        $PDF->Link(167, $QRPosition, 35, 35, $travail['travail_urlgps']);
+      $QRPosition = $QRCodeYRelative + 2.8;
+      try {
+        [$qr, $logo] = genQRImage($travail['travail_urlgps'], 24, 'gps');
+        (new PdfWriter())->write($qr, $logo, null, [
+          PdfWriter::WRITER_OPTION_PDF => $PDF, 
+          PdfWriter::WRITER_OPTION_X => 169, 
+          PdfWriter::WRITER_OPTION_Y => $QRPosition,
+          PdfWriter::WRITER_OPTION_UNIT => 'mm']);
+        $PDF->Image(__DIR__ . '/../../../resources/tap.png', 197, $QRPosition + 27, 6, 6, 'PNG');
+        $PDF->Link(170, $QRPosition + 1, 28, 28, $travail['travail_urlgps']);
         $PDF->SetFont('helvetica', '', 7);
-        $PDF->SetXY(173, $QRPosition + 2);
+        $PDF->SetXY(173, $QRPosition - 2);
         $PDF->printLn('Localisation GPS', ['break' => false]);
-        @unlink($qrfilename);
+      } catch(Exception $e) {
+        error_log('QRCode generation failed : ' . $e->getMessage());
       }
     }
     
     $page_added = false;
-    $up_to = 262;
-    if ($END_OF_TEXT_POSITION > 210) {
-      $up_to = 80;
+    $up_to = $END_OF_TEXT_POSITION + 30;
+    if ($END_OF_TEXT_POSITION > 230) {
+      $up_to = 20;
       $PDF->Image(__DIR__ . '/../../../resources/rotate-page.png', 196, 286, 6, 6, 'PNG');
       $page_added = true;
       $PDF->AddPage();
     }
 
+    $PDF->SetY($END_OF_TEXT_POSITION);
 
     $PDF->block('remarks' . $BLK_COUNT);
     $PDF->br();
@@ -532,7 +547,6 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $bHeight = 15;
     $PDF->br();
     $PDF->squaredFrame($bHeight, ['up-to' => $up_to, 'square' => 5, 'lined' => true, 'line-type'=>'dotted']);
-
     $PDF->block('sign' . $BLK_COUNT);
     $PDF->SetFont('helvetica', '', 10);
     $PDF->br();
