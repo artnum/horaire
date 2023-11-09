@@ -6,7 +6,7 @@ require('conf/wesrv.php');
 require('wesrv/lib/msg.php');
 require('lib/auth.php');
 require('lib/user.php');
-require('bizcuit-bexio/bexio.php');
+require('vendor/autoload.php');
 
 use artnum\JStore\ACL;
 use artnum\JStore\SQLAudit;

@@ -1,4 +1,5 @@
 function UIKAContact () {
+    this.eventTarget = new EventTarget()
     this.previousSearchValue = ''
     this.domNode = document.createElement('DIV')
     this.domNode.classList.add('ka-contacts')
@@ -46,7 +47,6 @@ function UIKAContact () {
             contacts.every(contact => window.requestAnimationFrame(() => {
                 this.resultSet.appendChild(this.renderLine(contact))
             }))
-            console.log(contacts)
         })
         .catch(cause => {
             window.requestAnimationFrame(() => {
@@ -88,5 +88,25 @@ UIKAContact.prototype.renderLine = function (contact) {
         <div class="name">${phone}</div>
         <div class="name">${email}</div>
     `
+    nodeLine.addEventListener('click', event => {
+        const id = event.currentTarget.dataset.bexioId
+        const domNode = event.currentTarget.cloneNode(true)
+        this.eventTarget.dispatchEvent(new CustomEvent('submit', {detail: {id, domNode}}))
+        this.reset()
+    })
     return nodeLine
+}
+
+UIKAContact.prototype.reset = function () {
+    window.requestAnimationFrame(() => { 
+        this.searchInput.value = ''
+        this.resultSet.innerHTML = ''
+    })
+}
+
+UIKAContact.prototype.addEventListener = function (type, listener, options) {
+    switch(type) {
+        default: return this.domNode.addEventListener(type, listener)
+        case 'submit': return this.eventTarget.addEventListener(type, listener, options)
+    }
 }

@@ -123,16 +123,13 @@
         })
       })
 
-      /*window.requestAnimationFrame(() => document.body.appendChild(contactForm.domNode))
-      window.requestAnimationFrame(() => document.body.appendChild(projectForm.domNode))*/
       window.requestAnimationFrame(() => document.body.querySelector('.project-list-parent').appendChild(projecList.domNode))
       projecList.textSearch('*')
 
       window.requestAnimationFrame(() => document.body.querySelector('span[name="clientContainer"]').appendChild(contactOld.domNode))
 
       const managerSelect = new KSelectUI(document.getElementById('manager'), new STPerson(), { allowFreeText: false, realSelect: true })
-      /*document.getElementById('rDef').addEventListener('click', genRef)
-      document.getElementById('rYear').addEventListener('click', genRef)*/
+
       document.getElementById('inYear').value = String((new Date()).getFullYear())
       projectForm.addEventListener('submit', function (event) {
         event.preventDefault()

@@ -844,30 +844,41 @@ button.addMore:before {
     display: none;
 }
 
-.ka-bxfacture-list {
+
+.ka-fieldset .repartition {
     display: flex;
-    flex-direction: row;
-    min-width: 100%;
-    min-height: 100vh;
+    justify-content: space-between;
 }
 
-.ka-bxfacture-list .preview {
-    min-width: 50%;
-    min-height: 100%;
-} 
-.ka-bxfacture-list .preview object {
-    width: 100%;
-    height: 100%;
+.ka-fieldset .repartition .delete {
+    display: block;
+    text-align: center;
+    min-width: 4ch;
+    border: 1px solid black;
+    cursor: pointer;
+    font-weight: bold;
 }
 
-.paiement .ka-button[data-open="1"].level1 {
-    background-color: yellow !important;
+.ka-fieldset .repartition .delete:hover {
+    background-color: lightcoral;
 }
 
-.paiement .ka-button[data-open="1"].level2 {
-    background-color: orange !important;
+.ka-fieldset[data-state="closed"] * {
+    display: none;
 }
-
-.paiement .ka-button[data-open="1"].level3 {
-    background-color: red !important;
+.ka-fieldset legend {
+    cursor: pointer;
+}
+.ka-fieldset[data-state="closed"] legend {
+    display: unset;
+}
+.ka-fieldset legend::before {
+    margin-right: 0.5ch;
+    margin-left: 0.5ch;
+}
+.ka-fieldset[data-state="closed"] legend::before {
+    content: '\25B8';
+}
+.ka-fieldset[data-state="open"] legend::before {
+    content: '\25BE';
 }

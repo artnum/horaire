@@ -52,7 +52,6 @@ class PdfWriter
         }
 
         $outerSize = ($matrix->getInnerSize() / 100) + (2 * $qrCode->getMargin());
-        $marginLeft = ($outerSize - ($matrix->getInnerSize() / 100)) / 2;
         if (isset($options[self::WRITER_OPTION_PDF])) {
             $fpdf = $options[self::WRITER_OPTION_PDF];
             if (!$fpdf instanceof \FPDF) {
@@ -73,6 +72,8 @@ class PdfWriter
             $y = $options[self::WRITER_OPTION_Y];
         }
 
+        $marginLeft = ($outerSize - ($matrix->getInnerSize() / 100)) / 2;
+        $blockSize = $matrix->getBlockSize() / 100;
 
         $fpdf->SetFillColor($backgroundColor->getRed(), $backgroundColor->getGreen(), $backgroundColor->getBlue());
         $fpdf->Rect($x, $y, $outerSize, $outerSize, 'F');
@@ -82,10 +83,10 @@ class PdfWriter
             for ($columnIndex = 0; $columnIndex < $matrix->getBlockCount(); ++$columnIndex) {
                 if (1 === $matrix->getBlockValue($rowIndex, $columnIndex)) {
                     $fpdf->Rect(
-                        $x + $marginLeft + ($columnIndex * ($matrix->getBlockSize() / 100)),
-                        $y + $marginLeft + ($rowIndex * ($matrix->getBlockSize() / 100)),
-                        $matrix->getBlockSize() / 100,
-                        $matrix->getBlockSize() / 100,
+                        $x + $marginLeft + ($columnIndex * $blockSize),
+                        $y + $marginLeft + ($rowIndex * $blockSize),
+                        $blockSize,
+                        $blockSize,
                         'F'
                     );
                 }

@@ -252,20 +252,17 @@ abstract class BexioModel
     function try_read_cache (string $reference) {
         [$count, $object] = $this->read_cache($reference);
         if ($count === 1) {
-            $this->response->start_output();
-            $this->response->echo($object);
-            return ['count' => 1];
+            return $object;
         }
-        return ['count' => 0];
+        return null;
     }
 
-    function read($arg) {
+    function _read($arg, &$softError) {
+        $softError = true;
         try {
             $cached = $this->bxcache->get($this->api->getType() . '/' . $arg);
             if ($cached) {
-                $this->response->start_output();
-                $this->response->echo($cached);
-                return ['count' => 1];
+                return $cached;
             }
 
             $object = $this->api->get($arg);
@@ -276,18 +273,28 @@ abstract class BexioModel
             $jsonObject = $object->toJson();
             $this->bxcache->put($this->api->getType() . '/' . $arg, $jsonObject);
             $this->store_cache($this->api->getType() . '/' . $arg, $jsonObject, 1);
-
-            $this->response->start_output();
-            $this->response->echo($jsonObject);
-            return ['count' => 1];
+            return $jsonObject;
         } catch (Exception $e) {
             if($this->handleError($e)) {
-                $this->response->softError('bexio', 'down', 500);
+                $softError = true;
                 return $this->try_read_cache($this->api->getType() . '/' . $arg);
             }
-            return ['count' => 0];
+            throw $e;
         }
     }
+
+    function read ($arg) {
+        $softError = false;
+        $item = $this->_read($arg, $softError);
+        if ($softError) { 
+            $this->response->softError('bexio', 'down', 500);
+        }
+        if ($item === null) { return ['count' => 0]; }
+        $this->response->start_output();
+        $this->response->echo($item);
+        return ['count' => 1];
+    }
+
     function exists($arg) {
         return ['count' => 1];
     }
@@ -304,8 +311,12 @@ abstract class BexioModel
         return [intval($offset), intval($limit)];
     }
 
-    function listing($arg) {
+    /**
+     * List operation generator
+     */
+    function _listing ($arg, &$softError) {
         try {
+            $softError = false;
             $strLimit = ':0-500';
             $limit = [0, 500];
             if (!empty($arg['limit'])) { 
@@ -317,49 +328,50 @@ abstract class BexioModel
             $cached = $this->bxcache->get($serachId);
             if ($cached) {
                 $cached = json_decode($cached);
-                $count = 0;
-                $this->response->start_output();
                 foreach ($cached as $itemid) {
                     $item = $this->bxcache->get($this->api->getType() . '/' . $itemid);
                     if (!$item) { continue; }
-                    if ($count > 0) { $this->response->echo(','); }
-                    $this->response->echo($item);
-                    $count++;
+                    yield $item;
                 }
-                return ['count' => $count];
+                return;
             }
 
-
-            $count = 0;
-            $first = true;
             $tocache = [];
-            $this->response->start_output();
             foreach($this->api->list($limit[0], $limit[1]) as $item) {
-                if (!$first) { $this->response->echo(','); }
                 $tocache[] = $item->getId();
                 $jsonObject = $item->toJson();
                 $this->bxcache->put($item->getType() . '/' . $item->getId(), $jsonObject);
                 $this->store_cache($item->getType() . '/' . $item->getId(), $jsonObject, 1);
-                $this->response->echo($jsonObject);
-                $count++;
-                $first = false;
+                yield $jsonObject;
+
             }
             $this->bxcache->put($serachId, json_encode($tocache));
-            return ['count' => $count];
+            return;
         } catch (Exception $e) {
             if($this->handleError($e)) {
-                $count = 0;
-                $this->response->start_output();
+                $softError = true;
                 foreach($this->query_cache($this->api->getType(), []) as $item) {
-                    if ($count > 0) { $this->response->echo(','); }
-                    $this->response->echo($item);
-                    $count++;
+                    yield $item;
                 }
-                $this->response->softError('bexio', 'down', 500);
-                return ['count' => $count];
+                return;
             }
-            return ['count' => 0];
+            throw $e;
         }
+    }
+
+    function listing($arg) {
+        $softError = false;
+        $this->response->start_output();
+        $count = 0;
+        foreach($this->_listing($arg, $softError) as $item) {
+            if ($count) { $this->response->echo(','); }
+            $this->response->echo($item);
+            $count++;
+        }
+        if ($softError) {
+            $this->response->softError('bexio', 'down', 500);
+        }
+        return ['count' => $count];
     }
 
     function get_owner($data, $id = null) {
@@ -371,24 +383,20 @@ abstract class BexioModel
     }    
 
     function try_search_cache ($collection, $reference, $query = []) {
-        $this->response->start_output();
-        $count = 0;
+        $hasItem = false;
         foreach ($this->search_cache($collection, $reference) as $item) {
-            if ($count > 0) { $this->response->echo(','); }
-            $this->response->echo($item);
-            $count++;
+            yield $item;
+            $hasItem = true;
         }
-        if ($count === 0) {
+        if (!$hasItem) {
             foreach($this->query_cache($collection, $query) as $item) {
-                if ($count > 0) { $this->response->echo(','); }
-                $this->response->echo($item);
-                $count++;
+                yield $item;       
             }
         }
-        return ['count' => $count];
     }
 
-    function search($body, $options) {
+    function _search($body, $options, &$softError) {
+        $softError = false;
         try {
             $body = $this->query($body);
             $strLimit = ':0-500';
@@ -404,16 +412,12 @@ abstract class BexioModel
             $cached = $this->bxcache->get($serachId);
             if ($cached) {
                 $cached = json_decode($cached);
-                $count = 0;
-                $this->response->start_output();
                 foreach($cached as $itemid) {
                     $item = $this->bxcache->get($this->api->getType() . '/' . $itemid);
                     if (!$item) { continue; }
-                    if ($count > 0) { $this->response->echo(','); }
-                    $this->response->echo($item);
-                    $count++;
+                    yield $item;
                 }
-                return ['count' => $count];
+                return;
             }
 
             $query = $this->api->newQuery();
@@ -421,28 +425,41 @@ abstract class BexioModel
                 $query->add($item['field'], $item['value'], $item['criteria']);
             }
             $results = $this->api->search($query, $limit[0], $limit[1]);
-            $this->response->start_output();
             $tocache = [];
-            $first = true;
             foreach ($results as $object) {
                 $tocache[] = $object->getId();
                 $jsonObject = $object->toJson();
                 $this->bxcache->put($object->getType() . '/' . $object->getId(), $jsonObject);
                 $this->store_cache($object->getType() . '/' . $object->getId(), $jsonObject, 1);
-                if (!$first) { $this->response->echo(','); }
-                $this->response->echo($jsonObject);
-                $first = false;
+                yield $jsonObject;
+
             }
             $jsonObject = json_encode(($tocache));
             $this->bxcache->put($serachId, $jsonObject);
             $this->store_cache($serachId, $jsonObject, count($tocache));
-            return ['count' => count($results)];
+            return; 
         } catch (Exception $e) {
             if ($this->handleError($e)) {
-                $this->response->softError('bexio', 'down', 500);
+                $softError = true;
                 return $this->try_search_cache($collection, $serachId, $body);
             }
+            throw $e;
         }
+    }
+
+    function search($body, $options) {
+        $softError = false;
+        $this->response->start_output();
+        $count = 0;
+        foreach($this->_search($body, $options, $softError) as $item) {
+            if ($count) { $this->response->echo(','); }
+            $this->response->echo($item);
+            $count++;
+        }
+        if ($softError) {
+            $this->response->softError('bexio', 'down', 500);
+        }
+        return ['count' => $count];
     }
 
     function isUnary ($op) {

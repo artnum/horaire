@@ -136,3 +136,100 @@ div.popup.import {
 div.popup.import li.more {
     display: none;
 }
+
+.ka-bxfacture-list {
+    display: grid;
+    grid-template-columns: 400px 1fr 600px;
+    grid-template-rows: 50px 1fr;
+    grid-template-areas: "selector selector selector" 
+      "list preview action";
+    min-width: 100%;
+    min-height: 100vh;
+}
+.ka-bxfacture-list .selector {
+    grid-area: selector;
+}
+.ka-bxfacture-list .preview {
+    min-width: 50%;
+    min-height: 100%;
+    grid-area: preview;
+} 
+
+.ka-bxfacture-list .list {
+    grid-area: list;
+}
+.ka-bxfacture-list .action {
+    grid-area: action;
+}
+
+.ka-bxfacture-list .preview object {
+    width: 100%;
+    height: 100%;
+}
+
+.paiement .ka-button[data-open="1"].level1 {
+    background-color: yellow !important;
+}
+
+.paiement .ka-button[data-open="1"].level2 {
+    background-color: orange !important;
+}
+
+.paiement .ka-button[data-open="1"].level3 {
+    background-color: red !important;
+}
+
+.billItem.selected {
+    border: 2px solid blue;
+    font-weight: bold;
+}
+
+.billItem {
+    border: 2px solid transparent;
+    display: grid;
+    grid-template-columns: 3fr 1fr 1fr;
+    order: 4;
+    max-height: 8ex;
+    min-height: 8ex;
+    overflow-y: hidden;
+    margin: 2px 0;
+}
+
+.billItem.header {
+    background-color: black;
+    color: white;
+    font-weight: bold;
+    order: 0;
+}
+
+.billItem.level1 {
+    order: 3;
+    background-color: yellow;
+}
+.billItem.level2 {
+    order: 2;
+    background-color: orange;
+}
+.billItem.level3 {
+    order: 1;
+    background-color: red;
+    color: white;
+}
+
+.billItem span.floating {
+    text-align: right;
+}
+
+.billItem span {
+    padding: 0 0.5ch;
+}
+
+.ka-bxfacture-list .list {
+    display: flex;
+    flex-direction: column;
+    max-width: 400px;
+}
+
+.ka-bxfacture-list input[name="reference"] {
+    width: 35ch;
+}
