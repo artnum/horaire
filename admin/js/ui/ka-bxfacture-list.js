@@ -289,9 +289,9 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                         .map(node => {
                             if (node.querySelector('input[name="value"]').value === '') { return Promise.resolve() }
                             if (node.dataset.repartitionId === '0') {
-                                return KAPIRepartition.write({value: node.querySelector('input[name="value"]').value, project: node.querySelector('input[name="project"]').dataset.value, facture: bill.id})
+                                return KAPIRepartition.write({value: node.querySelector('input[name="value"]').value, project: node.querySelector('input[name="project"]').dataset.value, facture: bill.id, tva: node.querySelector('input[name="tva"]').value})
                             }
-                            return KAPIRepartition.write({value: node.querySelector('input[name="value"]').value, project: node.querySelector('input[name="project"]').dataset.value, facture: bill.id}, node.dataset.repartitionId)
+                            return KAPIRepartition.write({value: node.querySelector('input[name="value"]').value, project: node.querySelector('input[name="project"]').dataset.value, facture: bill.id, tva: node.querySelector('input[name="tva"]').value}, node.dataset.repartitionId)
                         }))
                     })
                     .then(_ => {
@@ -608,6 +608,7 @@ UIKABXFactureList.prototype.renderAssociateNode = function (parent, repartition 
     domNode.innerHTML = `
         <input type="text" name="value" value="${repartition ? repartition.value : ''}">
         <input type="text" name="project" value="${repartition ? repartition.project : ''}">
+        <input type="number" name="tva" step="0.1" value="${repartition ? repartition.tva : 7.7}">
         <span class="delete">X</span>
         `
     new KSelectUI(domNode.querySelector('input[name="project"]'), new STProject('Project'), { realSelect: true, allowFreeText: false })
