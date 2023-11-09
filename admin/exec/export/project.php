@@ -266,7 +266,7 @@ try {
    $amountByType = [0, 0, 0, 0];
    
    $SheetFacture['header'] = ['N° de facture' => 'string', 'Date' => 'date', 'Personne/société' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string', 'Paiement' => 'date' ];
-   $repSt = $db->prepare('SELECT * FROM "repartition" LEFT JOIN "facture" ON "facture_id" = "repartition_facture" WHERE "repartition_project" = :id AND "facture_deleted" = 0');
+   $repSt = $db->prepare('SELECT * FROM "repartition" LEFT JOIN "facture" ON "facture_id" = "repartition_facture" LEFT JOIN "qraddress" ON "facture_qraddress" = "qraddress_id" WHERE "repartition_project" = :id AND "facture_deleted" = 0');
    $repSt->bindValue(':id', $row['project_id'], PDO::PARAM_INT);
    if ($repSt->execute()) {
       $line = 1;
@@ -311,7 +311,7 @@ try {
          }
 
          $ldap = $ldap_db->_con();
-         if ($ldap) {
+         if ($ldap && !empty($repData['facture_person'])) {
             $res = @ldap_read($ldap, url2dn($repData['facture_person'], $ldap_db->getBase()), '(objectclass=*)', ['displayname', 'givenname', 'sn', 'o']);
             if ($res) {
                $entries = ldap_get_entries($ldap, $res);
@@ -335,6 +335,13 @@ try {
                   }
                }
             }
+         } else {
+            if (!empty($repData['qraddress_name'])) {
+               $repData['facture_person'] = $repData['qraddress_name'];
+            } else {
+               $repData['facture_person'] = '';
+            }
+
          }
 
          $factureAmount += $amount_ht;
