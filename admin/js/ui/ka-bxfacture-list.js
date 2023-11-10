@@ -607,7 +607,7 @@ UIKABXFactureList.prototype.renderAssociateNode = function (parent, repartition 
     if (repartition !== null) { domNode.dataset.done = true }
     domNode.innerHTML = `
         <input type="text" name="value" class="value" value="${repartition ? repartition.value : ''}">
-        <input type="text" name="project" class="project" value="${repartition ? repartition.project : ''}">
+        <input type="text" name="project" value="${repartition ? repartition.project : ''}">
         <input type="number" name="tva" class="tva" step="0.1" value="${repartition ? repartition.tva : 7.7}">
         <span class="delete">X</span>
         `
