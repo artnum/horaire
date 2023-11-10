@@ -596,8 +596,10 @@ UIKABXFactureList.prototype.renderAssociateNode = function (parent, repartition 
     rep.value = parseFloat(rep.value)
     rep.tva = parseFloat(rep.tva)
 
-    if (isNaN(rep.value) || isNaN(rep.tva)) { return Promise.resolve() }
     rep.value = (rep.value + (rep.value * rep.tva / 100)).toFixed(2)
+    if (isNaN(rep.value)) {
+        rep.value = ''
+    }
 
     domNode.innerHTML = `
         <input type="text" name="value" class="value" value="${rep.value}">
