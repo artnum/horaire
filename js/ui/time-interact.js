@@ -84,7 +84,7 @@ TimeInteractUI.prototype.hideIndex = function () {
 
 TimeInteractUI.prototype.showIndex = function () {
     return new Promise((resolve) => {
-        const project = KAButton('Autres projets', {click: true, fat: true})
+        const project = new KAButton('Autres projets', {click: true, fat: true})
         project.addEventListener('submit', event => {
             this.hideIndex()
             .then(() => {
@@ -95,7 +95,7 @@ TimeInteractUI.prototype.showIndex = function () {
             })
         })
 
-        const hours = KAButton('Mes heures', {click: true, fat: true})
+        const hours = new KAButton('Mes heures', {click: true, fat: true})
         hours.addEventListener('submit', event => {
             this.hideIndex()
             .then(() => {
@@ -106,7 +106,7 @@ TimeInteractUI.prototype.showIndex = function () {
                 this.showRecentTime(container)
             })
         })
-        const forecast = KAButton('Mon planning provisoire', {click: true, fat: true})
+        const forecast = new KAButton('Mon planning provisoire', {click: true, fat: true})
         forecast.addEventListener('submit', event => {
             const planning = new KAPlanningUI(this.userId)
             this.hideIndex()
@@ -371,7 +371,7 @@ TimeInteractUI.prototype.showDates = function () {
         const div = document.createElement('DIV')
         div.classList.add('ka-date-selector')
         for (const date of this.dates) {
-            const d = KAButton(DataUtils.textualShortDate(date), {group: 'date', fat: true})
+            const d = new KAButton(DataUtils.textualShortDate(date), {group: 'date', fat: true})
             d.dataset.date = date.toISOString().split('T')[0]
             d.addEventListener('submit', event => {
                 this.dispatchEvent(new CustomEvent('change-date', {detail: event.target.dataset.date}))
@@ -435,11 +435,11 @@ TimeInteractUI.prototype.showUser = function () {
     return new Promise(resolve => {
         KAPerson.load(this.userId)
         .then(user => {
-            const div = KAButton(`${user.get('name')}`, {fat: true, click: true, small: true})
+            const div = new KAButton(`${user.get('name')}`, {fat: true, click: true, small: true})
             const subcontainer = document.createElement('div')
             subcontainer.classList.add('ka-user-action')
-            const logout = KAButton(`Déconnexion`, {fat: true, click: true, small: true})
-            const back = KAButton(`Retour`, {fat: true, click: true, small: true})
+            const logout = new KAButton(`Déconnexion`, {fat: true, click: true, small: true})
+            const back = new KAButton(`Retour`, {fat: true, click: true, small: true})
 
             subcontainer.appendChild(back)
             subcontainer.appendChild(logout)
