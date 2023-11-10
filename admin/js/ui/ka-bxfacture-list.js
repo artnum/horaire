@@ -38,6 +38,7 @@ UIKABXFactureList.prototype.render = function (query = {state: 'INCOMING'}) {
         //const bxpay = new KAPI(`${KAAL.getBase()}/BXOutgoingPayment`)
         const KAPIBill = new KAPI(`${KAAL.getBase()}/Facture`)
         const KAPIQRAddress = new KAPI(`${KAAL.getBase()}/QRAddress`)
+        query.deleted = '--';
         KAPIBill.search(query)
         .then(bills => {
             return new Promise(resolve => {
@@ -212,8 +213,22 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                 
                 addAddressFS.appendChild(contactSelect.domNode)
                 form.insertBefore(addAddressFS, form.firstElementChild)
+                form.insertAdjacentHTML('beforeend', '<button type="button" name="deleteBill">Supprimer la facture</button>')
+                form.querySelector('button[name="deleteBill"]').addEventListener('click', event => {
+                    KAPIBill.delete(bill.id)
+                    .then(_ => {
+                        return Promise.allSettled([
+                            this.clearAction(),
+                            this.clearList(),
+                            this.clearPreview()
+                        ])
+                    })
+                    .then(_ => {
+                        this.render({state: 'INCOMING'})
 
-                
+                    })
+                })
+            
                 return resolve(form)
             }
 
@@ -423,8 +438,56 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                 }
                 form.insertAdjacentHTML('beforeend', `
                 <button type="submit">Valider la facture</button>
+                ${this.currentState === 'OPEN' ? '<button type="button" name="payBill">Payer la facture</button>' : ''}
+                ${this.currentState === 'PAID' ? '<button type="button" name="openBill">Réouvrir la facture</button>' : ''}
+                <button type="button" name="deleteBill">Supprimer la facture</button>
                 <button type="reset">Annuler</button>
                 `)
+                if (this.currentState === 'OPEN') {
+                    form.querySelector('button[name="payBill"]').addEventListener('click', event => {
+                        KAPIBill.write({state: 'PAID', id: bill.id}, bill.id)
+                        .then(_ => {
+                            return Promise.allSettled([
+                                this.clearAction(),
+                                this.clearList(),
+                                this.clearPreview()
+                            ])
+                        })
+                        .then(_ => {
+                            this.render({state: this.currentState})
+                        })
+                    })
+                }
+                if (this.currentState === 'PAID') {
+                    form.querySelector('button[name="openBill"]').addEventListener('click', event => {
+                        KAPIBill.write({state: 'OPEN', id: bill.id}, bill.id)
+                        .then(_ => {
+                            return Promise.allSettled([
+                                this.clearAction(),
+                                this.clearList(),
+                                this.clearPreview()
+                            ])
+                        })
+                        .then(_ => {
+                            this.render({state: this.currentState})
+                        })
+                    })
+                }
+                form.querySelector('button[name="deleteBill"]').addEventListener('click', event => {
+                    KAPIBill.delete(bill.id)
+                    .then(_ => {
+                        return Promise.allSettled([
+                            this.clearAction(),
+                            this.clearList(),
+                            this.clearPreview()
+                        ])
+                    })
+                    .then(_ => {
+                        this.render({state: this.currentState})
+
+                    })
+                })
+            
                 resolve(form)
             })
             
