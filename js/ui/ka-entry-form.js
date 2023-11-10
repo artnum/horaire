@@ -36,7 +36,7 @@ function KAEntryForm (project, affaire, status, reservation = null) {
         form.querySelector('span.ka-total-show').innerHTML = `${DataUtils.durationToStr(time + regie)}`
     })
 
-    const button = KAButton(div, {group: 'project', foldable: form, fat: true})
+    const button = new KAButton(div, {group: 'project', foldable: form, fat: true})
 
     form.addEventListener('submit', event => {
         event.preventDefault()
