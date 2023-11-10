@@ -288,10 +288,18 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                         return Promise.allSettled(Array.from(form.querySelectorAll('[data-repartition-id]'))
                         .map(node => {
                             if (node.querySelector('input[name="value"]').value === '') { return Promise.resolve() }
+                            const rep = {value: node.querySelector('input[name="value"]').value, project: node.querySelector('input[name="project"]').dataset.value, facture: bill.id, tva: node.querySelector('input[name="tva"]').value}
+
+                            rep.value = parseFloat(rep.value)
+                            rep.tva = parseFloat(rep.tva)
+
+                            if (isNaN(rep.value) || isNaN(rep.tva)) { return Promise.resolve() }
+                            rep.value = (rep.value / (1 + (rep.tva / 100))).toFixed(4)
+
                             if (node.dataset.repartitionId === '0') {
-                                return KAPIRepartition.write({value: node.querySelector('input[name="value"]').value, project: node.querySelector('input[name="project"]').dataset.value, facture: bill.id, tva: node.querySelector('input[name="tva"]').value})
+                                return KAPIRepartition.write(rep)
                             }
-                            return KAPIRepartition.write({value: node.querySelector('input[name="value"]').value, project: node.querySelector('input[name="project"]').dataset.value, facture: bill.id, tva: node.querySelector('input[name="tva"]').value}, node.dataset.repartitionId)
+                            return KAPIRepartition.write(rep, node.dataset.repartitionId)
                         }))
                     })
                     .then(_ => {
@@ -577,38 +585,24 @@ UIKABXFactureList.prototype.editConditions = function (conditionsStr, billId, ad
     this.actionNode.appendChild(form)
 }
 
-/* type : 1. débiteur (entrant), 2. créancier (sortant), 3. note de crédit, 4. compensation */
-UIKABXFactureList.prototype.createBillDuplicate = function (bill, type, id = null) {
-    return new Promise((resolve, reject) => {
-        const kafacture = new KAPI(`${KAAL.getBase()}/Facture`)
-        console.log(bill.amount, bill.reference, bill.id)
-        const f ={
-            amount: bill.amount,
-            reference: bill.reference,
-            extid: `b:${bill.id}`,
-            type: type,
-            date: bill.date
-        }
-        kafacture.write(f, id)
-        .then(facture => {
-            return resolve(facture)
-        })
-        .catch(cause => {
-            reject(cause)
-        })
-    })
-}
-
 UIKABXFactureList.prototype.renderAssociateNode = function (parent, repartition = null) {
     const domNode = document.createElement('DIV')
     domNode.dataset.repartitionId = repartition ? repartition.id : 0
     domNode.classList.add('repartition')
     domNode.dataset.done = false
     if (repartition !== null) { domNode.dataset.done = true }
+
+    const rep = {value: repartition ? repartition.value : '', project: repartition ? repartition.project : '', tva: repartition ? repartition.tva : 7.7}
+    rep.value = parseFloat(rep.value)
+    rep.tva = parseFloat(rep.tva)
+
+    if (isNaN(rep.value) || isNaN(rep.tva)) { return Promise.resolve() }
+    rep.value = (rep.value + (rep.value * rep.tva / 100)).toFixed(2)
+
     domNode.innerHTML = `
-        <input type="text" name="value" class="value" value="${repartition ? repartition.value : ''}">
-        <input type="text" name="project" value="${repartition ? repartition.project : ''}">
-        <input type="number" name="tva" class="tva" step="0.1" value="${repartition ? repartition.tva : 7.7}">
+        <input type="text" name="value" class="value" value="${rep.value}">
+        <input type="text" name="project" value="${rep.project}">
+        <input type="number" name="tva" class="tva" step="0.1" value="${rep.tva}">
         <span class="delete">X</span>
         `
     new KSelectUI(domNode.querySelector('input[name="project"]'), new STProject('Project'), { realSelect: true, allowFreeText: false })
