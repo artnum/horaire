@@ -233,3 +233,19 @@ div.popup.import li.more {
 .ka-bxfacture-list input[name="reference"] {
     width: 35ch;
 }
+
+.ka-fieldset .repartition input {
+    min-width: unset;
+}
+
+.ka-fieldset .repartition .tva {
+    max-width: 5ch;
+    min-width: 5ch;
+}
+
+.ka-fieldset .repartition .value {
+    max-width: 10ch;
+    min-width: 10ch;
+}
+
+
