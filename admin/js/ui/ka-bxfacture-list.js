@@ -123,6 +123,28 @@ UIKABXFactureList.prototype.clearList = function () {
 }
 
 UIKABXFactureList.prototype.openBill = function (details) {
+
+    const b64toBlob = (b64Data, contentType='', sliceSize=512) => {
+        const byteCharacters = atob(b64Data);
+        const byteArrays = [];
+      
+        for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+          const slice = byteCharacters.slice(offset, offset + sliceSize);
+      
+          const byteNumbers = new Array(slice.length);
+          for (let i = 0; i < slice.length; i++) {
+            byteNumbers[i] = slice.charCodeAt(i);
+          }
+      
+          const byteArray = new Uint8Array(byteNumbers);
+          byteArrays.push(byteArray);
+        }
+      
+        const blob = new Blob(byteArrays, {type: contentType});
+        return blob;
+      }
+      
+
     const KAPIBill = new KAPI(`${KAAL.getBase()}/Facture`)
     Promise.allSettled([
         this.clearSelectedBill(),
@@ -136,11 +158,11 @@ UIKABXFactureList.prototype.openBill = function (details) {
         if (result.length === 1) {
             const fileObject = result.data[0]
             if (fileObject.file !== '') {
-                const object = document.createElement('object')
-                object.type = fileObject.mimetype
-                object.data = `data:${fileObject.mimetype};base64,${fileObject.file}`
+                const iframe = document.createElement('iframe')
+                const url = URL.createObjectURL(b64toBlob(fileObject.file, fileObject.mimetype))
+                iframe.src = url
                 window.requestAnimationFrame(() => {
-                    this.previewNode.appendChild(object)
+                    this.previewNode.appendChild(iframe)
                 })
             }
         }

@@ -162,7 +162,7 @@ div.popup.import li.more {
     grid-area: action;
 }
 
-.ka-bxfacture-list .preview object {
+.ka-bxfacture-list .preview iframe {
     width: 100%;
     height: 100%;
 }
