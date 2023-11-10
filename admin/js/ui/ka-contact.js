@@ -11,7 +11,7 @@ function UIKAContact () {
 
     this.searchInput = this.domNode.firstElementChild
     this.searchInput.addEventListener('keyup', kdebounce((event) => {
-        const searchValue = event.originalTarget.value
+        const searchValue = event.target.value
         if (this.previousSearchValue === searchValue) { return }
         this.previousSearchValue = searchValue
 
