@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Débiteur</title>
+        <script src="../../kcore/index.js"></script>
+
+        <script src="../conf/kaal.js"></script>
+        <script src="js/lib/login.js"></script>
+        <script src="js/kaal.js"></script>
+        <script src="js/fetch.js"></script>
+        <script src="js/lib/kapi.js"></script>
+        <script src="js/admin.js"></script>
+        <script src="js/stores.js"></script>
+        <script src="../js/ui/ka-button.js"></script>
+        <script src="js/index.js"></script>
+    </head>
+    <body>
+
+    </body>
+    <script>
+        const KAPIBXInvoice = new KAPI(`${KAAL.getBase()}/BXInvoice`)
+        const KAPIRepartition = new KAPI(`${KAAL.getBase()}/Repartition`)
+        const KAPIFacture = new KAPI(`${KAAL.getBase()}/Facture`)
+        const KAPIProject = new KAPI(`${KAAL.getBase()}/Project`)
+        KAPIProject.query({'deleted': '--', 'extid': '*'})
+        .then((projects) => {
+            Promise.allSettled(projects.map(project => {
+                return KAPIRepartition.query({'project': project.id})
+            }))
+            .then((results) => {
+                return results.filter(result => result.status === 'fulfilled')
+                    .map(result => result.value)
+            })
+            .then(repartitions => {
+                repartitions = repartitions.flat()
+                console.log(repartitions)
+                Promise.allSettled(repartitions.map(repartition => {
+                    return KAPIFacture.get(repartition.facture)
+                }))
+                .then(bills => {
+                    return bills.filter(bill => bill.status === 'fulfilled')
+                        .map(bill => bill.value)
+                        .filter(bill => bill.type === 2)
+                })
+                .then(bills => {
+                    projects.forEach(project => {
+                        project.repartitions = repartitions.filter(repartition => repartition.project === project.id)
+                        project.bills = bills.filter(bill => project.repartitions.find(repartition => repartition.facture === bill.id))
+                    })
+                    return projects
+                })
+                .then(projects => {
+                    KAPIBXInvoice.query({'kb_item_status_id': ['>', 7], 'kb_item_status_id:1': ['<', 10]})
+                    .then(bxinvoices => {
+                        projects.forEach(project => {
+                            project.bills.push(...bxinvoices.filter(bxinvoice => bxinvoice.project_id === project.extid))
+                        })
+                        projects.forEach(project => {
+                            project.bills.sort((a, b) => {
+                                const amountA = parseFloat(a.contact_id ? a.total : a.amount)
+                                const amountB = parseFloat(b.contact_id ? b.total : b.amount)
+                                return amountA - amountB
+                            })
+                        })
+                        return projects
+                    })
+                    .then(projets => {
+                        projects.forEach(project => {
+                            console.log(project)
+                            const factureBexio = function (bill) {
+                                return `<div>Facture BEXIO ${parseFloat(bill.total).toFixed(2)} ${bill.document_nr} ${bill.title}</div>`
+                            }
+                            const factureKaal = function (bill) {
+                                return `<div>Facture KAAL ${parseFloat(bill.amount).toFixed(2)} ${bill.number}</div>`
+                            }
+                            const domNode = document.createElement('div')
+                            domNode.innerHTML = `
+                                <div>${project.reference} ${project.name}</div>
+                                <div>
+                                    ${project.bills.map(bill => {
+                                        if (bill.contact_id) { return factureBexio(bill) }
+                                        else { return factureKaal(bill) }
+                                    }).join('')}
+                                </div>
+                            `
+
+                            document.querySelector('body').appendChild(domNode)
+                        })
+                    })
+                })
+            })
+        })
+    </script>
+</html>

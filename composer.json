@@ -4,6 +4,6 @@
         "artnum/bizcuit-swissqr": "^2.0",
         "setasign/tfpdf": "^1.33",
         "endroid/qr-code": "^5.0",
-        "artnum/bizcuit-bexio": "^0.2.0@alpha"
+        "artnum/bizcuit-bexio": "@dev"
     }
 }
