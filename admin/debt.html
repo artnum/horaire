@@ -102,9 +102,11 @@
                         return projects
                     })
                     .then(projets => {
-                        projects.filter(project => project.bills.length > 0)
+                        /* filter where there is more than one bill as two sources with identic
+                         * bills would have, at least, two bills.
+                         */
+                        projects.filter(project => project.bills.length > 1)
                         .forEach(project => {
-                            console.log(project)
                             const factureBexio = function (bill) {
                                 const date = new Date(bill.is_valid_from)
                                 return `<div class="facture-bexio facture">
