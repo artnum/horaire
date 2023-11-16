@@ -4,7 +4,7 @@ function UIKABXFactureList () {
     this.domNode.innerHTML = `
         <div class="selector"></div>
         <div class="list">
-            <div class="header billItem"><span>Créditeur</span><span>Échéance</span><span>Montant</span></div>
+            <div class="header billItem"><span>Créancier<br><small>Facture fournisseur</small></span><span>Échéance</span><span>Montant</span></div>
         </div>
         <div class="preview"></div>
         <div class="action"></div>
