@@ -71,8 +71,10 @@
                     return bills.filter(bill => bill.status === 'fulfilled')
                         .map(bill => bill.value)
                         .filter(bill => bill.type === 2)
+                        .filter(bill => bill.deleted === 0)
                 })
                 .then(bills => {
+                    console.log(bills)
                     projects.forEach(project => {
                         project.repartitions = repartitions.filter(repartition => repartition.project === project.id)
                         project.bills = bills.filter(bill => project.repartitions.find(repartition => repartition.facture === bill.id))
@@ -115,13 +117,13 @@
                             }
                             const factureKaal = function (bill) {
                                 const date = new Date(bill.date)
-                                return `<div class="facture-kaal facture">
+                                return `<div id="bill_${bill.id}" class="facture-kaal facture">
                                     <div>Facture KAAL</div>
                                     <div class="amount">${parseFloat(bill.amount).toFixed(2)}</div>
                                     <div>${bill.number}</div>
                                     <div>${date.toLocaleDateString()}</div>
                                     <div>${bill.comment}</div>
-                                    <div><button type="button">Supprimer</button></div></div>`
+                                    <div><button type="button" data-bill-id="${bill.id}"">Supprimer</button></div></div>`
                             }
                             const domNode = document.createElement('div')
                             domNode.innerHTML = `
@@ -133,7 +135,17 @@
                                     }).join('')}
                                 </div>
                             `
-
+                            domNode.addEventListener('click', event => {
+                                if (event.target.dataset.billId) {
+                                    const billid = event.target.dataset.billId
+                                    KAPIFacture.write({id: billid, deleted: (new Date().getTime())}, billid)
+                                    .then(result => {
+                                        if(parseInt(result.id) === parseInt(billid)) {
+                                            document.getElementById(`bill_${billid}`).remove()
+                                        }
+                                    })
+                                }
+                            })
                             document.querySelector('body').appendChild(domNode)
                         })
                     })
