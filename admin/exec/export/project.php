@@ -1,5 +1,6 @@
 <?PHP
 require('artnum/autoload.php');
+require('../../../vendor/autoload.php');
 require('../../../lib/ini.php');
 require('../../../lib/dbs.php');
 require('../../../lib/urldn.php');
@@ -265,7 +266,27 @@ try {
    $factureAmount = 0;
    $amountByType = [0, 0, 0, 0];
    
+   $bexioDB = new BizCuit\BexioCTX($ini_conf['bexio']['token']);
+   $bxInvoice = new BizCuit\BexioInvoice($bexioDB);
+   $bxContact = new BizCuit\BexioContact($bexioDB);
+
    $SheetFacture['header'] = ['N° de facture' => 'string', 'Date' => 'date', 'Personne/société' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string', 'Paiement' => 'date' ];
+
+   $bxQuery = $bxInvoice->newQuery();
+   $bxQuery->add('kb_item_status_id', '7', '>');
+   $bxQuery->add('kb_item_status_id', '10', '<');
+   $invoices = array_filter($bxInvoice->search($bxQuery), function ($i) use ($row) { if (intval($i->project_id) === intval($row['project_extid'])) { return $i; } });
+
+   foreach ($invoices as $invoice) {
+      $reference = $invoice->document_nr;
+      $contact = $bxContact->get($invoice->contact_id);
+      $amount_ht = floatval($invoice->total_net);
+      $amount = floatval($invoice->total);
+      $SheetFacture['content'][] = [$reference, $invoice->is_valid_from, $contact->name_1, $amount_ht, '', $amount , 'Débiteur',  ''];
+      $amountByType[1] += abs($amount_ht);
+
+   }
+
    $repSt = $db->prepare('SELECT * FROM "repartition" LEFT JOIN "facture" ON "facture_id" = "repartition_facture" LEFT JOIN "qraddress" ON "facture_qraddress" = "qraddress_id" WHERE "repartition_project" = :id AND "facture_deleted" = 0');
    $repSt->bindValue(':id', $row['project_id'], PDO::PARAM_INT);
    if ($repSt->execute()) {
@@ -302,10 +323,7 @@ try {
                if ($type === '') { $type = 'Compensation'; }
 
                $amount_ht = floatval($repData['repartition_value']);
-               $tva = floatval($repData['repartition_tva']);               
-               
-               /*$relationSt = $db->prepare('SELECT * FROM facture WHERE facture_id = (SELECT factureLien_source FROM factureLien WHERE factureLien_destination = :fid)');
-               $relationSt->bindParam(':fid', $repDAta[''])*/
+               $tva = floatval($repData['repartition_tva']);
             break;
 
          }
