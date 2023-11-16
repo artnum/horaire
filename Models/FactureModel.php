@@ -58,7 +58,7 @@ class FactureModel extends artnum\SQL {
 
     $object = $bxbill->new();
     $object->supplier_id = $bill['qraddress_extid'];
-    $object->vendor_ref = $bill['facture_number'];
+    $object->vendor_ref = empty($bill['facture_number']) ? ' ' : $bill['facture_number'];
     $object->contact_partner_id = 1;
     $object->bill_date = $bill['facture_date'];
     $object->due_date = $bill['facture_duedate'];
