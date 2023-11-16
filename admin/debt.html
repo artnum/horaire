@@ -89,12 +89,12 @@
                             project.bills.sort((a, b) => {
                                 const amountA = parseFloat(a.contact_id ? a.total : a.amount)
                                 const amountB = parseFloat(b.contact_id ? b.total : b.amount)
+                                if (amountA - amountB === 0) {
+                                    const dateA = new Date(a.contact_id ? a.is_valid_from : a.date)
+                                    const dateB = new Date(b.contact_id ? b.is_valid_from : b.date)
+                                    return dateA - dateB
+                                }
                                 return amountA - amountB
-                            })
-                            .sort((a, b) => {
-                                const dateA = new Date(a.contact_id ? a.is_valid_from : a.date)
-                                const dateB = new Date(b.contact_id ? b.is_valid_from : b.date)
-                                return dateA - dateB
                             })
                         })
                         return projects
