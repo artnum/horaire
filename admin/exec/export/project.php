@@ -275,7 +275,7 @@ try {
    $bxQuery = $bxInvoice->newQuery();
    $bxQuery->add('kb_item_status_id', '7', '>');
    $bxQuery->add('kb_item_status_id', '10', '<');
-   $invoices = array_filter($bxInvoice->search($bxQuery), function ($i) use ($row) { if (intval($i->project_id) === intval($row['project_extid'])) { return $i; } });
+   $invoices = array_filter($bxInvoice->search($bxQuery, 0, 10000), function ($i) use ($row) { if (intval($i->project_id) === intval($row['project_extid'])) { return $i; } });
 
    foreach ($invoices as $invoice) {
       $reference = $invoice->document_nr;
