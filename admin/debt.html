@@ -17,7 +17,7 @@
             .facture {
                 max-width: 60%;
                 display: grid;
-                grid-template-columns: 20ch 20ch 1fr 1fr 1fr;
+                grid-template-columns: 20ch 20ch 1fr 1fr 1fr 1fr;
             }
             .facture div {
                 padding: 0 0.5em;
@@ -99,18 +99,22 @@
                         .forEach(project => {
                             console.log(project)
                             const factureBexio = function (bill) {
+                                const date = new Date(bill.is_valid_from)
                                 return `<div class="facture-bexio facture">
                                     <div>Facture BEXIO</div>
                                     <div class="amount">${parseFloat(bill.total).toFixed(2)}</div>
-                                    <div>${bill.document_nr}</div>
                                     <div>${bill.title}</div>
+                                    <div>${date.toLocaleDateString()}</div>
+                                    <div>${bill.document_nr}</div>
                                     <div></div></div>`
                             }
                             const factureKaal = function (bill) {
+                                const date = new Date(bill.date)
                                 return `<div class="facture-kaal facture">
                                     <div>Facture KAAL</div>
                                     <div class="amount">${parseFloat(bill.amount).toFixed(2)}</div>
                                     <div>${bill.number}</div>
+                                    <div>${date.toLocaleDateString()}</div>
                                     <div>${bill.comment}</div>
                                     <div><button type="button">Supprimer</button></div></div>`
                             }
