@@ -275,7 +275,17 @@ try {
    $bxQuery = $bxInvoice->newQuery();
    $bxQuery->add('kb_item_status_id', '7', '>');
    $bxQuery->add('kb_item_status_id', '10', '<');
-   $invoices = array_filter($bxInvoice->search($bxQuery, 0, 10000), function ($i) use ($row) { if (intval($i->project_id) === intval($row['project_extid'])) { return $i; } });
+
+   /* loop over all invoices as bexio does not support filtering by project */
+   $limit = 100;
+   $offset = 0;
+
+   $invoices = [];
+   while (!empty(($batch = $bxInvoice->search($bxQuery, $offset, $limit)))) {
+      $batch = array_filter($batch, function ($i) use ($row) { if (intval($i->project_id) === intval($row['project_extid'])) { return $i; } });
+      $invoices = array_merge($invoices, $batch);
+      $offset += $limit;
+   }
 
    foreach ($invoices as $invoice) {
       $reference = $invoice->document_nr;
