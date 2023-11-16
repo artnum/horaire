@@ -65,7 +65,7 @@ class FactureModel extends artnum\SQL {
     $object->amount_man = $bill['facture_amount'];
     $object->manual_amount = true;
     $object->currency_code = $bill['facture_currency'];
-    $object->item_net = true;
+    $object->item_net = false;
     $object->attachment_ids = [$file];
     $object->address = new stdClass();
     $object->address->lastname_company = $bill['qraddress_name'];
