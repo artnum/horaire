@@ -1109,8 +1109,8 @@ TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, r
         timebox.classList.add('ka-timebox')
         //timebox.innerHTML = this.dates.map(v => { return `<div class="ka-day" data-day="${v.toISOString()}">${DataUtils.shortDate(v)}</div>` }).join('')
         timebox.innerHTML = `<form data-time-id="${this.currentSelection.id ? this.currentSelection.id : ''}">
-            <div class="ka-input"><label for="time">Temps</label><input type="text" name="time" value="${this.currentSelection.time ? DataUtils.durationToStrTime(this.currentSelection.time) : ''}"/></div>
-            <div class="ka-input"><label for="remark">Remarque</label><input type="text" name="remark" value="${this.currentSelection.remark ? this.currentSelection.remark : ''}"/></div>
+            <div class="ka-input"><label for="time">Temps</label><input type="text" placeholder="Temps" name="time" value="${this.currentSelection.time ? DataUtils.durationToStrTime(this.currentSelection.time) : ''}"/></div>
+            <div class="ka-input"><label for="remark">Remarque</label><input type="text" name="remark" placeholder="Remarque" value="${this.currentSelection.remark ? this.currentSelection.remark : ''}"/></div>
             <div class="ka-input"><button type="submit" >${this.currentSelection.id ? 'Modifier' : 'Ajouter'}${this.currentSelection.time? ` <b>${DataUtils.durationToStr(this.currentSelection.time)}</b>` : ''}</button></div>
             ${this.currentSelection.id ? `<div class="ka-input"><button type="button" data-delete="${this.currentSelection.id}">Supprimer${this.currentSelection.time ? ` <b>${DataUtils.durationToStr(this.currentSelection.time)}</b>` : ''}</button></div>`: ''}
             </form>
