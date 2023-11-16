@@ -13,6 +13,36 @@
         <script src="js/stores.js"></script>
         <script src="../js/ui/ka-button.js"></script>
         <script src="js/index.js"></script>
+        <style>
+            .facture {
+                max-width: 60%;
+                display: grid;
+                grid-template-columns: 20ch 20ch 1fr 1fr 1fr;
+            }
+            .facture div {
+                padding: 0 0.5em;
+            }
+            .facture .amount {
+                text-align: right;
+                font-family:'Courier New', Courier, monospace;
+                font-weight: bolder;
+                font-size: 1.2em;
+                background-color: azure;
+            }
+
+            .facture div:first-child {
+                margin-left: 20px;
+            }
+
+            .facture-kaal {
+                background-color: lightblue;
+            }
+            .project {
+                font-weight: bolder;
+                font-size: 1.2em;
+                margin: 1em 0;
+            }
+        </style>
     </head>
     <body>
 
@@ -62,20 +92,31 @@
                                 return amountA - amountB
                             })
                         })
-                        return projects.filter(project => project.bills.length > 0)
+                        return projects
                     })
                     .then(projets => {
-                        projects.forEach(project => {
+                        projects.filter(project => project.bills.length > 0)
+                        .forEach(project => {
                             console.log(project)
                             const factureBexio = function (bill) {
-                                return `<div>Facture BEXIO ${parseFloat(bill.total).toFixed(2)} ${bill.document_nr} ${bill.title}</div>`
+                                return `<div class="facture-bexio facture">
+                                    <div>Facture BEXIO</div>
+                                    <div class="amount">${parseFloat(bill.total).toFixed(2)}</div>
+                                    <div>${bill.document_nr}</div>
+                                    <div>${bill.title}</div>
+                                    <div></div></div>`
                             }
                             const factureKaal = function (bill) {
-                                return `<div>Facture KAAL ${parseFloat(bill.amount).toFixed(2)} ${bill.number}</div>`
+                                return `<div class="facture-kaal facture">
+                                    <div>Facture KAAL</div>
+                                    <div class="amount">${parseFloat(bill.amount).toFixed(2)}</div>
+                                    <div>${bill.number}</div>
+                                    <div>${bill.comment}</div>
+                                    <div><button type="button">Supprimer</button></div></div>`
                             }
                             const domNode = document.createElement('div')
                             domNode.innerHTML = `
-                                <div>${project.reference} ${project.name}</div>
+                                <div class="project">${project.reference} ${project.name}</div>
                                 <div>
                                     ${project.bills.map(bill => {
                                         if (bill.contact_id) { return factureBexio(bill) }
