@@ -62,7 +62,7 @@
                                 return amountA - amountB
                             })
                         })
-                        return projects
+                        return projects.filter(project => project.bills.length > 0)
                     })
                     .then(projets => {
                         projects.forEach(project => {
