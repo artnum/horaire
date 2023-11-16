@@ -271,20 +271,22 @@ try {
    $bxContact = new BizCuit\BexioContact($bexioDB);
 
    $SheetFacture['header'] = ['N° de facture' => 'string', 'Date' => 'date', 'Personne/société' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string', 'Paiement' => 'date' ];
-
-   $bxQuery = $bxInvoice->newQuery();
-   $bxQuery->add('kb_item_status_id', '7', '>');
-   $bxQuery->add('kb_item_status_id', '10', '<');
-
-   /* loop over all invoices as bexio does not support filtering by project */
-   $limit = 100;
-   $offset = 0;
-
    $invoices = [];
-   while (!empty(($batch = $bxInvoice->search($bxQuery, $offset, $limit)))) {
-      $batch = array_filter($batch, function ($i) use ($row) { if (intval($i->project_id) === intval($row['project_extid'])) { return $i; } });
-      $invoices = array_merge($invoices, $batch);
-      $offset += $limit;
+   if ($row['project_extid'] !== null) {
+      $bxQuery = $bxInvoice->newQuery();
+      $bxQuery->add('kb_item_status_id', '7', '>');
+      $bxQuery->add('kb_item_status_id', '10', '<');
+
+      /* loop over all invoices as bexio does not support filtering by project */
+      $limit = 2000;
+      $offset = 0;
+
+      while (!empty(($batch = $bxInvoice->search($bxQuery, $offset, $limit)))) {
+         $batch = array_filter($batch, function ($i) use ($row) { if (intval($i->project_id) === intval($row['project_extid'])) { return true; }  return false; });
+         $invoices = array_merge($invoices, $batch);
+         $offset += $limit;
+         usleep(20000);
+      }
    }
 
    foreach ($invoices as $invoice) {
