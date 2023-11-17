@@ -267,6 +267,7 @@ try {
    $amountByType = [0, 0, 0, 0];
    
    $bexioDB = new BizCuit\BexioCTX($ini_conf['bexio']['token']);
+   $bexioDB->setSleep(5);
    $bxInvoice = new BizCuit\BexioInvoice($bexioDB);
    $bxContact = new BizCuit\BexioContact($bexioDB);
 
@@ -274,19 +275,11 @@ try {
    $invoices = [];
    if ($row['project_extid'] !== null) {
       $bxQuery = $bxInvoice->newQuery();
+      $bxQuery->setWithAnyfields();
       $bxQuery->add('kb_item_status_id', '7', '>');
       $bxQuery->add('kb_item_status_id', '10', '<');
-
-      /* loop over all invoices as bexio does not support filtering by project */
-      $limit = 2000;
-      $offset = 0;
-
-      while (!empty(($batch = $bxInvoice->search($bxQuery, $offset, $limit)))) {
-         $batch = array_filter($batch, function ($i) use ($row) { if (intval($i->project_id) === intval($row['project_extid'])) { return true; }  return false; });
-         $invoices = array_merge($invoices, $batch);
-         $offset += $limit;
-         usleep(20000);
-      }
+      $bxQuery->add('project_id', $row['project_extid'], '=');
+      $invoices = $bxInvoice->search($bxQuery);
    }
 
    foreach ($invoices as $invoice) {
