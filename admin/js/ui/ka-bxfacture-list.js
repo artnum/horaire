@@ -692,7 +692,7 @@ UIKABXFactureList.prototype.renderAssociateNode = function (parent, repartition 
         <input type="number" name="tva" class="tva" step="0.1" value="${rep.tva}">
         <span class="delete">X</span>
         `
-    new KSelectUI(domNode.querySelector('input[name="project"]'), new STProject('Project'), { realSelect: true, allowFreeText: false })
+    new KSelectUI(domNode.querySelector('input[name="project"]'), new STProject('Project', true), { realSelect: true, allowFreeText: false })
 
     domNode.querySelector('span.delete').addEventListener('click', event => {
         const repartitionId = parseInt(domNode.dataset.repartitionId)
