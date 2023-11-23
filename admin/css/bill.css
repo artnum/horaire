@@ -180,19 +180,58 @@ div.popup.import li.more {
 }
 
 .billItem.selected {
-    border: 2px solid blue;
+    background-color: lightgray;
+    border-bottom: 1px solid gray;
     font-weight: bold;
 }
 
 .billItem {
     border: 2px solid transparent;
     display: grid;
-    grid-template-columns: 3fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    grid-template-areas: "vendor vendor vendor duedate amount" 
+      "number number reference reference reference";
     order: 4;
     max-height: 8ex;
     min-height: 8ex;
     overflow-y: hidden;
     margin: 2px 0;
+    border-bottom: 1px solid lightgray;
+}
+
+.billItem:hover {
+    background-color: lightblue;
+}
+
+.billItem.selected:hover {
+    background-color: lightgray;
+}
+
+.billItem .vendor {
+    grid-area: vendor;
+}
+
+.billItem .reference, .billItem .number {
+    text-align: right;
+    font-family: monospace;
+    grid-area: reference;
+    overflow: hidden;
+    place-self: end;
+    max-width: fit-content !important;
+}
+
+.billItem .number {
+    grid-area: number;
+}
+
+.billItem .duedate {
+    grid-area: duedate;
+}
+
+.billItem .amount {
+    text-align: right;
+    grid-area: amount;
 }
 
 .billItem.header {
@@ -214,6 +253,29 @@ div.popup.import li.more {
     order: 1;
     background-color: red;
     color: white;
+}
+
+.billItem[data-search="false"]{
+    display: none;
+}
+
+.billItem span.highlight {
+    background-color: rgba(154, 205, 50, 0.5);
+    color: black;
+}
+
+.billItem.level1:hover {
+    order: 3;
+    background-color: lightgoldenrodyellow;
+}
+.billItem.level2:hover {
+    order: 2;
+    background-color: lightsalmon;
+}
+.billItem.level3:hover {
+    order: 1;
+    background-color: lightpink;
+    color: black;
 }
 
 .billItem span.floating {

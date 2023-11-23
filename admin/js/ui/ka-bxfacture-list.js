@@ -4,7 +4,8 @@ function UIKABXFactureList () {
     this.domNode.innerHTML = `
         <div class="selector"></div>
         <div class="list">
-            <div class="header billItem"><span>Créancier<br><small>Facture fournisseur</small></span><span>Échéance</span><span>Montant</span></div>
+            <input type="text" name="search" placeholder="Recherche" class="search" />
+            <div class="header billItem"><span class="vendor">Créancier<br><small>Facture fournisseur</small></span><span class="duedate">Échéance</span><span class="amount">Montant</span></div>
         </div>
         <div class="preview"></div>
         <div class="action"></div>
@@ -30,6 +31,56 @@ function UIKABXFactureList () {
             .then(_ => this.clearAction())
             .then(_ => this.render(value))
         })
+    })
+    this.listNode.addEventListener('keyup', event => {
+        const name = event.target.name
+        switch(name) {
+            default: return;
+            case 'search':
+                let value = event.target.value
+                if (value === '') {
+                    this.listNode.querySelectorAll('.billItem[data-id]').forEach(node => {
+                        node.dataset.search = 'true'
+                        Array.from(node.querySelectorAll('span')).forEach(span => {
+                            span.classList.remove('highlight')
+                        })
+                    })
+                    return 
+                }
+                value = value.toLowerCase().split(' ')
+                this.listNode.querySelectorAll('.billItem[data-id]')
+                .forEach(node => {
+                    node.dataset.search = 'false'
+                    let found = true
+                    let pass = 0
+                    value.forEach(word => {
+                        pass++
+                        if (!found) { return }
+                        let wordfound = false
+                        if (word === '') { return }
+                        Array.from(node.querySelectorAll('span'))
+                        .forEach(span => {
+                            if (span.textContent.toLowerCase().includes(word)) {
+                                wordfound = true
+                                span.classList.add('highlight')
+                                span.dataset.highlight = pass
+                            } else {
+                                if (span.dataset.highlight == pass) { span.classList.remove('highlight') }
+                            }
+                        })
+                        if (!wordfound) { found = false; return }
+                    })
+
+                    if (found) { node.dataset.search = 'true' }
+                    else {
+                        Array.from(node.querySelectorAll('span')).forEach(span => {
+                            span.classList.remove('highlight')
+                        })
+                        node.dataset.search = 'false'
+                    }
+                })
+                break;
+        }
     })
 }
 
@@ -66,7 +117,11 @@ UIKABXFactureList.prototype.render = function (query = {state: 'INCOMING'}) {
                     div.classList.add('billItem')
                     if (bill.remainder > 0) { div.classList.add(`level${bill.remainder}`) }
                     if (bill.qraddress) { div.dataset.address = bill.qraddress.id }
-                    div.innerHTML = `<span class="vendor">${bill.qraddress?.name ?? ''}</span><span class="duedate floating">${bill.duedate.shortDate()}</span><span class="amount floating">${parseFloat(bill.amount).toFixed(2)}</span>`
+                    div.innerHTML = `<span class="vendor">${bill.qraddress?.name ?? ''}</span>
+                    <span class="duedate floating">${bill.duedate.shortDate()}</span>
+                    <span class="amount floating">${KAFloat(bill.amount).toFixed(2)}</span>
+                    <span class="number">${bill.number}</span>
+                    <span class="reference">${bill.reference}</span>`
                     div.addEventListener('click', event => {
                         const details = event.currentTarget.dataset
                         Promise.all([this.clearAction(), this.clearPreview()])
@@ -111,13 +166,11 @@ UIKABXFactureList.prototype.clearAction = function () {
 
 UIKABXFactureList.prototype.clearList = function () {
     return new Promise(resolve => {
-        const div = document.createElement('DIV')
-        div.innerHTML = '<span>Créditeur</span><span>Échéance</span><span>Montant</span>'
-        div.classList.add('header', 'billItem')
+        
         window.requestAnimationFrame(() => {
             Array.from(this.listNode.children)
+                .filter(child => !child.classList.contains('header') && !child.classList.contains('search'))
                 .forEach(child => this.listNode.removeChild(child))
-            this.listNode.appendChild(div)
             resolve()
         })
     })
@@ -247,7 +300,11 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
     
                 <label for="amount">Montant <input type="number" name="amount" step="0.01" value="${bill.amount.toFixed(2)}"></label>
 
-                ${conditions.map(condition =>  `<label>Rabais ${condition[0]}% à ${condition[1]} jours</label>`).join('')}
+                ${conditions.map(condition =>  `<div class="condition">
+                        <label>Rabais ${condition[0]}% à ${condition[1]} jours</label>
+                        <button value="${condition[0]}:${condition[1]}" name="applyCondition" type="button">Appliquer</button>
+                    </div>
+                `).join('')}
                 <!-- <button type="button" name="editCondition">Modifier</button> -->
             `
 
@@ -287,7 +344,7 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                     id: bill.id,
                     reference: QRBill.ugly_reference(formData.get('reference')),
                     number: formData.get('number'),
-                    amount: parseFloat(formData.get('amount')),
+                    amount: KAFloat(formData.get('amount')),
                     duedate: formData.get('duedate'),
                     date: formData.get('date'),
                     state: 'OPEN'
@@ -327,8 +384,8 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                             if (node.querySelector('input[name="value"]').value === '') { return Promise.resolve() }
                             const rep = {value: node.querySelector('input[name="value"]').value, project: node.querySelector('input[name="project"]').dataset.value, facture: bill.id, tva: node.querySelector('input[name="tva"]').value}
 
-                            rep.value = parseFloat(rep.value)
-                            rep.tva = parseFloat(rep.tva)
+                            rep.value = KAFloat(rep.value)
+                            rep.tva = KAFloat(rep.tva)
 
                             if (isNaN(rep.value) || isNaN(rep.tva)) { return Promise.resolve() }
                             rep.value = (rep.value / (1 + (rep.tva / 100))).toFixed(4)
@@ -362,6 +419,18 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                 })
             })
 
+            form.addEventListener('change', event => {
+                const target = event.target
+                switch(target.name) {
+                    case 'date':
+                        const condition = conditions.sort((a, b) => parseInt(a[0]) - parseInt(b[0])).pop()
+                        if (target.value.length <=0 ) { return; }
+                        const day = new Date(target.value)
+                        day.setDate(day.getDate() + parseInt(condition[1]))
+                        return form.querySelector('input[name="duedate"]').value = day.toISOString().substring(0, 10)
+                }
+            })
+
             form.addEventListener('keyup', event => {
                 const target = event.target
                 switch(target.name) {
@@ -381,8 +450,15 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
 
 
             form.addEventListener('click', event => {
-                if (event.target.name === 'editCondition') {
-                    this.editConditions(bill.conditions, bill.id, address.id)
+                switch(event.target.name){
+                    case 'editCondition':
+                        return this.editConditions(bill.conditions, bill.id, address.id)
+                    case 'applyCondition':
+                        const condition = event.target.value.split(':')
+                        const day = new Date(form.querySelector('input[name="date"]').value)
+                        day.setDate(day.getDate() + parseInt(condition[1]))
+                        form.querySelector('input[name="duedate"]').value = day.toISOString().substring(0, 10)
+                        return form.querySelector('input[name="amount"]').value = KAFloat(bill.amount * (1 - (parseInt(condition[0]) / 100)))
                 }
             })
             form.classList.add('paiement')
@@ -496,7 +572,7 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
 }
 
 UIKABXFactureList.prototype.renderCreditor = function (creancierFieldset, creditor, newAddress = false) {
-    if (!creditor.iban) { 
+    if (!creditor.iban && !creditor.name) { 
         const node = document.createElement('INPUT')
         new KSelectUI(node, new KAPI(`${KAAL.getBase()}/QRAddress`), {realSelect: true, allowFreeText: false})
         node.addEventListener('change', event => {
@@ -558,6 +634,7 @@ UIKABXFactureList.prototype.renderCreditor = function (creancierFieldset, credit
                 switch(target.name) {
                     case 'iban':
                         return target.setAttribute('aria-invalid', QRBill.verify_iban(target.value) ? 'false' : 'true')
+
                 }
             })
             popup.addEventListener('submit', event=> {
@@ -573,7 +650,6 @@ UIKABXFactureList.prototype.renderCreditor = function (creancierFieldset, credit
                 }
                 new KAPI(`${KAAL.getBase()}/QRAddress`).write(address)
                 .then(address => {
-                    console.log(address)
                     this.renderCreditor(creancierFieldset, address, true)
                     popup.close()
                 })
@@ -636,7 +712,7 @@ UIKABXFactureList.prototype.editConditions = function (conditionsStr, billId, ad
         `
     conditions.forEach((condition, i) => {
         form.elements[`conditionDay${i}`].value = parseInt(condition[1])
-        form.elements[`conditionDiscount${i}`].value = parseFloat(condition[0])
+        form.elements[`conditionDiscount${i}`].value = KAFloat(condition[0])
     })
 
     form.addEventListener('submit', event => {
@@ -678,8 +754,8 @@ UIKABXFactureList.prototype.renderAssociateNode = function (parent, repartition 
     if (repartition !== null) { domNode.dataset.done = true }
 
     const rep = {value: repartition ? repartition.value : '', project: repartition ? repartition.project : '', tva: repartition ? repartition.tva : 7.7}
-    rep.value = parseFloat(rep.value)
-    rep.tva = parseFloat(rep.tva)
+    rep.value = KAFloat(rep.value)
+    rep.tva = KAFloat(rep.tva)
 
     rep.value = (rep.value + (rep.value * rep.tva / 100)).toFixed(2)
     if (isNaN(rep.value)) {
@@ -697,7 +773,12 @@ UIKABXFactureList.prototype.renderAssociateNode = function (parent, repartition 
     domNode.querySelector('span.delete').addEventListener('click', event => {
         const repartitionId = parseInt(domNode.dataset.repartitionId)
         if (repartitionId === 0) {
-            window.requestAnimationFrame(() => domNode.remove())
+            new Promise(resolve => {
+                window.requestAnimationFrame(() => { domNode.remove(); resolve() })
+            })
+            .then(_ => {
+                this.calculateRepartitionTotal(parent)
+            })
             if (parent.querySelectorAll('[data-done="false"]').length === 0) {
                 this.renderAssociateNode(parent)
             }
@@ -720,15 +801,38 @@ UIKABXFactureList.prototype.renderAssociateNode = function (parent, repartition 
 UIKABXFactureList.prototype.renderAssociate = function (billId) {
     return new Promise(resolve => {
         const fieldset = KAFieldsetUI('Répartition')
+        fieldset.insertAdjacentHTML('beforeend', `<label for="total">Total : <input name="total" type="text" readonly="true"></input></label>`)
         const karepartition = new KAPI(`${KAAL.getBase()}/Repartition`)
         karepartition.search({facture: billId})
         .then(repartitions => {
+            let total = 0
             repartitions.forEach(repartition => {
+                const value = (repartition.value + (repartition.value * repartition.tva / 100))
+                if (!isNaN(value)) { total += value }
                 this.renderAssociateNode(fieldset, repartition)
             })
+            fieldset.querySelector('input[name="total"]').value = total.toFixed(2)
             this.renderAssociateNode(fieldset)
             return resolve(fieldset)
         })
-        
+        fieldset.addEventListener('change', event => {
+            const name = event.target.name
+            switch(name) {
+                case 'value':
+                    this.calculateRepartitionTotal(fieldset)
+                    break;
+            }
+        })
+
+
     })
+}
+
+UIKABXFactureList.prototype.calculateRepartitionTotal = function (fieldset) {
+    fieldset.querySelector('input[name="total"]').value = Array.from(fieldset.querySelectorAll('input[name="value"]'))
+        .reduce((acc, node) => {
+            const value = KAFloat(node.value)
+            if (!isNaN(value)) { acc += value }
+            return acc
+        }, 0)
 }
