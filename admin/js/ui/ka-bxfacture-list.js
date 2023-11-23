@@ -388,6 +388,7 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                             rep.value = KAFloat(rep.value)
                             rep.tva = KAFloat(rep.tva)
 
+                            if (rep.value === 0.0) { return Promise.resolve() }
                             if (isNaN(rep.value) || isNaN(rep.tva)) { return Promise.resolve() }
                             rep.value = (rep.value / (1 + (rep.tva / 100))).toFixed(4)
 
