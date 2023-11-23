@@ -13,7 +13,8 @@ const adminImports = [
     [KAAL.url('admin/js/store/group.js'), 'script'],
     [KAAL.url('admin/js/string.js'), 'script'],
     [KAAL.url('admin/js/lib/kapi.js'), 'script'],
-    [KAAL.url('admin/js/lib/qrbill.js'), 'script']
+    [KAAL.url('admin/js/lib/qrbill.js'), 'script'],
+    [KAAL.url('admin/js/lib/float.js'), 'script']
 ]
 
 window.addEventListener('DOMContentLoaded', event => {
