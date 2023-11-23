@@ -864,13 +864,13 @@ button.addMore:before {
 }
 
 .ka-fieldset[data-state="closed"] * {
-    display: none;
+    display: none !important;
 }
 .ka-fieldset legend {
     cursor: pointer;
 }
 .ka-fieldset[data-state="closed"] legend {
-    display: unset;
+    display: unset !important;
 }
 .ka-fieldset legend::before {
     margin-right: 0.5ch;

@@ -286,6 +286,11 @@ div.popup.import li.more {
     padding: 0 0.5ch;
 }
 
+.condition.applied {
+    border-bottom: 2px solid green;
+    background-color: lightgreen;
+}
+
 .ka-bxfacture-list .list {
     display: flex;
     flex-direction: column;

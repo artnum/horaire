@@ -296,11 +296,11 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                 <label for="number">Numéro <input type="text" name="number" value="${bill.number}"></label>
                 <label for="date">Date <input type="date" name="date" value="${bill.date}"></label>
                 <label for="duedate">Date paiement <input type="date" name="duedate" value="${bill.duedate}"></label>
-
+                <input type="hidden" name="condition" value="${bill.condition}">
     
                 <label for="amount">Montant <input type="number" name="amount" step="0.01" value="${bill.amount.toFixed(2)}"></label>
 
-                ${conditions.map(condition =>  `<div class="condition">
+                ${conditions.map(condition =>  `<div class="condition  ${bill.condition === `${condition[0]}:${condition[1]}` ? 'applied' : ''}">
                         <label>Rabais ${condition[0]}% à ${condition[1]} jours</label>
                         <button value="${condition[0]}:${condition[1]}" name="applyCondition" type="button">Appliquer</button>
                     </div>
@@ -347,7 +347,8 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                     amount: KAFloat(formData.get('amount')),
                     duedate: formData.get('duedate'),
                     date: formData.get('date'),
-                    state: 'OPEN'
+                    state: 'OPEN',
+                    condition: formData.get('condition')
                 }                
                 address = {
                     id: address.id,
@@ -458,7 +459,10 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                         const day = new Date(form.querySelector('input[name="date"]').value)
                         day.setDate(day.getDate() + parseInt(condition[1]))
                         form.querySelector('input[name="duedate"]').value = day.toISOString().substring(0, 10)
-                        return form.querySelector('input[name="amount"]').value = KAFloat(bill.amount * (1 - (parseInt(condition[0]) / 100)))
+                        form.querySelector('input[name="condition"]').value = `${condition[0]}:${condition[1]}`
+                        form.querySelectorAll('.condition').forEach(node => node.classList.remove('applied'))
+                        event.target.parentNode.classList.add('applied')
+                        return form.querySelector('input[name="amount"]').value = Math.round(KAFloat(bill.amount * (1 - (parseInt(condition[0]) / 100))) * 100) / 100
                 }
             })
             form.classList.add('paiement')
