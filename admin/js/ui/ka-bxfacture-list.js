@@ -48,7 +48,7 @@ function UIKABXFactureList () {
             payButton.textContent = 'Payer la selection'
             const node = document.createElement('INPUT')
             this.bankAccountSelector = node
-            new KSelectUI(node, new KAPI(`${KAAL.getBase()}/BXBankAccount`), {attribute: 'bank_name', realSelect: true, allowFreeText: false})
+            new KSelectUI(node, new KAPI(`${KAAL.getBase()}/BXBankAccount`), {attribute: 'name', realSelect: true, allowFreeText: false})
             window.requestAnimationFrame(() => this.selectorNode.appendChild(node))
             window.requestAnimationFrame(() => this.selectorNode.appendChild(payButton))
             
