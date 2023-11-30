@@ -32,4 +32,5 @@ while(($facture = $stmt->fetch())) {
         continue;
     }
     echo "Facture " . $facture['facture_id'] . " : " . $facture['facture_reference'] . " => " . $qrref . "\n";
+    $db->prepare('UPDATE facture SET facture_reference = :ref WHERE facture_id = :id')->execute(['ref' => $qrref, 'id' => $facture['facture_id']]);
 }
