@@ -282,6 +282,7 @@ try {
       $invoices = $bxInvoice->search($bxQuery);
    }
 
+   $line = 1;
    foreach ($invoices as $invoice) {
       $reference = $invoice->document_nr;
       $contact = $bxContact->get($invoice->contact_id);
@@ -289,14 +290,14 @@ try {
       $amount = floatval($invoice->total);
       $SheetFacture['content'][] = [$reference, $invoice->is_valid_from, $contact->name_1, $amount_ht, '', $amount , 'Débiteur',  ''];
       $amountByType[1] += abs($amount_ht);
-
+      $line++;
    }
 
    $repSt = $db->prepare('SELECT * FROM "repartition" LEFT JOIN "facture" ON "facture_id" = "repartition_facture" LEFT JOIN "qraddress" ON "facture_qraddress" = "qraddress_id" WHERE "repartition_project" = :id AND "facture_deleted" = 0');
    $repSt->bindValue(':id', $row['project_id'], PDO::PARAM_INT);
    if ($repSt->execute()) {
-      $line = 1;
       while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
+         if (!empty($repData['facture_extid'])) { continue; }
          $paydate = null;
          $paiementSt = $db->prepare('SELECT MAX(paiement_date) as "paiement_date" FROM paiement WHERE paiement_facture = :facture_id');
          $paiementSt->bindValue(':facture_id', $repData['facture_id'], PDO::PARAM_INT);
