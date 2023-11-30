@@ -21,7 +21,13 @@ while(($facture = $stmt->fetch())) {
     /* remove trailing spaces */
     $output = array_map('trim', $output);
 
+    $iban = $output[BizCuit\SwissQR\QRCH\CdtrInf\IBAN];
+    if (substr($iban, 4, 1) !== '3') {
+        continue;
+    }
+
     $qrref = $output[BizCuit\SwissQR\QRCH\RmtInf\Ref];
+    if (empty($qrref)) { continue; }
     if (strval($qrref) === strval($facture['facture_reference'])) {
         continue;
     }
