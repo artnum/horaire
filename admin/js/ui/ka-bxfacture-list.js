@@ -46,9 +46,14 @@ function UIKABXFactureList () {
             payButton.type = 'button'
             payButton.name = 'pay'
             payButton.textContent = 'Payer la selection'
+            const node = document.createElement('INPUT')
+            this.bankAccountSelector = node
+            new KSelectUI(node, new KAPI(`${KAAL.getBase()}/BXBankAccount`), {attribute: 'bank_name', realSelect: true, allowFreeText: false})
+            window.requestAnimationFrame(() => this.selectorNode.appendChild(node))
             window.requestAnimationFrame(() => this.selectorNode.appendChild(payButton))
-            payButton.addEventListener('click', event => {
-                this.paySelected()
+            
+           payButton.addEventListener('click', event => {
+                this.paySelected(this.bankAccountSelector.dataset.value)
             })
             return 
         }
@@ -906,9 +911,9 @@ UIKABXFactureList.prototype.selectBill = function (event) {
     this.listNode.querySelector('.header .total').textContent = total.toFixed(2)
 }
 
-UIKABXFactureList.prototype.paySelected = function () {
+UIKABXFactureList.prototype.paySelected = function (bank) {
     const KAPIBill = new KAPI(`${KAAL.getBase()}/Facture`)
-    Promise.allSettled(this.multiselect.map(item => KAPIBill.execute('pay', {id: item.id})))
+    Promise.allSettled(this.multiselect.map(item => KAPIBill.execute('pay', {id: item.id, bank})))
     .then(results => {
         return results.filter(result => result.status === 'fulfilled').map(result => result.value).filter(value => !value.success)
     })

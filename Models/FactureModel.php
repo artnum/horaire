@@ -110,6 +110,10 @@ class FactureModel extends artnum\SQL {
 
   function getPay($args) {
     $billId = $args['id'];
+    $bankAccountId = 1;
+    if (!empty($args['bank'])) {
+      $bankAccountId = $args['bank'];
+    }
 
     $stmt = $this->get_db(true)->prepare('SELECT * FROM facture 
       LEFT JOIN qraddress ON facture_qraddress = qraddress_id 
@@ -126,7 +130,7 @@ class FactureModel extends artnum\SQL {
     $object->amount = floatval($bill['facture_amount']);
     $object->currency_code = $bill['facture_currency'];
     $object->exchange_rate = 1.0;
-    $object->sender_bank_account_id = 1;
+    $object->sender_bank_account_id = $bankAccountId;
     if (empty($bill['qraddress_iban'])) {
       $object->payment_type = 'MANUAL';
     } else {
