@@ -555,7 +555,7 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                 `)
                 if (this.currentState === 'OPEN') {
                     form.querySelector('button[name="payBill"]').addEventListener('click', event => {
-                        KAPIBill.execute('pay', {id: bill.id})
+                        KAPIBill.write({state: 'PAID'}, bill.id)
                         .then(x => {
                             return Promise.allSettled([
                                 this.clearAction(),
