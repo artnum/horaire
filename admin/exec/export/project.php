@@ -299,7 +299,6 @@ try {
    $repSt->bindValue(':id', $row['project_id'], PDO::PARAM_INT);
    if ($repSt->execute()) {
       while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
-         if (!empty($repData['facture_extid'])) { continue; }
          if (in_array(strval($repData['facture_reference']), $bxReferences)) { continue; }
          $paydate = null;
          $paiementSt = $db->prepare('SELECT MAX(paiement_date) as "paiement_date" FROM paiement WHERE paiement_facture = :facture_id');
