@@ -283,11 +283,13 @@ try {
    }
 
    $line = 1;
+   $bxReferences = [];
    foreach ($invoices as $invoice) {
       $reference = $invoice->document_nr;
       $contact = $bxContact->get($invoice->contact_id);
       $amount_ht = floatval($invoice->total_net);
       $amount = floatval($invoice->total);
+      $bxReferences[] = strval($reference);
       $SheetFacture['content'][] = [$reference, $invoice->is_valid_from, $contact->name_1, $amount_ht, '', $amount , 'Débiteur',  ''];
       $amountByType[1] += abs($amount_ht);
       $line++;
@@ -298,6 +300,7 @@ try {
    if ($repSt->execute()) {
       while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
          if (!empty($repData['facture_extid'])) { continue; }
+         if (in_array(strval($repData['facture_reference']), $bxReferences)) { continue; }
          $paydate = null;
          $paiementSt = $db->prepare('SELECT MAX(paiement_date) as "paiement_date" FROM paiement WHERE paiement_facture = :facture_id');
          $paiementSt->bindValue(':facture_id', $repData['facture_id'], PDO::PARAM_INT);
