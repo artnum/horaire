@@ -152,6 +152,10 @@ KAPI.prototype.execute = function (functionName, params = {}) {
             return response.json()
         })
         .then(data => {
+            data.__request = {
+                name: functionName,
+                params: params
+            }
             return resolve(data)
         })
         .catch(cause => {

@@ -286,6 +286,16 @@ div.popup.import li.more {
     padding: 0 0.5ch;
 }
 
+.billItem.payment {
+    background-color: blue;
+    color: white;
+    font-weight: bold;
+}
+
+.billItem.payment .vendor::before {
+    content : ' ✔ ';
+}
+
 .condition.applied {
     border-bottom: 2px solid green;
     background-color: lightgreen;

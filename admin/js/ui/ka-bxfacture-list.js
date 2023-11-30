@@ -5,7 +5,7 @@ function UIKABXFactureList () {
         <div class="selector"></div>
         <div class="list">
             <input type="text" name="search" placeholder="Recherche" class="search" />
-            <div class="header billItem"><span class="vendor">Créancier<br><small>Facture fournisseur</small></span><span class="duedate">Échéance</span><span class="amount">Montant</span></div>
+            <div class="header billItem"><span class="vendor">Créancier<br><small>Facture fournisseur</small></span><span class="duedate">Échéance</span><span class="amount">Montant<br><span class="total"></span></span></div>
         </div>
         <div class="preview"></div>
         <div class="action"></div>
@@ -31,6 +31,35 @@ function UIKABXFactureList () {
             .then(_ => this.clearAction())
             .then(_ => this.render(value))
         })
+    })
+    this.payModeState = document.createElement('INPUT')
+    this.payModeState.type = 'checkbox'
+    this.payModeState.name = 'payModeState'
+    const payModeLabel = document.createElement('LABEL')
+    payModeLabel.textContent = 'Mode paiement'
+    payModeLabel.insertBefore(this.payModeState, payModeLabel.firstChild)
+    this.selectorNode.appendChild(payModeLabel)
+
+    this.payModeState.addEventListener('change', event => {
+        if (this.payModeState.checked) { 
+            const payButton = document.createElement('BUTTON')
+            payButton.type = 'button'
+            payButton.name = 'pay'
+            payButton.textContent = 'Payer la selection'
+            window.requestAnimationFrame(() => this.selectorNode.appendChild(payButton))
+            payButton.addEventListener('click', event => {
+                this.paySelected()
+            })
+            return 
+        }
+        window.requestAnimationFrame(() => this.selectorNode.querySelector('button[name="pay"]').remove())
+        this.unselectAllBill()
+    })
+
+    this.listNode.addEventListener('click', event => {
+        if (!this.payModeState.checked) { return }
+        event.stopPropagation()
+        this.selectBill(event)  
     })
     this.listNode.addEventListener('keyup', event => {
         const name = event.target.name
@@ -361,7 +390,7 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                     town: formData.get('town') ?? '',
                     country: formData.get('country')
                 }
-               
+
                 if (formData.get('address_id')) {
                     address.id = formData.get('address_id')
                     billUpdate.qraddress = address.id
@@ -526,8 +555,8 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                 `)
                 if (this.currentState === 'OPEN') {
                     form.querySelector('button[name="payBill"]').addEventListener('click', event => {
-                        KAPIBill.write({state: 'PAID', id: bill.id}, bill.id)
-                        .then(_ => {
+                        KAPIBill.execute('pay', {id: bill.id})
+                        .then(x => {
                             return Promise.allSettled([
                                 this.clearAction(),
                                 this.clearList(),
@@ -840,4 +869,84 @@ UIKABXFactureList.prototype.calculateRepartitionTotal = function (fieldset) {
             if (!isNaN(value)) { acc += value }
             return acc
         }, 0)
+}
+
+UIKABXFactureList.prototype.unselectAllBill = function () {
+    this.multiselect = []
+    window.requestAnimationFrame(() => { this.listNode.querySelector('.header .total').textContent = '' })
+    this.listNode.querySelectorAll('.billItem.payment').forEach(node => 
+        window.requestAnimationFrame(() => node.classList.remove('payment'))
+    )
+}
+
+UIKABXFactureList.prototype.selectBill = function (event) {
+    console.log(event)
+    if (!this.multiselect) {
+        this.multiselect = []
+    }
+    let node = event.target
+    while(node && !node.classList.contains('billItem')) { 
+        node = node.parentNode
+    }
+    const amount = KAFloat(node.querySelector('.amount').textContent)
+    const id = node.dataset.id
+
+    if (node.classList.contains('payment')) {
+        this.multiselect = this.multiselect.filter(item => item.id !== id)
+    } else {
+        this.multiselect.push({id, amount})
+    }
+
+    node.classList.toggle('payment')
+
+    const total = this.multiselect.reduce((acc, item) => {
+        acc += item.amount
+        return acc
+    }, 0)
+    this.listNode.querySelector('.header .total').textContent = total.toFixed(2)
+}
+
+UIKABXFactureList.prototype.paySelected = function () {
+    const KAPIBill = new KAPI(`${KAAL.getBase()}/Facture`)
+    Promise.allSettled(this.multiselect.map(item => KAPIBill.execute('pay', {id: item.id})))
+    .then(results => {
+        return results.filter(result => result.status === 'fulfilled').map(result => result.value).filter(value => !value.success)
+    })
+    .then(failed => {
+        return Promise.allSettled(failed.map(fail => KAPIBill.get(fail.__request.params.id)))
+    })
+    .then(results => {
+        return results.filter(result => result.status === 'fulfilled').map(result => result.value)
+    })
+    .then(bills => {
+        this.clearPreview()
+        .then(_ => {
+            if (bills.length === 0) { return }
+            const title = document.createElement('H2')
+            title.innerHTML = 'Factures ne pouvant être mise en paiement'
+            this.previewNode.appendChild(title)
+            const KAPIQRAddress = new KAPI(`${KAAL.getBase()}/QRAddress`)
+            bills.forEach(bill => {
+                KAPIQRAddress.get(bill.qraddress)
+                .then(qraddress => {
+                    const div = document.createElement('DIV')
+                    div.classList.add('billItem')
+                    if (bill.duedate === '') { bill.duedate = bill.date }
+                    bill.duedate = new Date(bill.duedate)
+                    div.innerHTML =  `<span class="vendor">${qraddress?.name ?? ''}</span>
+                    <span class="duedate floating">${bill.duedate.shortDate()}</span>
+                    <span class="amount floating">${KAFloat(bill.amount).toFixed(2)}</span>
+                    <span class="number">${bill.number}</span>
+                    <span class="reference">${bill.reference}</span>`
+                    window.requestAnimationFrame(() => this.previewNode.appendChild(div))
+                })
+            })
+        })
+        .then(_ => {
+            this.clearList()
+            .then(_ => {
+                this.render({state: this.currentState})
+            })
+        })
+    })
 }

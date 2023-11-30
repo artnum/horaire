@@ -62,6 +62,7 @@ QRBill = {
     },
 
     verify_iban (iban) {
+        if (iban.length <= 0) { return true }
         const ISO7064_MODULUS = 97;
         return QRBill.iso7064_mod_97_10(`${iban.substr(4)}${iban.substr(0, 4)}`) % ISO7064_MODULUS === 1
     },

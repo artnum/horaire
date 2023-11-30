@@ -174,12 +174,15 @@ class FactureModel extends artnum\SQL {
       $ret = $bxpay->set($object);
     } catch (Exception $e) {
       error_log($e->getMessage());
+      $this->response->softError('bexio', $e->getMessage(), $e->getCode());
       while($e = $e->getPrevious()) {
         error_log($e->getMessage());
+        $this->response->softError('bexio', $e->getMessage(), $e->getCode());
       }
       throw new Exception('Erreur bexio');
     }
-    
+    $this->get_db(false)->prepare('UPDATE facture SET facture_state = \'PAID\' WHERE facture_id = :id')->execute(['id' => $billId]);    
+
     $this->response->start_output();
     $this->response->echo($ret->toJson());
     return ['count' => 1];
