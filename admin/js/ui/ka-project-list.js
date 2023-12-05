@@ -693,8 +693,8 @@ UIKAProjectList.prototype.editProject = function (projectId) {
                     <label for="reference">Numéro de chantier : </label><input readonly name="reference" type="text" value="${project.reference ?? ''}" />
                     <label for="name">Nom : </label><input name="name" type="text" value="${project.name ?? ''}"/><br>
                     <label for="price">Prix de vente HT : </label><input name="price" type="text" value="${project.price ?? ''}"/><br>
-                    <label for="extid">Projet bexio : <input name="extid" type="text" value="${project.extid ?? ''}" /> 
-                        ${project.extid ? '' : '<button type="submit" name="bxcreate">ou créer sur bexio</button>'}<br/>
+                    ${KAAL.bexio.enabled ? `<label for="extid">Projet bexio : <input name="extid" type="text" value="${project.extid ?? ''}" /> 
+                        ${project.extid ? '' : '<button type="submit" name="bxcreate">ou créer sur bexio</button>'}<br/>` : ''}
                     <label for="manager">Chef de projet : </label><input name="manager" type="text" value="${project.manager ?? ''}"/><br>
                     <label for="client">Client : </label><div class="contact"></div><br>
                     <button type="submit">Sauver</button><button type="reset">Annuler</button>
@@ -719,11 +719,15 @@ UIKAProjectList.prototype.editProject = function (projectId) {
                 })
             }
 
-            const bxProjectSelect = new KSelectUI(
-                    popup.querySelector('input[name="extid"]'),
-                    new BXROGenericStore('BXProject', {idName: 'id', label: 'name', name: 'name'}),
-                    { realSelect: true, allowFreeText: false, allowNone: true }
-                )
+            const bxProjectSelect = (() => {
+                if (!KAAL.bexio.enabled) { return null }
+                return new KSelectUI(
+                        popup.querySelector('input[name="extid"]'),
+                        new BXROGenericStore('BXProject', {idName: 'id', label: 'name', name: 'name'}),
+                        { realSelect: true, allowFreeText: false, allowNone: true }
+                    )
+            })()
+
             const managerSelect = new KSelectUI(popup.querySelector('input[name="manager"]'), new STPerson(), { realSelect: true, allowFreeText: false })
 
             const form = popup.getElementsByTagName('FORM')[0]
@@ -752,7 +756,9 @@ UIKAProjectList.prototype.editProject = function (projectId) {
                     price: data.get('price'),
                     manager: managerSelect.value,
                     client: '',
-                    extid: submitter === 'bxcreate' ? '_create' : (bxProjectSelect.value == 0 ? '_unlink' : bxProjectSelect.value)
+                }
+                if (bxProjectSelect) {
+                    project.extid = submitter === 'bxcreate' ? '_create' : (bxProjectSelect.value == 0 ? '_unlink' : bxProjectSelect.value)
                 }
                 if (kaoldcontact.clientid !== null) { 
                     if (String(kaoldcontact.clientid).startsWith('Contact')) {

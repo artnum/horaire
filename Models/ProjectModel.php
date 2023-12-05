@@ -90,38 +90,40 @@ class ProjectModel extends artnum\SQL {
   }
 
   function _write($arg, &$id = NULL) {
-    try {
-      if ($this->kconf->getVar('bexioDB')) {
-        if (!is_null($id) && !empty($arg['extid']) && $arg['extid'] === '_unlink') {
-          $this->unlinkBxProject($id);
-          unset($arg['extid']);
-        } else {
-          if ($id === null || (!empty($arg['extid']) && $arg['extid'] === '_create')) {
-            $bxProject = $this->createEditBxProject($arg);
-            $arg['extid'] = $bxProject->id;
+    if ($this->kconf->get('bexio.enabled') != 0) {
+      try {
+        if ($this->kconf->getVar('bexioDB')) {
+          if (!is_null($id) && !empty($arg['extid']) && $arg['extid'] === '_unlink') {
+            $this->unlinkBxProject($id);
+            unset($arg['extid']);
           } else {
-            $extid = null;
-            $db = $this->get_db(true);
-            $stmt = $db->prepare("SELECT project_extid FROM project WHERE project_id = :id");
-            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            if ($stmt->execute()) {
-              if ($stmt->rowCount() > 0) {
-                $dbData = $stmt->fetch(PDO::FETCH_ASSOC);
-                $extid = $dbData['project_extid'];
+            if ($id === null || (!empty($arg['extid']) && $arg['extid'] === '_create')) {
+              $bxProject = $this->createEditBxProject($arg);
+              $arg['extid'] = $bxProject->id;
+            } else {
+              $extid = null;
+              $db = $this->get_db(true);
+              $stmt = $db->prepare("SELECT project_extid FROM project WHERE project_id = :id");
+              $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+              if ($stmt->execute()) {
+                if ($stmt->rowCount() > 0) {
+                  $dbData = $stmt->fetch(PDO::FETCH_ASSOC);
+                  $extid = $dbData['project_extid'];
+                }
               }
+              if (!$extid && $arg['extid']) { $extid = $arg['extid']; }
+              if ($extid && !empty($arg['manager']) && !empty($arg['reference']) && !empty($arg['name'])) {
+                $bxProject = $this->createEditBxProject($arg, $extid);
+                $extid = $bxProject->id;
+              }
+              $arg['extid'] = $extid;
             }
-            if (!$extid && $arg['extid']) { $extid = $arg['extid']; }
-            if ($extid && !empty($arg['manager']) && !empty($arg['reference']) && !empty($arg['name'])) {
-              $bxProject = $this->createEditBxProject($arg, $extid);
-              $extid = $bxProject->id;
-            }
-            $arg['extid'] = $extid;
           }
         }
+      } catch (Exception $e) {
+        error_log('Bexio error : ' . $e->getMessage());
+        $this->response->softError('bexio', $e);
       }
-    } catch (Exception $e) {
-      error_log('Bexio error : ' . $e->getMessage());
-      $this->response->softError('bexio', $e);
     }
 
     $hook_succeed = false;
