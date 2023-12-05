@@ -46,6 +46,7 @@ function UIKAContactOld () {
     const addClientButton = this.domNode.querySelector('button[name="add"]')
     addClientButton.addEventListener('click', event => {
         new Promise((resolve, reject) => {
+            if (!KAAL.bexio.enabled) { return resolve() }
             const popup = Admin.popup(`<form>La création de contact ne peut pas encore être faite sur Bexio.<br>
             Utilisez l'interface Bexio pour ceci.<br>
             <button type="submit">Créer un contact local</button> <button type="reset">Ok je vais sur Bexio</button>

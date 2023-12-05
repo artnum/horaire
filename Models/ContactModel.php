@@ -200,6 +200,9 @@ class ContactModel extends artnum\LDAP {
   } 
 
   function _read($dn, $options = null) {
+    if ($this->kconf->get('bexio.enabled') == 0) {
+      return parent::_read($dn);
+    }
     if (str_starts_with($dn, '@bx_')) {
       $noquery = false;
       if (isset($options['short'])) { $noquery = true; }
@@ -214,6 +217,10 @@ class ContactModel extends artnum\LDAP {
   }  
 
   function search($body, $options) {
+    if ($this->kconf->get('bexio.enabled') == 0) {
+      return parent::search($body, $options);
+    }
+
     $limit = 500;
     if (isset($options['limit']) && is_numeric($options['limit'])) {
       if (intval($options['limit']) > 0) {
