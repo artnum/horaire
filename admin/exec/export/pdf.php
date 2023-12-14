@@ -1,5 +1,5 @@
 <?PHP
-include('artnum/autoload.php');
+include('../../../vendor/autoload.php');
 
 use Endroid\QrCode\Bacon\MatrixFactory;
 use Endroid\QrCode\Label\LabelInterface;
@@ -142,7 +142,7 @@ class PdfWriter
 }
 
 
-class HorairePDF extends artnum\PDF {
+class HorairePDF extends BizCuit\PDF {
   protected $Options = array(
     'doctype' => '',
     'name' => ''

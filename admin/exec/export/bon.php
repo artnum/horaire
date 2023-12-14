@@ -259,6 +259,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->squaredFrame(47, array('line-type' => 'dotted', 'square' => 9.3, 'lined' => true));
     $PDF->SetY($y);
     
+    $i = 0;
     foreach(['bon_number' => 'N° de bon',
                   'travail_reference' => 'Référence',
                   'create_travail_info' => 'Création',
@@ -272,7 +273,8 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       $PDF->SetFont('helvetica', 'B', 10);
       if (!isset($data[$item])) { $data[$item] = null; }
       if ($data[$item] === 'null') { $data[$item] = null; }
-      $PDF->printLn($data[$item] ? $data[$item] : ' ');
+      $PDF->printLn($data[$item] ? $data[$item] : ' ', ['max-width' => $i > 2 ? 85 : 65]);
+      $i++;
     }
     $PDF->reset();
     $PDF->SetY($y);
@@ -286,7 +288,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       $PDF->SetFont('helvetica', 'B', 10);
       switch ($item) {
         case 1:
-          $PDF->printLn($client['displayname']);
+          $PDF->printLn($client['displayname'], ['max-width' => 85]);
           break;
         case 2:
           $phone = '';
@@ -298,7 +300,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
           if ($phone !== '' && is_array($phone)) {
             $phone = $phone[0];
           }
-          $PDF->printLn($phone);
+          $PDF->printLn($phone, ['max-width' => 85]);
           break;
         case 3:
           $address = [];
@@ -343,7 +345,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
               $PDF->printLn('');
             }
             $PDF->SetFont('helvetica', 'B', 10);
-            $PDF->printLn($line);
+            $PDF->printLn($line, ['max-width' => 85]);
             $first = false;
           }
           break;
@@ -356,7 +358,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       try {
         $manager = $KUser->get($data['project_manager']);
         $PDF->SetFont('helvetica', 'B', 10);
-        $PDF->printLn($manager['name']);
+        $PDF->printLn($manager['name'], ['max-width' => 85]);
       } catch (Exception $e) {
         $PDF->SetFont('helvetica', 'B', 10);
         $PDF->printLn('');
