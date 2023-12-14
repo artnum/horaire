@@ -286,6 +286,7 @@ try {
    $bxReferences = [];
    foreach ($invoices as $invoice) {
       $reference = $invoice->document_nr;
+      if (in_array(strval($reference), $bxReferences)) { continue; }
       $contact = $bxContact->get($invoice->contact_id);
       $amount_ht = floatval($invoice->total_net);
       $amount = floatval($invoice->total);
