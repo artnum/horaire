@@ -4,6 +4,7 @@ require('../../../lib/ini.php');
 require('../../../lib/dbs.php');
 require('../../../lib/urldn.php');
 require('../../../lib/auth.php');
+require('../../../vendor/autoload.php');
 
 require('PHP_XLSXWriter/xlsxwriter.class.php');
 $BaseURL = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'];
@@ -118,6 +119,12 @@ try {
    $per_process = array();
    $per_person = array();
    /* Entrées */
+
+   $bexioDB = new BizCuit\BexioCTX($ini_conf['bexio']['token']);
+   $bexioDB->setSleep(5);
+   $bxInvoice = new BizCuit\BexioInvoice($bexioDB);
+   $bxContact = new BizCuit\BexioContact($bexioDB);
+
    foreach ($values as $row) {
       if (!isset($per_project[$row['project_id']])) {
          if ($row['project_manager']) {
@@ -135,27 +142,38 @@ try {
 
          }
 
-         $ldap = $ldap_db->_con();
-         $res = @ldap_read($ldap, attrLessUrl2db($row['project_client'], $ldap_db->getBase()), '(objectclass=*)', ['displayname', 'givenname', 'sn', 'o']);
-         if ($res) {
-            $entries = ldap_get_entries($ldap, $res);
-            if ($entries['count'] > 0) {
-               $entry = $entries[0];
-               
-               if (!isset($entry['displayname'])) { $entry['displayname'] = ['count' => 0]; }
-               if (!isset($entry['o'])) { $entry['o'] = ['count' => 0]; }
-               if (!isset($entry['sn'])) { $entry['sn'] = ['count' => 0]; }
-               if (!isset($entry['givenname'])) { $entry['givenname'] = ['count' => 0]; }
+         if (str_starts_with(trim($row['project_client']), 'Contact/@bx_')) {
+            try {
+               $bxContactId = substr(trim($row['project_client']), 12);
+               $bxContactData = $bxContact->get($bxContactId);
+               $row['project_client'] = $bxContactData->name_1;
+            } catch (Exception $e) {
+               $row['project_client'] = $row['project_client'] . ' (inconnu)';
+               error_log($e->getMessage());
+            }
+         } else {
+            $ldap = $ldap_db->_con();
+            $res = @ldap_read($ldap, attrLessUrl2db($row['project_client'], $ldap_db->getBase()), '(objectclass=*)', ['displayname', 'givenname', 'sn', 'o']);
+            if ($res) {
+               $entries = ldap_get_entries($ldap, $res);
+               if ($entries['count'] > 0) {
+                  $entry = $entries[0];
+                  
+                  if (!isset($entry['displayname'])) { $entry['displayname'] = ['count' => 0]; }
+                  if (!isset($entry['o'])) { $entry['o'] = ['count' => 0]; }
+                  if (!isset($entry['sn'])) { $entry['sn'] = ['count' => 0]; }
+                  if (!isset($entry['givenname'])) { $entry['givenname'] = ['count' => 0]; }
 
-               if ($entry['displayname']['count'] > 0) {
-                  $row['project_client'] = trim($entry['displayname'][0]);
-               } else if ($entry['o']['count'] > 0) {
-                  $row['project_client'] = trim($entry['o'][0]);
-               } else if ($entry['givenname']['count'] > 0 || $entry['sn']['count'] > 0) {
-                  $name = $entry['givenname']['count'] > 0 ? $entry['givenname'][0] : '';
-                  $name .= $name !== '' ? ' ' : '';
-                  $name .= $entry['sn']['count'] > 0 ? $entry['sn'][0] : '';
-                  $row['project_client'] = trim($name);
+                  if ($entry['displayname']['count'] > 0) {
+                     $row['project_client'] = trim($entry['displayname'][0]);
+                  } else if ($entry['o']['count'] > 0) {
+                     $row['project_client'] = trim($entry['o'][0]);
+                  } else if ($entry['givenname']['count'] > 0 || $entry['sn']['count'] > 0) {
+                     $name = $entry['givenname']['count'] > 0 ? $entry['givenname'][0] : '';
+                     $name .= $name !== '' ? ' ' : '';
+                     $name .= $entry['sn']['count'] > 0 ? $entry['sn'][0] : '';
+                     $row['project_client'] = trim($name);
+                  }
                }
             }
          }
@@ -244,7 +262,8 @@ try {
       $per_process[$row['process_name']][0] += $row['htime_value'];
       $per_process[$row['process_name']][1] += $price * $hours;
       $per_person[$row['person_name']] += $row['htime_value'];
-     
+
+      $per_project[$row['project_id']]['extid'] = $row['project_extid'];
       $per_project[$row['project_id']]['time'] += $row['htime_value'];
       $per_project[$row['project_id']]['workcost'] += ($hours * $price);
 
@@ -293,7 +312,26 @@ try {
    ], ['widths' => [ 10, 40, 20 ]]);
    foreach ($per_project as $project) {
       $amount = [ 'creancier' => 0.0, 'debiteur' => 0.0];
-      $repSt = $db->prepare('SELECT project_id, project_reference, facture_type, SUM(repartition_value) AS total
+
+      $invoices = [];
+      if ($project['extid'] !== null) {
+         $bxQuery = $bxInvoice->newQuery();
+         $bxQuery->setWithAnyfields();
+         $bxQuery->add('kb_item_status_id', '7', '>');
+         $bxQuery->add('kb_item_status_id', '10', '<');
+         $bxQuery->add('project_id', $project['extid'], '=');
+         $invoices = $bxInvoice->search($bxQuery);
+      }
+   
+      $bxReferences = [];
+      foreach ($invoices as $invoice) {
+         $reference = $invoice->document_nr;
+         if (in_array(strval($reference), $bxReferences)) { continue; }
+         $bxReferences[] = strval($reference);
+         $amount['debiteur'] += floatval($invoice->total);
+      }
+
+      $repSt = $db->prepare('SELECT project_id, project_reference, facture_deleted, facture_reference, facture_type, repartition_value
          FROM repartition 
          LEFT JOIN facture ON facture_id = repartition_facture 
          LEFT JOIN project ON project_id = repartition_project 
@@ -301,12 +339,14 @@ try {
       $repSt->bindValue(':id', $project['id'], PDO::PARAM_INT);
       if ($repSt->execute()) {
          while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
+            if (intval($repData['facture_deleted']) !== 0) { continue; }
+            if (in_array(strval($repData['facture_reference']), $bxReferences)) { continue; }
             switch (intval($repData['facture_type'])) {
                case 1:
-                  $amount['creancier'] += floatval($repData['total']);
+                  $amount['creancier'] += floatval($repData['repartition_value']);
                break;
                case 2:
-                  $amount['debiteur'] = +floatval($repData['total']);
+                  $amount['debiteur'] += +floatval($repData['repartition_value']);
                break;
                case 3:
                case 4:
@@ -315,6 +355,7 @@ try {
             }
          }
       }
+
       $project['total_cost'] = ($project['workcost'] + $amount['creancier']);
       $writer->writeSheetRow('Par projet', [
          $project['reference'], 
