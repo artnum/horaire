@@ -1,5 +1,0 @@
-RewriteEngine On
-RewriteBase /horaire/store/
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ store.php/$1 [L]
