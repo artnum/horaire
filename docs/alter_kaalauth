@@ -1,0 +1,10 @@
+alter table kaalauth add column remotehost VARCHAR(256) DEFAULT '';
+alter table kaalauth add column remoteip VARCHAR(40) DEFAULT '';
+alter table kaalauth add column useragent VARCHAR(100) DEFAULT '';
+
+-- second alter
+alter table kaalauth add column share int(1) unsigned default 0;
+alter table kaalauth add column urlid char(40) default '';
+alter table kaalauth add column url text default '';
+alter table kaalauth add column comment char(140) default '';
+alter table kaalauth add column duration integer unsigned default 0 AFTER started;
