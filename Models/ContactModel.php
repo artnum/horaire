@@ -10,8 +10,10 @@ class ContactModel extends artnum\LDAP {
 
   function __construct($db, $config)  {
     $this->kconf = $config;
-    $cacheopts = $config->getVar('bxcache');
-    $this->bxcache = new BexioCache($cacheopts[0], $cacheopts[1], $cacheopts[2]);
+    if ($this->kconf->get('bexio.enabled') != 0) {
+      $cacheopts = $config->getVar('bxcache');
+      $this->bxcache = new BexioCache($cacheopts[0], $cacheopts[1], $cacheopts[2]);
+    }
     parent::__construct($db,
       $this->kconf->get('trees.contacts'), 
       [
