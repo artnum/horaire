@@ -24,8 +24,10 @@ class ProjectModel extends artnum\SQL {
     $this->conf('hook-path', 'exec/hooks');
     $this->conf('ignored', array('year'));
 
-    $cacheopts = $config->getVar('bxcache');
-    $this->bxcache = new BexioCache($cacheopts[0], $cacheopts[1], $cacheopts[2]);
+    if ($this->kconf->get('bexio.enabled') != 0) {
+      $cacheopts = $config->getVar('bxcache');
+      $this->bxcache = new BexioCache($cacheopts[0], $cacheopts[1], $cacheopts[2]);
+    }
   }
   
   function getBxProjectStatus ($bxDb, $name = 'Offen') {
