@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS "person" (
 	"person_created" INTEGER DEFAULT NULL,
 	"person_modified" INTEGER DEFAULT NULL
 , "person_disabled" INTEGER DEFAULT 0, "person_efficiency" FLOAT DEFAULT 1);
+
 CREATE TABLE IF NOT EXISTS "travail" ( -- table containing specific work to be done
         "travail_id" INTEGER PRIMARY KEY AUTO_INCREMENT,
         "travail_reference" VARCHAR(160) DEFAULT '',
@@ -66,8 +67,8 @@ CREATE TABLE IF NOT EXISTS "travail" ( -- table containing specific work to be d
         "travail_closed" INTEGER DEFAULT 0, 
         "travail_time" FLOAT default 0, 
         "travail_force" FLOAT DEFAULT 1.0, 
-        "travail_end" VARCHAR(10), 
-		"travail_begin" VARCHAR(10) DEFAULT '', 
+		"travail_end" VARCHAR(10),
+		"travail_begin" VARCHAR(10) DEFAULT '',
         "travail_plan" INTEGER DEFAULT 0, 
         "travail_group" CHAR(32),
 		"travail_folder" TINYINT UNSIGNED NOT NULL DEFAULT 0,
@@ -186,3 +187,26 @@ CREATE TABLE IF NOT EXISTS "kaalauth" (
 	"auth" CHAR(255) DEFAULT ''
 );
 CREATE INDEX "idxKaalAuth_auth" ON "kaalauth"("auth") USING HASH;
+
+CREATE TABLE IF NOT EXISTS "personlink" (
+	"personlink_uid" INTEGER UNSIGNED,
+	"personlink_extid" CHAR(20) NOT NULL,
+	"personlink_service" CHAR(20) NOT NULL,
+	PRIMARY KEY("personlink_uid", "personlink_service")
+);
+CREATE INDEX "idxPersonLink_service" ON "personlink"("personlink_service") USING HASH;
+
+CREATE TABLE IF NOT EXISTS "group" (
+	"group_uid" INTEGER UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+	"group_name" CHAR(20) NOT NULL UNIQUE,
+	"group_description" VARCHAR(260) DEFAULT '',
+	"group_deleted" INTEGER UNSIGNED DEFAULT NULL
+);
+CREATE INDEX "idxGroup_name" ON "group"("group_name") USING HASH;
+
+CREATE TABLE IF NOT EXISTS "groupuser" (
+	"groupuser_uid" INTEGER UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+	"groupuser_user" INTEGER UNSIGNED NOT NULL,
+	"groupuser_group" INTEGER UNSIGNED NOT NULL
+);
+CREATE UNIQUE INDEX "idxGroupUser_user_group" ON "groupuser"("groupuser_user", "groupuser_group") USING HASH;
