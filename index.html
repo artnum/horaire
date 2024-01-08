@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>[Horaire] Charles Righini SA</title>
+    <title></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="node_modules/sjcl/sjcl.js"></script>
     <script src="conf/kaal.js"></script>
@@ -44,6 +44,7 @@
     window.onload = () => {
         checkBuildNumberAndReload()
         .then(() => {
+            document.title = KAAL.title
             const userUI = new UserInteractUI()
             userUI.run()
 
