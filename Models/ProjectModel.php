@@ -180,11 +180,11 @@ class ProjectModel extends artnum\SQL {
 
     $projectRef = '';
     if (empty($project) || empty($project['maxref'])) {
-      $projectRef = $currentYear . '01';
+      $projectRef = $currentYear . '001';
     } else {
       $y = sprintf("%02d", intval($project['maxref']) / 100000);
       if ($currentYear !== $y) {
-        $projectRef = $currentYear . '01';
+        $projectRef = $currentYear . '001';
       } else {
         $n = sprintf("%03d", (intval($project['maxref']) - (intval($y)*100000)) + 1);
         $projectRef = $y . $n;
