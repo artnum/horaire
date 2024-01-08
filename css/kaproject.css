@@ -1,22 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600&family=B61&family=B612+Mono&display=swap');
-
-:root {
-    --ka-button-background-color: darkblue;
-    --ka-button-color: white;
-    --ka-button-blended-bg: lavender;
-
-    --ka-background-button-color: hsla(333, 49%, 49%, 0.7);
-    --ka-border-button-color: hsla(333, 49%, 49%, 0.7);
-    --ka-text-button-color: black;
-
-    --ka-background-button-active-color: hsla(333, 49%, 49%, 0.3);
-    --ka-border-button-active-color: hsla(333, 49%, 49%, 0.7);
-    --ka-text-button-active-color: black;
-
-    --ka-text-default-font: 'B612', 'sans-serif';
-    --ka-text-default-font: 'B612 Mono', 'monospace';
-    --ka-text-button-font: 'Archivo Narrow', 'sans-serif';
-}
+@import 'color.css';
 
 .ka-forecast {
     font-family: var(--ka-text-default-font);
