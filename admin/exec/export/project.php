@@ -266,36 +266,38 @@ try {
    $factureAmount = 0;
    $amountByType = [0, 0, 0, 0];
    
-   $bexioDB = new BizCuit\BexioCTX($ini_conf['bexio']['token']);
-   $bexioDB->setSleep(5);
-   $bxInvoice = new BizCuit\BexioInvoice($bexioDB);
-   $bxContact = new BizCuit\BexioContact($bexioDB);
-
    $SheetFacture['header'] = ['N° de facture' => 'string', 'Date' => 'date', 'Personne/société' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string', 'Paiement' => 'date' ];
    $invoices = [];
-   if ($row['project_extid'] !== null) {
-      $bxQuery = $bxInvoice->newQuery();
-      $bxQuery->setWithAnyfields();
-      $bxQuery->add('kb_item_status_id', '7', '>');
-      $bxQuery->add('kb_item_status_id', '10', '<');
-      $bxQuery->add('project_id', $row['project_extid'], '=');
-      $invoices = $bxInvoice->search($bxQuery);
-   }
-
    $line = 1;
-   $bxReferences = [];
-   foreach ($invoices as $invoice) {
-      $reference = $invoice->document_nr;
-      if (in_array(strval($reference), $bxReferences)) { continue; }
-      $contact = $bxContact->get($invoice->contact_id);
-      $amount_ht = floatval($invoice->total_net);
-      $amount = floatval($invoice->total);
-      $bxReferences[] = strval($reference);
-      $SheetFacture['content'][] = [$reference, $invoice->is_valid_from, $contact->name_1, $amount_ht, '', $amount , 'Débiteur',  ''];
-      $amountByType[1] += abs($amount_ht);
-      $line++;
-   }
 
+   if (intval($ini_conf['bexio']['token']) == '0') {
+      $bexioDB = new BizCuit\BexioCTX($ini_conf['bexio']['token']);
+      $bexioDB->setSleep(5);
+      $bxInvoice = new BizCuit\BexioInvoice($bexioDB);
+      $bxContact = new BizCuit\BexioContact($bexioDB);
+
+      if ($row['project_extid'] !== null) {
+         $bxQuery = $bxInvoice->newQuery();
+         $bxQuery->setWithAnyfields();
+         $bxQuery->add('kb_item_status_id', '7', '>');
+         $bxQuery->add('kb_item_status_id', '10', '<');
+         $bxQuery->add('project_id', $row['project_extid'], '=');
+         $invoices = $bxInvoice->search($bxQuery);
+      }
+
+      $bxReferences = [];
+      foreach ($invoices as $invoice) {
+         $reference = $invoice->document_nr;
+         if (in_array(strval($reference), $bxReferences)) { continue; }
+         $contact = $bxContact->get($invoice->contact_id);
+         $amount_ht = floatval($invoice->total_net);
+         $amount = floatval($invoice->total);
+         $bxReferences[] = strval($reference);
+         $SheetFacture['content'][] = [$reference, $invoice->is_valid_from, $contact->name_1, $amount_ht, '', $amount , 'Débiteur',  ''];
+         $amountByType[1] += abs($amount_ht);
+         $line++;
+      }
+   }
    $repSt = $db->prepare('SELECT * FROM "repartition" LEFT JOIN "facture" ON "facture_id" = "repartition_facture" LEFT JOIN "qraddress" ON "facture_qraddress" = "qraddress_id" WHERE "repartition_project" = :id AND "facture_deleted" = 0');
    $repSt->bindValue(':id', $row['project_id'], PDO::PARAM_INT);
    if ($repSt->execute()) {
