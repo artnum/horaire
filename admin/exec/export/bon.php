@@ -154,6 +154,10 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     'name' => $pdata['project_name']
   ]);
 
+  if (isset($ini_conf['address'])) {
+    $PDF->setAddress($ini_conf['address']);
+  }
+
   $PDF->addTaggedFont('h', 'helvetica', '', '');
   $PDF->addTaggedFont('b', 'helvetica', 'B', '');
   $PDF->SetAutoPageBreak(false);

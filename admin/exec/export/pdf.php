@@ -145,7 +145,8 @@ class PdfWriter
 class HorairePDF extends BizCuit\PDF {
   protected $Options = array(
     'doctype' => '',
-    'name' => ''
+    'name' => '',
+    'address' => ''
   );
 
   function __construct($options = array()) {
@@ -153,6 +154,10 @@ class HorairePDF extends BizCuit\PDF {
     $this->SetMargins(15, 40, 10);
     $this->SetFont('helvetica');
     $this->Options = array_merge($this->Options, $options);
+  }
+
+  function setAddress ($address) {
+    $this->Options['address'] = $address;
   }
 
   function Header() {
@@ -201,8 +206,10 @@ class HorairePDF extends BizCuit\PDF {
   function Footer() {
     $this->SetXY(15, $this->h - 10);
     $this->Line($this->GetX(), floor($this->GetY() - 2), ceil($this->w - $this->rMargin), floor($this->GetY() - 2));
-    $this->SetFont('helvetica', '', 8);
-    $this->Cell($this->w - 30, 0, 'Righini Construction Métalliques — Ancienne Pointe 38 — CH-1920 Martigny', 'C');
+    if (!empty($this->Options['address'])) {
+      $this->SetFont('helvetica', '', 8);
+      $this->Cell($this->w - 30, 0, $this->Options['address'], 'C');
+    }
   }
 }
 ?>
