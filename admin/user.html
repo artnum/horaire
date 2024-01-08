@@ -140,6 +140,9 @@
               return ms
             })
             .then(ms => {
+              if (KAAL.bexio.enabled == 0) {
+                return Promise.resolve(ms)
+              }
               return new Promise((resolve, reject) => {
                 kafetch2(`${KAAL.getBase()}/BXUser`)
                 .then(bexioUsers => {
