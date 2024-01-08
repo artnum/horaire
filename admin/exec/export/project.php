@@ -270,7 +270,7 @@ try {
    $invoices = [];
    $line = 1;
 
-   if (intval($ini_conf['bexio']['enabled']) == '0') {
+   if (intval($ini_conf['bexio']['enabled']) != '0') {
       $bexioDB = new BizCuit\BexioCTX($ini_conf['bexio']['token']);
       $bexioDB->setSleep(5);
       $bxInvoice = new BizCuit\BexioInvoice($bexioDB);
