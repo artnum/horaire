@@ -385,13 +385,6 @@ body {
     min-width: 8ch;
 }
 
-.ka-input input {
-    display: inline-block;
-    max-width: calc(100% - 12ch);
-    min-width: calc(100% - 12ch);
-}
-
-
 .ka-previous-time {
     font-size: 0.9em;
 }
@@ -434,10 +427,6 @@ body {
 .ka-input button {
     width: 100%;
     margin: 0.2ex 0.2ch;
-}
-
-.ka-timebox div {
-    padding: 1.5ex 0;
 }
 
 .ka-time-entry.highlight {
@@ -564,11 +553,11 @@ body {
     width: 100%;
 }
 
-input, button {
+input, button, select {
     min-height: 6ex;
 }
 
-input {
+input, select {
     text-align: center;
     font-weight: bold;
     font-size: 16px;

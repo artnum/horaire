@@ -36,4 +36,6 @@
     --k-input-highlight-color: hsla(100, 100%, 40%, 0.2);
     --k-input-highlight-border-color: hsla(100, 100%, 40%, 0.4);
     --k-input-highlight-match-color: hsla(100, 100%, 40%, 0.4);
+    --foreground-text-color: black;
+    --backgroun-input-color: white;
 }

@@ -1,0 +1,24 @@
+
+.ka-input, .ka-fieldset {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0.5em;
+}
+.ka-fieldset label, .ka-input label {
+    display: block;
+    font-size: 0.8em;
+    color: var(--foreground-text-color);
+}
+
+.ka-input input, .ka-input select, .ka-car-select {
+    display: block;
+    max-width: 100%;
+    min-width: 100%;
+    background-color: var(--backgroun-input-color);
+}
+
+.ka-fieldset {
+    border-top: 1px solid var(--ka-border-button-color);
+}

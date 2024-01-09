@@ -23,6 +23,7 @@ function _debounce (fn, delay) {
 const imports = [
     [KAAL.url('admin/js/fetch.js'), 'script'],
     [KAAL.url('admin/js/lib/login.js'), 'script'],
+    [KAAL.url('admin/js/lib/kapi.js'), 'script'],
     [KAAL.url('js/data/utils.js'), 'script'],
     [KAAL.url('js/data/project.js'), 'script'],
     [KAAL.url('js/data/travail.js'), 'script'],
@@ -40,6 +41,7 @@ const imports = [
     [KAAL.url('js/ui/time-interact.js'), 'script'],
     [KAAL.url('js/ui/user-interact.js'), 'script'],
     [KAAL.url('js/ui/msg-interact.js'), 'script'],
+    [KAAL.url('js/ui/car-interact.js'), 'script']
 ]
 
 window.addEventListener('DOMContentLoaded', event => {

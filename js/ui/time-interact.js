@@ -39,15 +39,16 @@ function TimeInteractUI (userId, workday = 'nyyyyyn') {
                     if (travail.length === 1) {
                         this.selectProject(travail.data[0].project)
                         .then(_ => {
-                            this.selectTravail(id)
-                            .then(_ => {
-                                if (travail.data[0].status) {
-                                    this.selectProcess(travail.data[0].status)
-                                    .then(_ => {
-                                        this.showTimeBox()
-                                    })
-                                }
+                            return this.selectTravail(id)
+                        })
+                        .then(travail => {
+                            return new Promise(resolve => {
+                                if (!travail.data[0].status) { return resolve() }
+                                return resolve(this.selectProcess(travail.data[0].status))
                             })
+                        })
+                        .then(_ => {
+                            this.showTimeBox()
                         })
                     }
                 })
@@ -230,40 +231,19 @@ TimeInteractUI.prototype.loadFromPlanning = function (date) {
                     })
                     button.addEventListener('submit-data', event => {
                         const detail = event.detail
-                        const form = new FormData(detail.form)
-                        this.setTime(
-                            detail.project.id,
-                            detail.process.id,
-                            detail.affaire.id,
-                            form.get('comment'),
-                            childOf,
-                            DataUtils.strToDuration(form.get('time'))
-                        )
-                        .then(temps => {
-                            this.prependPreviousTimeEntry(temps)
-                            .then(() => {
-                                this.createPreviousTimeTotal(new Date(temps.get('day')))
-                                this.msg('Entrée correctement ajoutée')
-                                detail.form.reset()
+                        this.selectProject(detail.project.id)
+                        .then(_ => {
+                            return this.selectTravail(detail.affaire.id)
+                        })
+                        .then(_ => {
+                            return new Promise(resolve => {
+                                if (!detail.process.id) { return resolve() }
+                                return resolve(this.selectProcess(detail.process.id))
                             })
                         })
-                        if (KAAL.work.managementProcess && DataUtils.strToDuration(form.get('regie'))) {
-                            this.setTime(
-                                detail.project.id,
-                                KAAL.work.managementProcess,
-                                detail.affaire.id,
-                                form.get('comment'),
-                                childOf,
-                                DataUtils.strToDuration(form.get('regie'))
-                            ).then(temps => {
-                                this.prependPreviousTimeEntry(temps)
-                                .then(() => {
-                                    this.createPreviousTimeTotal(new Date(temps.get('day')))
-                                    this.msg('Entrée correctement ajoutée')
-                                    detail.form.reset()
-                                })
-                            })
-                        }
+                        .then(_ => {
+                            this.showTimeBox()
+                        })
                     })
                 }
             })
@@ -412,7 +392,7 @@ TimeInteractUI.prototype.createProjectNode = function (project, container) {
     const div = document.createElement('DIV')
     div.classList.add('ka-project')
     div.dataset.project = kaproject.id
-    div.dataset.reference = kaproject.reference.toLowerCase()
+    div.dataset.reference = kaproject.reference?.toLowerCase()
     div.innerHTML = `<span class="reference">${kaproject.reference}</span><span class="name">${kaproject.name}</span>`
     window.requestAnimationFrame(() => {
         container.appendChild(div)
@@ -758,15 +738,13 @@ TimeInteractUI.prototype.selectTravail = function (travailId) {
         this.hasSet.travail = travailId
         const animReq = []
         for (const node of subcontainer.querySelectorAll('.ka-button2[data-travail]')) {
-            animReq.push(new Promise(resolve => { delete node.dataset.open; resolve() }))
-            if (node.dataset.travail === travailId) {
-                animReq.push(new Promise (resolve => { window.requestAnimationFrame(() => { node.dataset.open = 'true'; resolve() }) }))
+            if (parseInt(node.dataset.travail) === parseInt(travailId)) {
+                node.dataset.open = 'true'
+                continue
             }
+            delete node.dataset.open
         }
-        Promise.allSettled(animReq)
-        .then(() => {
-            resolve()
-        })
+        resolve()
     })
 }
 
@@ -776,17 +754,14 @@ TimeInteractUI.prototype.selectProcess = function (processId) {
         const subcontainer = container.querySelector('div.ka-project-detail')
         if (!subcontainer) { return resolve() }
         this.hasSet.process = processId
-        const animReq = []
         for (const node of subcontainer.querySelectorAll('.ka-button2[data-process]')) {
-            animReq.push(new Promise(resolve => { delete node.dataset.open; resolve() }))
-            if (node.dataset.process === processId) {
-                animReq.push(new Promise (resolve => { window.requestAnimationFrame(() => { node.dataset.open = 'true'; resolve() }) }))
+            if (parseInt(node.dataset.process) === parseInt(processId)) {
+                node.dataset.open = 'true'
+                continue
             }
+            delete node.dataset.open
         }
-        Promise.allSettled(animReq)
-        .then(() => {
-            resolve()
-        })
+        resolve()
     })
 }
 
@@ -1088,6 +1063,9 @@ TimeInteractUI.prototype.clearTimeBox = function () {
 
 TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, remark: null}) {
     return new Promise(resolve => {
+        if (document.querySelector('div.ka-timebox')) { 
+            document.querySelector('div.ka-timebox').remove()
+        }
         const container = document.querySelector('div.ka-container')
         const subcontainer = container.querySelector('div.ka-project-detail')
     
@@ -1111,6 +1089,7 @@ TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, r
         timebox.innerHTML = `<form data-time-id="${this.currentSelection.id ? this.currentSelection.id : ''}">
             <div class="ka-input"><label for="time">Temps</label><input type="text" placeholder="Temps" name="time" value="${this.currentSelection.time ? DataUtils.durationToStrTime(this.currentSelection.time) : ''}"/></div>
             <div class="ka-input"><label for="remark">Remarque</label><input type="text" name="remark" placeholder="Remarque" value="${this.currentSelection.remark ? this.currentSelection.remark : ''}"/></div>
+            <div class="ka-fieldset ka-car" style="display: none"></div>
             <div class="ka-input"><button type="submit" >${this.currentSelection.id ? 'Modifier' : 'Ajouter'}${this.currentSelection.time? ` <b>${DataUtils.durationToStr(this.currentSelection.time)}</b>` : ''}</button></div>
             ${this.currentSelection.id ? `<div class="ka-input"><button type="button" data-delete="${this.currentSelection.id}">Supprimer${this.currentSelection.time ? ` <b>${DataUtils.durationToStr(this.currentSelection.time)}</b>` : ''}</button></div>`: ''}
             </form>
@@ -1124,11 +1103,30 @@ TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, r
         }
 
         timebox.querySelector('input[name="time"]').addEventListener('keyup', event => {
-            const time = DataUtils.strToDuration(event.target.value)
+            const time = DataUtils.strToDuration(timebox.querySelector('input[name="time"]').value)
             timebox.querySelector('button[type="submit"]').innerHTML = `${this.currentSelection.id ? 'Modifier' : 'Ajouter'} <b>${DataUtils.durationToStr(time)}</b>`
         })
 
-        window.requestAnimationFrame(() => { subcontainer.appendChild(timebox); resolve() })
+        window.requestAnimationFrame(() => { subcontainer.appendChild(timebox); resolve(timebox) })
+    })
+    .then(timebox => {
+        if (!KAAL.car.enabled) { return }
+        const carInteract = new KCarInteractUI()
+        this.carUsage = carInteract
+        carInteract.render(opts ? opts.id : null)
+        .then(select => {
+            return new Promise(resolve => {
+                window.requestAnimationFrame(() => {
+                    const node = timebox.querySelector('div.ka-car')
+                    node.appendChild(select, node)
+                    node.style.removeProperty('display')
+                    return resolve(select)
+                })
+            })
+        })
+        .then(select => {
+            carInteract.showCarForm(select.querySelector('select'))
+        })
     })
 }
 
@@ -1200,6 +1198,7 @@ TimeInteractUI.prototype.setTime = function (project, process, travail, comment,
 
 TimeInteractUI.prototype.addTime = function (event) {
     event.preventDefault()
+    const node = event.target
 
     /* check for what must be set is set */
     for (const k of Object.keys(this.mustHave)) {
@@ -1230,17 +1229,21 @@ TimeInteractUI.prototype.addTime = function (event) {
     if (event.target.dataset.timeId) {
         temps.uid = event.target.dataset.timeId
     }
-
     temps.save()
     .then(temps => {
-        this.clearTimeBox()
+        node.dataset.timeId = temps.id
+        if (this.carUsage) { this.carUsage.save(temps.id, document.querySelector('div.ka-car')) }
         this.insertPreviousTimeEntry(temps)
         .then(() => {
             this.createPreviousTimeTotal(new Date(temps.get('day')))
             this.msg('Entrée correctement ajoutée')
+            this.selectTimeEntry(temps.id)
         })
     })
-
+    .catch(e => {
+        console.log(e)
+        this.alert('Erreur lors de l\'ajout de l\'entrée')
+    })
 }
 
 TimeInteractUI.prototype.alert = function (str) {
