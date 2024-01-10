@@ -5,7 +5,7 @@ KCarInteractUI.prototype = {
     getCars: function () {
         const KAPIStatus = new KAPI(`${KAAL.kairos.endpoint}/Status`)
         return new Promise((resolve, reject) => {
-            KAPIStatus.search({type: 2, deleted: 0, group: 'Véhicule'})
+            KAPIStatus.search({type: 2, deleted: '--', group: 'Véhicule'})
             .then(cars => {
                 resolve(cars)
             })
@@ -17,7 +17,7 @@ KCarInteractUI.prototype = {
     getDefects: function () {
         const KAPIStatus = new KAPI(`${KAAL.kairos.endpoint}/Status`)
         return new Promise((resolve, reject) => {
-            KAPIStatus.search({type: 100, deleted: 0})
+            KAPIStatus.search({type: 100, deleted: '--'})
             .then(defects => {
                 resolve(defects)
             })
