@@ -148,17 +148,21 @@
   function open(ref) {
     window.requestAnimationFrame(() => ref.innerHTML = '')
     let buttons = [
-      { level: 128, node: `project.html`, label: 'Projets' },
+      { level: 128, node: `project.html`, label: 'Projets', nodeid: 'prj' },
       //{ level: 64, node: `process.html`, label: 'Processus' },
-      { level: 16, node: `user.html`, label: 'Utilisateurs' },
-      { level: 32, node: `time.html`, label: 'Temps' },
-      { level: 32, node: `bill.html`, label: 'Facture' },
-      { level: 32, node: 'debt.html', label: 'Débiteur'},
-      { level: 128, node: `item.html`, label: 'Matériels' },
-      { level: 128, node: `../../kairos/`, label: 'Planification' },
+      { level: 16, node: `user.html`, label: 'Utilisateurs', nodeid: 'user'},
+      { level: 32, node: `time.html`, label: 'Temps', nodeid: 'time' },
+      { level: 32, node: `bill.html`, label: 'Facture', nodeid: 'bill' },
+      { level: 32, node: 'debt.html', label: 'Débiteur', nodeid: 'debitor'},
+      { level: 128, node: `item.html`, label: 'Matériels', nodeid: 'items' },
+      { level: 128, node: `../../kairos/`, label: 'Planification', nodeid: 'plan' },
       //{ level: 128, node: `view-gantt.html`, label: 'Vue général' },
-      { level: 256, node: `exit`, label: 'Déconnexion' },
+      { level: 32, node: 'car.html', label: 'Véhicule', nodeid: 'car'},
+      { level: 256, node: `exit`, label: 'Déconnexion', nodeid: 'exit' },
     ]
+    buttons = buttons.filter(e => {
+      return KAAL.nodes.indexOf(e.nodeid) !== -1
+    })
 
     buttons.forEach((e) => {
       if (parseInt(e.level) >= parseInt(window.level)) {

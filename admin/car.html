@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" type="text/css" href="css/admin.css" />
+  <link rel="stylesheet" type="text/css" href="css/dtable.css" />
+  <link href="../css/fontawesome-all.min.css" rel="stylesheet" />
+  <title>Horaire</title>
+  <link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
+</head>
+
+<body>
+  <main id="car">
+    <h1>Véhicule</h1>
+
+</body>
+<script>
+  window.KCORE = { NoPopper: true }
+</script>
+<script src="../../kcore/index.js"></script>
+<script src="../conf/kaal.js"></script>
+<script src="js/lib/login.js"></script>
+<script src="js/lib/revision.js"></script>
+<script src="../node_modules/sjcl/sjcl.js"></script>
+<script src="../node_modules/popper.js/dist/umd/popper.min.js"></script>
+<script src="../node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/string.js"></script>
+<script src="js/stores.js"></script>
+<script src="js/store/user.js"></script>
+<script src="js/addr.js" type="module"></script>
+<script src="js/ked.js"></script>
+<script src="../js/index.js"></script>
+<script src="js/index.js"></script>
+<script>
+  window.addEventListener('kcore-loaded', () => {
+    const carUI = new KACarAdminUI()
+    carUI.render()
+    .then(list => {
+        document.body.appendChild(list)
+    })
+  })
+</script>
+
+</html>

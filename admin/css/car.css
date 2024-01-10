@@ -1,0 +1,18 @@
+.ka-defect span {
+    background-color: #fdf0f5;
+}
+
+.ka-car-list {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.ka-car-header {
+    font-weight: bold   ;
+}
+.ka-car-header,
+.ka-car-items,
+.ka-car-item {
+    display: contents;
+}
+
