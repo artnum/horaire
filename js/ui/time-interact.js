@@ -1087,7 +1087,8 @@ TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, r
         timebox.classList.add('ka-timebox')
         //timebox.innerHTML = this.dates.map(v => { return `<div class="ka-day" data-day="${v.toISOString()}">${DataUtils.shortDate(v)}</div>` }).join('')
         timebox.innerHTML = `<form data-time-id="${this.currentSelection.id ? this.currentSelection.id : ''}">
-            <div class="ka-input"><label for="time">Temps</label><input type="text" placeholder="Temps" name="time" value="${this.currentSelection.time ? DataUtils.durationToStrTime(this.currentSelection.time) : ''}"/></div>
+            <div class="ka-input"><label for="time">Temps</label><input type="text" placeholder="Temps" name="time" value="${this.currentSelection.time ? DataUtils.durationToStrTime(this.currentSelection.time) : ''}"/>
+                <label for="dinner" class="ka-checkbox"><input type="checkbox" name="dinner"> Repas</label></div>
             <div class="ka-input"><label for="remark">Remarque</label><input type="text" name="remark" placeholder="Remarque" value="${this.currentSelection.remark ? this.currentSelection.remark : ''}"/></div>
             <div class="ka-fieldset ka-car" style="display: none"></div>
             <div class="ka-input"><button type="submit" >${this.currentSelection.id ? 'Modifier' : 'Ajouter'}${this.currentSelection.time? ` <b>${DataUtils.durationToStr(this.currentSelection.time)}</b>` : ''}</button></div>
@@ -1110,7 +1111,7 @@ TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, r
         window.requestAnimationFrame(() => { subcontainer.appendChild(timebox); resolve(timebox) })
     })
     .then(timebox => {
-        if (!KAAL.car.enabled) { return }
+        if (KAAL.nodes.indexOf('car') === -1) { return }
         const carInteract = new KCarInteractUI()
         this.carUsage = carInteract
         carInteract.render(opts ? opts.id : null)
@@ -1215,6 +1216,7 @@ TimeInteractUI.prototype.addTime = function (event) {
         this.alert('Le temps est manquant ou erroné')
         return 
     }
+    const dinner = formData.get('dinner') ? 1 : 0
 
     const temps = KATemps.create({
         project: this.hasSet.project,
@@ -1223,7 +1225,8 @@ TimeInteractUI.prototype.addTime = function (event) {
         person: this.userId,
         comment: formData.get('remark'),
         day: DataUtils.dbDate(this.day),
-        value: time
+        value: time,
+        dinner
     })
 
     if (event.target.dataset.timeId) {
