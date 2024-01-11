@@ -29,7 +29,7 @@ KAProcess.load = function (projectId) {
 
 KAProcess.list = function () {
     return new Promise((resolve, reject) => {
-        kafetch(`${KAAL.kairos.url}/store/Status/_query`, {method: 'POST', body: JSON.stringify({'#and': {name: '**', type: 1}})})
+        kafetch(`${KAAL.kairos.url}/store/Status/_query`, {method: 'POST', body: JSON.stringify({'#and': {name: '**', type: 1, deleted: '--'}})})
         .then(processes => {
             const p = []
             if (!processes.data) { resolve(p); return }
