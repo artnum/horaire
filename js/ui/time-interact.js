@@ -253,7 +253,7 @@ TimeInteractUI.prototype.loadFromPlanning = function (date) {
 
 TimeInteractUI.prototype.joinAllToStatus = function (reservations) {
     return new Promise((resolve, reject) => {
-        kafetch(`${KAAL.kairos.endpoint}/Status/_query`, {method: 'POST', body: JSON.stringify({type: 1, deleted: '--')})
+        kafetch(`${KAAL.kairos.endpoint}/Status/_query`, {method: 'POST', body: JSON.stringify({type: 1, deleted: '--'})})
         .then(results => {
             if (results.length <= 0) { results.data = [] }
             const status = results.data
