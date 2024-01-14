@@ -4,22 +4,23 @@ function KAProcess() {
     return new Proxy(this, KAGenericProxy)
 }
 
-KAProcess.create = function (project) {
+KAProcess.create = function (process) {
     const instance = new KAProcess()
-    for (const key of Object.keys(project)) {
-        if (key === 'id' || key === 'uid') { instance.uid = project[key]; continue }
-        instance.set(key, project[key])
+    for (const key of Object.keys(process)) {
+        if (key === 'id' || key === 'uid') { instance.uid = process[key]; continue }
+        instance.set(key, process[key])
     }
     return instance
 }
 
-KAProcess.load = function (projectId) {
+KAProcess.load = function (processId) {
     return new Promise((resolve, reject) => {
-        if (DataUtils.empty(projectId)) { resolve (new KAProcess()); return }
-        kafetch(`${KAAL.kairos.url}/store/Status/${projectId.toId()}`)
-        .then(project => {
-            if (project.length !== 1) { reject('Projet inconnu'); return }
-            resolve(KAProcess.create(project.data[0]))
+        const KAPIStatus = new KAPI(`${KAAL.kairos.endpoint}/Status`)
+        if (DataUtils.empty(processId)) { resolve (new KAProcess()); return }
+        KAPIStatus.get(processId.toId())
+        .then(process => {
+            if (process.length !== 1) { reject('Processus inconnu'); return }
+            resolve(KAProcess.create(process))
         })
         .catch(error => {
             reject(error)
@@ -29,14 +30,11 @@ KAProcess.load = function (projectId) {
 
 KAProcess.list = function () {
     return new Promise((resolve, reject) => {
-        kafetch(`${KAAL.kairos.url}/store/Status/_query`, {method: 'POST', body: JSON.stringify({'#and': {name: '**', type: 1, deleted: '--'}})})
+        const KAPIStatus = new KAPI(`${KAAL.kairos.endpoint}/Status`)
+        KAPIStatus.search({name: '**', type: 1, deleted: '--'})
         .then(processes => {
-            const p = []
-            if (!processes.data) { resolve(p); return }
-            for (const process of processes.data) {
-                p.push(KAProcess.create(process))
-            }
-            resolve(p)
+            if (!processes) { return resolve([]) }
+            return resolve(processes.map(process => KAProcess.create(process)))
         })
         .catch (error => {
             reject (error)

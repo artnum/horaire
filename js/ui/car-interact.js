@@ -116,17 +116,19 @@ KCarInteractUI.prototype = {
                 return
             }
             const content = this.content
-            const kmNode = document.createElement('DIV')
-            kmNode.classList.add('ka-input')
-            kmNode.innerHTML = `<label for="km">Kilométrage</label>`
-            const km = document.createElement('INPUT')
-            km.type = 'number'
-            km.min = 0
-            km.max = 999999
-            km.value = content.usage.km
-            km.classList.add('ka-car-km')
-            kmNode.appendChild(km)
-            select.parentNode.parentNode.appendChild(kmNode)
+            if (KAAL.car.with_km) {
+                const kmNode = document.createElement('DIV')
+                kmNode.classList.add('ka-input')
+                kmNode.innerHTML = `<label for="km">Kilométrage</label>`
+                const km = document.createElement('INPUT')
+                km.type = 'number'
+                km.min = 0
+                km.max = 999999
+                km.value = content.usage.km
+                km.classList.add('ka-car-km')
+                kmNode.appendChild(km)
+                select.parentNode.parentNode.appendChild(kmNode)
+            }
 
             const defectNode = document.createElement('DIV')
             defectNode.classList.add('ka-input')
@@ -156,7 +158,10 @@ KCarInteractUI.prototype = {
             const KAPICarusage = new KAPI(`${KAAL.getBase()}/CarUsage`)
             
             const km = node.querySelector('.ka-car-km')?.value
-            if (parseInt(car) === 0 || km === '' || km === null || km === undefined || km == 0) {
+            if (km !== null && km !== undefined && km !== '') {
+                km = 0
+            }
+            if (parseInt(car) === 0) {
                 ; (() => {
                     return new Promise(resolve => {
                         KAPICarusage.search({htime: htime})

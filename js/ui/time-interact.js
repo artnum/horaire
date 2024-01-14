@@ -20,6 +20,8 @@ function TimeInteractUI (userId, workday = 'nyyyyyn') {
         id: null,
         time: null,
         remark: null,
+        km: null,
+        dinner: false
     }
     this.userId = userId
 
@@ -971,7 +973,7 @@ TimeInteractUI.prototype.selectTimeEntry = function (timeId) {
                     return this.selectTravail(temps.get('travail'))
                 })
                 .then(() => {
-                    return this.showTimeBox({id: temps.uid, time: temps.get('value'), remark: temps.get('comment')})   
+                    return this.showTimeBox({id: temps.uid, time: temps.get('value'), remark: temps.get('comment'), km: temps.get('km'), dinner: temps.get('dinner')})   
                 })
                 .then(() => {
                     this.selectDay(temps.day)
@@ -1020,7 +1022,9 @@ TimeInteractUI.prototype.clearTimeBox = function () {
         this.currentSelection = {
             id: null,
             time: null,
-            remark: null
+            remark: null,
+            km: null,
+            diner: false
         }
         const container = document.querySelector('div.ka-container')
         const subcontainer = container.querySelector('div.ka-project-detail')
@@ -1072,6 +1076,8 @@ TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, r
         this.currentSelection.id = opts.id
         this.currentSelection.time = opts.time
         this.currentSelection.remark = opts.remark
+        this.currentSelection.km = opts.km
+        this.currentSelection.dinner = opts.dinner != 0
 
         /* check for what must be set is set except if we have an id */
         if (opts.id === null) {
@@ -1087,8 +1093,11 @@ TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, r
         timebox.classList.add('ka-timebox')
         //timebox.innerHTML = this.dates.map(v => { return `<div class="ka-day" data-day="${v.toISOString()}">${DataUtils.shortDate(v)}</div>` }).join('')
         timebox.innerHTML = `<form data-time-id="${this.currentSelection.id ? this.currentSelection.id : ''}">
-            <div class="ka-input"><label for="time">Temps</label><input type="text" placeholder="Temps" name="time" value="${this.currentSelection.time ? DataUtils.durationToStrTime(this.currentSelection.time) : ''}"/>
-                <label for="dinner" class="ka-checkbox"><input type="checkbox" name="dinner"> Repas</label></div>
+            <div class="ka-input"><label for="time">Temps</label><input type="text" placeholder="Temps" name="time" value="${this.currentSelection.time ? DataUtils.durationToStrTime(this.currentSelection.time) : ''}"/></div>
+            <div class="ka-input multiple">
+                <label for="dinner" class="ka-checkbox"><input type="checkbox" name="dinner" ${this.currentSelection.dinner ? 'checked' : ''}> Repas</label>
+                <label for="km" class="ka-checkbox"><input type="text" name="km" value="${this.currentSelection.km ? this.currentSelection.km : ''}"> KM Déplacement</label>
+            </div>
             <div class="ka-input"><label for="remark">Remarque</label><input type="text" name="remark" placeholder="Remarque" value="${this.currentSelection.remark ? this.currentSelection.remark : ''}"/></div>
             <div class="ka-fieldset ka-car" style="display: none"></div>
             <div class="ka-input"><button type="submit" >${this.currentSelection.id ? 'Modifier' : 'Ajouter'}${this.currentSelection.time? ` <b>${DataUtils.durationToStr(this.currentSelection.time)}</b>` : ''}</button></div>
@@ -1217,6 +1226,7 @@ TimeInteractUI.prototype.addTime = function (event) {
         return 
     }
     const dinner = formData.get('dinner') ? 1 : 0
+    const km = formData.get('km') ? parseInt(formData.get('km')) : 0
 
     const temps = KATemps.create({
         project: this.hasSet.project,
@@ -1226,7 +1236,8 @@ TimeInteractUI.prototype.addTime = function (event) {
         comment: formData.get('remark'),
         day: DataUtils.dbDate(this.day),
         value: time,
-        dinner
+        dinner,
+        km
     })
 
     if (event.target.dataset.timeId) {
