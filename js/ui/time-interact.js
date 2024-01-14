@@ -1077,7 +1077,7 @@ TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, r
         this.currentSelection.time = opts.time
         this.currentSelection.remark = opts.remark
         this.currentSelection.km = opts.km
-        this.currentSelection.dinner = opts.dinner != 0
+        this.currentSelection.dinner = opts.dinner
 
         /* check for what must be set is set except if we have an id */
         if (opts.id === null) {
