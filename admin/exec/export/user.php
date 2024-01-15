@@ -92,7 +92,7 @@ try {
   
   $writer->writeSheetRow('Entrées', array('', '', ''));
   $rc = $writer->countSheetRows('Entrées');
-  $writer->writeSheetRow('Entrées', array('Total', '', '','=COUNTIF(D2:D' . ($rc - 1) . ';"Oui")', '', '', '', '=SUM(G2:G' . ($rc - 1) . ')', ''));
+  $writer->writeSheetRow('Entrées', array('Total', '', '','=COUNTIF(D2:D' . ($rc - 1) . ',"Oui")', '=SUM(E2:E' . ($rc - 1) . ')', '', '', '=SUM(H2:H' . ($rc - 1) . ')', ''));
   
   /* Par processus */
    $writer->writeSheetHeader('Par processus', array('Process' => 'string', 'Temps [h]' => '0.00'), array('widths'=>[25,10]));
