@@ -23,6 +23,13 @@
         <label for="price">Prix de vente HT : </label><input name="price" type="text" /><br>
         <label for="manager">Chef projet : </label><input name="manager" type="text" id="manager" /><br>
         <label for="uncount">Heures non-comptabilisées : </label><input name="uncount" type="checkbox" /><br>
+        <label for="ordering">Ordre : </label><select name="ordering">
+          <option value="0">Bas</option>
+          <option value="1">Moyen</option>
+          <option value="2" selected>Normal</option>
+          <option value="3">Haut</option>
+          <option value="4">Très haut</option>
+        </select><br>
         <label for="client">Client : </label><span name="clientContainer"></span><br>
         <input type="submit" value="Créer le projet" /><br>
       </fieldset>
@@ -137,7 +144,8 @@
           client: `Contact/${contactOld.getClientId()}`,
           manager: managerSelect.value,
           price: data.get('price'),
-          uncount: data.get('uncount') === 'on' ? 1 : 0
+          uncount: data.get('uncount') === 'on' ? 1 : 0,
+          ordering: data.get('ordering')
         }
         kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
         .then(r => {

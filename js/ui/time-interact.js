@@ -373,7 +373,7 @@ TimeInteractUI.prototype.showDates = function () {
 
 TimeInteractUI.prototype.loadProject = function () {
     return new Promise((resolve, reject) => {
-        kafetch(KAAL.url('Project/_query'), {method: 'POST', body: JSON.stringify({
+        kafetch(KAAL.url(`Project/_query?limit=${this.offset},${this.limit}&sort.ordering=DESC&sort.created=DESC`), {method: 'POST', body: JSON.stringify({
             '#and': {
                 deleted: '-',
                 closed: '-'

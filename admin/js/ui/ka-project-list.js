@@ -528,7 +528,7 @@ UIKAProjectList.prototype.associateProject = function (project) {
  */
 UIKAProjectList.prototype.search = function (query = {}) {
     return new Promise((resolve, reject) => {
-        kafetch2(`${KAAL.getBase()}/Project/_query?limit=${this.offset},${this.limit}&sort.created=DESC`, {method: 'POST', body: JSON.stringify(query)})
+        kafetch2(`${KAAL.getBase()}/Project/_query?limit=${this.offset},${this.limit}&sort.ordering=DESC&sort.created=DESC`, {method: 'POST', body: JSON.stringify(query)})
         .then(projects => {
             this.lastResultCount = projects.length
             const clients = projects
@@ -696,6 +696,13 @@ UIKAProjectList.prototype.editProject = function (projectId) {
                     ${KAAL.bexio.enabled ? `<label for="extid">Projet bexio : <input name="extid" type="text" value="${project.extid ?? ''}" /> 
                         ${project.extid ? '' : '<button type="submit" name="bxcreate">ou créer sur bexio</button>'}<br/>` : ''}
                     <label for="manager">Chef de projet : </label><input name="manager" type="text" value="${project.manager ?? ''}"/><br>
+                    <label for="ordering">Ordre : </label><select name="ordering">
+                        <option value="0" ${project.ordering == 0 ? 'selected' : ''}>Bas</option>
+                        <option value="1" ${project.ordering == 1 ? 'selected' : ''}>Moyen</option>
+                        <option value="2" ${project.ordering == 2 ? 'selected' : ''}>Normal</option>
+                        <option value="3" ${project.ordering == 3 ? 'selected' : ''}>Haut</option>
+                        <option value="4" ${project.ordering == 4 ? 'selected' : ''}>Très haut</option>
+                    </select><br>
                     <label for="client">Client : </label><div class="contact"></div><br>
                     <button type="submit">Sauver</button><button type="reset">Annuler</button>
                 </form>`,
@@ -756,6 +763,7 @@ UIKAProjectList.prototype.editProject = function (projectId) {
                     price: data.get('price'),
                     manager: managerSelect.value,
                     client: '',
+                    ordering: data.get('ordering')
                 }
                 if (bxProjectSelect) {
                     project.extid = submitter === 'bxcreate' ? '_create' : (bxProjectSelect.value == 0 ? '_unlink' : bxProjectSelect.value)

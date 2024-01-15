@@ -113,7 +113,7 @@ class ProjectModel extends artnum\SQL {
                   $extid = $dbData['project_extid'];
                 }
               }
-              if (!$extid && $arg['extid']) { $extid = $arg['extid']; }
+              if (!$extid && isset($arg['extid'])) { $extid = $arg['extid']; }
               if ($extid && !empty($arg['manager']) && !empty($arg['reference']) && !empty($arg['name'])) {
                 $bxProject = $this->createEditBxProject($arg, $extid);
                 $extid = $bxProject->id;
