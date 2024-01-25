@@ -382,7 +382,8 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                     duedate: formData.get('duedate'),
                     date: formData.get('date'),
                     state: 'OPEN',
-                    condition: formData.get('condition')
+                    condition: formData.get('condition'),
+                    type: 1
                 }                
                 address = {
                     id: address.id,
