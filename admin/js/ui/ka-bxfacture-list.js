@@ -793,7 +793,7 @@ UIKABXFactureList.prototype.renderAssociateNode = function (parent, repartition 
     domNode.dataset.done = false
     if (repartition !== null) { domNode.dataset.done = true }
 
-    const rep = {value: repartition ? repartition.value : '', project: repartition ? repartition.project : '', tva: repartition ? repartition.tva : 7.7}
+    const rep = {value: repartition ? repartition.value : '', project: repartition ? repartition.project : '', tva: repartition ? repartition.tva : getTVA()}
     rep.value = KAFloat(rep.value)
     rep.tva = KAFloat(rep.tva)
 
