@@ -1,7 +1,7 @@
-function KAFloat(value, precision = 2) {
+function KAFloat(value, precision = 4) {
     const precisionFactor = Math.pow(10, precision);
-    value = parseFloat(value);
+    if (typeof value !== 'number') { value = parseFloat(value) }
     if (isNaN(value)) { return 0 }
-    value = value *= precisionFactor / precisionFactor;
+    value = Math.round(value * precisionFactor) / precisionFactor
     return value
 }

@@ -1,4 +1,5 @@
 function UIKABXFactureList () {
+    this.currentBill = null
     this.domNode = document.createElement('DIV')
     this.domNode.classList.add('ka-bxfacture-list')
     this.domNode.innerHTML = `
@@ -273,6 +274,9 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
             return results.map(result => result.status === 'fulfilled' ? result.value : {})
         })
         .then(([bill, address]) => {
+            this.currentBill = bill
+            this.currentBill.qraddress = address
+            this.currentBill._ttc = true
             window.requestAnimationFrame(() => document.querySelector(`.billItem[data-id="${bill.id}"]`).classList.add('selected'))
             const form = document.createElement('FORM')
 
@@ -370,9 +374,18 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                     this.openBill({file: bill.file, id: bill.id, address: address.id})
                 })
             })
-
+            form.addEventListener('change', event => {
+                const node = event.target
+                if (node.name === 'date') {
+                    this.currentBill.date = node.value
+                }
+                if (node.name === 'amount') {
+                    this.currentBill.amount = parseFloat(node.value)
+                }
+            })
             form.addEventListener('submit', event => {
                 event.preventDefault()
+                const formNode = event.currentTarget
                 const formData = new FormData(event.currentTarget)
                 const billUpdate = {
                     id: bill.id,
@@ -408,7 +421,14 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                     bill.qraddress = address.id
                     return Promise.all([
                         KAPIBill.write(billUpdate, bill.id),
-                        (bill.file ? KAPIBill.execute('BXUpload', {name: bill.file}) : Promise.resolve(null))
+                        (!KAAL.bexio.enabled 
+                            ? Promise.resolve(null) 
+                            : (
+                                bill.file 
+                                ? KAPIBill.execute('BXUpload', {name: bill.file}) 
+                                : Promise.resolve(null)
+                              )
+                        )
                     ])
                     .then(([updatedBill, file]) => {
                         if (file === null) { return Promise.resolve() }
@@ -418,14 +438,26 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
                         return Promise.allSettled(Array.from(form.querySelectorAll('[data-repartition-id]'))
                         .map(node => {
                             if (node.querySelector('input[name="value"]').value === '') { return Promise.resolve() }
-                            const rep = {value: node.querySelector('input[name="value"]').value, project: node.querySelector('input[name="project"]').dataset.value, facture: bill.id, tva: node.querySelector('input[name="tva"]').value}
+                            const rep = {
+                                value: node.querySelector('input[name="value"]').value,
+                                project: node.querySelector('input[name="project"]').dataset.value,
+                                facture: bill.id,
+                                tva: node.querySelector('input[name="tva"]').value,
+                                splitvalue: 0.0,
+                                splittva: KAFloat(formData.get('tva')),
+                                ttc: this.currentBill._ttc ? 1 : 0
+                            }
 
                             rep.value = KAFloat(rep.value)
                             rep.tva = KAFloat(rep.tva)
 
                             if (rep.value === 0.0) { return Promise.resolve() }
                             if (isNaN(rep.value) || isNaN(rep.tva)) { return Promise.resolve() }
-                            rep.value = (rep.value / (1 + (rep.tva / 100))).toFixed(4)
+                      
+
+                            if (this.currentBill._split) {
+                                rep.splitvalue = this.currentBill._split
+                            }
 
                             if (node.dataset.repartitionId === '0') {
                                 return KAPIRepartition.write(rep)
@@ -504,9 +536,10 @@ UIKABXFactureList.prototype.renderFacture = function (bill) {
             form.classList.add('paiement')
 
             
-            this.renderAssociate(bill.id)
+            this.renderAssociate(bill)
             .then(fieldset => {
                 form.appendChild(fieldset)
+                this.calculateRepartitionTotal(fieldset)
             })
             .then(_ => {
                 const fieldset = new KAFieldsetUI('Rappels')
@@ -793,88 +826,173 @@ UIKABXFactureList.prototype.renderAssociateNode = function (parent, repartition 
     domNode.dataset.done = false
     if (repartition !== null) { domNode.dataset.done = true }
 
-    const rep = {value: repartition ? repartition.value : '', project: repartition ? repartition.project : '', tva: repartition ? repartition.tva : getTVA()}
+    const rep = {value: repartition ? repartition.value : '', project: repartition ? repartition.project : '', tva: repartition ? repartition.tva : getTVA(this.currentBill.date)}
     rep.value = KAFloat(rep.value)
     rep.tva = KAFloat(rep.tva)
 
-    rep.value = (rep.value + (rep.value * rep.tva / 100)).toFixed(2)
+    rep.value = KAFloat(rep.value)
     if (isNaN(rep.value)) {
-        rep.value = ''
+        rep.value = 0
+    }
+    if (rep.value === 0) {
+        if (this.currentBill._remaining > 0) {
+                rep.value = this.currentBill._remaining
+        }
     }
 
     domNode.innerHTML = `
-        <input type="text" name="value" class="value" value="${rep.value}">
+        <input type="text" name="value" class="value" value="${KAFloat(rep.value)}"><div class="total"></div>
         <input type="text" name="project" value="${rep.project}">
         <input type="number" name="tva" class="tva" step="0.1" value="${rep.tva}">
-        <span class="delete">X</span>
+        <span class="delete">🗙</span>
         `
     new KSelectUI(domNode.querySelector('input[name="project"]'), new STProject('Project', true), { realSelect: true, allowFreeText: false })
 
     domNode.querySelector('span.delete').addEventListener('click', event => {
         const repartitionId = parseInt(domNode.dataset.repartitionId)
-        if (repartitionId === 0) {
-            new Promise(resolve => {
-                window.requestAnimationFrame(() => { domNode.remove(); resolve() })
+        this.removeRepartitionNode(domNode)
+        .then(_ => {
+            if (repartitionId === 0) { return Promise.resolve() }
+
+            const karepartition = new KAPI(`${KAAL.getBase()}/Repartition`)
+            karepartition.get(repartitionId)
+            .then(repartition => {
+                karepartition.delete(repartition.id)
             })
-            .then(_ => {
-                this.calculateRepartitionTotal(parent)
-            })
-            if (parent.querySelectorAll('[data-done="false"]').length === 0) {
-                this.renderAssociateNode(parent)
-            }
-            return 
-        }
-        const karepartition = new KAPI(`${KAAL.getBase()}/Repartition`)
-        karepartition.delete(repartitionId)
-        .then(_ => window.requestAnimationFrame(() => domNode.remove()))
-    })
-    domNode.querySelectorAll('input').forEach(input => {
-        input.addEventListener('change', event => {
-            if (domNode.dataset.done === 'true') { return }
-            domNode.dataset.done = true
-            this.renderAssociateNode(parent)
+            .then(_ => resolve())
         })
     })
-    window.requestAnimationFrame(() => parent.appendChild(domNode))
+
+    const endButton = parent.querySelector('input[name="add"]')
+    new Promise((resolve) => { window.requestAnimationFrame(() => { parent.insertBefore(domNode, endButton); resolve() }) })
+    .then(_ => this.calculateRepartitionTotal(parent))
 }
 
-UIKABXFactureList.prototype.renderAssociate = function (billId) {
+UIKABXFactureList.prototype.removeRepartitionNode = function (node) {
+    return new Promise(resolve => {
+        new Promise(resolve => { window.requestAnimationFrame(() => { node.remove(); resolve() }) })
+        .then(_ => {
+            this.calculateRepartitionTotal(node.parentNode)
+            resolve()
+        })
+    })
+}
+
+UIKABXFactureList.prototype.renderAssociate = function (bill) {
     return new Promise(resolve => {
         const fieldset = KAFieldsetUI('Répartition')
-        fieldset.insertAdjacentHTML('beforeend', `<label for="total">Total : <input name="total" type="text" readonly="true"></input></label>`)
+        fieldset.insertAdjacentHTML('beforeend', 
+            `<div class="bill-summary">
+                <label for="amount">Montant restant : <input class="shorter" name="amount" type="text" readonly="true" value="${KAFloat(bill.amount, 2)}"></input></label>
+                <label for="total">Total répartition : <input class="shorter" name="total" type="text" readonly="true"></input></label>
+                <label><input type="radio" name="ttc" value="1" ${bill._ttc ? 'checked' : ''} /> TTC</label>
+                <label><input type="radio" name="ttc" value="0" ${!bill._ttc ? 'checked' : ''} /> HT</label>
+                <label> Frais généraux : <input class="shorter" type="text" name="frais" class="value" value=""></label>
+                <label>TVA : <input class="shorter" type="text" name="tva" class="value" value="${getTVA(this.currentBill.date)}"></label>
+                </div>
+                <input name="add" type="button" value="Ajouter une répartition" />
+                `)
+
+        fieldset.addEventListener('click', event => {
+            const target = event.target
+            if (target.type === 'button') {
+                this.renderAssociateNode(fieldset)
+            }
+        })
+        fieldset.addEventListener('change', event => {
+            const target = event.target
+            if (target.name === 'ttc') {
+                if (this.currentBill) {
+                    this.currentBill._ttc = target.value === '1'
+                }
+            }
+            if (target.name === 'amount') {
+                if (this.currentBill) {
+                    this.currentBill.amount = KAFloat(target.value)
+                }
+            }
+        })
         const karepartition = new KAPI(`${KAAL.getBase()}/Repartition`)
-        karepartition.search({facture: billId})
+        karepartition.search({facture: bill.id})
         .then(repartitions => {
+            if (repartitions.length === 0) { return resolve(fieldset) }
+            if (KAFloat(repartitions[0].splittva) !== 0) {
+                fieldset.querySelector('input[name="tva"]').value = KAFloat(repartitions[0].splittva)
+            }
+            if (repartitions[0].ttc === 0) {
+                fieldset.querySelector('input[name="ttc"][value="0"]').checked = true
+                this.currentBill._ttc = false
+            } else {
+                fieldset.querySelector('input[name="ttc"][value="1"]').checked = true
+                this.currentBill._ttc = true
+            }
+            let acc = repartitions.map(repartition => repartition.split === 1).reduce((acc, repartition) => {
+                acc += repartition.value
+                return acc
+            }, 0)
+            const splitvalue = repartitions.reduce((acc, repartition) => {
+                acc += KAFloat(repartition.splitvalue)
+                return acc
+            }, 0)
+            if (splitvalue !== 0) {
+                fieldset.querySelector('input[name="frais"]').value = splitvalue
+            }
             let total = 0
             repartitions.forEach(repartition => {
-                const value = (repartition.value + (repartition.value * repartition.tva / 100))
+                const value = KAFloat(repartition.value)
                 if (!isNaN(value)) { total += value }
                 this.renderAssociateNode(fieldset, repartition)
             })
-            fieldset.querySelector('input[name="total"]').value = total.toFixed(2)
-            this.renderAssociateNode(fieldset)
             return resolve(fieldset)
         })
         fieldset.addEventListener('change', event => {
             const name = event.target.name
+            this.calculateRepartitionTotal(fieldset)
+
             switch(name) {
                 case 'value':
                     this.calculateRepartitionTotal(fieldset)
                     break;
             }
         })
-
-
     })
 }
 
 UIKABXFactureList.prototype.calculateRepartitionTotal = function (fieldset) {
-    fieldset.querySelector('input[name="total"]').value = Array.from(fieldset.querySelectorAll('input[name="value"]'))
-        .reduce((acc, node) => {
+    const nodes = Array.from(fieldset.querySelectorAll('input[name="value"]'))
+    let divided = KAFloat(fieldset.querySelector('input[name="frais"]').value) 
+    divided /= nodes.length
+    let repAmount = nodes.reduce((acc, node) => {
             const value = KAFloat(node.value)
-            if (!isNaN(value)) { acc += value }
+            let total = 0
+            if (!isNaN(value)) { acc += value; total += value }
+            if (!isNaN(divided)) { acc += divided; total += divided }
+            node.nextElementSibling.textContent = KAFloat(total).toFixed(2)  
             return acc
         }, 0)
+
+    /* bill amount is ALWAYS with taxes, so we need to recalculate the repartition amount with taxes added */
+    if (!this.currentBill._ttc) {
+        repAmount = nodes.reduce((acc, node) => {
+            let value = KAFloat(node.value)
+            value *= 1 + KAFloat(node.parentNode.querySelector('input[name="tva"]').value) / 100
+            if (!isNaN(value)) { acc += value} 
+            return acc
+        }, 0) + KAFloat(fieldset.querySelector('input[name="frais"]').value) * (1 + KAFloat(fieldset.querySelector('input[name="tva"]').value) / 100)
+    }
+
+    fieldset.querySelector('input[name="total"]').value = KAFloat(repAmount, 2)
+    if (this.currentBill) {
+        const remaining = KAFloat(this.currentBill.amount - repAmount)
+        this.currentBill._split = divided
+        this.currentBill._remaining = remaining
+        fieldset.querySelector('input[name="amount"]').value = KAFloat(remaining, 2)
+        if (remaining < 0) {
+            fieldset.querySelector('input[name="amount"]').classList.add('over')
+        } else {
+            fieldset.querySelector('input[name="amount"]').classList.remove('over')
+        }
+    }
 }
 
 UIKABXFactureList.prototype.unselectAllBill = function () {
@@ -886,7 +1004,6 @@ UIKABXFactureList.prototype.unselectAllBill = function () {
 }
 
 UIKABXFactureList.prototype.selectBill = function (event) {
-    console.log(event)
     if (!this.multiselect) {
         this.multiselect = []
     }

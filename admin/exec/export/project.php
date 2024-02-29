@@ -263,10 +263,18 @@ try {
    /* Facture, unqiuement par projet */
    $factureCount = 0;
    $SheetFacture = ['header' => [], 'content' => []];
-   $factureAmount = 0;
    $amountByType = [0, 0, 0, 0];
    
-   $SheetFacture['header'] = ['N° de facture' => 'string', 'Date' => 'date', 'Personne/société' => 'string', 'Montant HT' => 'price', 'TVA' => '#0.00', 'Montant TTC' => 'price', 'Facture' => 'string', 'Paiement' => 'date' ];
+   $SheetFacture['header'] = [
+      'N° de facture' => 'string',
+      'Date' => 'date', 
+      'Personne/société' => 'string', 
+      'Montant HT' => 'price', 
+      'TVA' => '#0.00', 
+      'Montant TTC' => 'price',
+      'Facture' => 'string', 
+      'Paiement' => 'date' 
+   ];
    $invoices = [];
    $line = 1;
 
@@ -290,19 +298,29 @@ try {
          $reference = $invoice->document_nr;
          if (in_array(strval($reference), $bxReferences)) { continue; }
          $contact = $bxContact->get($invoice->contact_id);
-         $amount_ht = floatval($invoice->total_net);
+         $facture_amount = floatval($invoice->total_net);
          $amount = floatval($invoice->total);
          $bxReferences[] = strval($reference);
-         $SheetFacture['content'][] = [$reference, $invoice->is_valid_from, $contact->name_1, $amount_ht, '', $amount , 'Débiteur',  ''];
-         $amountByType[1] += abs($amount_ht);
+         $SheetFacture['content'][] = [$reference, $invoice->is_valid_from, $contact->name_1, $facture_amount, '', $amount , 'Débiteur',  ''];
+         $amountByType[1] += abs($facture_amount);
          $line++;
       }
    }
    $repSt = $db->prepare('SELECT * FROM "repartition" LEFT JOIN "facture" ON "facture_id" = "repartition_facture" LEFT JOIN "qraddress" ON "facture_qraddress" = "qraddress_id" WHERE "repartition_project" = :id AND "facture_deleted" = 0');
    $repSt->bindValue(':id', $row['project_id'], PDO::PARAM_INT);
    if ($repSt->execute()) {
+      $factureEndLine = 0;
       while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
-         if (in_array(strval($repData['facture_reference']), $bxReferences)) { continue; }
+         /* bexio integartion */
+         if (intval($ini_conf['bexio']['enabled']) != '0') { 
+            if (in_array(strval($repData['facture_reference']), $bxReferences)) { continue; } 
+         }
+         
+         $ttc = false;
+         if ($repData['repartition_ttc']) {
+            $ttc = true;
+         }
+
          $paydate = null;
          $paiementSt = $db->prepare('SELECT MAX(paiement_date) as "paiement_date" FROM paiement WHERE paiement_facture = :facture_id');
          $paiementSt->bindValue(':facture_id', $repData['facture_id'], PDO::PARAM_INT);
@@ -313,27 +331,26 @@ try {
             }
          }
          $reference = strval($repData['facture_reference']);
-         $amount_ht = 0;
+         $facture_amount = 0;
          $tva = 7.7;
          $type = '';
          $date = new DateTime($repData['facture_date']);
          switch (intval($repData['facture_type'])) {
             case 1:
                $type = 'Créancier';
-               $amount_ht = -floatval($repData['repartition_value']);
+               $facture_amount = -floatval($repData['repartition_value']);
                $tva = floatval($repData['repartition_tva']);
             break;
             case 2:
                $type = 'Débiteur';
-               $amount_ht = floatval($repData['repartition_value']);
+               $facture_amount = floatval($repData['repartition_value']);
                $tva = floatval($repData['repartition_tva']);
             break;
             case 3:
                $type = 'Note de crédit';
             case 4:
                if ($type === '') { $type = 'Compensation'; }
-
-               $amount_ht = floatval($repData['repartition_value']);
+               $facture_amount = floatval($repData['repartition_value']);
                $tva = floatval($repData['repartition_tva']);
             break;
 
@@ -373,12 +390,38 @@ try {
 
          }
 
-         $factureAmount += $amount_ht;
-         $amountByType[intval($repData['facture_type'])-1] += abs($amount_ht);
-         $SheetFacture['content'][] = [$reference, $date->format('Y-m-d'), $repData['facture_person'], $amount_ht, $tva, '=D'.($line+1). '+(D' . ($line+1) . '*E' . ($line+1) .'%)' , $type, $paydate ? $paydate->format('Y-m-d') : ''];
-
+         $amountByType[intval($repData['facture_type'])-1] += ($ttc ? (abs($facture_amount)  * (1 - $tva / 100)) : abs($facture_amount));
+         $SheetFacture['content'][] = [
+            $reference,
+            $date->format('Y-m-d'),
+            $repData['facture_person'],
+            $ttc ? '=F'.($line+1). '-(F' . ($line+1) . '*E' . ($line+1) .'%)' : $facture_amount,
+            $tva,
+            $ttc ? $facture_amount : '=D'.($line+1). '+(D' . ($line+1) . '*E' . ($line+1) .'%)', 
+            $type, 
+            $paydate ? $paydate->format('Y-m-d') : ''];
          $line++;
+
+         $splitvalue = floatval($repData['repartition_splitvalue']);
+         if ($splitvalue !== 0.0) {
+            if (intval($repData['facture_type']) === 1) { $splitvalue = -$splitvalue; }
+            $splittva = floatval($repData['repartition_splittva']);
+            $amountByType[intval($repData['facture_type'])-1] += ($ttc ? (abs($splitvalue)  * (1 - $splittva / 100)) : abs($splitvalue));
+            $SheetFacture['content'][] = [
+               $reference,
+               $date->format('Y-m-d'),
+               $repData['facture_person'],
+               $ttc ? '=F'.($line+1). '-(F' . ($line+1) . '*E' . ($line+1) .'%)' : $splitvalue,
+               $splittva,
+               $ttc ? $splitvalue : '=D'.($line+1). '+(D' . ($line+1) . '*E' . ($line+1) .'%)', 
+               $type, 
+               $paydate ? $paydate->format('Y-m-d') : '',
+               'FRAIS'
+            ];
+            $line++;
+         }
       }
+      $factureEndLine = $line;
       $SheetFacture['content'][] = ['', '', '', ''];
       $SheetFacture['content'][] = ['Totaux', '', '', '=SUM(D2:D' . $line .  ')', '', '=SUM(F2:F' . $line .  ')']; 
    }
@@ -386,32 +429,74 @@ try {
    $total = floatval($project['workcost']) + floatval($amountByType[0]) + floatval($materielMontant);
    if ($total == 0) { $total = 1; }
 
-   $writer->writeSheetRow('Résumé', ['Projet', $project['reference']], ['font-style' => 'bold']);
-   $writer->writeSheetRow('Résumé', ['Responsable', $project['manager']]);
-   $writer->writeSheetRow('Résumé', ['']);
-   $writer->writeSheetRow('Résumé', ['', $project['name']]);
-   $writer->writeSheetRow('Résumé', ['']);
-   $writer->writeSheetRow('Résumé', ['Matériel', '', '', $materielMontant], null, ['string', 'string', 'string', 'price']);
-   $writer->writeSheetRow('Résumé', ['']);
-   $writer->writeSheetRow('Résumé', ['Main d\'œuvre', '', '100%', $project['workcost'], strval(number_format(floatval($project['workcost']) * 100 / floatval($total), 2)) . ' %'], null, ['string', 'string', 'string', 'price', 'string']);
-   $writer->writeSheetRow('Résumé', ['dont'], ['font-style' => 'italic']);
+   $coutLine = count($processus) + 13; 
+
+   $line = 1;
+   $writer->writeSheetRow('Résumé', ['Projet', $project['reference']], ['font-style' => 'bold']); $line++;
+   $writer->writeSheetRow('Résumé', ['Responsable', $project['manager']]); $line++;
+   $writer->writeSheetRow('Résumé', ['']); $line++;
+   $writer->writeSheetRow('Résumé', ['', $project['name']]); $line++;
+   $writer->writeSheetRow('Résumé', ['']); $line++;
+   $materielMontantLine = $line;
+   $writer->writeSheetRow('Résumé', [
+      'Matériel',
+      '',
+      '',
+      $materielMontant,
+      '=D' . $line . '/D' . $coutLine,
+   ], null, ['string', 'string', 'string', 'price', '0.00 %']); $line++;
+   $writer->writeSheetRow('Résumé', ['']); $line++;
+   $workcostLine = $line;
+   $writer->writeSheetRow('Résumé', [
+      'Main d\'œuvre',
+      '', 
+      '100%', 
+      $project['workcost'], 
+      '=IFERROR(D' . $line . '/D' . $coutLine . ';1)',
+   ], null, ['string', 'string', 'string', 'price', '0.00 %', 'string']); $line++;
+   $writer->writeSheetRow('Résumé', ['dont'], ['font-style' => 'italic']); $line++;
    
    $i = 10;
    $workcost = floatval($project['workcost']);
    if ($workcost == 0) { $workcost = 1; }
    foreach ($processus as $k => $v) {
-      $writer->writeSheetRow('Résumé', ['',$k, strval(number_format(floatval($v) * 100 / $workcost, 2)) . ' %', $v, '', strval(number_format(floatval($v) * 100 / $total, 2)) . ' %'], ['font-style' => 'italic'], ['string', 'string', 'string', 'price', 'string', 'string']);
+      $writer->writeSheetRow('Résumé', [
+         '',
+         $k,
+         '=IFERROR(D' . $line . '/D' . $workcostLine . ';1)',
+         $v,
+         '',
+         '=IFERROR(D' . $line . '/D' . $coutLine . ';1)'
+      ], ['font-style' => 'italic'], ['string', 'string', '0.00 %', 'price', 'string', '0.00 %']); $line++;
       $i++;
    }
+   
+   $writer->writeSheetRow('Résumé', ['']); $line++;
+   $creancierLine = $line;
+   $writer->writeSheetRow('Résumé', [
+      'Créanciers',
+      'HT',
+      '',
+      '=ABS(SUMIF($Factures.G2:G' . $factureEndLine . '; "Créancier"; $Factures.D2:D' . $factureEndLine . '))',
+      '=IFERROR(D' . $line . '/D' . $coutLine . ';1)',
+   ], null, ['string', 'string', 'string', 'price', '0.00 %']); $line++;
+   $writer->writeSheetRow('Résumé', ['']); $line++;
+   $costLine = $line;
+   $writer->writeSheetRow('Résumé', [
+      'Coûts', 
+      'HT', 
+      '', 
+      '=D' . $workcostLine . '+D' . $creancierLine . '+D' . $materielMontantLine, 
+      '1'
+   ], ['font-style' => 'bold'], ['string', 'string', 'string', 'price', '0.00 %']); $line++;
+   $soldLine = $line;
+   $writer->writeSheetRow('Résumé', ['Prix Vendu', '', '', $project['price']], null, ['string', 'string', 'string', 'price']); $line++;
+   
+   $writer->writeSheetRow('Résumé', ['Résultat [CHF]', '', '', '=D'. $soldLine . '-D' .$costLine], null, ['string', 'string', 'string', '0.00;[RED]-0.00']); $line++;
+
+   $writer->writeSheetRow('Résumé', ['Résultat [%]', '', '', '=IFERROR(1-D' . $line - 3 . '/D' . $line - 2 .';-1'], null, ['string', 'string', 'string', '0.00 %;[RED]-0.00%']);
    $writer->writeSheetRow('Résumé', ['']);
-   $writer->writeSheetRow('Résumé', ['Créanciers HT', '', '', $amountByType[0],  strval(number_format(floatval($amountByType[0]) * 100 / floatval($total), 2)) . ' %'], null, ['string', 'string', 'string', 'price', 'string']);
-   $writer->writeSheetRow('Résumé', ['']);
-   $writer->writeSheetRow('Résumé', ['Coûts HT', '', '', $total, '100 %'], ['font-style' => 'bold'], ['string', 'string', 'string', 'price', 'string']);
-   $writer->writeSheetRow('Résumé', ['Prix Vendu', '', '', $project['price']], null, ['string', 'string', 'string', 'price']);
-   $writer->writeSheetRow('Résumé', ['Résultat [CHF]', '', '', $project['price'] - $total], null, ['string', 'string', 'string', '0.00;[RED]-0.00']);
-   $writer->writeSheetRow('Résumé', ['Résultat [%]', '', '', floatval($project['price']) === 0.0 ? -1.0 : (($project['price'] - $total) / $project['price'])], null, ['string', 'string', 'string', '0.00 %;[RED]-0.00%']);
-   $writer->writeSheetRow('Résumé', ['']);
-   $writer->writeSheetRow('Résumé', ['Débiteurs HT', '', '', $amountByType[1]], null, ['string', 'string', 'string', 'price']);
+   $writer->writeSheetRow('Résumé', ['Débiteur', 'HT', '', '=ABS(SUMIF($Factures.G2:G' . $factureEndLine . '; "Créancier"; $Factures.D2:D' . $factureEndLine . '))'], null, ['string', 'string', 'string', 'price']);
  
    $writer->writeSheetHeader('Par processus', $SheetProcessus['header'], ['widths'=>[25,10, 10]]);
    foreach($SheetProcessus['content'] as $row) {  

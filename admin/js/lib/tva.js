@@ -1,6 +1,6 @@
-function getTVA() {
+function getTVA(year = null) {
     if (!KAAL.tva) { return 0.0 }
-    let year = new Date().getFullYear()
+    if (year === null) { year = new Date().getFullYear() }
     let tva = 0.0
     for (let y in KAAL.tva) {
         if (year >= y) {

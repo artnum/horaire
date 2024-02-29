@@ -9,7 +9,7 @@ function KAPI (endpoint) {
 
 KAPI.prototype.get = function (id) {
     return new Promise((resolve, reject) => {
-        fetch(`${this.url}/${id}`)
+        fetch(`${this.url}/${id}`, {keepalive: true})
         .then(response => {
             return response.json()
         })
@@ -30,7 +30,7 @@ KAPI.prototype.get = function (id) {
 
 KAPI.prototype.delete = function (id) {
     return new Promise((resolve, reject) => {
-        fetch(`${this.url}/${id}`, {method: 'DELETE'})
+        fetch(`${this.url}/${id}`, {method: 'DELETE', keepalive: true})
         .then(response => {
             return response.json()
         })
@@ -52,7 +52,7 @@ KAPI.prototype.delete = function (id) {
 
 KAPI.prototype.list = function () {
     return new Promise((resolve, reject) => {
-        fetch(`${this.url}`)
+        fetch(`${this.url}`, {keepalive: true})
         .then(response => {
             return response.json()
         })
@@ -73,7 +73,7 @@ KAPI.prototype.list = function () {
 
 KAPI.prototype.search = function (query) {
     return new Promise((resolve, reject) => {
-        fetch(`${this.url}/_query`, {method: 'POST', body: JSON.stringify(query)})
+        fetch(`${this.url}/_query`, {method: 'POST', body: JSON.stringify(query), keepalive: true})
         .then(response => {
             return response.json()
         })
@@ -100,7 +100,7 @@ KAPI.prototype.write = function (body, id = null) {
         if (id !== null && this.idname !== '' && body[this.idname] === undefined) {
             body[this.idname] = id
         }
-        fetch(url, {method: id === null ? 'POST' : 'PATCH', body: JSON.stringify(body)})
+        fetch(url, {method: id === null ? 'POST' : 'PATCH', body: JSON.stringify(body), keepalive: true})
         .then(response => {
             return response.json()
         })
@@ -123,7 +123,7 @@ KAPI.prototype.write = function (body, id = null) {
 KAPI.prototype.overwrite = function (body, id = null) {
     return new Promise((resolve, reject) => {
         const url = id === null ? this.url : `${this.url}/${id}`
-        fetch(url, {method: 'POST', body: JSON.stringify(body)})
+        fetch(url, {method: 'POST', body: JSON.stringify(body), keepalive: true})
         .then(response => {
             return response.json()
         })
@@ -147,7 +147,7 @@ KAPI.prototype.execute = function (functionName, params = {}) {
     return new Promise((resolve, reject) => {
         const url = new URL(`${this.url}/.${functionName}`)
         Object.keys(params).forEach(k => url.searchParams.append(k, params[k]))
-        fetch(url)
+        fetch(url, {keepalive: true})
         .then(response => {
             return response.json()
         })

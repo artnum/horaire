@@ -132,8 +132,24 @@ input[type=text] {
     min-width: 24ch;
 }
 
+input.shorter[type=text] {
+    min-width: 12ch;
+    width: 12ch;
+}
+
 input.longer[type=text] {
     min-width: 64ch;
+}
+
+input.over {
+    background-color: lightsalmon;
+}
+
+.bill-summary {
+    border-bottom: 1px dotted black;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
 }
 
 main.flex {
@@ -829,6 +845,11 @@ button.addMore:before {
 .ka-fieldset .repartition {
     display: flex;
     justify-content: space-between;
+}
+
+.ka-fieldset .repartition .total {
+    font-size: 10px;
+    color: darkgray;
 }
 
 .ka-fieldset .repartition .delete {

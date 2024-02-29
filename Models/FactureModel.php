@@ -4,6 +4,8 @@ use function BizCuit\SwissQR\creditorref_verify;
 use function BizCuit\SwissQR\reference_verify;
 
 class FactureModel extends artnum\SQL {
+  protected $kconfig;
+
   function __construct($db, $config) {
     $this->kconfig = $config;
     parent::__construct($db, 'facture', 'facture_id', []);
@@ -33,6 +35,11 @@ class FactureModel extends artnum\SQL {
   }
   
   function getBXUpload($args) {
+    if ($this->kconfig->get('bexio.enabled') == 0) {
+      $this->response->start_output();
+      $this->response->echo(json_encode(['error' => 'Bexio not enabled']));
+      return ['count' => 1];
+    }
     $path = $this->kconfig->get('facture.path');
     $name = preg_replace('/[^a-zA-Z0-9_]/', '', $args['name']);
     [$p1, $p2] = [substr($name, 0, 2), substr($name, 2, 2)];
@@ -52,6 +59,11 @@ class FactureModel extends artnum\SQL {
   }
 
   function getBXCreateBill($args) {
+    if ($this->kconfig->get('bexio.enabled') == 0) {
+      $this->response->start_output();
+      $this->response->echo(json_encode(['error' => 'Bexio not enabled']));
+      return ['count' => 1];
+    }
     $bxCtx = $this->kconfig->getVar('bexioDB');
     $file = $args['fileuuid'];
     $billId = $args['billid'];
