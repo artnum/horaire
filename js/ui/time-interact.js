@@ -1,6 +1,8 @@
 function TimeInteractUI (userId, workday = 'nyyyyyn') {
     this.eventTarget = new EventTarget()
-
+    this.offset = 0
+    this.limit = 100
+    
     this.mustHave = {
         project: true,
         process: true,
