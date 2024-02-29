@@ -870,9 +870,10 @@ UIKABXFactureList.prototype.renderAssociateNode = function (parent, repartition 
 
 UIKABXFactureList.prototype.removeRepartitionNode = function (node) {
     return new Promise(resolve => {
+        const parentNode = node.parentNode
         new Promise(resolve => { window.requestAnimationFrame(() => { node.remove(); resolve() }) })
         .then(_ => {
-            this.calculateRepartitionTotal(node.parentNode)
+            this.calculateRepartitionTotal(parentNode)
             resolve()
         })
     })
