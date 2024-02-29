@@ -477,8 +477,8 @@ try {
       'Créanciers',
       'HT',
       '',
-      '=ABS(SUMIF($Factures.G2:G' . $factureEndLine . ', "Créancier", $Factures.D2:D' . $factureEndLine . '))',
-      '=IFERROR(D' . $line . '/D' . $coutLine . ',;1)',
+      '=ABS(SUMIF(Factures!G2:G' . $factureEndLine . ', "Créancier", Factures!D2:D' . $factureEndLine . '))',
+      '=IFERROR(D' . $line . '/D' . $coutLine . ',1)',
    ], null, ['string', 'string', 'string', 'price', '0.00 %']); $line++;
    $writer->writeSheetRow('Résumé', ['']); $line++;
    $costLine = $line;
@@ -496,7 +496,7 @@ try {
 
    $writer->writeSheetRow('Résumé', ['Résultat [%]', '', '', '=IFERROR(1-D' . $line - 3 . '/D' . $line - 2 .',-1)'], null, ['string', 'string', 'string', '0.00 %;[RED]-0.00%']);
    $writer->writeSheetRow('Résumé', ['']);
-   $writer->writeSheetRow('Résumé', ['Débiteur', 'HT', '', '=ABS(SUMIF($Factures.G2:G' . $factureEndLine . ', "Créancier", $Factures.D2:D' . $factureEndLine . '))'], null, ['string', 'string', 'string', 'price']);
+   $writer->writeSheetRow('Résumé', ['Débiteur', 'HT', '', '=ABS(SUMIF(Factures!G2:G' . $factureEndLine . ', "Débiteur", Factures!D2:D' . $factureEndLine . '))'], null, ['string', 'string', 'string', 'price']);
  
    $writer->writeSheetHeader('Par processus', $SheetProcessus['header'], ['widths'=>[25,10, 10]]);
    foreach($SheetProcessus['content'] as $row) {  
