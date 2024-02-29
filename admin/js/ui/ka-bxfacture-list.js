@@ -859,7 +859,6 @@ UIKABXFactureList.prototype.renderAssociateNode = function (parent, repartition 
             .then(repartition => {
                 karepartition.delete(repartition.id)
             })
-            .then(_ => resolve())
         })
     })
 
