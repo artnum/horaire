@@ -186,7 +186,12 @@ UIKAProjectList.prototype.textSearch = function (text) {
     if (this.selectedState === 'open') { query.closed = '--' }
     else if (this.selectedState === 'close') { query.closed = '*' }
     expr.merge(query)
-    this.search(expr.object())
+
+
+    if (this.runningSearch) { this.runningSearch.abort() }
+    this.runningSearch = new AbortController()
+
+    this.search(expr.object(), this.runningSearch.signal)
     .then(projects => this.render(projects))
     .then(_ => window.requestAnimationFrame(() => this.projectList.classList.remove('loading')))
 }
@@ -526,9 +531,9 @@ UIKAProjectList.prototype.associateProject = function (project) {
  * @param {object} query A search query object
  * @returns {Promise.<array.<object>>} An array of project object
  */
-UIKAProjectList.prototype.search = function (query = {}) {
+UIKAProjectList.prototype.search = function (query = {}, signal = null) {
     return new Promise((resolve, reject) => {
-        kafetch2(`${KAAL.getBase()}/Project/_query?limit=${this.offset},${this.limit}&sort.ordering=DESC&sort.created=DESC`, {method: 'POST', body: JSON.stringify(query)})
+        kafetch2(`${KAAL.getBase()}/Project/_query?limit=${this.offset},${this.limit}&sort.ordering=DESC&sort.created=DESC`, {method: 'POST', body: JSON.stringify(query), signal: signal})
         .then(projects => {
             this.lastResultCount = projects.length
             const clients = projects
@@ -547,14 +552,14 @@ UIKAProjectList.prototype.search = function (query = {}) {
             
 
             Promise.all(
-                [Promise.allSettled(clients.map(client => kafetch2(`${KAAL.getBase()}/${client}?short=1`)))
+                [Promise.allSettled(clients.map(client => kafetch2(`${KAAL.getBase()}/${client}?short=1`, {signal: signal})))
                 .then(responses => {
                     return responses
                         .filter(r => r.status === 'fulfilled')
                         .map(r => r.value[0])
                         .filter(r => r !== undefined && r !== null)
                 }),
-                Promise.allSettled(managers.map(manager => kafetch2(`${KAAL.getBase()}/Person/${manager}`)))
+                Promise.allSettled(managers.map(manager => kafetch2(`${KAAL.getBase()}/Person/${manager}`, {signal: signal})))
                 .then(responses => {
                     return responses
                         .filter(r => r.status === 'fulfilled')
