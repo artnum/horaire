@@ -6,7 +6,7 @@ function TimeInteractUI (userId, workday = 'nyyyyyn') {
     this.mustHave = {
         project: true,
         process: true,
-        travail: true
+        travail: false
     }
     this.hasSet = {
         project: null,
@@ -41,16 +41,9 @@ function TimeInteractUI (userId, workday = 'nyyyyyn') {
                 kafetch(KAAL.url(`Travail/${id}`))
                 .then(travail => {
                     if (travail.length === 1) {
+                        this.hasSet.travail = parseInt(travail.data[0].id)
+                        this.hasSet.process = parseInt(travail.data[0].status)
                         this.selectProject(travail.data[0].project)
-                        .then(_ => {
-                            return this.selectTravail(id)
-                        })
-                        .then(travail => {
-                            return new Promise(resolve => {
-                                if (!travail.data[0].status) { return resolve() }
-                                return resolve(this.selectProcess(travail.data[0].status))
-                            })
-                        })
                         .then(_ => {
                             this.showTimeBox()
                         })
@@ -91,6 +84,11 @@ TimeInteractUI.prototype.showIndex = function () {
     return new Promise((resolve) => {
         const project = new KAButton('Autres projets', {click: true, fat: true})
         project.addEventListener('submit', event => {
+            this.hasSet = {
+                project: null,
+                travail: null,
+                process: null
+            }
             this.hideIndex()
             .then(() => {
                 return this.showHeader()
@@ -102,6 +100,11 @@ TimeInteractUI.prototype.showIndex = function () {
 
         const hours = new KAButton('Mes heures', {click: true, fat: true})
         hours.addEventListener('submit', event => {
+            this.hasSet = {
+                project: null,
+                travail: null,
+                process: null
+            }
             this.hideIndex()
             .then(() => {
                 const container = document.querySelector('div.ka-main-bottom')
@@ -114,6 +117,11 @@ TimeInteractUI.prototype.showIndex = function () {
         const forecast = new KAButton('Mon planning provisoire', {click: true, fat: true})
         forecast.addEventListener('submit', event => {
             const planning = new KAPlanningUI(this.userId)
+            this.hasSet = {
+                project: null,
+                travail: null,
+                process: null
+            }
             this.hideIndex()
             .then(() => {
                 return planning.load()
@@ -554,16 +562,46 @@ TimeInteractUI.prototype.closeProject = function (project) {
 
 TimeInteractUI.prototype.openProject = function (project) {
     return new Promise(resolve => {
-        
-        project.dataset.scrollTop = window.scrollY
-        project.dataset.open = 'true'
+        const KAPIProject = new KAPI('Project')
+        KAPIProject.get(project.dataset.project)
+        .then(projectData => {
+            project.dataset.scrollTop = window.scrollY
+            project.dataset.open = 'true'
+            
+            requests = []
 
-        Promise.all([
-            this.loadTravaux(project.dataset.project),
-            KAProcess.list()
-        ])
+            if (this.hasSet.travail) {
+                requests[0] = new Promise((resolve, reject) => {
+                    KATravail.load(this.hasSet.travail)
+                    .then(travail => {
+                        resolve(new KAGroup([travail]))
+                    })
+                    .catch(e => {
+                        reject(e)
+                    })
+                })
+            } else {
+                requests[0] = this.loadTravaux(project.dataset.project)
+            }
+
+            if (this.hasSet.process || projectData.process) {
+                if (projectData.process !== 0) { this.hasSet.process = projectData.process }
+                requests[1] = new Promise((resolve, reject) => {
+                    KAProcess.load(this.hasSet.process)
+                    .then(process => {
+                        resolve([process])
+                    })
+                    .catch(e => {
+                        reject(e)
+                    })
+                })
+            } else {
+                requests[1] = KAProcess.list()
+            }
+            return Promise.all(requests)
+        })
         .then(([travaux, processes]) => {
-            this.hasSet.project = project.dataset.project
+            this.hasSet.project = parseInt(project.dataset.project)
             const container = document.querySelector('div.ka-main-bottom')
             const subcontainer = document.createElement('DIV')
             subcontainer.addEventListener('click', this.handleSelectProcessTravail.bind(this))
@@ -605,6 +643,11 @@ TimeInteractUI.prototype.openProject = function (project) {
                     div.style.setProperty('--ka-button-blended-bg', kolor.alpha(0.4))
                     div.innerHTML = `<span class="reference">${process.get('reference')}</span> <span class="name">${process.get('name')}</name>`
                     div.dataset.process = process.uid
+                    if (process.uid === this.hasSet.process) {
+                        div.dataset.open = 'true'
+                    } else {
+                        div.dataset.open = 'false'
+                    }
                     chain.then(() => {
                         return new Promise(resolve => {
                             window.requestAnimationFrame(() => { 
@@ -615,7 +658,6 @@ TimeInteractUI.prototype.openProject = function (project) {
                     })
                 }
 
-                if (travaux.length < 1) { this.mustHave.travail = false }
                 if (travaux.length > 0) {
                     const groups = travaux.gets()
                     const travailHead = document.createElement('DIV')
@@ -639,6 +681,11 @@ TimeInteractUI.prototype.openProject = function (project) {
                             }
                             div.innerHTML = `<span class="reference">${travail.get('reference')}</span> <span class="name">${travail.get('description')}</span>`
                             div.dataset.travail = travail.uid
+                            if (travail.uid === this.hasSet.travail) {
+                                div.dataset.open = 'true'
+                            } else {
+                                div.dataset.open = 'false'
+                            }
                             chain.then(() => {
                                 return new Promise(resolve => {
                                     window.requestAnimationFrame(() => { 
@@ -672,6 +719,11 @@ TimeInteractUI.prototype.openProject = function (project) {
                                 }
                                 div.innerHTML = `<span class="reference">${travail.get('reference')}</span> <span class="name">${travail.get('description')}</span>`
                                 div.dataset.travail = travail.uid
+                                if (travail.uid === this.hasSet.travail) {
+                                    div.dataset.open = 'true'
+                                } else {
+                                    div.dataset.open = 'false'
+                                }
                                 chain.then(() => {
                                     return new Promise(resolve => {
                                         window.requestAnimationFrame(() => { 
@@ -687,6 +739,7 @@ TimeInteractUI.prototype.openProject = function (project) {
                 return chain
             })
             .then(() => {
+                if ( this.hasSet.process) { this.showTimeBox() }
                 resolve()
             })
         })
@@ -720,7 +773,7 @@ TimeInteractUI.prototype.selectProject = function (projectId) {
         .then(openProject => {
             this.openProject(openProject)
             .then(() => {
-                this.hasSet.project = projectId
+                this.hasSet.project = parseInt(projectId)
                 return this.showRecentTime()
 
             })
@@ -739,7 +792,7 @@ TimeInteractUI.prototype.selectTravail = function (travailId) {
         if (travailId === null) { resolve(); return }
         const container = document.querySelector('div.ka-container')
         const subcontainer = container.querySelector('div.ka-project-detail')
-        this.hasSet.travail = travailId
+        this.hasSet.travail = parseInt(travailId)
         const animReq = []
         for (const node of subcontainer.querySelectorAll('.ka-button2[data-travail]')) {
             if (parseInt(node.dataset.travail) === parseInt(travailId)) {
@@ -757,7 +810,7 @@ TimeInteractUI.prototype.selectProcess = function (processId) {
         const container = document.querySelector('div.ka-container')
         const subcontainer = container.querySelector('div.ka-project-detail')
         if (!subcontainer) { return resolve() }
-        this.hasSet.process = processId
+        this.hasSet.process = parseInt(processId)
         for (const node of subcontainer.querySelectorAll('.ka-button2[data-process]')) {
             if (parseInt(node.dataset.process) === parseInt(processId)) {
                 node.dataset.open = 'true'
@@ -975,7 +1028,13 @@ TimeInteractUI.prototype.selectTimeEntry = function (timeId) {
                     return this.selectTravail(temps.get('travail'))
                 })
                 .then(() => {
-                    return this.showTimeBox({id: temps.uid, time: temps.get('value'), remark: temps.get('comment'), km: temps.get('km'), dinner: temps.get('dinner')})   
+                    return this.showTimeBox({
+                        id: temps.uid,
+                        time: temps.get('value'),
+                        remark: temps.get('comment'),
+                        km: temps.get('km'),
+                        dinner: temps.get('dinner')
+                    })
                 })
                 .then(() => {
                     this.selectDay(temps.day)
@@ -1009,7 +1068,6 @@ TimeInteractUI.prototype.handleSelectProcessTravail = function (event) {
         selectItem.push(this.selectProcess(node.dataset.process))
     }
 
-
     if(node.dataset.travail) {
         selectItem.push(this.selectTravail(node.dataset.travail))
     }
@@ -1027,6 +1085,11 @@ TimeInteractUI.prototype.clearTimeBox = function () {
             remark: null,
             km: null,
             diner: false
+        }
+        this.hasSet = {
+            project: null,
+            travail: null,
+            process: null
         }
         const container = document.querySelector('div.ka-container')
         const subcontainer = container.querySelector('div.ka-project-detail')
@@ -1247,6 +1310,11 @@ TimeInteractUI.prototype.addTime = function (event) {
     }
     temps.save()
     .then(temps => {
+        this.hasSet = {
+            project: null,
+            travail: null,
+            process: null
+        }
         node.dataset.timeId = temps.id
         if (this.carUsage) { this.carUsage.save(temps.id, document.querySelector('div.ka-car')) }
         this.insertPreviousTimeEntry(temps)

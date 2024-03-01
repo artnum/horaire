@@ -102,7 +102,8 @@ KCarInteractUI.prototype = {
         if (this.content.usage.id) { select.dataset.id = this.content.usage.id }
         ; (() => {
             return new Promise(resolve => {
-                let node = document.querySelector('div.ka-car').firstElementChild.nextSibling
+                let node = document.querySelector('div.ka-car')?.firstElementChild?.nextSibling
+                if (node === null) { return resolve() }
                 while(node) {
                     const next = node.nextSibling
                     node.remove()

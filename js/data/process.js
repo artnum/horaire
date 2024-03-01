@@ -19,7 +19,6 @@ KAProcess.load = function (processId) {
         if (DataUtils.empty(processId)) { resolve (new KAProcess()); return }
         KAPIStatus.get(processId.toId())
         .then(process => {
-            if (process.length !== 1) { reject('Processus inconnu'); return }
             resolve(KAProcess.create(process))
         })
         .catch(error => {
