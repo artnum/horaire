@@ -1160,8 +1160,8 @@ TimeInteractUI.prototype.showTimeBox = function (opts = {id: null, time: null, r
         timebox.innerHTML = `<form data-time-id="${this.currentSelection.id ? this.currentSelection.id : ''}">
             <div class="ka-input"><label for="time">Temps</label><input type="text" placeholder="Temps" name="time" value="${this.currentSelection.time ? DataUtils.durationToStrTime(this.currentSelection.time) : ''}"/></div>
             <div class="ka-input multiple">
-                <label for="dinner" class="ka-checkbox"><input type="checkbox" name="dinner" ${this.currentSelection.dinner ? 'checked' : ''}> Repas</label>
-                <label for="km" class="ka-checkbox"><input type="text" name="km" value="${this.currentSelection.km ? this.currentSelection.km : ''}"> KM Déplacement</label>
+                ${KAAL.time?.withLunch ? `<label for="dinner" class="ka-checkbox"><input type="checkbox" name="dinner" ${this.currentSelection.dinner ? 'checked' : ''}> Repas</label>` : ''}
+                ${KAAL.time?.withKm ? `<label for="km" class="ka-checkbox"><input type="text" name="km" value="${this.currentSelection.km ? this.currentSelection.km : ''}"> KM Déplacement</label>`: ''}
             </div>
             <div class="ka-input"><label for="remark">Remarque</label><input type="text" name="remark" placeholder="Remarque" value="${this.currentSelection.remark ? this.currentSelection.remark : ''}"/></div>
             <div class="ka-fieldset ka-car" style="display: none"></div>
