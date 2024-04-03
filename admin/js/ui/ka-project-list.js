@@ -35,17 +35,17 @@ function UIKAProjectList () {
     buttons[0].addEventListener('submit', _ => {
         this.selectedState = 'open'
         this.offset = 0
-        this.doSearchEvent(this.currentSearchValue)
+        this.doSearchEvent(this.currentSearchValue, true)
     })
     buttons[1].addEventListener('submit', _ => {
         this.selectedState = 'close'
         this.offset = 0
-        this.doSearchEvent(this.currentSearchValue)
+        this.doSearchEvent(this.currentSearchValue, true)
     })
     buttons[2].addEventListener('submit', _ => {
         this.selectedState = 'any'
         this.offset = 0
-        this.doSearchEvent(this.currentSearchValue)
+        this.doSearchEvent(this.currentSearchValue, true)
     })
 
     this.searchBox = this.domNode.querySelector('.ka-search-box input')
@@ -104,7 +104,7 @@ UIKAProjectList.prototype.renderNavigation = function () {
     prev.addEventListener('click', _ => {
         if (this.offset <= 0) { return }
         this.offset -= this.limit
-        this.doSearchEvent(this.currentSearchValue)
+        this.doSearchEvent(this.currentSearchValue, true)
     })
     const next = document.createElement('A')
     if (this.lastResultCount < this.limit) {
@@ -114,7 +114,7 @@ UIKAProjectList.prototype.renderNavigation = function () {
     next.addEventListener('click', _ => {
         if (this.lastResultCount < this.limit) { return }
         this.offset += this.limit
-        this.doSearchEvent(this.currentSearchValue)
+        this.doSearchEvent(this.currentSearchValue, true)
     })
     window.requestAnimationFrame(() => {
         this.navigation.innerHTML = `<span>de ${this.offset} à ${this.limit + this.offset}</span>`
@@ -142,8 +142,8 @@ UIKAProjectList.prototype.sort = function (by, asc = true) {
         
 }
 
-UIKAProjectList.prototype.doSearchEvent = _debounce(function (value) {
-    this.textSearch(value)
+UIKAProjectList.prototype.doSearchEvent = _debounce(function (value, onlyProject = false) {
+    this.textSearch(value, onlyProject)
 }, 250)
 
 UIKAProjectList.prototype.render = function (projects) {
@@ -168,7 +168,7 @@ UIKAProjectList.prototype.render = function (projects) {
     })
 }
 
-UIKAProjectList.prototype.textSearch = function (text) {
+UIKAProjectList.prototype.textSearch = function (text, onlyProject = false) {
     window.requestAnimationFrame(() => {
         this.projectList.classList.add('loading')
     })
@@ -191,7 +191,36 @@ UIKAProjectList.prototype.textSearch = function (text) {
     if (this.runningSearch) { this.runningSearch.abort() }
     this.runningSearch = new AbortController()
 
-    this.search(expr.object(), this.runningSearch.signal)
+    Promise.allSettled([
+        (() => {
+            if (onlyProject) { return Promise.resolve([]) }
+            return this.searchProjectByClient(KQueryExpr.fromString(text, {attribute: ['givenname', 'o', 'sn']}).object(), this.runningSearch.signal)
+        })(),
+        (() => {
+            if (onlyProject) { return Promise.resolve([]) }
+            return this.searchProjectByManager(KQueryExpr.fromString(text, {attribute: ['name']}).object(), this.runningSearch.signal)
+        })(),
+        this.search(expr.object(), this.runningSearch.signal)
+    ])
+    .then(([projectByClient, searchProjectByManager, projects]) => {
+        if (projectByClient.status === 'fulfilled') {
+            projectByClient = projectByClient.value
+        } else {
+            projectByClient = []
+        }
+        
+        if (searchProjectByManager.status === 'fulfilled') {
+            projectByClient = projectByClient.concat(searchProjectByManager.value)
+        }
+
+        if (projects.status === 'fulfilled') {
+            projects = projects.value
+        } else {
+            projects = []
+        }
+        projectByClient = projectByClient.filter(p => projects.findIndex(p2 => p2.id === p.id) === -1)
+        return projects.concat(projectByClient)
+    })
     .then(projects => this.render(projects))
     .then(_ => window.requestAnimationFrame(() => this.projectList.classList.remove('loading')))
 }
@@ -279,6 +308,7 @@ UIKAProjectList.prototype.renderProject = function (project) {
                 <span class="tooling">
                     <button class="onhover" data-action="add-work">Ajout travail</button>
                     <button class="onhover" data-action="edit">Éditer</button>
+                    <!--<button class="onhover" data-action="offer">Offre</button>//-->
                     <button class="onhover" data-action="export">Exporter</button>
                     <button class="onhover" data-action="print">Imprimer</button>
                     <button class="onopen" data-action="${project.closed ? 'open' : 'close'}">${project.closed ? 'Ouvrir' : 'Clore'}</button>
@@ -342,7 +372,12 @@ UIKAProjectList.prototype.buttonInteractWithProject = function (projectId, inter
         case 'open': return this.openProject(projectId)
         case 'delete': return this.deleteProject(projectId)
         case 'add-work': return this.addEditTravailToProject(projectId)
+        case 'offer': return this.offerProject(projectId)
     }
+}
+
+UIKAProjectList.prototype.offerProject = function (projectId) {
+    window.open(`${KAAL.getBase()}/admin/offre.html?project=${projectId}`, '_blank')
 }
 
 UIKAProjectList.prototype.buttonInteractWithTravail = function (projectId, travailId, interaction) {
@@ -523,6 +558,93 @@ UIKAProjectList.prototype.associateProject = function (project) {
         .catch(cause => {
             reject(new Error('Erreur', {cause}))
         })
+    })
+}
+
+UIKAProjectList.prototype.searchProjectByManager = function (query = {}, signal = null) {
+    return new Promise((resolve, reject) => {
+        kafetch2(`${KAAL.getBase()}/Person/_query`, {method: 'POST', body: JSON.stringify(query), signal: signal})
+        .then(managers => {
+            Promise.allSettled(managers.map(manager => {
+                const query = {deleted: '--', manager: manager.id}
+                if (this.selectedState === 'open') { query.closed = '--' }
+                else if (this.selectedState === 'close') { query.closed = '*' }
+                return kafetch2(`${KAAL.getBase()}/Project/_query`, {method: 'POST', body: query, signal: signal})
+            }))
+            .then(projects => {
+                projects = projects
+                    .filter(p => p.status === 'fulfilled')
+                    .map(p => p.value)
+                    .filter(p => p.length > 0)
+                    .map(p => {
+                        return p.map(project => {
+                            project.manager = managers.find(m => m.id === project.manager)
+                            return project
+                        })
+                    })
+                    .flat()
+                Promise.allSettled(projects
+                    .filter(p => p.client !== '')
+                    .filter((p, index, array) => {
+                        return array.findIndex(p2 => p2.client === p.client) === index
+                    })
+                    .map(project => {
+                        const parts = String(project.client).split('/')
+                        return kafetch2(`${KAAL.getBase()}/Contact/${parts.pop()}`, {signal: signal})
+                    })
+                )
+                .then(contacts => {
+                    contacts = contacts.filter(c => c.status === 'fulfilled').map(c => c.value)
+                    return resolve(projects.map(project => {
+                        project.client = contacts.find(c => String(project.client).endsWith(String(c.IDent)))
+                        return project
+                    }))
+                })
+            })
+        })
+        .catch(cause => {
+            reject(new Error('Erreur chargement des project', {cause}))
+        })
+    })
+}
+
+UIKAProjectList.prototype.searchProjectByClient = function (query = {}, signal = null) {
+    return new Promise((resolve, reject) => {
+        kafetch2(`${KAAL.getBase()}/Contact/_query`, {method: 'POST', body: JSON.stringify(query), signal: signal})
+        .then(contacts => {
+            Promise.allSettled(contacts.map(contact => {
+                const query = {deleted: '--', client: `Contact/${contact.IDent}`}
+                if (this.selectedState === 'open') { query.closed = '--' }
+                else if (this.selectedState === 'close') { query.closed = '*' }
+                return kafetch2(`${KAAL.getBase()}/Project/_query`, {method: 'POST', body: query, signal: signal})
+            }))
+            .then(projects => {
+                projects = projects
+                    .filter(p => p.status === 'fulfilled')
+                    .map(p => p.value)
+                    .filter(p => p.length > 0)
+                    .map(p => {
+                        return p.map(project => {
+                            project.client = contacts.find(c => String(project.client).endsWith(String(c.IDent)))
+                            return project
+                        })
+                    })
+                    .flat()
+                Promise.allSettled(projects.map(project => {
+                    return kafetch2(`${KAAL.getBase()}/Person/${project.manager}`, {signal: signal})
+                }))
+                .then(managers => {
+                    managers = managers.filter(m => m.status === 'fulfilled').map(m => m.value[0])
+                    return resolve(projects.map(project => {
+                        project.manager = managers.find(m => m.id === project.manager)
+                        return project
+                    }))
+                })                
+            })
+        })
+    })
+    .catch(cause => {
+        reject(new Error('Erreur', {cause}))
     })
 }
 

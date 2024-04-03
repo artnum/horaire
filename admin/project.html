@@ -126,7 +126,7 @@
       })
 
       window.requestAnimationFrame(() => document.body.querySelector('.project-list-parent').appendChild(projecList.domNode))
-      projecList.textSearch('*')
+      projecList.textSearch('*', true)
 
       window.requestAnimationFrame(() => document.body.querySelector('span[name="clientContainer"]').appendChild(contactOld.domNode))
 
