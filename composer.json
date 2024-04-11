@@ -1,10 +1,63 @@
 {
+    "name": "artnum/kaal",
+    "description": "Project management and accounting",
+    "keywords": ["project", "accounting", "management"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Etienne Marais",
+            "email": "etienne@artisan-numerique.ch",
+            "role": "Developer"
+        }
+    ],
     "minimum-stability": "alpha",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "KAAL\\": "lib/KAAL/"
+        }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "/home/etienne/Projets/Web/pjapi-php",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "/home/etienne/Projets/Web/monoref",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "/home/etienne/Projets/Web/structured-json-query",
+            "option": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "/home/etienne/Projets/Web/kaal-db",
+            "option": {
+                "symlink": true
+            }
+        }
+    ],
     "require": {
         "artnum/bizcuit-swissqr": "^2.0",
         "setasign/tfpdf": "^1.33",
         "endroid/qr-code": "^5.0",
         "artnum/bizcuit-bexio": "@dev",
-        "artnum/bizcuit-pdf": "@dev"
+        "artnum/bizcuit-pdf": "@dev",
+        "artnum/pjapi": "@dev",
+        "artnum/snowflake53": ">=0.0.2",
+        "artnum/monoref": "@dev",
+        "artnum/structured-json-query": "@dev",
+        "artnum/kaal-db": "@dev",
+        "monolog/monolog": "^3.5"
     }
 }

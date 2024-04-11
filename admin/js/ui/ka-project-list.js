@@ -308,7 +308,7 @@ UIKAProjectList.prototype.renderProject = function (project) {
                 <span class="tooling">
                     <button class="onhover" data-action="add-work">Ajout travail</button>
                     <button class="onhover" data-action="edit">Éditer</button>
-                    <!--<button class="onhover" data-action="offer">Offre</button>//-->
+                    <button class="onhover" data-action="offer">Offre</button>
                     <button class="onhover" data-action="export">Exporter</button>
                     <button class="onhover" data-action="print">Imprimer</button>
                     <button class="onopen" data-action="${project.closed ? 'open' : 'close'}">${project.closed ? 'Ouvrir' : 'Clore'}</button>

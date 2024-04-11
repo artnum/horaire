@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Offre</title>
+    <style href="css/admin.css"></style>
+    <style>
+        account-lines {
+            display: grid;
+            grid-template-columns: 0.2fr 3.6fr 0.3fr 0.2fr 0.3fr 0.3fr 0.2fr;
+        }
+        account-lines > legend {
+            display: block;
+            grid-area: header;
+        }
+
+        account-lines > [data-used="false"] > * {
+            opacity: 0.3;
+        }
+
+        account-lines > * > *[readonly] {
+            background-color: #f0f0f0;
+        }
+
+
+        account-lines > div {
+            display: contents;
+        }
+        
+        account-lines .account-line__head > * {
+            color: white;
+            background-color: black;
+            font-family: monospace;
+            font-size: 1.2em;
+            min-height: 2em;
+            border: 1px solid white;
+        }
+        
+        account-lines > div.related > * {
+            background-color: lightslategrey;
+        }
+
+        account-lines .head-intermediate > * {
+            font-size: 1em;
+        }
+
+        account-lines .relation {
+            color: gray;
+        }
+
+        account-summary {
+            display: block;
+            border: 1px solid black;
+            padding: 1rem;
+            max-width: 40ch;
+            margin-top: 4ex;
+        }
+
+        account-summary > legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            grid-column-gap: 3px;
+        }
+
+        account-summary  input {
+            display: inline-block;
+            max-width: 6ch;
+            min-width: 6ch;
+        }
+        account-summary > legend > span {
+            text-align: right;
+            font-family: monospace;
+            display: inline-block;
+        }
+
+        account-summary .total {
+            font-weight: bold;
+            font-size: 1.4em;
+        }
+
+    </style>
+    <script type="module" src="/js/accountLines/src/accountLines.js"></script>
+    <script src="../conf/kaal.js"></script>
+    <script src="js/lib/login.js"></script>
+    <script src="js/fetch.js"></script>
+    <script src="js/lib/kapi.js"></script>
+    <script src="js/lib/tva.js"></script>
+    <script src="js/ui/ka-offer.js"></script>
+    <script src="/pjAPI/src/pjapi.js"></script>
+</head>
+<body>
+    <h1>Offre</h1>
+    <button class="progress_button" name="offer">Offre</button>
+    <button class="progress_button" name="order">Commande</button>
+    <form>
+        <account-lines name="offer" precision="2">
+            <account-head-definition>
+                <legend>Position</legend>
+                <legend>Désignation</legend>
+                <legend>Quantité</legend>
+                <legend>Unité</legend>
+                <legend>Prix unitaire</legend>
+                <legend name="total">Total</legend>
+            </account-head-definition>
+            
+            <account-line-definition>
+                <div style="font-family: monospace;" type="position"></div>
+                <textarea name="description"></textarea>
+                <input mandatory  type="number" name="quantity" step="0.01">
+                <select name="unit">
+                    <option value="kg">kg</option>
+                    <option value="g">g</option>
+                    <option value="l">l</option>
+                    <option value="ml">ml</option>
+                    <option value="pcs">pcs</option>
+                </select>
+                <input mandatory type="number" name="price" step="0.01">
+                <input mandatory type="number" name="line_total" step="0.01" to-delete="negate" data-expression="$quantity $price *">
+            </account-line-definition>
+        </account-lines>
+
+        <account-summary for="offer" precision="2">
+            <legend>
+                Sout-Total 
+                <span></span>
+                <span></span>
+                <span class="total" name="gross" data-expression="$line_total sum"></span>
+            </legend>
+            <legend>
+                RPLP <input name="rplpValue">            
+                <span data-expression="~RPLP ldr"></span>
+                <span name="rplp" data-expression="$gross $rplpValue %+ ~INTERMEDIATE ~RPLP cpr"></span>
+            </legend>
+            <legend>
+                Rabais <input name="rabaisPercent">
+                <span data-expression="~RABAIS ldr"></span>
+                <span name="rabais" data-expression="$rplp $rabaisPercent %- ~INTERMEDIATE ~RABAIS cpr"></span>
+            </legend>
+            <legend>
+                Escompte <input name="escomptePercent">
+                <span data-expression="~ESCOMPTE ldr"></span>
+                <span name="escompte" data-expression="$rabais $escomptePercent %- ~INTERMEDIATE ~ESCOMPTE cpr"></span>
+            </legend>
+            <legend>Arrondi 
+                <input value="0.05" name="arrondiBase">
+                <span data-expression="~UNROUNDED ldr"></span>
+                <span name="arrondi" data-expression="$escompte $arrondiBase { jmpz mround ~INTERMEDIATE ~UNROUNDED cpr }"></span>
+            </legend>
+            <legend>
+                TVA <input name="tvaPercent">
+                <span data-expression="~TVA ldr"></span>
+                <span name="tva" data-expression="$arrondi $tvaPercent %+ ~INTERMEDIATE ~TVA cpr "></span>
+            </legend>
+            <legend>
+                Total
+                <span></span>
+                <span></span>
+                <span name="total" class="total" data-expression="$tva"></span>
+            </legend>
+        </account-summary>
+
+        <account-summary for="offer" precision="2" name="final">
+            <legend>
+                Sout-Total 
+                <span></span>
+                <span></span>
+                <span class="total" name="gross" data-expression="~IVALUE0 ldr"></span>
+            </legend>
+            <legend>
+                RPLP <input name="rplpValue">            
+                <span data-expression="~RPLP ldr"></span>
+                <span name="rplp" data-expression="$gross $rplpValue %+  ~INTERMEDIATE ~RPLP cpr"></span>
+            </legend>
+            <legend>
+                Rabais <input name="rabaisPercent">
+                <span name="rabaisAbsolute" data-expression="~RABAIS ldr"></span>
+                <span name="rabais" data-expression="$rplp $rabaisPercent %-  ~INTERMEDIATE ~RABAIS cpr"></span>
+            </legend>
+            <legend>
+                Escompte <input name="escomptePercent">
+                <span data-expression="~ESCOMPTE ldr"></span>
+                <span name="escompte" data-expression="$rabais $escomptePercent %- ~INTERMEDIATE ~ESCOMPTE cpr"></span>
+            </legend>
+            <legend>Arrondi 
+                <input value="0.05" name="arrondiBase">
+                <span data-expression="~UNROUNDED ldr"></span>
+                <span name="arrondi" data-expression="0 ~UNROUNDED str $escompte $arrondiBase { jmpz mround ~INTERMEDIATE ~UNROUNDED cpr }"></span>
+            </legend>
+            <legend>
+                TVA <input name="tvaPercent">
+                <span data-expression="~TVA ldr"></span>
+                <span name="tva" data-expression=" $arrondi $tvaPercent %+ ~INTERMEDIATE ~TVA cpr"></span>
+            </legend>
+            <legend>
+                Total <input value="" name="targetTotal">
+                <span><button type="button" name="setTarget">Set</button></span>
+                <span name="total" class="total" data-expression="$tva"></span>
+            </legend>
+        </account-summary>
+        <button type="button" name="freeze"></button>
+        <button type="submit">Enregistrer</button>
+    </form>
+</body>
+<script type="module">
+    document.querySelector('button[name="setTarget"]').addEventListener('click', event => {
+        const node = document.querySelector('account-summary[name="final"]')
+        const targetValue = parseFloat(node.querySelector('input[name="targetTotal"]').value)
+        const value = node.evaluate(`${targetValue} 1 $tvaPercent 100 / + / 1 $escomptePercent 100 / - / `)
+        node.querySelector('input[name="arrondiBase"]').value = 0
+        const percentRabais = node.evaluate(`100 ${value} 100 * $rplp / - 0.0001 mround`)
+        node.querySelector('input[name="rabaisPercent"]').value = percentRabais
+        node.update()
+    })  
+
+    const finalAccountSummary = document.querySelector('account-summary[name="final"]')
+    finalAccountSummary.querySelector('[name="rabaisAbsolute"]').addEventListener('dblclick', event => {
+        const nodeRabaisAbsolute = finalAccountSummary.querySelector('[name="rabaisAbsolute"]')
+        if (nodeRabaisAbsolute.dataset.expression === undefined) { return }
+        delete nodeRabaisAbsolute.dataset.expression
+        delete nodeRabaisAbsolute.dataset.value
+
+        const nodeRabaisPerc = finalAccountSummary.querySelector('input[name="rabaisPercent"]')
+        const nodeRabais = finalAccountSummary.querySelector('[name="rabais"]')
+        
+        nodeRabaisPerc.disabled = true
+        nodeRabais.dataset.expression = '$rplp $rabaisAbsoluteValue - ~INTERMEDIATE ~RABAIS cpr'
+        nodeRabaisAbsolute.innerHTML = `<input type="text" name="rabaisAbsoluteValue">`
+    })
+
+
+    import { OfferAPI } from '../js/JAPI/Offer.js'
+    import { ContactAPI } from '../js/JAPI/Contact.js'
+    import { JFormData } from '/js/formdata/src/formdata.js'
+    window.addEventListener('load', () => {
+        document.querySelectorAll('input[name="tvaPercent"]').forEach(node => node.value = getTVA())
+        document.querySelectorAll('input[name="rplpValue"]').forEach(node => node.value = KAAL.taxes.rplp)
+
+        console.log('location', new URLSearchParams(window.location.search))
+        const params = new URLSearchParams(window.location.search)
+        const kaoffer = new KAOfferUI()
+        const Offer = new OfferAPI()
+        const Contact = new ContactAPI()
+
+        Promise.all([
+            kaoffer.getProject(params.get('project')),
+            Offer.listByProject(params.get('project'))
+        ])
+        .then(([project, offer]) => {
+            Promise.all([
+                (() => {
+                    if (offer.length === 0) {
+                        return Offer.create({project: project.id})
+                    } else {
+                        return Promise.resolve(offer[0])
+                    }
+                    return Promise.resolve(offer)
+                })(),
+                project
+            ])
+            .then(([offer, project]) => {
+                return Promise.all([
+                    offer,
+                    project,
+                    Offer.getLines(offer.id)
+                ])
+            })
+            .then(([offer, project, lines]) => {
+                console.log(offer)
+                document.querySelector('account-lines[name="offer"]').setState(offer.state)
+
+                console.log('lines', lines)
+                console.log('project', project)
+                console.log(offer)
+                 console.log('offer', offer.toJSON())
+                offer.name = `OFFRE pour ${project.name}`
+                offer.update()
+                const node = document.querySelector('account-lines')
+                node.dataset.id = offer.id
+                node.id = offer.id
+                lines.forEach(line => {
+                    node.addLine(line)
+                })
+                node.addEventListener('update', event => {
+                    const data = new JFormData(event.target)
+                    Offer.updateLines(data.toJSON(), offer.id)
+                })
+                const title = `[OFFRE ${offer.reference}] ${project.reference} - ${project.name}`
+                document.title = title
+                document.querySelector('body > h1').textContent = title
+            })
+        })
+
+        document.querySelector('button[name="freeze"]').addEventListener('click', event => {
+            const node = document.querySelector('account-lines[name="offer"]')
+            
+            Offer.freeze(node.dataset.id)
+            .then(response => {
+                node.setState(response.state)
+                Offer.getLines(node.dataset.id)
+                .then(lines => {
+                    lines.forEach(line => {
+                        node.addLine(line)
+                    })
+                })
+            })
+        })
+
+        document.querySelector('form').addEventListener('submit', event => {
+            event.preventDefault()
+
+            const formData = new JFormData(event.target)
+            console.log('formData', formData)
+        })
+    })
+</script>
+</html>
