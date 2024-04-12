@@ -17,6 +17,10 @@ class Cache implements IStorage {
         return $this->MRBackend->increment($key, $value);
     }
 
+    public function get (string $key):int {
+        return $this->MRBackend->get($key);
+    }
+
     static function getInstance(array $conf) {
         if (empty(self::$obj)) {
             self::$obj = new Cache($conf);
