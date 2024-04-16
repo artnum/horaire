@@ -221,8 +221,8 @@ function makeEntry (entry) {
         </td><td name="hour" data-value="${hour.format()}">${hour.format()}
         </td><td name="comment" data-value="${(entry.comment ? entry.comment : '')}">
       ${(entry.comment ? entry.comment : '')}
-        </td><td name="dinner" data-id="${entry.dinner}">${entry.dinner ? 'Oui' : 'Non'}
-        </td><td name="km" data-id="${entry.km}">${entry.km ? entry.km : '0'}
+        </td><td name="dinner" data-value="${entry.dinner}">${entry.dinner ? 'Oui' : 'Non'}
+        </td><td name="km" data-value="${entry.km}">${entry.km ? entry.km : '0'}
         </td><td name="project" data-source="Projects" data-id="${project.id}">${project.name}
         </td><td name="process" data-source="Process" style="color: ${process.color}" data-id="${process.id}">${process.name}
         </td>`
@@ -301,6 +301,33 @@ function editEntry (event) {
    let body = {id: line.dataset.id, value: 0, comment: '', project: 0, process: 0}
    for (let td = line.firstElementChild; td; td = td.nextElementSibling) {
      switch (td.getAttribute('name')) {
+      case 'dinner':
+        if (save) {
+          body.dinner = td.getElementsByTagName('INPUT')[0].checked ? 1 : 0
+        } else {
+          let i = document.createElement('INPUT')
+          i.setAttribute('type', 'checkbox')
+          i.checked = parseInt(td.dataset.value) > 0
+          window.requestAnimationFrame(() => {
+            td.innerHTML = ''
+            td.appendChild(i)
+          })
+        }
+        break
+       case 'km':
+          if (save) {
+            body.km = parseInt(td.getElementsByTagName('INPUT')[0].value)
+          } else {
+            let i = document.createElement('INPUT')
+            i.setAttribute('type', 'text')
+            i.addEventListener('keyup', onEnterEscapeKey)
+            i.value = td.dataset.value
+            window.requestAnimationFrame(() => {
+              td.innerHTML = ''
+              td.appendChild(i)
+            })
+          }
+          break
        case 'date':
          if (save) {
            let x = Date.EUParse(td.getElementsByTagName('INPUT')[0].value)
@@ -421,6 +448,7 @@ function editEntry (event) {
    }
 
    if (save) {
+    console.log(body)
      Artnum.Query.exec(Artnum.Path.url(`Htime/${body.id}`), {method: 'PUT', body: body}).then((result) =>{
        if (result.success && result.length > 0 && result.data[0].id) {
          Artnum.Query.exec(Artnum.Path.url(`Htime/${result.data[0].id}`)).then((result) => {
