@@ -15,15 +15,14 @@ CREATE TABLE IF NOT EXISTS "accountingDoc" (
 	"name" VARCHAR(160) NOT NULL DEFAULT '', -- name of the document
 	"description" TEXT NOT NULL DEFAULT '', -- description of the document
 	"date" VARCHAR(16) NOT NULL, -- date of the document (GMT date/time : "YYYY-MM-DD HH:MM" format)
-	"state" ENUM('open', 'frozen', 'billed') DEFAULT 'open',
 	"type" ENUM('offer', 'order', 'execution', 'invoice', 'creditnote', 'debitnote', 'payment', 'reimbursement', 'other') DEFAULT 'offer',
 	"project" BIGINT UNSIGNED DEFAULT 0, -- for offer, no project associated, so 0
 	"condition" BIGINT UNSIGNED DEFAULT 0, -- condition for taxes and all, must always be set
 	"extid" VARCHAR(160) NOT NULL DEFAULT '', -- ID for external accounting system
-	"relid" BIGINT UNSIGNED DEFAULT 0, -- ID of the related document, if any
-	"baseid" BIGINT UNSIGNED DEFAULT 0, -- ID of the base document, if any
+	"related" BIGINT UNSIGNED DEFAULT NULL, -- ID of the related document, if any
 	"created" INTEGER UNSIGNED DEFAULT 0, -- timestamp of creation
 	"deleted" INTEGER UNSIGNED DEFAULT 0, -- timestamp of deletion
+	FOREIGN KEY ("related") REFERENCES "accountingDoc" ("id"),
 	UNIQUE("reference", "project")
 );
 
@@ -36,12 +35,12 @@ CREATE TABLE IF NOT EXISTS "accountingDocLine" (
 	"unit" VARCHAR(160) DEFAULT '',
 	"price" FLOAT DEFAULT 0.0,
 	"type" ENUM('item', 'addition', 'suppression') DEFAULT 'item',
-	"related" VARCHAR(16) DEFAULT NULL, -- position of the related line, if any
+	"related" BIGINT UNSIGNED DEFAULT NULL,
     "state" ENUM('open', 'frozen', 'billed') DEFAULT 'open',
     FOREIGN KEY ("docid") REFERENCES "accountingDoc" ("id"),
+	FOREIGN KEY ("related") REFERENCES "accountingDocLine" ("id"),
     UNIQUE ("docid", "position")
 );
-CREATE INDEX IF NOT EXISTS "docid" ON "accountingDocLine" ("docid");
 
 -- condition set are "kind of" immutable
 CREATE TABLE IF NOT EXISTS "accountingDocConditionSet" (

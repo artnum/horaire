@@ -1,8 +1,6 @@
 <?php
 namespace KAAL\Middleware;
 
-require('AccountingDocLine.php');
-
 use STQuery\STQuery as Search;
 use Exception;
 use Generator;
@@ -39,7 +37,7 @@ class AccountingDoc  {
         }
     }
 
-    protected function normalizeEgressDocument (stdClass $document):stdClass {
+    protected static function normalizeEgressDocument (stdClass $document):stdClass {
         if (empty($document)) {
             throw new Exception('No document provided', ERR_BAD_REQUEST);
         }
@@ -48,16 +46,10 @@ class AccountingDoc  {
             $document->id = strval($document->id);
         }
 
-        if (!empty($document->baseid)) {
-            $document->baseid = strval($document->baseid);
+        if (!empty($document->related)) {
+            $document->related = strval($document->related);
         } else {
-            $document->baseid = strval(0);
-        }
-
-        if (!empty($document->relid)) {
-            $document->relid = strval($document->relid);
-        } else {
-            $document->relid = strval(0);
+            $document->related = strval(0);
         }
 
         $document->created = intval($document->created);
@@ -91,27 +83,21 @@ class AccountingDoc  {
         return $document;
     }
 
-
-
-    protected function normalizeIngressDocument (stdClass $document):stdClass {
+    protected static function normalizeIngressDocument (stdClass $document):stdClass {
         if (empty($document)) {
             throw new Exception('No document provided', ERR_BAD_REQUEST);
         }
 
         if (!empty($document->id)) {
-            $document->id = $this->normalizeId($document->id);
+            $document->id = self::normalizeId($document->id);
         }
 
-        if (!empty($document->baseid)) {
-            if(empty($document->project) || empty($document->type) || empty($document->condition)) {
+        if (empty($document->related)) {
+            if(empty($document->project) || empty($document->type)) {
                 throw new Exception('No project provided', ERR_BAD_REQUEST);
             }
         } else {
-            $document->baseid = 0;
-        }
-
-        if (empty($document->relid)) {
-            $document->relid = 0;
+            $document->related = strval($document->related);
         }
 
         if (empty($document->created)) {
@@ -141,8 +127,7 @@ class AccountingDoc  {
         }
     
         $document->project = intval($document->project);
-        $document->baseid = intval($document->baseid);
-        $document->relid = intval($document->relid);
+        $document->related = intval($document->related);
         $document->condition = intval($document->condition);
         $document->created = intval($document->created);
         $document->deleted = intval($document->deleted);
@@ -151,6 +136,48 @@ class AccountingDoc  {
         $document->description = Normalizer::normalize(strval($document->description));
 
         return $document;
+    }
+
+    public function _getParents (mixed $docId):array {
+        $docId = self::normalizeId($docId);
+
+        $parents = [];
+        $stmt = $this->pdo->prepare('SELECT related FROM accountingDoc WHERE id = :id');
+        $stmt->bindParam(':id', $docId, PDO::PARAM_INT);
+        do {
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_OBJ);
+            if (empty($result)) {
+                break;
+            }
+            $parent = intval($result->related);
+            $parents[] = $parent;
+            $docId = $parent;
+        } while ($parent !== null);
+        return $parents;
+    }
+
+    public function _getChilds (mixed $docId): array {
+        $docId = self::normalizeId($docId);
+
+        $childs = [];
+        $stmt = $this->pdo->prepare('SELECT id FROM accountingDoc WHERE related = :id');
+        $stmt->bindParam(':id', $docId, PDO::PARAM_INT);
+        do {
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_OBJ);
+            if (empty($result)) {
+                break;
+            }
+            $child = intval($result->id);
+            $childs[] = $child;
+            $docId = $child;
+        } while ($child !== null);
+        return $childs;
+    }
+
+    public function getDocumentTree (mixed $project) {
+
     }
 
     public function search (stdClass $search):Generator {
@@ -178,28 +205,49 @@ class AccountingDoc  {
     private function getRawDocument (string|int $id):stdClass {
         try {
             $stmt = $this->pdo->prepare('SELECT * FROM accountingDoc WHERE id = :id');
-            $stmt->bindValue(':id', $this->normalizeId($id), PDO::PARAM_INT);
+            $stmt->bindValue(':id', self::normalizeId($id), PDO::PARAM_INT);
             $stmt->execute();
-            return $this->normalizeEgressDocument($stmt->fetch(PDO::FETCH_OBJ));
+            return self::normalizeEgressDocument($stmt->fetch(PDO::FETCH_OBJ));
         } catch (Exception $e) {
             throw new Exception('Error getting document', ERR_INTERNAL, $e);
         }
     }
 
-    public function freeze (string|int $id):stdClass {
+    public function nextStep (string|int $id):stdClass {
         try {
             $linesAPI = new AccountingDocLine($this->pdo, $this->cache);
-            $docId = $this->normalizeId($id);
+            $docId = self::normalizeId($id);
             $this->pdo->beginTransaction();
             foreach ($linesAPI->_rawSearch((object) ['docid' => $id, 'type' => 'item'], true) as $id) {
                 $linesAPI->freeze($id);
             }
-            $stmt = $this->pdo->prepare('UPDATE accountingDoc SET state = :state WHERE id = :id');
-            $stmt->bindValue(':state', 'frozen', PDO::PARAM_STR);
-            $stmt->bindValue(':id', $docId, PDO::PARAM_INT);
-            $stmt->execute();
+            $originalDocument = $this->get($docId);
+            switch($originalDocument->type) {
+                case 'offer':
+                    $type = 'order';
+                    break;
+                case 'order':
+                    $type = 'execution';
+                    break;
+                case 'execution':
+                    $type = 'invoice';
+                    break;
+                default:
+                    throw new Exception('Invalid type', ERR_BAD_REQUEST);
+            }
+            
+            $document = new stdClass();
+            $document->related = $originalDocument->id;
+            $document->type = $type;
+            /* copying the project attribute set is less flexible but simplify
+             * queries. There is almost no chance that a document flow will be
+             * set to another projet.
+             */ 
+            $document->project = $originalDocument->project;
+
+            $new =  $this->create($document);
             $this->pdo->commit();
-            return $this->get($docId);
+            return $new;
         } catch (Exception $e) {
             $this->pdo->rollBack();
             throw new Exception('Error locking document', ERR_INTERNAL, $e);
@@ -208,10 +256,10 @@ class AccountingDoc  {
 
     public function get (string|int $id):stdClass {
         try {
-            $id = $this->normalizeId($id);
+            $id = self::normalizeId($id);
             $document = $this->getRawDocument($id);
-            if ($document->relid) {
-                $baseDoc = $this->get($document->relid);
+            if ($document->related) {
+                $baseDoc = $this->get($document->related);
                 if (empty($baseDoc)) {
                     throw new Exception('Base document not found', ERR_BAD_REQUEST);
                 }
@@ -227,7 +275,7 @@ class AccountingDoc  {
                     }
                 }
             }
-            return $this->normalizeEgressDocument($document);
+            return self::normalizeEgressDocument($document);
         } catch (Exception $e) {
             throw new Exception('Error getting document', ERR_INTERNAL, $e);
         }
@@ -250,24 +298,16 @@ class AccountingDoc  {
     }
 
     public function create (stdClass $document):stdClass {
-        $document = $this->normalizeIngressDocument($document);
+        $document = self::normalizeIngressDocument($document);
         $this->pdo->beginTransaction();
         try {
-            $baseid = 0;
-            if ($document->baseid) {
-                $baseDoc = $this->get($document->relid);
-                if (empty($baseDoc)) {
-                    throw new Exception('Base document not found', ERR_BAD_REQUEST);
-                }
-                $baseid = intval($baseDoc->baseid);
-            }
-            $relid = 0;
-            if ($document->relid) {
-                $relDoc = $this->get($document->relid);
+            $related = null;
+            if ($document->related) {
+                $relDoc = $this->get($document->related);
                 if (empty($relDoc)) {
                     throw new Exception('Related document not found', ERR_BAD_REQUEST);
                 }
-                $relid = intval($relDoc->id);
+                $related = strval($relDoc->id);
             }
             
             $stmt = $this->pdo->prepare('INSERT INTO accountingDoc 
@@ -280,8 +320,7 @@ class AccountingDoc  {
                         date,
                         type,
                         created,
-                        baseid,
-                        relid
+                        related
                     ) 
                     VALUES (
                         :id,
@@ -292,14 +331,16 @@ class AccountingDoc  {
                         :date,
                         :type, 
                         :created,
-                        :baseid,
-                        :relid
+                        :related
                     )'
                 );
 
             $stmt->bindValue(':project', $document->project, PDO::PARAM_INT);
-            $stmt->bindValue(':baseid', $baseid, PDO::PARAM_INT);
-            $stmt->bindValue(':relid', $relid, PDO::PARAM_INT);
+            if ($related === null) {
+                $stmt->bindValue(':related', $related, PDO::PARAM_NULL);
+            } else {
+                $stmt->bindValue(':related', $related, PDO::PARAM_INT);
+            }
             $stmt->bindValue(':type', $document->type, PDO::PARAM_STR);
             $stmt->bindValue(':created', time(), PDO::PARAM_INT);
             $stmt->bindValue(':name', $document->name, PDO::PARAM_STR);
@@ -308,7 +349,13 @@ class AccountingDoc  {
 
             $id = $this->get64();
             $stmt->bindValue(':id', intval($id), PDO::PARAM_INT);
-            $stmt->bindValue(':reference', $this->ref->get('ACCOUNTINGDOC', 'O:yy:-:id04:'), PDO::PARAM_STR);
+            $format = '';
+            switch ($document->type) {
+                case 'offer': $format = 'O:yy:-:id04:'; break;
+                case 'order': $format = 'C:yy:-:id04:'; break;
+                case 'execution': $format = 'E:yy:-:id04:'; break;
+            }
+            $stmt->bindValue(':reference', $this->ref->get(sprintf('ACCOUNTINGDOC_%s', $document->type), $format), PDO::PARAM_STR);
 
             $stmt->execute();
             $this->pdo->commit();
@@ -320,13 +367,13 @@ class AccountingDoc  {
     }
 
     public function update (stdClass $document):stdClass {
-        $document = $this->normalizeIngressDocument($document);
+        $document = self::normalizeIngressDocument($document);
 
         $originalDocument = $this->getRawDocument($document->id);
         if (empty($originalDocument)) {
             throw new Exception('Document not found', ERR_BAD_REQUEST);
         }
-        $document = $this->normalizeIngressDocument($document);
+        $document = self::normalizeIngressDocument($document);
         foreach ($originalDocument as $key => $value) {
             if ($key === 'id') {
                 continue;
@@ -362,7 +409,7 @@ class AccountingDoc  {
             if (is_object($id)) {
                 $id = $id->id;
             }
-            $id = $this->normalizeId($id);
+            $id = self::normalizeId($id);
 
             $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare(

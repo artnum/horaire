@@ -17,11 +17,14 @@ class AccountingDocLine {
     use ID;
     use MixedID;
     protected PDO $pdo;
+    protected IStorage $cache;
+
     function __construct(PDO $pdo, IStorage $cache) {
         $this->pdo = $pdo;
+        $this->cache = $cache;
     }
 
-    private function normalizeEgressLine (stdClass $line) {
+    protected static function normalizeEgressLine (stdClass $line) {
         $line->id = strval($line->id) ?? '0';
         $line->position = strval($line->position) ?? null;
         $line->description = strval($line->description) ?? null;
@@ -33,8 +36,8 @@ class AccountingDocLine {
         return $line;
     }
 
-    private function normalizeIngressLine (stdClass $line) {
-        if (isset($line->id)) { $line->id = $this->normalizeId($line->id); }
+    protected static function normalizeIngressLine (stdClass $line) {
+        if (isset($line->id)) { $line->id = self::normalizeId($line->id); }
         $line->position = Normalizer::normalize(strval($line->position)) ?? null;
         $line->description = Normalizer::normalize(strval($line->description)) ?? null;
         $line->quantity = floatval($line->quantity) ?? null;
@@ -67,8 +70,8 @@ class AccountingDocLine {
     }
 
     function setStates (string|int|stdClass $docId, string $state = 'frozen') {
-        $docId = $this->normalizeId($docId);
         try {
+            $docId = self::normalizeId($docId);
             $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare('UPDATE accountingDocLine SET state = :state WHERE docId = :docId');
             $stmt->bindValue(':state', $state, PDO::PARAM_STR);
@@ -82,7 +85,7 @@ class AccountingDocLine {
     }
 
     function freeze (string|int|stdClass $id) {
-        $id = $this->normalizeId($id);
+        $id = self::normalizeId($id);
         try { 
             $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare('UPDATE accountingDocLine SET state = :state WHERE id = :id');
@@ -97,8 +100,8 @@ class AccountingDocLine {
     }
 
     function unfreeze (string|int $id) {
-        $id = $this->normalizeId($id);
-        try { 
+        try {
+            $id = self::normalizeId($id);
             $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare('UPDATE accountingDocLine SET state = :state WHERE id = :id');
             $stmt->bindValue(':state', 'open', PDO::PARAM_STR);
@@ -112,17 +115,19 @@ class AccountingDocLine {
     }
 
     function get (string|int $id) {
-        $id = $this->normalizeId($id);
+        $id = self::normalizeId($id);
         $stmt = $this->pdo->prepare('SELECT * FROM accountingDocLine WHERE id = :id');
         $stmt->bindValue(':id', intval($id), PDO::PARAM_INT);
         $stmt->execute();
-        return $this->normalizeEgressLine($stmt->fetch(PDO::FETCH_OBJ));
+        return self::normalizeEgressLine($stmt->fetch(PDO::FETCH_OBJ));
     }
 
     function gets (string|int $docId = null) {
-        $docId = $this->normalizeId($docId);
-        $stmt = $this->pdo->prepare('SELECT id FROM accountingDocLine WHERE docId = :docId');
-        $stmt->bindValue(':docId', intval($docId), PDO::PARAM_INT);
+        $docId = self::normalizeId($docId);
+        $docAPI = new AccountingDoc($this->pdo, $this->cache);
+        $parents = $docAPI->_getParents($docId);
+        $parents[] = $docId;
+        $stmt = $this->pdo->prepare('SELECT id FROM accountingDocLine WHERE docId IN (' . implode(',', $parents) . ')');
         $stmt->execute();
         while ($line = $stmt->fetch(PDO::FETCH_ASSOC)) {
             yield $this->get($line['id']);
@@ -150,7 +155,7 @@ class AccountingDocLine {
     }
 
     function delete (string|int $id) {
-        $id = $this->normalizeId($id);
+        $id = self::normalizeId($id);
         $stmt = $this->pdo->prepare('DELETE FROM accountingDocLine WHERE id = :id');
         yield ['deleted' => ['id' => $id, 'success' => $stmt->execute([':id' => $id])]];
     }
@@ -159,8 +164,8 @@ class AccountingDocLine {
         if (empty($line) || empty($docId)) {
             throw new Exception('No line to add');
         }
-        $docId = $this->normalizeId($docId);
-        $line = $this->normalizeIngressLine($line);
+        $docId = self::normalizeId($docId);
+        $line = self::normalizeIngressLine($line);
         $id = $this->get64();
         $this->pdo->beginTransaction();
         $stmt = $this->pdo->prepare('INSERT INTO accountingDocLine (
@@ -203,7 +208,7 @@ class AccountingDocLine {
     }
 
     function set (array $lines = null, string|int $docId) {
-        $docId = $this->normalizeId($docId);
+        $docId = self::normalizeId($docId);
 
         $stmt = $this->pdo->prepare('SELECT * FROM accountingDocLine WHERE docId = :docId FOR UPDATE');
         $stmt->execute([':docId' => $docId]);
@@ -212,10 +217,10 @@ class AccountingDocLine {
         try {
             $toUpdate = [];
             while($l = $stmt->fetch(PDO::FETCH_OBJ)) {
-                $l = $this->normalizeIngressLine($l);
+                $l = self::normalizeIngressLine($l);
                 $foundLine = false;
                 foreach ($lines as $k => $line) {
-                    $line = $this->normalizeIngressLine($line);
+                    $line = self::normalizeIngressLine($line);
                     if (!isset($line->id) || $line->id === 0) { continue; }
                     if ($l->id === $line->id) {
                         $foundLine = $line;

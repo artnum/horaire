@@ -28,26 +28,6 @@ fetch = function (url, params = {}) {
         else { 
           fetch.failed++
         }
-        /*try {
-          const responseCopy = response.clone()
-          responseCopy.json()
-          .then(enveloppe => {
-            if (enveloppe.debug) {
-              console.group(`Server Debug Data %c${url}`, 'color: green;')
-              let i = 0
-              enveloppe.debug.forEach(debug =>{
-                  console.log(debug.message)
-                  debug.stack.forEach(stack => {
-                    console.log(`\t(${++i})-> %c${stack.function} %c${stack.file}:${stack.line}`, 'font-weight:bold; color: red;', 'float: right; padding-right: 12px; border-right: 12px solid gray')
-                  })
-              })
-              console.groupEnd()
-            }
-          })
-        } catch (cause) {
-          console.log(cause)
-        }*/
-
         resolve(response)
     })
     .catch(e => {

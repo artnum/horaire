@@ -9,7 +9,7 @@ export class OfferAPI extends AccountingDocAPI {
             this.API.exec(
                 OfferAPI.NS,
                 'search',
-                {search: {project: projectId, type: 'offer', deleted: 0}}
+                {search: {project: projectId, type: 'order', deleted: 0}}
             )
             .then(docs => {
                 console.log(docs)
@@ -21,15 +21,16 @@ export class OfferAPI extends AccountingDocAPI {
         })
     }
 
-    freeze(offer) {
+    nextStep(offer) {
         return new Promise((resolve, reject) => {
             this.API.exec(
                 OfferAPI.NS,
-                'freeze',
+                'nextStep',
                 {id: offer}
             )
-            .then(frozen => {
-                resolve(frozen)
+            .then(newDocument => {
+                console.log(newDocument)
+                resolve(newDocument)
             })
             .catch(err => {
                 reject(err)
@@ -38,7 +39,7 @@ export class OfferAPI extends AccountingDocAPI {
     }
 
     create (offer) {
-        offer.type = 'offer'
+        offer.type = 'order'
         return super.create(offer)
     }
 

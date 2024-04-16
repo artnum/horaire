@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Offre</title>
-    <style href="css/admin.css"></style>
+    <link rel="stylesheet" type="text/css" href="css/admin.css" />
     <style>
         account-lines {
             display: grid;
@@ -89,8 +89,6 @@
 </head>
 <body>
     <h1>Offre</h1>
-    <button class="progress_button" name="offer">Offre</button>
-    <button class="progress_button" name="order">Commande</button>
     <form>
         <account-lines name="offer" precision="2">
             <account-head-definition>
@@ -265,7 +263,12 @@
             })
             .then(([offer, project, lines]) => {
                 console.log(offer)
-                document.querySelector('account-lines[name="offer"]').setState(offer.state)
+                switch (offer.type) {
+                    case 'offer':
+                        document.querySelector('account-lines[name="offer"]').setState('open'); break
+                    default:
+                        document.querySelector('account-lines[name="offer"]').setState('frozen'); break
+                }
 
                 console.log('lines', lines)
                 console.log('project', project)
@@ -292,7 +295,7 @@
         document.querySelector('button[name="freeze"]').addEventListener('click', event => {
             const node = document.querySelector('account-lines[name="offer"]')
             
-            Offer.freeze(node.dataset.id)
+            Offer.nextStep(node.dataset.id)
             .then(response => {
                 node.setState(response.state)
                 Offer.getLines(node.dataset.id)
