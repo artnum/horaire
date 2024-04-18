@@ -1,71 +1,89 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <link rel="stylesheet" type="text/css" href="css/admin.css" />
   <link rel="stylesheet" type="text/css" href="css/dtable.css" />
-<title>Horaire</title>
-<link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
+  <title>Horaire</title>
+  <link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
 </head>
+
 <body>
-<!--  <nav><ul><li><a href="index.html">Home</a></li>
-      <li><a href="project.html">Projets</a></li>
-      <li><a href="process.html">Processus</a></li>
-      <li><a href="user.html">Utilisateurs</a></li>
-    </ul>
-  </nav> //-->
   <main>
-  <h1>Heure</h1>
-  <h2>Ajouter</h2>
-  <form onsubmit="addTime(event)" data-source="Htime">
-    <label for="person">Personne : </label><select data-source="Person" data-options="{parameters: {'search.deleted': '-', 'search.disabled': 0}}" name="person"></select><br />
-    <label for="day">Jour :</label><input type="date" name="day" /> <label for="hour">Temps :</label><input type="text" name="hour" />
-    <label for="dinner"><input type="checkbox" name="dinner" /> Repas</label><br />
-    <label for="Déplacement">Déplacement KM : </label><input type="text" name="km" />
-    <br />
-    <label for="comment">Commentaire :</label><input type="text" name="comment" /><br />
-    <label for="project">Projet : </label>
-    <input name="project" autocomplete="off" id="selectProject" type="text" />
-    <label for="process">Processus : </label><input name="process"></select><br />
-    <fieldset>
-      <legend>Répétition</legend>
-      <label for="upTo">Jusqu'au: </label><input type="date" name="upTo" /><br>
-      <label for="day1"><input type="checkbox" checked="true" name="day1"/> Lundi</label>
-      <label for="day2"><input type="checkbox" checked="true" name="day2"/> Mardi</label>
-      <label for="day3"><input type="checkbox" checked="true" name="day3"/> Mercredi</label>
-      <label for="day4"><input type="checkbox" checked="true" name="day4"/> Jeudi</label>
-      <label for="day5"><input type="checkbox" checked="true" name="day5"/> Vendredi</label>
-      <label for="day6"><input type="checkbox" name="day6"/> Samedi</label>
-      <label for="day0"><input type="checkbox" name="day0"/> Dimanche</label>
-    </fieldset>
-    <br>
-    <input type="submit" value="Ajouter" />
-  </form>
-  <table id="addResults" style="display: none">
-    <thead class="darkbg">
-      <tr><th>Date</th><th>Valeur</th><th>Remarque</th><th>Utilisateur</th><th>Projet</th><th>Processus</th></tr>
-    </thead>
-    <tbody>
-    </tbody>
-  </table>
-  <h2>Rerchercher</h2>
-  <form onsubmit="submitForm(event)" data-source="Htime">
-    <label for="person">Personne : </label><select data-source="Person" name="person" data-options="{parameters: {'search.deleted': '-', 'search.disabled': '0'}}">
-    <option value=""></option></select><br />
-    <label for="from">Du </label><input onchange="syncToFrom(event)" name="from" type="date" /><label for="to"> au </label><input name="to" type="date" data-sync-with="from" /><br />
-    <input type="submit" value="Chercher" />
-    <input type="button" value="Exporter" onclick="submitForm(event, true)" />
-  </form>
-  <table id="results">
-    <thead class="darkbg">
-      <tr><th data-sort-type="date">Date</th><th data-sort-type="time">Valeur</th><th>Remarque</th><th data-sort-type="number">Repas</th><th data-sort-type="number">Déplacement</th></th><th>Projet</th><th>Processus</th><th data-sort-type="no">Action</th></tr>
-    </thead>
-    <tbody>
-    </tbody>
-  </table>
+    <h1>Heure</h1>
+    <h2>Ajouter</h2>
+    <form onsubmit="addTime(event)" data-source="Htime">
+      <label for="person">Personne : </label><select data-source="Person"
+        data-options="{parameters: {'search.deleted': '-', 'search.disabled': 0}}" name="person"></select><br />
+      <label for="day">Jour :</label><input type="date" name="day" /> <label for="hour">Temps :</label><input
+        type="text" name="hour" />
+      <label for="dinner"><input type="checkbox" name="dinner" /> Repas</label><br />
+      <label for="Déplacement">Déplacement KM : </label><input type="text" name="km" />
+      <br />
+      <label for="comment">Commentaire :</label><input type="text" name="comment" /><br />
+      <label for="project">Projet : </label>
+      <input name="project" autocomplete="off" id="selectProject" type="text" />
+      <label for="process">Processus : </label><input name="process"></select><br />
+      <fieldset>
+        <legend>Répétition</legend>
+        <label for="upTo">Jusqu'au: </label><input type="date" name="upTo" /><br>
+        <label for="day1"><input type="checkbox" checked="true" name="day1" /> Lundi</label>
+        <label for="day2"><input type="checkbox" checked="true" name="day2" /> Mardi</label>
+        <label for="day3"><input type="checkbox" checked="true" name="day3" /> Mercredi</label>
+        <label for="day4"><input type="checkbox" checked="true" name="day4" /> Jeudi</label>
+        <label for="day5"><input type="checkbox" checked="true" name="day5" /> Vendredi</label>
+        <label for="day6"><input type="checkbox" name="day6" /> Samedi</label>
+        <label for="day0"><input type="checkbox" name="day0" /> Dimanche</label>
+      </fieldset>
+      <br>
+      <input type="submit" value="Ajouter" />
+    </form>
+    <table id="addResults" style="display: none">
+      <thead class="darkbg">
+        <tr>
+          <th>Date</th>
+          <th>Valeur</th>
+          <th>Remarque</th>
+          <th>Utilisateur</th>
+          <th>Projet</th>
+          <th>Processus</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+    <h2>Rerchercher</h2>
+    <form onsubmit="submitForm(event)" data-source="Htime">
+      <label for="person">Personne : </label><select data-source="Person" name="person"
+        data-options="{parameters: {'search.deleted': '-', 'search.disabled': '0'}}">
+        <option value=""></option>
+      </select><br />
+      <label for="from">Du </label><input onchange="syncToFrom(event)" name="from" type="date" /><label for="to"> au
+      </label><input name="to" type="date" data-sync-with="from" /><br />
+      <input type="submit" value="Chercher" />
+      <input type="button" value="Exporter" onclick="submitForm(event, true)" />
+    </form>
+    <table id="results">
+      <thead class="darkbg">
+        <tr>
+          <th data-sort-type="date">Date</th>
+          <th data-sort-type="time">Valeur</th>
+          <th>Remarque</th>
+          <th data-sort-type="number">Repas</th>
+          <th data-sort-type="number">Déplacement</th>
+          </th>
+          <th>Projet</th>
+          <th>Processus</th>
+          <th data-sort-type="no">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
   </main>
 </body>
 <script>
-  window.KCORE =  { NoPopper: true }
+  window.KCORE = { NoPopper: true }
 </script>
 <script src="../conf/kaal.js"></script>
 <script src="js/lib/login.js"></script>
@@ -88,301 +106,338 @@
   const stProcess = new STProcess()
 
 
-function submitForm (event, doExport = false) {
-   event.preventDefault()
+  function submitForm(event, doExport = false) {
+    event.preventDefault()
 
-   var form = event.target
-   for(; form && form.nodeName !== 'FORM';  form = form.parentNode) ;
+    var form = event.target
+    for (; form && form.nodeName !== 'FORM'; form = form.parentNode);
 
-   obj = Admin.getForm(form)
-   var params = {'search.deleted': '-'}
-   if (obj.from) {
-     params['search.day'] = obj.from
-     if (obj.to) {
-       if (obj.from !== obj.to) {
-         params['search.day'] = ['>=' + obj.from,'<=' + obj.to]
-       }
-     }
-   }
-   if (obj.person) {
-     params['search.person'] = obj.person
-   }
-   if (obj.deleted) {
-     delete params['search.deleted']
-   }
-   Artnum.Query.exec(Artnum.Path.url(form.getAttribute('data-source'), {params: params}))
-   .then(function (result) {
-     var table = document.getElementById('results')
-     var tbody = table;
-     for (tbody = table.firstChild; tbody.nodeName !== 'TBODY'; tbody = tbody.nextSibling);
-     tbody.innerHTML = ''
-     if (result.success && result.length > 0) {
-       for (var i = 0; i < result.length; i++) {
-          makeEntry(result.data[i])
-          .then(tr => {
-            tbody.appendChild(tr)
-          })
-       }
-     }
-   })
-   if (doExport) {
-     var root = String(window.location.href).split('/')
-     root.pop()
-     root = root.join('/')
-     var url = new URL(`${root}/exec/export/user.php`)
-     if (obj.person) {
-       url.searchParams.set('pid', obj.person)
-     }
-     if (obj.to) {
-       url.searchParams.set('to', obj.to)
-     }
-     if (obj.from) {
-       url.searchParams.set('from', obj.from)
-     }
-     window.open(url)
-   }
-}
-
-function makeEntry2 (entry) {
-  return new Promise(resolve => {
-    Promise.all([
-      stProcess.get(entry.process),
-      stProject.get(entry.project)
-    ])
-    .then(([process, project]) => {
-      if (!process) {
-        process = {
-          id: 0,
-          name: '',
-          color: 'black'
+    obj = Admin.getForm(form)
+    var params = { 'search.deleted': '-' }
+    if (obj.from) {
+      params['search.day'] = obj.from
+      if (obj.to) {
+        if (obj.from !== obj.to) {
+          params['search.day'] = ['>=' + obj.from, '<=' + obj.to]
         }
       }
-      if (!project) {
-        project = {
-          id: 0,
-          name: ''
+    }
+    if (obj.person) {
+      params['search.person'] = obj.person
+    }
+    if (obj.deleted) {
+      delete params['search.deleted']
+    }
+
+    const requestURL = new URL(KAAL.url(form.getAttribute('data-source')))
+    for (let key in params) {
+      if (Array.isArray(params[key])) {
+        for (let i = 0; i < params[key].length; i++) {
+          requestURL.searchParams.append(key, params[key][i])
         }
+      } else {
+        requestURL.searchParams.set(key, params[key])
       }
-
-      if (!process.color) { process.color = 'black' }
-
-      var tr = document.createElement('TR')
-      tr.setAttribute('data-id', entry.id)
-      if (entry.deleted) {
-        tr.setAttribute('data-state', 'deleted')
+    }
+    kafetch(requestURL)
+      .then(function (result) {
+        var table = document.getElementById('results')
+        var tbody = table;
+        for (tbody = table.firstChild; tbody.nodeName !== 'TBODY'; tbody = tbody.nextSibling);
+        tbody.innerHTML = ''
+        if (result.success && result.length > 0) {
+          for (var i = 0; i < result.length; i++) {
+            makeEntry(result.data[i])
+              .then(tr => {
+                tbody.appendChild(tr)
+              })
+          }
+        }
+      })
+    if (doExport) {
+      var root = String(window.location.href).split('/')
+      root.pop()
+      root = root.join('/')
+      var url = new URL(`${root}/exec/export/user.php`)
+      if (obj.person) {
+        url.searchParams.set('pid', obj.person)
       }
-      var hour = new Hour(parseInt(entry.value))
-      var innerhtml = `<td data-value="${entry.day}" data-sort-value="${entry.day}">${entry.day}
+      if (obj.to) {
+        url.searchParams.set('to', obj.to)
+      }
+      if (obj.from) {
+        url.searchParams.set('from', obj.from)
+      }
+      window.open(url)
+    }
+  }
+
+  function makeEntry2(entry) {
+    return new Promise(resolve => {
+      Promise.all([
+        stProcess.get(entry.process),
+        stProject.get(entry.project)
+      ])
+        .then(([process, project]) => {
+          if (!process) {
+            process = {
+              id: 0,
+              name: '',
+              color: 'black'
+            }
+          }
+          if (!project) {
+            project = {
+              id: 0,
+              name: ''
+            }
+          }
+
+          if (!process.color) { process.color = 'black' }
+
+          var tr = document.createElement('TR')
+          tr.setAttribute('data-id', entry.id)
+          if (entry.deleted) {
+            tr.setAttribute('data-state', 'deleted')
+          }
+          var hour = new Hour(parseInt(entry.value))
+          var innerhtml = `<td data-value="${entry.day}" data-sort-value="${entry.day}">${entry.day}
         </td><td name="hour" data-value="${hour.format()}">${hour.format()}
         </td><td name="comment" data-value="${(entry.comment ? entry.comment : '')}">${(entry.comment ? entry.comment : '')}
         </td><td data-source="Person" data-id="${entry.person}">${entry._person.name}
         </td><td name="project" data-source="Projects" data-id="${project.id}">${project.name}
         </td><td name="process" data-source="Process" style="color: ${process.color}"  data-id="${process.id}">${process.name}
         </td>`
-      tr.innerHTML = innerhtml
-      return resolve(tr)
+          tr.innerHTML = innerhtml
+          return resolve(tr)
+        })
+        .catch(error => {
+          console.log(error)
+          reject(error)
+        })
     })
-    .catch(error => {
-      console.log(error)
-      reject(error)
-    })
-  })
-}
+  }
 
-function makeEntry (entry) {
-  return new Promise (resolve => {
-    Promise.all([
-      stProcess.get(entry.process),
-      stProject.get(entry.project)
-    ])
-    .then(([process, project]) => {
-      if (!process) {
-        process = {
-          id: 0,
-          name: '',
-          color: 'black'
-        }
-      }
-      if (!project) {
-        project = {
-          id: 0,
-          name: ''
-        }
-      }
-      if (!process.color) { process.color = 'black' }
-      console.log(entry)
-      const tr = document.createElement('TR')
-      tr.setAttribute('data-id', entry.id)
-      if (entry.deleted) {
-        tr.setAttribute('data-state', 'deleted')
-      }
-      var hour = new Hour(parseInt(entry.value))
-      var innerhtml = `<td name="date" data-value="${entry.day}" data-sort-value="${entry.day}">${(new Date(entry.day)).fullDate()}
+  function makeEntry(entry) {
+    return new Promise(resolve => {
+      Promise.all([
+        stProcess.get(entry.process),
+        stProject.get(entry.project)
+      ])
+        .then(([process, project]) => {
+          if (!process) {
+            process = {
+              id: 0,
+              name: '',
+              color: 'black'
+            }
+          }
+          if (!project) {
+            project = {
+              id: 0,
+              name: ''
+            }
+          }
+          if (!process.color) { process.color = 'black' }
+          const tr = document.createElement('TR')
+          tr.setAttribute('data-id', entry.id)
+          if (entry.deleted) {
+            tr.setAttribute('data-state', 'deleted')
+          }
+          var hour = new Hour(parseInt(entry.value))
+          var innerhtml = `<td name="date" data-value="${entry.day}" data-sort-value="${entry.day}">${(new Date(entry.day)).fullDate()}
         </td><td name="hour" data-value="${hour.format()}">${hour.format()}
         </td><td name="comment" data-value="${(entry.comment ? entry.comment : '')}">
       ${(entry.comment ? entry.comment : '')}
-        </td><td name="dinner" data-id="${entry.dinner}">${entry.dinner ? 'Oui' : 'Non'}
-        </td><td name="km" data-id="${entry.km}">${entry.km ? entry.km : '0'}
+        </td><td name="dinner" data-value="${entry.dinner}">${entry.dinner ? 'Oui' : 'Non'}
+        </td><td name="km" data-value="${entry.km}">${entry.km ? entry.km : '0'}
         </td><td name="project" data-source="Projects" data-id="${project.id}">${project.name}
         </td><td name="process" data-source="Process" style="color: ${process.color}" data-id="${process.id}">${process.name}
         </td>`
 
-      if (entry.deleted) {
-        innerhtml += '<td><input type="button" name="undelete" value="Rétablir" onclick="undeleteEntry(event)"/></td>'
-      } else {
-        innerhtml += '<td><input type="button" name="edit" value="Modifier" onclick="editEntry(event)"/>' +
-          '<input type="button" name="delete" value="Supprimer" onclick="deleteEntry(event)" />' +
-          '</td>'
-      }
-      tr.innerHTML = innerhtml
-      tr.addEventListener('dblclick', (event) => {
-        let line = event.target
-        for (; line.nodeName !== 'TR'; line = line.parentNode);
-        if (line.dataset.edit) {
-          return resolve()
-        }
-        editEntry(event)
-      })
-      return resolve(tr)
+          if (entry.deleted) {
+            innerhtml += '<td><input type="button" name="undelete" value="Rétablir" onclick="undeleteEntry(event)"/></td>'
+          } else {
+            innerhtml += '<td><input type="button" name="edit" value="Modifier" onclick="editEntry(event)"/>' +
+              '<input type="button" name="delete" value="Supprimer" onclick="deleteEntry(event)" />' +
+              '</td>'
+          }
+          tr.innerHTML = innerhtml
+          tr.addEventListener('dblclick', (event) => {
+            let line = event.target
+            for (; line.nodeName !== 'TR'; line = line.parentNode);
+            if (line.dataset.edit) {
+              return resolve()
+            }
+            editEntry(event)
+          })
+          return resolve(tr)
+        })
     })
-  })
-}
+  }
 
- function resetEntry (event)
- {
-   let line = event.target
-   for (; line.nodeName !== 'TR'; line = line.parentNode);
-   Artnum.Query.exec(Artnum.Path.url(`Htime/${line.dataset.id}`)).then((result) => {
-     if (result.success && result.length) {
-       let table = event.target
-       for (; table && table.nodeName !== 'TABLE'; table = table.parentNode) ;
-       makeEntry(result.data[0] || result.data)
-       .then(tr => {
-        Admin.insertEntry(tr, table)
-       })
-     }
-   })
- }
- 
-function editEntry (event) {
-   var line = event.target
-   let save = false
-   for (; line.nodeName !== 'TR'; line = line.parentNode);
-   if (line.dataset.edit) {
-     save = true
-     delete line.dataset.edit
-   } else {
-     save = false
-     line.dataset.edit = '1'
-     
-     let modButton = line.lastElementChild.firstElementChild
-     for (; modButton && modButton.getAttribute('type') !== 'button' && modButtongetAttribute('name') !== 'edit'; modButton = modButton.nextElementSibling) ;
-     if (modButton) {
-       modButton.value = "Enregistrer"
-       let cancel = document.createElement('INPUT')
-       cancel.value = "Annuler"
-       cancel.type = "button"
-       cancel.addEventListener('click', resetEntry)
-       window.requestAnimationFrame(() => {
-         modButton.parentNode.insertBefore(cancel, modButton.nextElementSibling)
-       })
-     }
-   }
-   var onEnterEscapeKey = function (event) {
-     if (event.key === 'Enter') {
-       editEntry(event)
-       return
-     } else if (event.key === 'Escape') {
-       resetEntry(event)
-       return
-     }
-   }
+  function resetEntry(event) {
+    let line = event.target
+    for (; line.nodeName !== 'TR'; line = line.parentNode);
+    kafetch(KAAL.url(`Htime/${line.dataset.id}`))
+    .then((result) => {
+      if (result.success && result.length) {
+        let table = event.target
+        for (; table && table.nodeName !== 'TABLE'; table = table.parentNode);
+        makeEntry(result.data[0] || result.data)
+          .then(tr => {
+            Admin.insertEntry(tr, table)
+          })
+      }
+    })
+  }
 
-   let body = {id: line.dataset.id, value: 0, comment: '', project: 0, process: 0}
-   for (let td = line.firstElementChild; td; td = td.nextElementSibling) {
-     switch (td.getAttribute('name')) {
-       case 'date':
-         if (save) {
-           let x = Date.EUParse(td.getElementsByTagName('INPUT')[0].value)
-           body.day = x.dateStamp()
-         } else {
-           let i = document.createElement('INPUT')
-           i.setAttribute('type', 'text')
-           i.addEventListener('keyup', (event) => {
-             switch (event.key) {
-               case 'Enter':
-               case 'Escape':
-                 return
-               default:
-                 let h = document.createElement('SPAN')
-                 h.innerHTML = (Date.EUParse(event.target.value)).fullDate()
-                 if (event.target.parentNode.lastChild === event.target) {
-                   event.target.parentNode.appendChild(h)
-                 } else {
-                   event.target.parentNode.replaceChild(h, event.target.parentNode.lastChild)
-                 }
-             }
-           })
-           i.value = new Date((td.dataset.value)).fullDate()
-           let h = document.createElement('SPAN')
-           h.innerHTML = (Date.EUParse(i.value)).fullDate()
-           window.requestAnimationFrame(() => {
-             td.innerHTML = ''
-             td.appendChild(i)
-             td.appendChild(h)
-           })
-         }
-         break
-       case 'hour':
-         if (save) {
-           let x = new Hour (td.getElementsByTagName('INPUT')[0].value)
-           body.value = x.value
-         } else {
-           let i = document.createElement('INPUT')
-           i.setAttribute('type', 'text')
-           i.addEventListener('keyup', onEnterEscapeKey)
-           i.addEventListener('keyup', (event) => {
-             switch (event.key) {
-               case 'Enter':
-               case 'Escape':
-                 return
-               default:
-                 let h = document.createElement('SPAN')
-                 h.innerHTML = (new Hour(event.target.value)).format()
-                 if (event.target.parentNode.lastChild === event.target) {
-                   event.target.parentNode.appendChild(h)
-                 } else {
-                   event.target.parentNode.replaceChild(h, event.target.parentNode.lastChild)
-                 }
-             }
-           })
-           i.value = td.dataset.value
-           let h = document.createElement('SPAN')
-           h.innerHTML = (new Hour(i.value)).format()
-           window.requestAnimationFrame(() => {
-             td.innerHTML = ''
-             td.appendChild(i)
-             td.appendChild(h)
-           })
-         }
-         break
-       case 'comment':
-         if (save) {
-           body.comment = td.getElementsByTagName('INPUT')[0].value
-         } else {
-           let input = document.createElement('INPUT')
-           input.addEventListener('keyup', onEnterEscapeKey)
-           input.value = td.dataset.value
-           window.requestAnimationFrame(() => {
-             td.innerHTML = ''
-             td.appendChild(input)
-           })
-         }
-         break
-       case 'project':
-         if (save) {
-           body.project = td.getElementsByTagName('INPUT')[0].dataset.value
-         } else {
+  function editEntry(event) {
+    var line = event.target
+    let save = false
+    for (; line.nodeName !== 'TR'; line = line.parentNode);
+    if (line.dataset.edit) {
+      save = true
+      delete line.dataset.edit
+    } else {
+      save = false
+      line.dataset.edit = '1'
+
+      let modButton = line.lastElementChild.firstElementChild
+      for (; modButton && modButton.getAttribute('type') !== 'button' && modButtongetAttribute('name') !== 'edit'; modButton = modButton.nextElementSibling);
+      if (modButton) {
+        modButton.value = "Enregistrer"
+        let cancel = document.createElement('INPUT')
+        cancel.value = "Annuler"
+        cancel.type = "button"
+        cancel.addEventListener('click', resetEntry)
+        window.requestAnimationFrame(() => {
+          modButton.parentNode.insertBefore(cancel, modButton.nextElementSibling)
+        })
+      }
+    }
+    var onEnterEscapeKey = function (event) {
+      if (event.key === 'Enter') {
+        editEntry(event)
+        return
+      } else if (event.key === 'Escape') {
+        resetEntry(event)
+        return
+      }
+    }
+
+    let body = { id: line.dataset.id, value: 0, comment: '', project: 0, process: 0 }
+    for (let td = line.firstElementChild; td; td = td.nextElementSibling) {
+      switch (td.getAttribute('name')) {
+        case 'dinner':
+          if (save) {
+            body.dinner = td.getElementsByTagName('INPUT')[0].checked ? 1 : 0
+          } else {
+            let i = document.createElement('INPUT')
+            i.setAttribute('type', 'checkbox')
+            i.checked = parseInt(td.dataset.value) > 0
+            window.requestAnimationFrame(() => {
+              td.innerHTML = ''
+              td.appendChild(i)
+            })
+          }
+          break
+        case 'km':
+          if (save) {
+            body.km = parseInt(td.getElementsByTagName('INPUT')[0].value)
+          } else {
+            let i = document.createElement('INPUT')
+            i.setAttribute('type', 'text')
+            i.addEventListener('keyup', onEnterEscapeKey)
+            i.value = td.dataset.value
+            window.requestAnimationFrame(() => {
+              td.innerHTML = ''
+              td.appendChild(i)
+            })
+          }
+          break
+        case 'date':
+          if (save) {
+            let x = Date.EUParse(td.getElementsByTagName('INPUT')[0].value)
+            body.day = x.dateStamp()
+          } else {
+            let i = document.createElement('INPUT')
+            i.setAttribute('type', 'text')
+            i.addEventListener('keyup', (event) => {
+              switch (event.key) {
+                case 'Enter':
+                case 'Escape':
+                  return
+                default:
+                  let h = document.createElement('SPAN')
+                  h.innerHTML = (Date.EUParse(event.target.value)).fullDate()
+                  if (event.target.parentNode.lastChild === event.target) {
+                    event.target.parentNode.appendChild(h)
+                  } else {
+                    event.target.parentNode.replaceChild(h, event.target.parentNode.lastChild)
+                  }
+              }
+            })
+            i.value = new Date((td.dataset.value)).fullDate()
+            let h = document.createElement('SPAN')
+            h.innerHTML = (Date.EUParse(i.value)).fullDate()
+            window.requestAnimationFrame(() => {
+              td.innerHTML = ''
+              td.appendChild(i)
+              td.appendChild(h)
+            })
+          }
+          break
+        case 'hour':
+          if (save) {
+            let x = new Hour(td.getElementsByTagName('INPUT')[0].value)
+            body.value = x.value
+          } else {
+            let i = document.createElement('INPUT')
+            i.setAttribute('type', 'text')
+            i.addEventListener('keyup', onEnterEscapeKey)
+            i.addEventListener('keyup', (event) => {
+              switch (event.key) {
+                case 'Enter':
+                case 'Escape':
+                  return
+                default:
+                  let h = document.createElement('SPAN')
+                  h.innerHTML = (new Hour(event.target.value)).format()
+                  if (event.target.parentNode.lastChild === event.target) {
+                    event.target.parentNode.appendChild(h)
+                  } else {
+                    event.target.parentNode.replaceChild(h, event.target.parentNode.lastChild)
+                  }
+              }
+            })
+            i.value = td.dataset.value
+            let h = document.createElement('SPAN')
+            h.innerHTML = (new Hour(i.value)).format()
+            window.requestAnimationFrame(() => {
+              td.innerHTML = ''
+              td.appendChild(i)
+              td.appendChild(h)
+            })
+          }
+          break
+        case 'comment':
+          if (save) {
+            body.comment = td.getElementsByTagName('INPUT')[0].value
+          } else {
+            let input = document.createElement('INPUT')
+            input.addEventListener('keyup', onEnterEscapeKey)
+            input.value = td.dataset.value
+            window.requestAnimationFrame(() => {
+              td.innerHTML = ''
+              td.appendChild(input)
+            })
+          }
+          break
+        case 'project':
+          if (save) {
+            body.project = td.getElementsByTagName('INPUT')[0].dataset.value
+          } else {
             const project = document.createElement('INPUT')
             project.addEventListener('keyup', onEnterEscapeKey)
             new Promise(resolve => {
@@ -392,176 +447,182 @@ function editEntry (event) {
                 resolve(project)
               })
             })
-            .then(node => {
-              const s = new KSelectUI(node, stProject, {realSelect: true, allowFreeText: false})
-              s.value = td.dataset.id
-            })
-         }
-         break
-       case 'process':
-         if (save) {
-           body.process = td.getElementsByTagName('INPUT')[0].dataset.value
-         } else {
-           const process = document.createElement('INPUT')
-           process.addEventListener('keyup', onEnterEscapeKey)
-           new Promise(resolve => {
+              .then(node => {
+                const s = new KSelectUI(node, stProject, { realSelect: true, allowFreeText: false })
+                s.value = td.dataset.id
+              })
+          }
+          break
+        case 'process':
+          if (save) {
+            body.process = td.getElementsByTagName('INPUT')[0].dataset.value
+          } else {
+            const process = document.createElement('INPUT')
+            process.addEventListener('keyup', onEnterEscapeKey)
+            new Promise(resolve => {
               window.requestAnimationFrame(() => {
                 td.innerHTML = ''
                 td.appendChild(process)
                 resolve(process)
               })
             })
-            .then(node => {
-              const s = new KSelectUI(node, new STProcess('Process'), {realSelect: true, allowFreeText: false})
-              s.value = td.dataset.id
-            })
-         }
-         break
-     }
-   }
+              .then(node => {
+                const s = new KSelectUI(node, new STProcess('Process'), { realSelect: true, allowFreeText: false })
+                s.value = td.dataset.id
+              })
+          }
+          break
+      }
+    }
 
-   if (save) {
-     Artnum.Query.exec(Artnum.Path.url(`Htime/${body.id}`), {method: 'PUT', body: body}).then((result) =>{
-       if (result.success && result.length > 0 && result.data[0].id) {
-         Artnum.Query.exec(Artnum.Path.url(`Htime/${result.data[0].id}`)).then((result) => {
-           if (result.success && result.length) {
+    if (save) {
+      kafetch(KAAL.url(`Htime/${body.id}`), {method: 'PUT', body: JSON.stringify(body)})
+      .then(result => {
+        if (result.success && result.length > 0 && result.data[0].id) {
+          kafetch(KAAL.url(`Htime/${result.data[0].id}`))
+          .then((result) => {
+            if (result.success && result.length) {
               let table = event.target
-              for (; table && table.nodeName !== 'TABLE'; table = table.parentNode) ;
+              for (; table && table.nodeName !== 'TABLE'; table = table.parentNode);
               makeEntry(Array.isArray(result.data) ? result.data[0] : result.data)
-             .then(tr => {
-                Admin.insertEntry(tr, table)
-              })
-           }
-         })
-       }
-     })
-   }
- }
- 
-function deleteEntry (event) {
-  var line = event.target
-  for (; line.nodeName !== 'TR'; line = line.parentNode);
-  var id = line.getAttribute('data-id')
-  if (id) {
-    Admin.deleteEntry('Htime', id).then(function (data) {
-      if (data) {
-        window.requestAnimationFrame(() => line.parentNode.removeChild(line))
-      }
-    })
-  }
-}
-
-
-function undeleteEntry (event) {
-  var line = event.target
-  for (; line.nodeName !== 'TR'; line = line.parentNode);
-  var id = line.getAttribute('data-id')
-  if (id) {
-    Admin.deleteEntry('Htime', id, true).then(function (data) {
-      makeEntry(data)
-      .then(tr => {
-        let table = line
-        for (; table && table.nodeName !== 'TABLE'; table = table.parentNode);
-        Admin.insertEntry(tr, table)
-      })
-    })
-  }
-}
-
-function syncToFrom (event) {
-  var node = event.target
-  var name = event.target.getAttribute('name')
-  var found = false
-  do {
-    for (; node.previousSibling; node = node.previousSibling); 
-    for (var n = node; n; n = n.nextSibling) {
-      if (n.nodeType !== Node.ELEMENT_NODE) { continue }
-      if (n.getAttribute('data-sync-with') === name) {
-        node = n
-        found = true
-        break
-      }
-    }
-    if (found) { break }
-    node = node.parentNode
-     
-  } while(node)
-
-  if (found) {
-    node.value = event.target.value
-    if (!node.getAttribute('data-onchange')) {
-      node.setAttribute('data-onchange', 'true')
-      node.addEventListener('change', function (event) {
-        event.target.removeAttribute('data-sync-with')
-      })
-    }
-  }
-  return true
-}
-
-function addTime (event) {
-  event.preventDefault()
-  var dataSource = event.target.getAttribute('data-source')
-  var form = Admin.getForm(event.target)
-  const dinner = form.dinner ? 1 : 0
-  const km = form.km ? form.km : 0
-  var hour = new Hour(form.hour)
-  document.querySelector('input[name="upTo"]').value = ''
-  document.querySelector('input[name="hour"]').value = ''
-  document.querySelector('input[name="comment"]').value = ''
-  document.querySelector('input[name="km"]').value = ''
-
-  document.querySelector('input[name="day6"]').checked = false
-  document.querySelector('input[name="day0"]').checked = false
-  document.querySelector('input[name="day1"]').checked = true
-  document.querySelector('input[name="day2"]').checked = true
-  document.querySelector('input[name="day3"]').checked = true
-  document.querySelector('input[name="day4"]').checked = true
-  document.querySelector('input[name="day5"]').checked = true
-  document.querySelector('input[name="dinner"]').checked = false
-  if (hour.value !== 0) {
-    const useRepetition = form.upTo !== null
-    let upTo = new Date(form.day)
-    if (form.upTo !== null) {
-      upTo = new Date(form.upTo)
-    }
-
-    for (let day = new Date(form.day); day.toISOString().split('T')[0] <= upTo.toISOString().split('T')[0]; day.setTime(day.getTime() + 86400000)) {
-      if (useRepetition && form[`day${day.getDay()}`] === false) { continue; }
-      Artnum.Query.exec(Artnum.Path.url(dataSource), {method: 'POST',
-        body: {day: day.toISOString().split('T')[0], dinner, km, value: hour.value, person: form.person, project: form.project, process: form.process, comment: form.comment}})
-        .then(function (result) {
-        if (result.success && result.length === 1) {
-          Artnum.Query.exec(Artnum.Path.url(dataSource + '/' + result.data[0].id)).then(function (result) {
-            if (result.success && result.length === 1) {
-              var table = document.getElementById('addResults')
-              if (table.getAttribute('style')) {
-                table.removeAttribute('style')
-              }
-              var tbody = table;
-              for (tbody = table.firstChild; tbody.nodeName !== 'TBODY'; tbody = tbody.nextSibling);
-              makeEntry2(Array.isArray(result.data) ? result.data[0] : result.data)
-              .then(tr => {
-                tbody.appendChild(tr)
-              })
+                .then(tr => {
+                  Admin.insertEntry(tr, table)
+                })
             }
           })
         }
       })
     }
-  } else {
-    
   }
-}
 
-window.addEventListener('kcore-loaded', event => {
-  var forms = document.getElementsByTagName('form')
+  function deleteEntry(event) {
+    var line = event.target
+    for (; line.nodeName !== 'TR'; line = line.parentNode);
+    var id = line.getAttribute('data-id')
+    if (id) {
+      Admin.deleteEntry('Htime', id).then(function (data) {
+        if (data) {
+          window.requestAnimationFrame(() => line.parentNode.removeChild(line))
+        }
+      })
+    }
+  }
+
+
+  function undeleteEntry(event) {
+    var line = event.target
+    for (; line.nodeName !== 'TR'; line = line.parentNode);
+    var id = line.getAttribute('data-id')
+    if (id) {
+      Admin.deleteEntry('Htime', id, true).then(function (data) {
+        makeEntry(data)
+          .then(tr => {
+            let table = line
+            for (; table && table.nodeName !== 'TABLE'; table = table.parentNode);
+            Admin.insertEntry(tr, table)
+          })
+      })
+    }
+  }
+
+  function syncToFrom(event) {
+    var node = event.target
+    var name = event.target.getAttribute('name')
+    var found = false
+    do {
+      for (; node.previousSibling; node = node.previousSibling);
+      for (var n = node; n; n = n.nextSibling) {
+        if (n.nodeType !== Node.ELEMENT_NODE) { continue }
+        if (n.getAttribute('data-sync-with') === name) {
+          node = n
+          found = true
+          break
+        }
+      }
+      if (found) { break }
+      node = node.parentNode
+
+    } while (node)
+
+    if (found) {
+      node.value = event.target.value
+      if (!node.getAttribute('data-onchange')) {
+        node.setAttribute('data-onchange', 'true')
+        node.addEventListener('change', function (event) {
+          event.target.removeAttribute('data-sync-with')
+        })
+      }
+    }
+    return true
+  }
+
+  function addTime(event) {
+    event.preventDefault()
+    var dataSource = event.target.getAttribute('data-source')
+    var form = Admin.getForm(event.target)
+    const dinner = form.dinner ? 1 : 0
+    const km = form.km ? form.km : 0
+    var hour = new Hour(form.hour)
+    document.querySelector('input[name="upTo"]').value = ''
+    document.querySelector('input[name="hour"]').value = ''
+    document.querySelector('input[name="comment"]').value = ''
+    document.querySelector('input[name="km"]').value = ''
+
+    document.querySelector('input[name="day6"]').checked = false
+    document.querySelector('input[name="day0"]').checked = false
+    document.querySelector('input[name="day1"]').checked = true
+    document.querySelector('input[name="day2"]').checked = true
+    document.querySelector('input[name="day3"]').checked = true
+    document.querySelector('input[name="day4"]').checked = true
+    document.querySelector('input[name="day5"]').checked = true
+    document.querySelector('input[name="dinner"]').checked = false
+    if (hour.value !== 0) {
+      const useRepetition = form.upTo !== null
+      let upTo = new Date(form.day)
+      if (form.upTo !== null) {
+        upTo = new Date(form.upTo)
+      }
+
+      for (let day = new Date(form.day); day.toISOString().split('T')[0] <= upTo.toISOString().split('T')[0]; day.setTime(day.getTime() + 86400000)) {
+        if (useRepetition && form[`day${day.getDay()}`] === false) { continue; }
+        kafetch(KAAL.url(dataSource), {
+          method: 'POST',
+          body: { day: day.toISOString().split('T')[0], dinner, km, value: hour.value, person: form.person, project: form.project, process: form.process, comment: form.comment }
+        })
+          .then(function (result) {
+            if (result.success && result.length === 1) {
+              kafetch(KAAL.url(`${dataSource}/${result.data[0].id}`))
+              .then(function (result) {
+                if (result.success && result.length === 1) {
+                  var table = document.getElementById('addResults')
+                  if (table.getAttribute('style')) {
+                    table.removeAttribute('style')
+                  }
+                  var tbody = table;
+                  for (tbody = table.firstChild; tbody.nodeName !== 'TBODY'; tbody = tbody.nextSibling);
+                  makeEntry2(Array.isArray(result.data) ? result.data[0] : result.data)
+                    .then(tr => {
+                      tbody.appendChild(tr)
+                    })
+                }
+              })
+            }
+          })
+      }
+    } else {
+
+    }
+  }
+
+  window.addEventListener('kcore-loaded', event => {
+    var forms = document.getElementsByTagName('form')
     for (var i = 0; i < forms.length; i++) {
       Admin.loadForm(forms[i])
     }
-  var t = new Artnum.DTable({table: 'results', sortOnly: true})
-  new KSelectUI(document.getElementById('selectProject'), stProject, {realSelect: true, allowFreeText: false})
-  new KSelectUI(document.body.querySelector('input[name="process"]'), stProcess, {realSelect: true, allowFreeText: false})
-})
+    var t = new Artnum.DTable({ table: 'results', sortOnly: true })
+    new KSelectUI(document.getElementById('selectProject'), stProject, { realSelect: true, allowFreeText: false })
+    new KSelectUI(document.body.querySelector('input[name="process"]'), stProcess, { realSelect: true, allowFreeText: false })
+  })
 </script>
+
 </html>
