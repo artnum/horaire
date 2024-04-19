@@ -1,6 +1,10 @@
 export class JAPI {
     constructor() {
-        this.API = new PJApi()
-        this.API.open(new URL('$', window.location).toString())
+        if (JAPI.Instance === undefined) {
+            this.API = new PJApi()
+            this.API.open(new URL('$api', window.location).toString())
+            JAPI.JAPI_Instance = this
+        }
+        return JAPI.JAPI_Instance
     }
 }

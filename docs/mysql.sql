@@ -31,8 +31,13 @@ CREATE TABLE IF NOT EXISTS "project" (
 	"project_targetEnd" DATETIME DEFAULT NULL,
 	"project_deleted" INTEGER DEFAULT NULL,
 	"project_created" INTEGER DEFAULT NULL,
-	"project_modified" INTEGER DEFAULT NULL
-, project_uncount integer default 0, "project_client" CHAR(160) DEFAULT NULL, project_price FLOAT DEFAULT 0.0, project_manager INTEGER DEFAULT NULL);
+	"project_modified" INTEGER DEFAULT NULL, 
+	"project_uncount" integer default 0,
+	"project_client" CHAR(160) DEFAULT NULL, 
+	"project_price" FLOAT DEFAULT 0.0,
+	"project_manager" INTEGER DEFAULT NULL,
+    "project_ordering" INTEGER UNSIGNED NOT NULL DEFAULT 2);
+
 CREATE TABLE IF NOT EXISTS "process" (
 	"process_id" INTEGER PRIMARY KEY AUTO_INCREMENT,
 	"process_name" TEXT DEFAULT NULL,
@@ -124,6 +129,7 @@ CREATE TABLE IF NOT EXISTS "repartition" ( -- repartition d'une facture sur un p
        "repartition_travail" INTEGER DEFAULT NULL, -- Travail sur lequel répartir
        "repartition_value" FLOAT DEFAULT NULL, -- Valeur répartie hors TVA
        "repartition_tva" FLOAT DEFAULT 7.7, -- valeur de la TVA par défaut 7.7%
+	   "repartition_split" TINYINT DEFAULT 0, -- valuer global divisée pour chaque projet
        FOREIGN KEY("repartition_facture") REFERENCES "facture"("facture_id") ON UPDATE CASCADE ON DELETE CASCADE,
        FOREIGN KEY("repartition_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE CASCADE,
        FOREIGN KEY("repartition_travail") REFERENCES "travail"("travail_id") ON UPDATE CASCADE ON DELETE SET NULL
@@ -172,7 +178,10 @@ CREATE TABLE IF NOT EXISTS "htime" (
 	"htime_other" TEXT DEFAULT NULL,  -- json data to handle useful information (like a date range if that apply)
 	"htime_created" INTEGER DEFAULT NULL,
 	"htime_deleted" INTEGER DEFAULT NULL,
-	"htime_modified" INTEGER DEFAULT NULL, htime_travail INTEGER DEFAULT NULL,
+	"htime_modified" INTEGER DEFAULT NULL,
+	"htime_travail" INTEGER DEFAULT NULL,
+	"htime_dinner" INTEGER UNSIGNED NOT NULL DEFAULT 0,
+	"htime_km" INTEGER UNSIGNED NOT NULL DEFAULT 0,
 	FOREIGN KEY("htime_person") REFERENCES "person"("person_id") ON UPDATE CASCADE ON DELETE SET NULL,
 	FOREIGN KEY("htime_project") REFERENCES "project"("project_id") ON UPDATE CASCADE ON DELETE SET NULL,
 	FOREIGN KEY("htime_process") REFERENCES "process"("process_id") ON UPDATE CASCADE ON DELETE SET NULL
@@ -210,3 +219,12 @@ CREATE TABLE IF NOT EXISTS "groupuser" (
 	"groupuser_group" INTEGER UNSIGNED NOT NULL
 );
 CREATE UNIQUE INDEX "idxGroupUser_user_group" ON "groupuser"("groupuser_user", "groupuser_group") USING HASH;
+
+CREATE TABLE IF NOT EXISTS "carusage" (
+	"carusage_id" INTEGER PRIMARY KEY AUTO_INCREMENT,
+	"carusage_car" INTEGER UNSIGNED NOT NULL,
+	"carusage_km" INTEGER UNSIGNED NOT NULL,
+	"carusage_defect" INTEGER UNSIGNED DEFAULT NULL,
+	"carusage_comment" VARCHAR(300) DEFAULT '',
+	"carusage_htime" INTEGER UNSIGNED NOT NULL
+);

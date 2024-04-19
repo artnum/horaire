@@ -70,7 +70,15 @@
             Object.assign(opts, JSON.parse(_json))
           }
           if (inputs[i].getAttribute('data-source') && elements === 'SELECT') {
-            Artnum.Query.exec(Artnum.Path.url(inputs[i].getAttribute('data-source'), {params: opts.parameters})).then(function (result) {
+            const url = new URL(KAAL.url(inputs[i].getAttribute('data-source')))
+            for (let k in opts.parameters) {
+              url.searchParams.append(k, opts.parameters[k])
+            }
+            fetch(url)
+            .then(function (result) {
+              return result.json()
+            })
+            .then(function (result) {
               if (!result.success || result.length <= 0) { return }
               result.data.forEach(function (options) {
                 var o = document.createElement('OPTION')
@@ -271,13 +279,20 @@
         method = 'PATCH'
       }
       return new Promise(function (resolve, reject) {
-        Artnum.Query.exec(Artnum.Path.url(store + '/' + id), {method: method, body: body})
+        fetch(KAAL.url(store + '/' + id), {method: method, body: body})
+        .then(function (response) {
+          return response.json()
+        })
         .then(function (result) {
           if (result.success) {
             var newid = id
             if (method !== 'DELETE' && result.length === 1) {
               newid = result.data[0].id
-              Artnum.Query.exec(Artnum.Path.url(store + '/' + newid)).then(function (result) {
+              fetch(KAAL.url(store + '/' + newid))
+              .then(function (response) {
+                return response.json()
+              })
+              .then(function (result) {
                 if (result.success && result.length === 1) {
                   resolve(Array.isArray(result.data) ? result.data[0] : result.data)
                 }

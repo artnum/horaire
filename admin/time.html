@@ -85,23 +85,21 @@
 <script>
   window.KCORE = { NoPopper: true }
 </script>
-<script src="../conf/kaal.js"></script>
-<script src="js/lib/login.js"></script>
-<script src="../node_modules/sjcl/sjcl.js"></script>
-<script src="../node_modules/popper.js/dist/umd/popper.min.js"></script>
-<script src="../node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
-<script src="../node_modules/artnum/String.js"></script>
-<script src="../node_modules/artnum/Date.js"></script>
-<script src="../node_modules/artnum/Path.js"></script>
-<script src="../node_modules/artnum/Hour.js"></script>
-<script src="../node_modules/artnum/Select.js"></script>
-<script src="../node_modules/artnum/Query.js"></script>
-<script src="../node_modules/artnum/DTable.js"></script>
-<script src="../../kcore/index.js"></script>
-<script src="js/admin.js"></script>
-<script src="js/stores.js"></script>
-<script src="../js/index.js"></script>
+<script src="$script/conf/kaal.js"></script>
+<script src="$script/admin/lib/login.js"></script>
+<script src="$script/pkg/popper.js/dist/umd/popper.min.js"></script>
+<script src="$script/pkg/@popperjs/core/dist/umd/popper.min.js"></script>
+<script src="$script/pkg/artnum/Date.js"></script>
+<script src="$script/pkg/artnum/Hour.js"></script>
+<script src="$script/pkg/artnum/String.js"></script>
+<script src="$script/pkg/artnum/Path.js"></script>
+<script src="$script/pkg/artnum/DTable.js"></script>
+<script src="$script/vendor/kcore/index.js"></script>
+<script src="$script/admin/admin.js"></script>
+<script src="$script/admin/stores.js"></script>
+<script src="$script/src/index.js"></script>
 <script>
+  console.log(Hour)
   const stProject = new STProject('Project', true)
   const stProcess = new STProcess()
 
@@ -245,6 +243,7 @@
             tr.setAttribute('data-state', 'deleted')
           }
           var hour = new Hour(parseInt(entry.value))
+          console.log(hour)
           var innerhtml = `<td name="date" data-value="${entry.day}" data-sort-value="${entry.day}">${(new Date(entry.day)).fullDate()}
         </td><td name="hour" data-value="${hour.format()}">${hour.format()}
         </td><td name="comment" data-value="${(entry.comment ? entry.comment : '')}">

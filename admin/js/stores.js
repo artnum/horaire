@@ -1,5 +1,4 @@
 /* eslint-env browser */
-/* global Artnum */
 /* exported STProject */
 
 function STProcess() {
@@ -77,7 +76,8 @@ STProject.prototype.get = function (id) {
   return new Promise((resolve, reject) => {
     let entry = null
     if (id === undefined || id === null || id === false) { return resolve(entry) }
-    Artnum.Query.exec(Artnum.Path.url(`${this.Store}/${id}`)).then((results) => {
+    kafetch(KAAL.url(`${this.Store}/${id}`))
+    .then((results) => {
       if (results.success && results.length === 1) {
         entry = Array.isArray(results.data) ? results.data[0] : results.data
         entry.label = `${entry.reference} - ${entry.name}`
@@ -107,7 +107,7 @@ STProject.prototype.query = function (txt) {
       request['#and'].closed = '-'
     }
 
-    fetch(Artnum.Path.url(`${this.Store}/_query`), {method: 'post', body: JSON.stringify(request)})
+    fetch(KAAL.url(`${this.Store}/_query`), {method: 'post', body: JSON.stringify(request)})
     .then(response => {
       if (!response.ok) { return {length: 0, data: []} }
       return response.json()
@@ -220,7 +220,7 @@ STCategory.prototype.get = function (id) {
   return new Promise((resolve, reject) => {
     let entry = null
     if (id === undefined || id === null || id === false) { resolve(entry); return }
-    Artnum.Query.exec(Artnum.Path.url(`${this.Store}/${id}`)).then((results) => {
+    kafetch(KAAL.url(`${this.Store}/${id}`)).then((results) => {
       if (results.success && results.length === 1) {
         entry = Array.isArray(results.data) ? results.data[0] : results.data
         entry.label = `${entry.name}`
@@ -240,7 +240,12 @@ STCategory.prototype.query = function (txt) {
       'search.name': `~%${searchTerm}%`,
       'search.deleted': '-'
     }
-    Artnum.Query.exec(Artnum.Path.url(`${this.Store}`, {params: params})).then((results) => {
+    const url = new URL(`${this.Store}`)
+    for (const key in params) {
+      url.searchParams.append(key, params[key])
+    }
+    kafetch(url)
+    .then((results) => {
       if (results.success && results.length) {
         results.data.forEach((entry) => {
           let name = `${entry.reference} ${entry.name}`

@@ -58,6 +58,7 @@
         "artnum/monoref": "@dev",
         "artnum/structured-json-query": "@dev",
         "artnum/kaal-db": "@dev",
-        "monolog/monolog": "^3.5"
+        "monolog/monolog": "^3.5",
+        "matthiasmullie/minify": "^1.3"
     }
 }

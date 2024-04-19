@@ -3,7 +3,9 @@ SetEnv SNOWFLAKE_MACHINE_ID 1
 RewriteEngine On
 RewriteBase /horaire/
 
-RewriteRule ^(?:.*)/\$/?(.*)$ japi.php/$1 [L]
+RewriteRule ^(?:.*)/?\$api/?(.*)$ japi.php/$1 [L]
+RewriteRule ^(?:.*)/?\$script/?(.*)$ script.php/$1 [R,L]
+
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

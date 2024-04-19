@@ -1,5 +1,5 @@
-import { JAPI } from './JAPI.js'
-import { AccountingDocLineAPI } from './AccountingDocLine.js'
+import { JAPI } from './$script/src/JAPI/JAPI.js'
+import { AccountingDocLineAPI } from './$script/src/JAPI/AccountingDocLine.js'
 
 const NS = 'AccountingDoc'
 
@@ -184,5 +184,45 @@ export class AccountingDocAPI extends JAPI {
                 return reject(err)
             })
         })
+    }
+
+    listByProject (projectId) {
+        return new Promise((resolve, reject) => {
+            this.API.exec(
+                AccountingDocAPI.NS,
+                'search',
+                {search: {project: projectId, type: 'order', deleted: 0}}
+            )
+            .then(docs => {
+                return resolve(docs.map(doc => new AccountingDoc(this, doc)))
+            })
+            .catch(err => {
+                return reject(err)
+            })
+        })
+    }
+
+    nextStep(accDoc) {
+        return new Promise((resolve, reject) => {
+            this.API.exec(
+                AccountingDocAPI.NS,
+                'nextStep',
+                {id: accDoc}
+            )
+            .then(newDocument => {
+                resolve(newDocument)
+            })
+            .catch(err => {
+                reject(err)
+            })
+        })
+    }
+
+    getLines (id) {
+        return AccountingDocLineAPI.instance.gets(id)
+    }
+
+    updateLines (lines, id) {
+        return AccountingDocLineAPI.instance.set(lines, id)
     }
 }

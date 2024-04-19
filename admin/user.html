@@ -38,17 +38,14 @@
       </table>
   </main>
 </body>
-<script src="../../kcore/index.js"></script>
-<script src="../conf/kaal.js"></script>
-<script src="../js/index.js"></script>
-<script src="js/index.js"></script>
-<script src="js/lib/login.js"></script>
-<script src="../node_modules/sjcl/sjcl.js"></script>
-<script src="../node_modules/artnum/Date.js"></script>
-<script src="../node_modules/artnum/Path.js"></script>
-<script src="../node_modules/artnum/Query.js"></script>
-<script src="../node_modules/artnum/DTable.js"></script>
-<script src="js/admin.js"></script>
+<script src="$script/vendor/kcore/index.js"></script>
+<script src="$script/conf/kaal.js"></script>
+<script src="$script/src/index.js"></script>
+<script src="$script/admin/index.js"></script>
+<script src="$script/admin/lib/login.js"></script>
+<script src="$script/pkg/artnum/Date.js"></script>
+<script src="$script/pkg/artnum/DTable.js"></script>
+<script src="$script/admin/admin.js"></script>
 <script>
   const base = window.location.pathname.split('/')
   while (!base[0]) { base.shift() }
@@ -652,12 +649,12 @@
 
   function deleteUser(userId) {
     return new Promise((resolve, reject) => {
-      Artnum.Query.exec(Artnum.Path.url(`Person/${userId}`)).then((result) => {
+      kafetch(KAAL.url(`Person/${userId}`)).then((result) => {
         if (!result.success || result.length !== 1) { reject(new Error('Une erreur est survenue')); console.log(result); return }
         let user = Array.isArray(result.data) ? result.data[0] : result.data
         if (confirm(`Voulez-vous vraiment supprimer l'utilisateur ${user.name} ?`)) {
           KLoginInstance.disconnectAll(userId)
-          Artnum.Query.exec(Artnum.Path.url(`Person/${user.id}`), { method: 'DELETE', body: { id: user.id } }).then((result) => {
+          kafetch(KAAL.url(`Person/${user.id}`), { method: 'DELETE', body: { id: user.id } }).then((result) => {
             if (result.success) { resolve(); return }
             reject()
           })
@@ -687,22 +684,29 @@
       }
     })
   }
-
-  async function loadUsers() {
-    Artnum.Query.exec(Artnum.Path.url('Person', { params: { 'search.deleted': '-' } })).then(function (person) {
-      if (person.success && person.length > 0) {
-        for (var i = 0; i < person.length; i++) {
-          const entry = person.data[i]
-          KLoginInstance.getActive(entry.id)
-            .then(connections => {
-              entry._connections = connections
-              newEntry(entry)
-                .then((html) => {
-                  replaceAddEntry(html)
-                })
-            })
+  function loadUsers() {
+    return new Promise((resolve, reject) => {
+      const url = KAAL.url('Person', { params: { 'search.deleted': '-' } })
+      kafetch(url)
+      .then(function (person) {
+        if (person.success && person.length > 0) {
+          for (var i = 0; i < person.length; i++) {
+            const entry = person.data[i]
+            KLoginInstance.getActive(entry.id)
+              .then(connections => {
+                entry._connections = connections
+                newEntry(entry)
+                  .then((html) => {
+                    replaceAddEntry(html)
+                  })
+              })
+          }
         }
-      }
+      })
+      .catch(function (cause) {
+        console.log(cause)
+        reject(cause)
+      })
     })
   }
 </script>
