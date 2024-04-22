@@ -5,7 +5,7 @@
 
 $path = trim($_SERVER['PATH_INFO']);
 $type = substr($path, -3);
-if ($type === '.js') {
+if ($type === '.js' || $type === 'mjs') {
     header('Content-Type: application/javascript; charset=utf-8');
 } else if ($type === 'css') {
     header('Content-Type: text/css; charset=utf-8');

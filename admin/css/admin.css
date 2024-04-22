@@ -8,7 +8,8 @@
 @import 'buttons.css';
 
 @import '../../css/color.css';
-
+@import url('https://fonts.googleapis.com/css?family=B612|B612+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap');
 
 
 body {

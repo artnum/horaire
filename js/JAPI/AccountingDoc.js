@@ -191,7 +191,7 @@ export class AccountingDocAPI extends JAPI {
             this.API.exec(
                 AccountingDocAPI.NS,
                 'search',
-                {search: {project: projectId, type: 'order', deleted: 0}}
+                {search: {project: projectId, deleted: 0}}
             )
             .then(docs => {
                 return resolve(docs.map(doc => new AccountingDoc(this, doc)))

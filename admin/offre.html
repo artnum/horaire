@@ -76,6 +76,81 @@
             font-weight: bold;
             font-size: 1.4em;
         }
+        .action-line {
+            z-index: 9999;
+            background-color: #007acc;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            color: white;
+            height: fit-content;
+            display: flex;
+        }
+
+        .breadcrumbs {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 0;
+            margin: 0 2ch;
+        }
+
+        .breadcrumbs > div {
+            display: flex;
+            align-items: center;
+            min-height: 4ex;
+            padding: 0.5ex;
+            cursor: pointer;
+            font-family: 'Roboto Mono';
+        }
+
+        .breadcrumbs > div.spacer {
+            margin: 0 1ch;
+            cursor: default;
+        }
+
+        .breadcrumbs > div.current {
+            background-color: #005f8b;
+        }
+        .vspacer {
+            height: 6ex;
+        }
+
+        .tools {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            margin-right: 2ch;
+        }
+
+        .tools > button {
+            min-height: 6ex !important;
+            background-color: #0c835d !important;
+            color: lightgray !important;
+            border: 1px solid lightgray;
+            border-right-color: gray;
+            border-bottom-color: gray;
+            padding: 0;
+            margin-left: 1ch;
+            cursor: pointer;
+        }
+
+        .tools > button:hover {
+            color: white !important;
+            border: 1px solid white !important;
+            border-right-color: darkgray !important;
+            border-bottom-color: darkgray !important;
+        }
+
+        .tools > button:active {
+            background-color: #06422f !important;
+            border: 1px solid white !important;
+            border-left-color: gray !important;
+            border-top-color: gray !important;
+
+        }
+
+
 
     </style>
     <script type="module" src="$script/vendor/js/accountLines/src/accountLines.js"></script>
@@ -88,9 +163,13 @@
     <script src="$script/vendor/pjAPI/src/pjapi.js"></script>
 </head>
 <body>
-    <div class="breadcrumbs">
-
+    <div class="action-line">
+        <div class="breadcrumbs"></div>
+        <div class="tools">
+            <button type="button" name="freeze">Sauver</button>
+        </div>
     </div>
+    <div class="vspacer">&nbsp;</div>
     <h1>Offre</h1>
     <form>
         <account-lines name="offer" precision="2">
@@ -201,126 +280,5 @@
         <button type="submit">Enregistrer</button>
     </form>
 </body>
-<script type="module">
-    document.querySelector('button[name="setTarget"]').addEventListener('click', event => {
-        const node = document.querySelector('account-summary[name="final"]')
-        const targetValue = parseFloat(node.querySelector('input[name="targetTotal"]').value)
-        const value = node.evaluate(`${targetValue} 1 $tvaPercent 100 / + / 1 $escomptePercent 100 / - / `)
-        node.querySelector('input[name="arrondiBase"]').value = 0
-        const percentRabais = node.evaluate(`100 ${value} 100 * $rplp / - 0.0001 mround`)
-        node.querySelector('input[name="rabaisPercent"]').value = percentRabais
-        node.update()
-    })  
-
-    const finalAccountSummary = document.querySelector('account-summary[name="final"]')
-    finalAccountSummary.querySelector('[name="rabaisAbsolute"]').addEventListener('dblclick', event => {
-        const nodeRabaisAbsolute = finalAccountSummary.querySelector('[name="rabaisAbsolute"]')
-        if (nodeRabaisAbsolute.dataset.expression === undefined) { return }
-        delete nodeRabaisAbsolute.dataset.expression
-        delete nodeRabaisAbsolute.dataset.value
-
-        const nodeRabaisPerc = finalAccountSummary.querySelector('input[name="rabaisPercent"]')
-        const nodeRabais = finalAccountSummary.querySelector('[name="rabais"]')
-        
-        nodeRabaisPerc.disabled = true
-        nodeRabais.dataset.expression = '$rplp $rabaisAbsoluteValue - ~INTERMEDIATE ~RABAIS cpr'
-        nodeRabaisAbsolute.innerHTML = `<input type="text" name="rabaisAbsoluteValue">`
-    })
-
-
-    import { AccountingDocAPI } from './$script/src/JAPI/AccountingDoc.js'
-    import { ContactAPI } from './$script/src/JAPI/Contact.js'
-    import { JFormData } from './$script/vendor/js/formdata/src/formdata.js'
-    window.addEventListener('load', () => {
-        document.querySelectorAll('input[name="tvaPercent"]').forEach(node => node.value = getTVA())
-        document.querySelectorAll('input[name="rplpValue"]').forEach(node => node.value = KAAL.taxes.rplp)
-
-        const params = new URLSearchParams(window.location.search)
-        const kaoffer = new KAOfferUI()
-        const AccountingDoc = new AccountingDocAPI()
-        const Contact = new ContactAPI()
-
-        Promise.all([
-            kaoffer.getProject(params.get('project')),
-            AccountingDoc.listByProject(params.get('project'))
-        ])
-        .then(([project, accDoc]) => {
-            Promise.all([
-                (() => {
-                    if (accDoc.length === 0) {
-                        return AccountingDoc.create({project: project.id, type: 'offer'})
-                    } else {
-
-                        return Promise.resolve(accDoc[0])
-                    }
-                })(),
-                project
-            ])
-            .then(([accDoc, project]) => {
-                return Promise.all([
-                    accDoc,
-                    project,
-                    AccountingDoc.getLines(accDoc.id)
-                ])
-            })
-            .then(([accDoc, project, lines]) => {
-                switch (accDoc.type) {
-                    case 'offer':
-                        document.querySelector('account-lines[name="offer"]').setState('open'); break
-                    default:
-                        document.querySelector('account-lines[name="offer"]').setState('frozen'); break
-                }
-                let documentTitle = 'OFFRE'
-                switch (accDoc.type) {
-                    case 'offer':
-                        documentTitle = `OFFRE`
-                        break
-                    case 'invoice':
-                        documentTitle = `FACTURE`
-                        break
-                    case 'order':
-                        documentTitle = `COMMANDE`
-                        break
-                }
-                accDoc.name = `${documentTitle} pour ${project.name}`
-                accDoc.update()
-                const node = document.querySelector('account-lines')
-                node.dataset.id = accDoc.id
-                node.id = accDoc.id
-                lines.forEach(line => {
-                    node.addLine(line)
-                })
-                node.addEventListener('update', event => {
-                    const data = new JFormData(event.target)
-                    AccountingDoc.updateLines(data.toJSON(), accDoc.id)
-                })
-                const title = `[${documentTitle} ${accDoc.reference}] ${project.reference} - ${project.name}`
-                document.title = title
-                document.querySelector('body > h1').textContent = title
-            })
-        })
-
-        document.querySelector('button[name="freeze"]').addEventListener('click', event => {
-            const node = document.querySelector('account-lines[name="offer"]')
-            
-            AccountingDoc.nextStep(node.dataset.id)
-            .then(response => {
-                node.setState(response.state)
-                AccountingDoc.getLines(node.dataset.id)
-                .then(lines => {
-                    lines.forEach(line => {
-                        node.addLine(line)
-                    })
-                })
-            })
-        })
-
-        document.querySelector('form').addEventListener('submit', event => {
-            event.preventDefault()
-
-            const formData = new JFormData(event.target)
-            console.log('formData', formData)
-        })
-    })
-</script>
+<script type="module" src="$script/admin/app/offre.js"></script>
 </html>

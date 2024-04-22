@@ -21,27 +21,27 @@ function _debounce (fn, delay) {
 }
 
 const imports = [
-    [KAAL.url('admin/js/fetch.js'), 'script'],
-    [KAAL.url('admin/js/lib/login.js'), 'script'],
-    [KAAL.url('admin/js/lib/kapi.js'), 'script'],
-    [KAAL.url('js/data/utils.js'), 'script'],
-    [KAAL.url('js/data/project.js'), 'script'],
-    [KAAL.url('js/data/travail.js'), 'script'],
-    [KAAL.url('js/data/group.js'), 'script'],
-    [KAAL.url('js/data/person.js'), 'script'],
-    [KAAL.url('js/data/process.js'), 'script'],
-    [KAAL.url('js/data/temps.js'), 'script'],
-    [KAAL.url('js/ui/utils.js'), 'script'],
-    [KAAL.url('js/ui/list.js'), 'script'],
-    [KAAL.url('js/ui/ka-button.js'), 'script'],
-    [KAAL.url('js/ui/ka-entry-form.js'), 'script'],
-    [KAAL.url('js/ui/ka-planning.js'), 'script'],
-    [KAAL.url('js/lib/color.js'), 'script'],
-    [KAAL.url('js/lib/empty.js'), 'script'],
-    [KAAL.url('js/ui/time-interact.js'), 'script'],
-    [KAAL.url('js/ui/user-interact.js'), 'script'],
-    [KAAL.url('js/ui/msg-interact.js'), 'script'],
-    [KAAL.url('js/ui/car-interact.js'), 'script']
+    ['$script/admin/fetch.js', 'script'],
+    ['$script/admin/lib/login.js', 'script'],
+    ['$script/admin/lib/kapi.js', 'script'],
+    ['$script/src/data/utils.js', 'script'],
+    ['$script/src/data/project.js', 'script'],
+    ['$script/src/data/travail.js', 'script'],
+    ['$script/src/data/group.js', 'script'],
+    ['$script/src/data/person.js', 'script'],
+    ['$script/src/data/process.js', 'script'],
+    ['$script/src/data/temps.js', 'script'],
+    ['$script/src/ui/utils.js', 'script'],
+    ['$script/src/ui/list.js', 'script'],
+    ['$script/src/ui/ka-button.js', 'script'],
+    ['$script/src/ui/ka-entry-form.js', 'script'],
+    ['$script/src/ui/ka-planning.js', 'script'],
+    ['$script/src/lib/color.js', 'script'],
+    ['$script/src/lib/empty.js', 'script'],
+    ['$script/src/ui/time-interact.js', 'script'],
+    ['$script/src/ui/user-interact.js', 'script'],
+    ['$script/src/ui/msg-interact.js', 'script'],
+    ['$script/src/ui/car-interact.js', 'script']
 ]
 
 window.addEventListener('DOMContentLoaded', event => {

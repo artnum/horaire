@@ -79,7 +79,6 @@ class AccountingDoc  {
 
         $document->project = strval($document->project);
         $document->type = strval($document->type);
-        $document->state = strval($document->state);
         return $document;
     }
 
@@ -127,7 +126,8 @@ class AccountingDoc  {
         }
     
         $document->project = intval($document->project);
-        $document->related = intval($document->related);
+        if (isset($document->related)) { $document->related = intval($document->related); }
+        else { $document->related = null; }
         $document->condition = intval($document->condition);
         $document->created = intval($document->created);
         $document->deleted = intval($document->deleted);
@@ -189,7 +189,6 @@ class AccountingDoc  {
                  WHERE ' . $where . '
                  ORDER BY id DESC'
             );
-            error_log('SELECT id FROM accountingDoc WHERE ' . $where . ' ORDER BY id DESC');
             foreach ($values as $key => $value) {
                 $stmt->bindValue($key, $value['value'], $value['type']);
             }
