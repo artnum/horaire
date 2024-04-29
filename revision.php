@@ -22,4 +22,3 @@ if (is_file('conf/kaal.ini') && is_readable('conf/kaal.ini')) {
 $revision = hash_hmac('md5', $version, $key);
 
 echo '{ "revision": "'. $revision . '" }';
-?>
