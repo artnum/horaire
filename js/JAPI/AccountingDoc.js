@@ -3,7 +3,7 @@ import { AccountingDocLineAPI } from './$script/src/JAPI/AccountingDocLine.js'
 
 const NS = 'AccountingDoc'
 
-export class AccountingDoc {
+class AccountingDoc {
     constructor(API, doc) {
         this.API = API
         this.id = String(doc.id)
@@ -71,6 +71,7 @@ export class AccountingDocAPI extends JAPI {
 
     get (id) {
         return new Promise((resolve, reject) => {
+            if (typeof id === 'object') { id = id.id }
             this.API.exec(
                 AccountingDocAPI.NS,
                 'get', 
@@ -86,11 +87,12 @@ export class AccountingDocAPI extends JAPI {
     }
 
     listByProject (projectId) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {        
+            if (typeof projectId === 'object') { projectId = projectId.id }
             this.API.exec(
                 AccountingDocAPI.NS,
-                'search',
-                {search: {project: id, deleted: 0}}
+                'listByProject',
+                {project: projectId}
             )
             .then(docs => {
                 return resolve(docs.map(doc => new AccountingDoc(this, doc)))
@@ -186,15 +188,16 @@ export class AccountingDocAPI extends JAPI {
         })
     }
 
-    listByProject (projectId) {
+    getCurrent (projectId) {
         return new Promise((resolve, reject) => {
             this.API.exec(
                 AccountingDocAPI.NS,
-                'search',
-                {search: {project: projectId, deleted: 0}}
+                'getCurrent',
+                {project: projectId}
             )
-            .then(docs => {
-                return resolve(docs.map(doc => new AccountingDoc(this, doc)))
+            .then(doc => {
+                if (doc === null) { return resolve(null) }
+                return resolve(new AccountingDoc(this, doc))
             })
             .catch(err => {
                 return reject(err)

@@ -1,15 +1,19 @@
 SetEnv SNOWFLAKE_MACHINE_ID 1
+SetEnv DEBUG 1
 
 RewriteEngine On
-RewriteBase /horaire/
 
-RewriteRule ^(?:.*)/?\$api/?(.*)$ japi.php/$1 [L]
-RewriteRule ^(?:.*)/?\$script/?(.*)$ script.php/$1 [R,L]
+RewriteBase /
 
+RewriteCond $0#%{REQUEST_URI} ([^#]*)#(.*)\1$
+RewriteRule ^.*$ - [E=CWD:%2] 
+
+RewriteRule ^(?:.*)/?\$api/?(.*)$ %{ENV:CWD}japi.php/$1 [L]
+RewriteRule ^(?:.*)/?\$script/?(.*)$ %{ENV:CWD}script.php/$1 [R,L]
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ store.php/$1 [L]
+RewriteRule ^(.*)$ %{ENV:CWD}store.php/$1 [L]
 
 <IfModule mod_expires.c>
 ExpiresActive on

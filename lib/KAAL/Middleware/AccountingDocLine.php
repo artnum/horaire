@@ -26,11 +26,13 @@ class AccountingDocLine {
 
     protected static function normalizeEgressLine (stdClass $line) {
         $line->id = strval($line->id) ?? '0';
+        $line->docid = strval($line->docid) ?? '0';
         $line->position = strval($line->position) ?? null;
         $line->description = strval($line->description) ?? null;
         $line->quantity = floatval($line->quantity) ?? null;
         $line->price = floatval($line->price) ?? null;
         $line->type = $line->type ?? null;
+        $line->related = strval($line->related) ?? null;
         $line->state = $line->state ?? 'open';
         $line->unit = strval($line->unit) ?? null;
         return $line;
@@ -38,12 +40,18 @@ class AccountingDocLine {
 
     protected static function normalizeIngressLine (stdClass $line) {
         if (isset($line->id)) { $line->id = self::normalizeId($line->id); }
+        if (isset($line->docid)) { $line->docid = self::normalizeId($line->docid); }
         $line->position = Normalizer::normalize(strval($line->position)) ?? null;
         $line->description = Normalizer::normalize(strval($line->description)) ?? null;
         $line->quantity = floatval($line->quantity) ?? null;
         $line->price = floatval($line->price) ?? null;
         $line->type = $line->type ?? null;
         $line->state = $line->state ?? 'open';
+        if (!empty($line->related) && $line->related !== null) {
+            $line->related = self::normalizeId($line->related) ?? null;
+        } else {
+            $line->related = null;
+        }
         $line->unit = Normalizer::normalize(strval($line->unit)) ?? null;
         return $line;
     }
@@ -84,7 +92,7 @@ class AccountingDocLine {
         }
     }
 
-    function freeze (string|int|stdClass $id) {
+    function lock (string|int|stdClass $id) {
         $id = self::normalizeId($id);
         try { 
             $this->pdo->beginTransaction();
@@ -99,7 +107,7 @@ class AccountingDocLine {
         }
     }
 
-    function unfreeze (string|int $id) {
+    function unlock (string|int $id) {
         try {
             $id = self::normalizeId($id);
             $this->pdo->beginTransaction();
@@ -116,7 +124,10 @@ class AccountingDocLine {
 
     function get (string|int $id) {
         $id = self::normalizeId($id);
-        $stmt = $this->pdo->prepare('SELECT * FROM accountingDocLine WHERE id = :id');
+        $stmt = $this->pdo->prepare('SELECT l.*,d.reference AS docref 
+            FROM accountingDocLine AS l 
+            LEFT JOIN accountingDoc AS d ON l.docid = d.id  
+            WHERE l.id = :id');
         $stmt->bindValue(':id', intval($id), PDO::PARAM_INT);
         $stmt->execute();
         return self::normalizeEgressLine($stmt->fetch(PDO::FETCH_OBJ));
@@ -175,6 +186,7 @@ class AccountingDocLine {
             quantity,
             price,
             type,
+            related,
             state,
             unit,
             docId
@@ -185,6 +197,7 @@ class AccountingDocLine {
             :quantity,
             :price,
             :type,
+            :related,
             :state,
             :unit,
             :docId
@@ -195,6 +208,11 @@ class AccountingDocLine {
         $stmt->bindValue(':quantity', $line->quantity, PDO::PARAM_STR);
         $stmt->bindValue(':price', $line->price, PDO::PARAM_STR);
         $stmt->bindValue(':type', $line->type, PDO::PARAM_STR);
+        if ($line->related === null) {
+            $stmt->bindValue(':related', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':related', $line->related, PDO::PARAM_INT);
+        }
         $stmt->bindValue(':state', $line->state, PDO::PARAM_STR);
         $stmt->bindValue(':unit', $line->unit, PDO::PARAM_STR);
         $stmt->bindValue(':docId', $docId, PDO::PARAM_INT);
@@ -205,6 +223,35 @@ class AccountingDocLine {
         }
         $this->pdo->commit();
         return ['added' => ['line' => $this->get($id), 'success' => $success]];
+    }
+
+    function update (stdClass $line) {
+        $line = self::normalizeIngressLine($line);
+        $stmt = $this->pdo->prepare('UPDATE accountingDocLine SET 
+            position = :position,
+            description = :description,
+            quantity = :quantity,
+            price = :price,
+            type = :type,
+            related = :related,
+            state = :state,
+            unit = :unit
+        WHERE id = :id');
+        $stmt->bindValue(':position', $line->position, PDO::PARAM_STR);
+        $stmt->bindValue(':description', $line->description, PDO::PARAM_STR);
+        $stmt->bindValue(':quantity', $line->quantity, PDO::PARAM_STR);
+        $stmt->bindValue(':price', $line->price, PDO::PARAM_STR);
+        $stmt->bindValue(':type', $line->type, PDO::PARAM_STR);
+        if ($line->related === null) {
+            $stmt->bindValue(':related', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':related', $line->related, PDO::PARAM_INT);
+        }
+        $stmt->bindValue(':state', $line->state, PDO::PARAM_STR);
+        $stmt->bindValue(':unit', $line->unit, PDO::PARAM_STR);
+        $stmt->bindValue(':id', $line->id, PDO::PARAM_INT);
+        $stmt->execute();
+        return ['updated' => ['line' => $this->get($line->id), 'success' => true]];
     }
 
     function set (array $lines = null, string|int $docId) {
@@ -219,9 +266,17 @@ class AccountingDocLine {
             while($l = $stmt->fetch(PDO::FETCH_OBJ)) {
                 $l = self::normalizeIngressLine($l);
                 $foundLine = false;
-                foreach ($lines as $k => $line) {
+                foreach ($lines as $k => &$line) {
                     $line = self::normalizeIngressLine($line);
+
+                    /* line sent does not belong to this doc, skip */
+                    if ($line->docid !== $docId) { 
+                        unset($lines[$k]);
+                        continue; 
+                    }
+
                     if (!isset($line->id) || $line->id === 0) { continue; }
+
                     if ($l->id === $line->id) {
                         $foundLine = $line;
                         unset($lines[$k]);
@@ -229,6 +284,7 @@ class AccountingDocLine {
                     }
                 }
                 if ($l->state !== 'open') {
+                    unset($lines[$k]);
                     continue; /* skip lines that are not open */
                 }
                 if (!$foundLine) {
@@ -237,30 +293,12 @@ class AccountingDocLine {
                 }
                 if ($foundLine) { $toUpdate[] = $foundLine; }
             }
-            
             foreach ($toUpdate as $line) {
-                $stmt = $this->pdo->prepare('UPDATE accountingDocLine SET 
-                        position = :position,
-                        description = :description,
-                        quantity = :quantity,
-                        price = :price,
-                        type = :type,
-                        state = :state,
-                        unit = :unit
-                    WHERE id = :id');
-                $stmt->bindValue(':position', $line->position, PDO::PARAM_STR);
-                $stmt->bindValue(':description', $line->description, PDO::PARAM_STR);
-                $stmt->bindValue(':quantity', $line->quantity, PDO::PARAM_STR);
-                $stmt->bindValue(':price', $line->price, PDO::PARAM_STR);
-                $stmt->bindValue(':type', $line->type, PDO::PARAM_STR);
-                $stmt->bindValue(':state', $line->state, PDO::PARAM_STR);
-                $stmt->bindValue(':unit', $line->unit, PDO::PARAM_STR);
-                $stmt->bindValue(':id', $line->id, PDO::PARAM_INT);
-                $stmt->execute();
-                yield ['updated' => ['line' => $this->get(strval($line->id)), 'success' => true]];
+                yield $this->update($line);
             }
 
             foreach ($lines as $line) {
+                if (isset($line->docid) && $line->docid !== $docId) { continue; }
                 yield $this->add($line, $docId);
             }
         } catch (\Exception $e) {

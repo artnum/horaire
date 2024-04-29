@@ -1,6 +1,5 @@
 export class Barrier {
-    /* maxInstanceTime is in second */
-    constructor (name, maxInstanceTime = 30) {
+    constructor (name) {
         if (Barrier.instances === undefined) {
             Barrier.instances = {}
         }
@@ -8,7 +7,6 @@ export class Barrier {
             this.name = name
             this.waiters = []
             this.released = false
-            this.maxInstanceTime = maxInstanceTime * 1000
             Barrier.instances[name] = this
         }
         return Barrier.instances[name]
@@ -30,9 +28,5 @@ export class Barrier {
         })
         this.waiters = []
         this.released = true
-    
-        setTimeout(() => {
-            delete Barrier.instances[this.name]
-        }, this.maxInstanceTime)
     }
 }

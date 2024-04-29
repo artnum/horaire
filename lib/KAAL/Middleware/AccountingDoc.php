@@ -21,13 +21,15 @@ class AccountingDoc  {
     use MixedID;
     protected PDO $pdo;
     protected Reference $ref;
-    protected IStorage $cache;
+    protected IStorage|null $cache;
 
-    function __construct(PDO $pdo, IStorage $cache) {
+    function __construct(PDO $pdo, IStorage|null $cache = null) {
         $this->pdo = $pdo;
         $this->pdo->beginTransaction();
-        $this->ref = new Reference($cache);
-        $this->cache = $cache;
+        if ($cache !== null) {
+            $this->ref = new Reference($cache);
+            $this->cache = $cache;
+        }
     }
 
     function __destruct()
@@ -151,10 +153,19 @@ class AccountingDoc  {
                 break;
             }
             $parent = intval($result->related);
+            if ($parent === 0) { break; }
             $parents[] = $parent;
             $docId = $parent;
         } while ($parent !== null);
         return $parents;
+    }
+
+    public function tree (mixed $docId):stdClass {
+        $docId = self::normalizeId($docId);
+        $document = $this->get($docId);
+        $document->parents = $this->_getParents($docId);
+        $document->childs = $this->_getChilds($docId);
+        return $document;
     }
 
     public function _getChilds (mixed $docId): array {
@@ -170,6 +181,7 @@ class AccountingDoc  {
                 break;
             }
             $child = intval($result->id);
+            if ($child === 0) { break; }
             $childs[] = $child;
             $docId = $child;
         } while ($child !== null);
@@ -217,8 +229,8 @@ class AccountingDoc  {
             $linesAPI = new AccountingDocLine($this->pdo, $this->cache);
             $docId = self::normalizeId($id);
             $this->pdo->beginTransaction();
-            foreach ($linesAPI->_rawSearch((object) ['docid' => $id, 'type' => 'item'], true) as $id) {
-                $linesAPI->freeze($id);
+            foreach ($linesAPI->_rawSearch((object) ['docid' => $id], true) as $id) {
+                $linesAPI->lock($id);
             }
             $originalDocument = $this->get($docId);
             switch($originalDocument->type) {
@@ -277,6 +289,53 @@ class AccountingDoc  {
             return self::normalizeEgressDocument($document);
         } catch (Exception $e) {
             throw new Exception('Error getting document', ERR_INTERNAL, $e);
+        }
+    }
+
+    public function getCurrent (string|stdClass $project):stdClass|null {
+        try {
+            if (is_object($project)) {
+                $project = intval($project->id);
+            } else {
+                $project = intval($project);
+            }
+
+            $stmt = $this->pdo->prepare(
+                'SELECT id FROM accountingDoc 
+                 WHERE deleted = 0 AND project = :project
+                 ORDER BY id DESC LIMIT 1'
+            );
+            $stmt->bindValue(':project', $project, PDO::PARAM_INT);
+            $stmt->execute();
+            if ($stmt->rowCount() === 0) {
+                return null;
+            }
+            return $this->get($stmt->fetch(PDO::FETCH_OBJ)->id);
+        } catch (Exception $e) {
+            throw new Exception('Error getting current document', ERR_INTERNAL, $e);
+        }
+    }
+
+    public function listByProject (string|stdClass $project):Generator {
+        try {
+            if (is_object($project)) {
+                $project = intval($project->id);
+            } else {
+                $project = intval($project);
+            }
+
+            $stmt = $this->pdo->prepare(
+                'SELECT id FROM accountingDoc 
+                 WHERE deleted = 0 AND project = :project
+                 ORDER BY id DESC'
+            );
+            $stmt->bindValue(':project', $project, PDO::PARAM_INT);
+            $stmt->execute();
+            while($row = $stmt->fetch(PDO::FETCH_OBJ)) {
+                yield $this->get($row->id);
+            }
+        } catch (Exception $e) {
+            throw new Exception('Error getting documents', ERR_INTERNAL, $e);
         }
     }
 

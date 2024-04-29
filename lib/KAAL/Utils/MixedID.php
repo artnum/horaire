@@ -23,6 +23,6 @@ trait MixedID {
             }
             return intval($id);
         }
-        return $id;
+        return intval($id);
     }
 }

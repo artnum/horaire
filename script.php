@@ -58,18 +58,27 @@ if ($origfmtime === false) {
 $idx = hash('xxh64', $path);
 $memcache = new Memcached();
 $memcache->addServer('localhost', 11211);
-
 $ftime = $memcache->get('JSCACHE/'. $idx . '/time');
 if ($ftime === false || $origfmtime > intval($ftime)) {
-    require 'vendor/autoload.php';
-    if ($type === 'css') {
-        $compiler = new MatthiasMullie\Minify\CSS();
-    } else {
-        $compiler = new MatthiasMullie\Minify\JS();
-    }
-    $compiler->add($path);
-    $memcache->set('JSCACHE/' . $idx . '/content', $compiler->gzip(null));
     $memcache->set('JSCACHE/' . $idx . '/time', $origfmtime);
+    if (getenv('DEBUG')) { 
+        $content = gzencode(file_get_contents($path));
+        $memcache->set('JSCACHE/' . $idx . '/content', $content);
+        echo $content;
+        exit(0);
+    } else {
+        require 'vendor/autoload.php';
+        if ($type === 'css') {
+            $compiler = new MatthiasMullie\Minify\CSS();
+        } else {
+            $compiler = new MatthiasMullie\Minify\JS();
+        }
+        $compiler->add($path);
+        $content = $compiler->gzip(null);
+        $memcache->set('JSCACHE/' . $idx . '/content', $content);
+        echo $content;
+        exit(0);
+    }
 }
 echo $memcache->get('JSCACHE/' . $idx . '/content');
 exit(0);

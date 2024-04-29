@@ -42,6 +42,17 @@ CREATE TABLE IF NOT EXISTS "accountingDocLine" (
     UNIQUE ("docid", "position")
 );
 
+CREATE TABLE IF NOT EXISTS "accountingDocConditionValues" (
+	"docid" BIGINT UNSIGNED NOT NULL,
+	"name" VARCHAR(160) NOT NULL,
+	"value" FLOAT DEFAULT 0.0,
+	"type" ENUM('absolute', 'percent') DEFAULT 'absolute',
+	FOREIGN KEY ("docid") REFERENCES "accountingDoc" ("id"),
+	UNIQUE ("docid", "name")
+);
+
+
+-- OLD DON'T USE, keep for reference
 -- condition set are "kind of" immutable
 CREATE TABLE IF NOT EXISTS "accountingDocConditionSet" (
 	"accountingDocConditionSet_id" INTEGER PRIMARY KEY AUTO_INCREMENT,

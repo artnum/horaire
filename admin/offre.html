@@ -6,7 +6,7 @@
     <style>
         account-lines {
             display: grid;
-            grid-template-columns: 0.2fr 3.6fr 0.3fr 0.2fr 0.3fr 0.3fr 0.2fr;
+            grid-template-columns: 0.2fr 0.2fr 3.6fr 0.3fr 0.2fr 0.3fr 0.3fr 0.2fr;
         }
         account-lines > legend {
             display: block;
@@ -86,6 +86,7 @@
             color: white;
             height: fit-content;
             display: flex;
+            box-shadow: 0 0 1em black;
         }
 
         .breadcrumbs {
@@ -112,6 +113,15 @@
         .breadcrumbs > div.current {
             background-color: #005f8b;
         }
+
+        .breadcrumbs > div.available:hover {
+            background-color: #00384f;
+        }
+
+        .breadcrumbs > div.loading {
+            background-color: #00384f;
+        }
+
         .vspacer {
             height: 6ex;
         }
@@ -149,32 +159,28 @@
             border-top-color: gray !important;
 
         }
-
-
-
     </style>
     <script type="module" src="$script/vendor/js/accountLines/src/accountLines.js"></script>
-    <script src="../conf/kaal.js"></script>
+    <script src="$script/conf/kaal.js"></script>
     <script src="$script/admin/lib/login.js"></script>
     <script src="$script/admin/fetch.js"></script>
     <script src="$script/admin/lib/kapi.js"></script>
     <script src="$script/admin/lib/tva.js"></script>
-    <script src="$script/admin/ui/ka-offer.js"></script>
-    <script src="$script/vendor/pjAPI/src/pjapi.js"></script>
 </head>
 <body>
     <div class="action-line">
         <div class="breadcrumbs"></div>
         <div class="tools">
-            <button type="button" name="freeze">Sauver</button>
+            <button type="button" name="save">Sauver</button>
         </div>
     </div>
     <div class="vspacer">&nbsp;</div>
     <h1>Offre</h1>
-    <form>
-        <account-lines name="offer" precision="2">
+    <form name="accountingDocForm">
+        <account-lines name="accountingDocContent" precision="2">
             <account-head-definition>
                 <legend>Position</legend>
+                <legend>Document</legend>
                 <legend>Désignation</legend>
                 <legend>Quantité</legend>
                 <legend>Unité</legend>
@@ -184,6 +190,7 @@
             
             <account-line-definition>
                 <div style="font-family: monospace;" type="position"></div>
+                <div style="font-family: monospace;" data-name="docref"></div>
                 <textarea name="description"></textarea>
                 <input mandatory  type="number" name="quantity" step="0.01">
                 <select name="unit">
@@ -198,86 +205,94 @@
             </account-line-definition>
         </account-lines>
 
-        <account-summary for="offer" precision="2">
-            <legend>
-                Sout-Total 
-                <span></span>
-                <span></span>
-                <span class="total" name="gross" data-expression="$line_total sum"></span>
-            </legend>
-            <legend>
-                RPLP <input name="rplpValue">            
-                <span data-expression="~RPLP ldr"></span>
-                <span name="rplp" data-expression="$gross $rplpValue %+ ~INTERMEDIATE ~RPLP cpr"></span>
-            </legend>
-            <legend>
-                Rabais <input name="rabaisPercent">
-                <span data-expression="~RABAIS ldr"></span>
-                <span name="rabais" data-expression="$rplp $rabaisPercent %- ~INTERMEDIATE ~RABAIS cpr"></span>
-            </legend>
-            <legend>
-                Escompte <input name="escomptePercent">
-                <span data-expression="~ESCOMPTE ldr"></span>
-                <span name="escompte" data-expression="$rabais $escomptePercent %- ~INTERMEDIATE ~ESCOMPTE cpr"></span>
-            </legend>
-            <legend>Arrondi 
-                <input value="0.05" name="arrondiBase">
-                <span data-expression="~UNROUNDED ldr"></span>
-                <span name="arrondi" data-expression="$escompte $arrondiBase { jmpz mround ~INTERMEDIATE ~UNROUNDED cpr }"></span>
-            </legend>
-            <legend>
-                TVA <input name="tvaPercent">
-                <span data-expression="~TVA ldr"></span>
-                <span name="tva" data-expression="$arrondi $tvaPercent %+ ~INTERMEDIATE ~TVA cpr "></span>
-            </legend>
-            <legend>
-                Total
-                <span></span>
-                <span></span>
-                <span name="total" class="total" data-expression="$tva"></span>
-            </legend>
-        </account-summary>
-
-        <account-summary for="offer" precision="2" name="final">
-            <legend>
-                Sout-Total 
-                <span></span>
-                <span></span>
-                <span class="total" name="gross" data-expression="~IVALUE0 ldr"></span>
-            </legend>
-            <legend>
-                RPLP <input name="rplpValue">            
-                <span data-expression="~RPLP ldr"></span>
-                <span name="rplp" data-expression="$gross $rplpValue %+  ~INTERMEDIATE ~RPLP cpr"></span>
-            </legend>
-            <legend>
-                Rabais <input name="rabaisPercent">
-                <span name="rabaisAbsolute" data-expression="~RABAIS ldr"></span>
-                <span name="rabais" data-expression="$rplp $rabaisPercent %-  ~INTERMEDIATE ~RABAIS cpr"></span>
-            </legend>
-            <legend>
-                Escompte <input name="escomptePercent">
-                <span data-expression="~ESCOMPTE ldr"></span>
-                <span name="escompte" data-expression="$rabais $escomptePercent %- ~INTERMEDIATE ~ESCOMPTE cpr"></span>
-            </legend>
-            <legend>Arrondi 
-                <input value="0.05" name="arrondiBase">
-                <span data-expression="~UNROUNDED ldr"></span>
-                <span name="arrondi" data-expression="0 ~UNROUNDED str $escompte $arrondiBase { jmpz mround ~INTERMEDIATE ~UNROUNDED cpr }"></span>
-            </legend>
-            <legend>
-                TVA <input name="tvaPercent">
-                <span data-expression="~TVA ldr"></span>
-                <span name="tva" data-expression=" $arrondi $tvaPercent %+ ~INTERMEDIATE ~TVA cpr"></span>
-            </legend>
-            <legend>
-                Total <input value="" name="targetTotal">
-                <span><button type="button" name="setTarget">Set</button></span>
-                <span name="total" class="total" data-expression="$tva"></span>
-            </legend>
-        </account-summary>
-        <button type="button" name="freeze"></button>
-        <button type="submit">Enregistrer</button>
+        <div style="display: flex">
+            <div>
+            <h2>Offre</h2>
+            <account-summary for="accountingDocContent" precision="2" name="base">
+                <legend>
+                    Sout-Total 
+                    <span></span>
+                    <span></span>
+                    <span class="total" name="gross" data-expression="~IVALUE0 ldr"></span>
+                </legend>
+                <legend>
+                    RPLP <input name="RPLP">            
+                    <span data-expression="~RPLP ldr"></span>
+                    <span name="rplp" data-expression="$gross $RPLP %+  ~INTERMEDIATE ~RPLP cpr"></span>
+                </legend>
+                <legend>
+                    Rabais <input name="RABAIS">
+                    <span name="rabaisAbsolute" data-expression="~RABAIS ldr"></span>
+                    <span name="rabais" data-expression="$rplp $RABAIS %-  ~INTERMEDIATE ~RABAIS cpr"></span>
+                </legend>
+                <legend>
+                    Escompte <input name="ESCOMPTE">
+                    <span data-expression="~ESCOMPTE ldr"></span>
+                    <span name="escompte" data-expression="$rabais $ESCOMPTE %- ~INTERMEDIATE ~ESCOMPTE cpr"></span>
+                </legend>
+                <legend>Arrondi 
+                    <input value="0.05" name="ROUNDING">
+                    <span data-expression="~UNROUNDED ldr"></span>
+                    <span name="arrondi" data-expression="0 ~UNROUNDED str $escompte $ROUNDING { jmpz mround ~INTERMEDIATE ~UNROUNDED cpr }"></span>
+                </legend>
+                <legend>
+                    TVA <input name="TAX">
+                    <span data-expression="~TVA ldr"></span>
+                    <span name="tva" data-expression=" $arrondi $TAX %+ ~INTERMEDIATE ~TVA cpr"></span>
+                </legend>
+                <legend>
+                    Total
+                    <span></span>
+                    <span></span>
+                    <span name="total" class="total" data-expression="$tva"></span>
+                </legend>
+            </account-summary>
+            </div>
+            <div>
+            <h2>Actuel</h2>
+            <account-summary name="final" for="accountingDocContent" precision="2">
+                <legend>
+                    Sout-Total 
+                    <span></span>
+                    <span></span>
+                    <span class="total" name="gross" data-expression="$line_total sum"></span>
+                </legend>
+                <legend>
+                    RPLP <input name="RPLP">            
+                    <span data-expression="~RPLP ldr"></span>
+                    <span name="rplp" data-expression="$gross $RPLP %+ ~INTERMEDIATE ~RPLP cpr"></span>
+                </legend>
+                <legend>
+                    Rabais <input name="RABAIS">
+                    <span data-expression="~RABAIS ldr"></span>
+                    <span name="rabais" data-expression="$rplp $RABAIS %- ~INTERMEDIATE ~RABAIS cpr"></span>
+                </legend>
+                <legend>
+                    Escompte <input name="ESCOMPTE">
+                    <span data-expression="~ESCOMPTE ldr"></span>
+                    <span name="escompte" data-expression="$rabais $ESCOMPTE %- ~INTERMEDIATE ~ESCOMPTE cpr"></span>
+                </legend>
+                <legend>Arrondi 
+                    <input value="0.05" name="ROUNDING">
+                    <span data-expression="~UNROUNDED ldr"></span>
+                    <span name="arrondi" data-expression="$escompte $ROUNDING { jmpz mround ~INTERMEDIATE ~UNROUNDED cpr }"></span>
+                </legend>
+                <legend>
+                    TVA <input name="TAX">
+                    <span data-expression="~TVA ldr"></span>
+                    <span name="tva" data-expression="$arrondi $TAX %+ ~INTERMEDIATE ~TVA cpr "></span>
+                </legend>
+                <legend>
+                    Total
+                    <span></span>
+                    <span></span>
+                    <span name="total" class="total" data-expression="$tva"></span>
+                </legend>
+            </account-summary>
+            </div>
+        </div>
+        <!--<button type="button" name="freeze"></button>
+        <button type="submit">Enregistrer</button> //-->
     </form>
 </body>
 <script type="module" src="$script/admin/app/offre.js"></script>
