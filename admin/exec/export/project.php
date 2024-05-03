@@ -306,10 +306,11 @@ try {
          $line++;
       }
    }
+   
+   $factureEndLine = 0;
    $repSt = $db->prepare('SELECT * FROM "repartition" LEFT JOIN "facture" ON "facture_id" = "repartition_facture" LEFT JOIN "qraddress" ON "facture_qraddress" = "qraddress_id" WHERE "repartition_project" = :id AND "facture_deleted" = 0');
    $repSt->bindValue(':id', $row['project_id'], PDO::PARAM_INT);
    if ($repSt->execute()) {
-      $factureEndLine = 0;
       while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
          /* bexio integartion */
          if (intval($ini_conf['bexio']['enabled']) != '0') { 
