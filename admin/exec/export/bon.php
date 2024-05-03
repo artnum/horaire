@@ -264,12 +264,14 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetY($y);
     
     $i = 0;
-    foreach(['bon_number' => 'N° de bon',
-                  'travail_reference' => 'Référence',
-                  'create_travail_info' => 'Création',
-                  'print_travail_info' => 'Impression',
-                  'travail_phone' => 'Téléphone',
-                  'travail_contact' => 'Personne de contact'] as $item => $label) {
+    foreach([
+        'bon_number' => 'N° de bon',
+        'travail_reference' => 'Référence',
+        'create_travail_info' => 'Création',
+        'print_travail_info' => 'Impression',
+        'travail_phone' => 'Téléphone',
+        'travail_contact' => 'Personne de contact'] as $item => $label
+    ) {
       $PDF->tab(1);
       $PDF->SetFont('helvetica', '', 8);
       $PDF->printLn($label);
