@@ -11,7 +11,8 @@ use Normalizer;
 use KaalDB\PDO\PDO;
 use KAAL\Backend\{Cache, Storage};
 use Snowflake53\ID;
-use KAAL\Utils\MixedID;
+use KAAL\Utils\{MixedID, Base26};
+
 
 
 use const PJAPI\{ERR_BAD_REQUEST, ERR_INTERNAL};
@@ -42,6 +43,9 @@ class AccountingDoc  {
     protected static function normalizeEgressDocument (stdClass $document):stdClass {
         if (empty($document)) {
             throw new Exception('No document provided', ERR_BAD_REQUEST);
+        }
+        if (empty($document->variant)) {
+            $document->variant = 0;
         }
 
         if (!empty($document->id)) {
@@ -87,6 +91,17 @@ class AccountingDoc  {
     protected static function normalizeIngressDocument (stdClass $document):stdClass {
         if (empty($document)) {
             throw new Exception('No document provided', ERR_BAD_REQUEST);
+        }
+
+        if (empty($document->variant)) {
+            $document->variant = 0;
+        } else if (!is_int($document->variant)) {
+            if (!ctype_alpha($document->variant)) {
+                throw new Exception('Invalid variant', ERR_BAD_REQUEST);
+            }
+            $document->variant = strtoupper($document->variant);
+            /* base26 decode */
+            $document->variant = Base26::decode($document->variant);
         }
 
         if (!empty($document->id)) {
@@ -188,6 +203,14 @@ class AccountingDoc  {
         return $childs;
     }
 
+    public function createVariant (string|int|stdClass $document) {
+        $docId = self::normalizeId($document);
+        $document = $this->get($docId);
+        $document->related = $docId;
+        $document->id = null;
+        return $this->doCreate($document, true);
+    }
+
     public function getDocumentTree (mixed $project) {
 
     }
@@ -235,9 +258,6 @@ class AccountingDoc  {
             $originalDocument = $this->get($docId);
             switch($originalDocument->type) {
                 case 'offer':
-                    $type = 'order';
-                    break;
-                case 'order':
                     $type = 'execution';
                     break;
                 case 'execution':
@@ -250,6 +270,7 @@ class AccountingDoc  {
             $document = new stdClass();
             $document->related = $originalDocument->id;
             $document->type = $type;
+            $document->variant = 0;
             /* copying the project attribute set is less flexible but simplify
              * queries. There is almost no chance that a document flow will be
              * set to another projet.
@@ -278,6 +299,7 @@ class AccountingDoc  {
                     switch($key) {
                         case 'deleted':
                         case 'created':
+                        case 'variant':
                         case 'id':
                             continue 2;
                     }
@@ -355,8 +377,7 @@ class AccountingDoc  {
         }
     }
 
-    public function create (stdClass $document):stdClass {
-        $document = self::normalizeIngressDocument($document);
+    private function doCreate (stdClass $document, bool $variant = false):stdClass {
         $this->pdo->beginTransaction();
         try {
             $related = null;
@@ -367,8 +388,7 @@ class AccountingDoc  {
                 }
                 $related = strval($relDoc->id);
             }
-            
-            $stmt = $this->pdo->prepare('INSERT INTO accountingDoc 
+            $query = 'INSERT INTO accountingDoc 
                     (
                         id,
                         reference,
@@ -378,7 +398,8 @@ class AccountingDoc  {
                         date,
                         type,
                         created,
-                        related
+                        related,
+                        variant
                     ) 
                     VALUES (
                         :id,
@@ -389,9 +410,16 @@ class AccountingDoc  {
                         :date,
                         :type, 
                         :created,
-                        :related
-                    )'
-                );
+                        :related,
+                        %s
+                    )';
+            
+            if ($variant) {
+                $query = sprintf($query, '(SELECT MAX(ac.variant) FROM accountingDoc AS ac WHERE ac.reference = :reference) + 1');
+            } else {
+                $query = sprintf($query, '0');
+            }
+            $stmt = $this->pdo->prepare($query);
 
             $stmt->bindValue(':project', $document->project, PDO::PARAM_INT);
             if ($related === null) {
@@ -413,7 +441,11 @@ class AccountingDoc  {
                 case 'order': $format = 'C:yy:-:id04:'; break;
                 case 'execution': $format = 'E:yy:-:id04:'; break;
             }
-            $stmt->bindValue(':reference', $this->ref->get(sprintf('ACCOUNTINGDOC_%s', $document->type), $format), PDO::PARAM_STR);
+            if ($variant) {
+                $stmt->bindValue(':reference', $document->reference, PDO::PARAM_STR);
+            } else {
+                $stmt->bindValue(':reference', $this->ref->get(sprintf('ACCOUNTINGDOC_%s', $document->type), $format), PDO::PARAM_STR);
+            }
 
             $stmt->execute();
             $this->pdo->commit();
@@ -422,6 +454,11 @@ class AccountingDoc  {
             $this->pdo->rollBack();
             throw new Exception('Error creating document', ERR_INTERNAL, $e);
         }
+    }
+
+    public function create (stdClass $document):stdClass {
+        $document = self::normalizeIngressDocument($document);
+        return $this->doCreate($document);
     }
 
     public function update (stdClass $document):stdClass {

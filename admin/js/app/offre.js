@@ -36,15 +36,15 @@ class AccountingDocUI {
                     const breadcrumbs = docs.toReversed()
                     .map(a => {
                         return `<div id="${a.id}" class="available">
-                            ${a.reference}
+                            ${a.reference}_${a.variant}
                         </div>`
                     })
                     switch (docs[0].type) {
                         case 'offer':
-                            breadcrumbs.push('<div class="available" data-action="next">Vers commande ... </div>')
+                            breadcrumbs.push('<div class="available" data-action="variant">Variante</div>')
+                            breadcrumbs.push('<div class="available" data-action="next">Vers exécution</div>')
                             break
                         case 'order':
-                            breadcrumbs.push('<div class="available" data-action="next">Vers exécution ... </div>')
                             break
                         case 'execution':
                             break
@@ -110,7 +110,7 @@ class AccountingDocUI {
                 const node = document.querySelector('account-lines')
                 node.dataset.id = doc.id
                 node.id = doc.id
-                const title = `[${documentTitle} ${doc.reference}] ${project.reference} - ${project.name}`
+                const title = `[${documentTitle} ${doc.reference}_${doc.variant}] ${project.reference} - ${project.name}`
                 document.title = title
                 document.querySelector('body > h1').textContent = title
             }
@@ -226,6 +226,23 @@ window.addEventListener('load', () => {
                 })
             })
             return 
+        }
+        if (event.target.dataset.action === 'variant') {
+            const node = document.querySelector('account-lines[name="accountingDocContent"]')
+                AccountingDoc.createVariant(node.id)
+                .then(doc => {
+                    UI.loadDocument(doc.id)
+                    .then(_ => {
+                        return UI.renderDocBreadcrumbs(doc.project, true)
+                        
+                    })
+                    .then(_ => {
+                        UI.selectDocBreadcrumbs(doc.id)
+                    })
+                })
+    
+
+            return
         }
         UI.loadDocument(event.target.id)
     })

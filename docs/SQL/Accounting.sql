@@ -12,6 +12,7 @@ SET SQL_MODE=ANSI_QUOTES;
 CREATE TABLE IF NOT EXISTS "accountingDoc" (
 	"id" BIGINT UNSIGNED PRIMARY KEY,
 	"reference" VARCHAR(24) NOT NULL, -- reference number, sequential within a project
+	"variant" INT UNSIGNED NOT NULL DEFAULT 0, -- variant number, sequential within a project
 	"name" VARCHAR(160) NOT NULL DEFAULT '', -- name of the document
 	"description" TEXT NOT NULL DEFAULT '', -- description of the document
 	"date" VARCHAR(16) NOT NULL, -- date of the document (GMT date/time : "YYYY-MM-DD HH:MM" format)
@@ -23,7 +24,7 @@ CREATE TABLE IF NOT EXISTS "accountingDoc" (
 	"created" INTEGER UNSIGNED DEFAULT 0, -- timestamp of creation
 	"deleted" INTEGER UNSIGNED DEFAULT 0, -- timestamp of deletion
 	FOREIGN KEY ("related") REFERENCES "accountingDoc" ("id"),
-	UNIQUE("reference", "project")
+	UNIQUE("reference", "variant")
 );
 
 CREATE TABLE IF NOT EXISTS "accountingDocLine" (

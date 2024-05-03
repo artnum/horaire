@@ -1,6 +1,6 @@
 import { JAPI } from './$script/src/JAPI/JAPI.js'
 import { AccountingDocLineAPI } from './$script/src/JAPI/AccountingDocLine.js'
-
+import { base26 } from './$script/src/lib/base26.js'
 const NS = 'AccountingDoc'
 
 class AccountingDoc {
@@ -10,6 +10,8 @@ class AccountingDoc {
         this.project = doc.project
         this.reference = doc.reference
         this.state = doc.state
+        this.related = null
+        this.variant = base26.encode(doc.variant)
         
         this.date = (() => {
             const date = new Date()
@@ -26,6 +28,7 @@ class AccountingDoc {
         this.description = doc.description
         this.type = doc.type
         this.condition = doc.condition
+        this.related = doc.related ?? null
     }
 
     clone () {
@@ -42,7 +45,9 @@ class AccountingDoc {
             description: this.description,
             type: this.type,
             condition: this.condition,
-            state: this.state
+            state: this.state,
+            related: this.related,
+            variant: base26.decode(this.variant)
         }
     }
 
@@ -142,6 +147,28 @@ export class AccountingDocAPI extends JAPI {
         })
     }
 
+    createVariant (document) {
+        return new Promise((resolve, reject) => {
+            if (document instanceof AccountingDoc) {
+                document = document.toJSON()
+                if (!document.id) {
+                    return reject('Project ID is required')
+                }
+            }
+        
+            this.API.exec(
+                AccountingDocAPI.NS,
+                'createVariant',
+                {document}
+            )
+            .then(doc => {
+                return resolve(new AccountingDoc(this, doc))
+            })
+            .catch(err => {
+                return reject(err)
+            })
+        })
+    }
     update (document) {
         return new Promise((resolve, reject) => {
             if (document instanceof AccountingDoc) {
