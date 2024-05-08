@@ -65,7 +65,7 @@ try {
   $per_process = array();
   $per_person = array();
   /* Entrées */
-  $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process' => 'string', 'Repas' => 'string', 'Déplacement' => 'number', 'Description' => 'string', 'Jour' => 'string', 'Temps [h]' => '0.00', 'Temps noté [h]' => '0.00', 'Personne' => 'string'), array('widths'=>[10, 35, 25, 10, 10, 25]));
+  $writer->writeSheetHeader('Entrées', array('Reference' => 'string', 'Projet'=> 'string', 'Process' => 'string', 'Repas' => 'string', 'Déplacement' => 'number', 'Description' => 'string', 'Jour' => 'NNN, D MMM YYYY', 'Temps [h]' => '0.00', 'Temps noté [h]' => '0.00', 'Personne' => 'string'), array('widths'=>[10, 35, 25, 10, 10, 25]));
 
   foreach ($values as $row) {
     if (is_null($person)) {
@@ -78,7 +78,7 @@ try {
     if (!isset($per_person[$row['person_name']])) {
       $per_person[$row['person_name']] = 0;
     }
-    $date = (new DateTime($row['htime_day']))->format('d.m.Y');
+    $date = (new DateTime($row['htime_day']))->format('Y-m-d');
     if (intval($row['project_uncount']) !== 0) {
       $value = 0;
     } else {
