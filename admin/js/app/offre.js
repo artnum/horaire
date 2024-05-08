@@ -5,6 +5,7 @@ import { ProjectAPI } from './$script/src/JAPI/Project.js'
 import { JFormData } from './$script/vendor/js/formdata/src/formdata.js'
 import { Barrier } from './$script/src/lib/barrier.js'
 import { AccountingConditionAPI } from './$script/src/JAPI/AccountingCondition.js'
+import markdownIt from 'https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/+esm'
 
 const params = new URLSearchParams(window.location.search)
 const projectAPI = new ProjectAPI()
@@ -292,6 +293,9 @@ window.addEventListener('load', () => {
  
 
     })
+
+    const render = new markdownIt()
+    document.querySelector('account-lines[name="accountingDocContent"]').parser = render.render.bind(render)
     /*
     document.querySelector('button[name="setTarget"]').addEventListener('click', event => {
         const node = document.querySelector('account-summary[name="final"]')

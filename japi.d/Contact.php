@@ -18,4 +18,4 @@ $ldap = LDAP::getInstance(
 );
 $cache = Cache::getInstance(['host'=> $PJAPI->conf('cache.host')]);
 
-return new KAAL\Middleware\Contact($PJAPI->conf('addressbook.basedn'), $ldap, $cache);
+return new KAAL\Middleware\Address\Contact($PJAPI->conf('addressbook.basedn'), $ldap, $cache);

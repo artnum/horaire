@@ -1,7 +1,7 @@
 <?php
 namespace KAAL\Middleware;
 
-use KAAL\Middleware\Contact;
+use KAAL\Middleware\Address\Contact;
 use KaalDB\PDO\PDO;
 use KAAL\Backend\{Cache, Storage};
 use Exception;
