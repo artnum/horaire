@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS "accountingDocLine" (
     "docid" BIGINT UNSIGNED NOT NULL,
 	"position" VARCHAR(16) NOT NULL,
 	"posref" VARCHAR(32) NOT NULL DEFAULT '', -- position from reference document (if any)
-	"description" VARCHAR(160) NOT NULL,
+	"description" TEXT NOT NULL DEFAULT '', -- Description can be quite long
 	"quantity" FLOAT DEFAULT 0.0,
 	"unit" VARCHAR(160) DEFAULT '',
 	"price" FLOAT DEFAULT 0.0,
