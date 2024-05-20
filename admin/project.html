@@ -12,7 +12,6 @@
 <body>
   <main id="project">
     <h1>Projets</h1>
-    <button id="newOffer">Nouvelle offre</button>
     <h2>Nouveau projet</h2>
     <form id="projectform">
       <fieldset name="general" id="general">
@@ -43,19 +42,6 @@
 </body>
 <script>
   window.KCORE = { NoPopper: true }
-</script>
-<script type="module">
-  import { AccountingDocAPI } from './$script/src/JAPI/AccountingDoc.js'
-
-  window.addEventListener('load', event => {
-    document.getElementById('newOffer').addEventListener('click', _ => {
-      const api = new AccountingDocAPI()
-      api.create({type: 'offer', name: 'Offre test', condition: 0})
-      .then(r => {
-        window.open(`${KAAL.getBase()}/admin/offre.html?doc=${r.id}`)
-      })
-    })
-  })
 </script>
 <script src="$script/vendor/kcore/index.js"></script>
 <script src="$script/conf/kaal.js"></script>
