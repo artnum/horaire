@@ -1,7 +1,9 @@
 <?php
 
-//header("Cache-Control: public");
-//header("Expires: " . gmdate("D, d M Y H:i:s", time() + 3600) . " GMT");
+if (!getenv('DEBUG')) {
+    header("Cache-Control: public");
+    header("Expires: " . gmdate("D, d M Y H:i:s", time() + 3600) . " GMT");
+} 
 
 $path = trim($_SERVER['PATH_INFO']);
 $type = substr($path, -3);

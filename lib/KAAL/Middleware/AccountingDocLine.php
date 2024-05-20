@@ -1,6 +1,7 @@
 <?php
 namespace KAAL\Middleware;
 
+use artnum\JStore\Base;
 use STQuery\STQuery as Search;
 use KAAL\Backend\{Cache, Storage};
 use KaalDB\PDO\PDO;
@@ -9,9 +10,11 @@ use stdClass;
 use const PJAPI\{ERR_BAD_REQUEST, ERR_INTERNAL};
 use Snowflake53\ID;
 use Normalizer;
-use KAAL\Utils\MixedID;
+use KAAL\Utils\{MixedID, Base26};
 use MonoRef\Backend\IStorage;
 use Generator;
+use KAAL\AccessControl;
+use PhpOffice\PhpSpreadsheet\Calculation\Statistical\Distributions\Normal;
 
 class AccountingDocLine {
     use ID;
@@ -25,9 +28,12 @@ class AccountingDocLine {
     }
 
     protected static function normalizeEgressLine (stdClass $line) {
+        $rbac = AccessControl::getInstance();
+
         $line->id = strval($line->id) ?? '0';
         $line->docid = strval($line->docid) ?? '0';
         $line->position = strval($line->position) ?? null;
+        $line->posref = strval($line->posref) ?? '';
         $line->description = strval($line->description) ?? null;
         $line->quantity = floatval($line->quantity) ?? null;
         $line->price = floatval($line->price) ?? null;
@@ -35,12 +41,25 @@ class AccountingDocLine {
         $line->related = strval($line->related) ?? null;
         $line->state = $line->state ?? 'open';
         $line->unit = strval($line->unit) ?? null;
+
+        $filters = $rbac->has_attribute_filter('docline', 'read');
+        foreach ($filters as $filter) {
+            unset($line->$filter);
+        }
+
         return $line;
     }
 
     protected static function normalizeIngressLine (stdClass $line) {
+        $rbac = AccessControl::getInstance();
+        $filters = $rbac->has_attribute_filter('docline', 'write');
+        foreach ($filters as $filter) {
+            unset($line->$filter);
+        }
+    
         if (isset($line->id)) { $line->id = self::normalizeId($line->id); }
         if (isset($line->docid)) { $line->docid = self::normalizeId($line->docid); }
+        $line->posref = isset($line->posref) ? Normalizer::normalize(strval($line->posref)) : '';
         $line->position = Normalizer::normalize(strval($line->position)) ?? null;
         $line->description = Normalizer::normalize(strval($line->description)) ?? null;
         $line->quantity = floatval($line->quantity) ?? null;
@@ -136,8 +155,7 @@ class AccountingDocLine {
     function gets (string|int $docId = null) {
         $docId = self::normalizeId($docId);
         $docAPI = new AccountingDoc($this->pdo, $this->cache);
-        $parents = $docAPI->_getParents($docId);
-        $parents[] = $docId;
+        $parents = $docAPI->_getIdsForDocument($docId);
         $stmt = $this->pdo->prepare('SELECT id FROM accountingDocLine WHERE docId IN (' . implode(',', $parents) . ')');
         $stmt->execute();
         while ($line = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -182,6 +200,7 @@ class AccountingDocLine {
         $stmt = $this->pdo->prepare('INSERT INTO accountingDocLine (
             id,
             position,
+            posref,
             description,
             quantity,
             price,
@@ -193,6 +212,7 @@ class AccountingDocLine {
         ) VALUES (
             :id,
             :position,
+            :posref,
             :description,
             :quantity,
             :price,
@@ -204,6 +224,7 @@ class AccountingDocLine {
         )');
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->bindValue(':position', $line->position, PDO::PARAM_STR);
+        $stmt->bindValue(':posref', $line->posref, PDO::PARAM_STR);
         $stmt->bindValue(':description', $line->description, PDO::PARAM_STR);
         $stmt->bindValue(':quantity', $line->quantity, PDO::PARAM_STR);
         $stmt->bindValue(':price', $line->price, PDO::PARAM_STR);
@@ -225,10 +246,57 @@ class AccountingDocLine {
         return ['added' => ['line' => $this->get($id), 'success' => $success]];
     }
 
+    function copy ($from, $to) {
+        $selection = $this->pdo->prepare('SELECT * FROM accountingDocLine WHERE docid = :from');
+        $selection->bindValue(':from', $from, PDO::PARAM_INT);
+        $selection->execute();
+        while (($line = $selection->fetch(PDO::FETCH_OBJ)) !== false) {
+            $id = $this->get64();
+            $stmt = $this->pdo->prepare('INSERT INTO accountingDocLine (
+                id,
+                position,
+                description,
+                posref,
+                quantity,
+                price,
+                type,
+                related,
+                state,
+                unit,
+                docId
+            ) VALUES (
+                :id,
+                :position,
+                :posref,
+                :description,
+                :quantity,
+                :price,
+                :type,
+                :related,
+                :state,
+                :unit,
+                :docId
+            )');
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->bindValue(':position', $line->position, PDO::PARAM_STR);
+            $stmt->bindValue(':posref', $line->posref, PDO::PARAM_STR);
+            $stmt->bindValue(':description', $line->description, PDO::PARAM_STR);
+            $stmt->bindValue(':quantity', $line->quantity, PDO::PARAM_STR);
+            $stmt->bindValue(':price', $line->price, PDO::PARAM_STR);
+            $stmt->bindValue(':type', $line->type, PDO::PARAM_STR);
+            $stmt->bindValue(':related', null, PDO::PARAM_NULL);
+            $stmt->bindValue(':state', $line->state, PDO::PARAM_STR);
+            $stmt->bindValue(':unit', $line->unit, PDO::PARAM_STR);
+            $stmt->bindValue(':docId', $to, PDO::PARAM_INT);
+            $stmt->execute();
+        }
+    }
+
     function update (stdClass $line) {
         $line = self::normalizeIngressLine($line);
         $stmt = $this->pdo->prepare('UPDATE accountingDocLine SET 
             position = :position,
+            posref = :posref,
             description = :description,
             quantity = :quantity,
             price = :price,
@@ -238,6 +306,7 @@ class AccountingDocLine {
             unit = :unit
         WHERE id = :id');
         $stmt->bindValue(':position', $line->position, PDO::PARAM_STR);
+        $stmt->bindValue(':posref', $line->posref, PDO::PARAM_STR);
         $stmt->bindValue(':description', $line->description, PDO::PARAM_STR);
         $stmt->bindValue(':quantity', $line->quantity, PDO::PARAM_STR);
         $stmt->bindValue(':price', $line->price, PDO::PARAM_STR);

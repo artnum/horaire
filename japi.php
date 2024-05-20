@@ -4,11 +4,14 @@ namespace KAAL;
 require_once(__DIR__ . '/vendor/autoload.php');
 
 use KAAL\KPJAPI;
-
+use KAAL\AccessControl;
 
 $memusage = memory_get_peak_usage();
 $start = microtime(true);
 $load = sys_getloadavg();
+
+/* initialize RBAC, needed in order to set connection and all */
+$rbac = new AccessControl();
 
 $api = new KPJAPI('japi.d/');
 $logger = $api->getLogger();

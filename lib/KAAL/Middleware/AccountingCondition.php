@@ -1,17 +1,14 @@
 <?php
 namespace KAAL\Middleware;
 
-use STQuery\STQuery as Search;
+
 use Exception;
-use Generator;
-use MonoRef\Backend\IStorage;
-use KAAL\Utils\Reference;
 use stdClass;
-use Normalizer;
 use KaalDB\PDO\PDO;
 use KAAL\Backend\{Cache, Storage};
 use Snowflake53\ID;
 use KAAL\Utils\MixedID;
+use KAAL\AccessControl;
 
 use const PJAPI\{ERR_BAD_REQUEST, ERR_INTERNAL};
 
@@ -37,12 +34,14 @@ class AccountingCondition {
         $cond = new stdClass();
         $cond->docid = self::normalizeId($condition->docid);
         $cond->content = new stdClass();
-        foreach($condition->content as $key => $value) {
-            if (!is_numeric($value)) {
-                throw new Exception('Invalid value', ERR_BAD_REQUEST, 
-                    new Exception('Value must be numeric.'));
+        if (isset($condition->content)) {
+            foreach($condition->content as $key => $value) {
+                if (!is_numeric($value)) {
+                    throw new Exception('Invalid value', ERR_BAD_REQUEST, 
+                        new Exception('Value must be numeric.'));
+                }
+                $cond->content->{strtoupper($key)} = floatval($value);
             }
-            $cond->content->{strtoupper($key)} = floatval($value);
         }
 
         if (!isset($cond->content->RPLP)) {
@@ -72,6 +71,9 @@ class AccountingCondition {
     }
 
     function lookup (stdClass|int|string $docId) {
+        $rbac = AccessControl::getInstance();
+        $rbac->can('accounting', ['search']);
+
         $docId = self::normalizeId($docId);
         $hasCondition = $this->get($docId);
         if (count((array)$hasCondition) > 0) {
@@ -95,6 +97,9 @@ class AccountingCondition {
     }
 
     function create (stdClass|int|string $condition): stdClass {
+        $rbac = AccessControl::getInstance();
+        $rbac->can('accounting', ['create', 'update']);
+
         $condition = $this->normalizeIngress($condition);
         $stmt = $this->pdo->prepare('DELETE FROM accountingDocConditionValues WHERE docid = :docid');
         $stmt->bindValue(':docid', $condition->docid);
@@ -111,12 +116,14 @@ class AccountingCondition {
     }
 
     function get (stdClass|int|string $condition): stdClass {
+        $rbac = AccessControl::getInstance();
+        $rbac->can('accounting', ['read']);
+
         if (!is_object($condition)) {
             $docid = $condition;
             $condition = new stdClass();
             $condition->docid = $docid;
         }
-    
         $condition = $this->normalizeIngress($condition);
         $stmt = $this->pdo->prepare('SELECT name, value FROM accountingDocConditionValues WHERE docid = :docid');
         $stmt->bindValue(':docid', $condition->docid);

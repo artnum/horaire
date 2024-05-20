@@ -12,8 +12,8 @@ use KaalDB\PDO\PDO;
 use KAAL\Backend\{Cache, Storage};
 use Snowflake53\ID;
 use KAAL\Utils\{MixedID, Base26};
-
-
+use KAAL\AccessControl;
+use wesrv\msg;
 
 use const PJAPI\{ERR_BAD_REQUEST, ERR_INTERNAL};
 
@@ -83,7 +83,11 @@ class AccountingDoc  {
             $document->date = date('Y-m-d H:i', strtotime($document->date));
         }
 
-        $document->project = strval($document->project);
+        if ($document->project) {
+            $document->project = strval($document->project);
+        } else {
+            $document->project = null;
+        }
         $document->type = strval($document->type);
         return $document;
     }
@@ -99,7 +103,6 @@ class AccountingDoc  {
             if (!ctype_alpha($document->variant)) {
                 throw new Exception('Invalid variant', ERR_BAD_REQUEST);
             }
-            $document->variant = strtoupper($document->variant);
             /* base26 decode */
             $document->variant = Base26::decode($document->variant);
         }
@@ -108,12 +111,14 @@ class AccountingDoc  {
             $document->id = self::normalizeId($document->id);
         }
 
-        if (empty($document->related)) {
-            if(empty($document->project) || empty($document->type)) {
-                throw new Exception('No project provided', ERR_BAD_REQUEST);
-            }
-        } else {
+        if (!empty($document->related)) {
             $document->related = strval($document->related);
+        }
+
+        if (!empty($document->project)) {
+            $document->project = self::normalizeId($document->project);
+        } else {
+            $document->project = null;
         }
 
         if (empty($document->created)) {
@@ -155,6 +160,15 @@ class AccountingDoc  {
         return $document;
     }
 
+    public function _getIdsForDocument (mixed $docId):array {
+        $document = $this->get($docId);
+        $ids = [$docId];
+        if ($document->type !== 'offer') {
+            $ids = array_merge($ids, $this->_getParents($docId));
+        }
+        return $ids;
+    }
+
     public function _getParents (mixed $docId):array {
         $docId = self::normalizeId($docId);
 
@@ -183,6 +197,18 @@ class AccountingDoc  {
         return $document;
     }
 
+    public function listFromDocument(mixed $document):Generator {
+        $docId = self::normalizeId($document);
+        $docs = [$docId];
+        $docs = array_merge($docs, $this->_getParents($docId));
+        $docs = array_merge($docs, $this->_getChilds($docId));
+        rsort($docs);
+        
+        foreach($docs as $doc) {
+            yield $this->get($doc);
+        }
+    }
+
     public function _getChilds (mixed $docId): array {
         $docId = self::normalizeId($docId);
 
@@ -204,11 +230,20 @@ class AccountingDoc  {
     }
 
     public function createVariant (string|int|stdClass $document) {
+        $rbac = AccessControl::getInstance();
+        $rbac->can('accounting', ['write']);
+        
+        $linesAPI = new AccountingDocLine($this->pdo, $this->cache);
+
         $docId = self::normalizeId($document);
         $document = $this->get($docId);
         $document->related = $docId;
         $document->id = null;
-        return $this->doCreate($document, true);
+        $document = $this->doCreate($document, true);
+        error_log(var_export($document, true));
+        $linesAPI->copy($docId, $document->id);
+
+        return $document;
     }
 
     public function getDocumentTree (mixed $project) {
@@ -216,6 +251,8 @@ class AccountingDoc  {
     }
 
     public function search (stdClass $search):Generator {
+        $rbac = AccessControl::getInstance();
+        $rbac->can('accounting', ['search']);
         try {
             $JSearch = new Search($search);
             list ($where, $values) = $JSearch->toPDO();
@@ -234,6 +271,13 @@ class AccountingDoc  {
         } catch (Exception $e) {
             throw new Exception('Error searching documents', ERR_INTERNAL, $e);
         }
+    }
+
+    public function getOffers ():Generator {
+        $rbac = AccessControl::getInstance();
+        $rbac->can('accounting', ['search']);
+
+        return $this->search((object) ['type' => 'offer', 'deleted' => 0, 'project' => '-']);
     }
 
     private function getRawDocument (string|int $id):stdClass {
@@ -421,7 +465,12 @@ class AccountingDoc  {
             }
             $stmt = $this->pdo->prepare($query);
 
-            $stmt->bindValue(':project', $document->project, PDO::PARAM_INT);
+            if ($document->project === null) {
+                $stmt->bindValue(':project', null, PDO::PARAM_NULL);
+            } else {
+                $stmt->bindValue(':project', $document->project, PDO::PARAM_INT);
+            }
+
             if ($related === null) {
                 $stmt->bindValue(':related', $related, PDO::PARAM_NULL);
             } else {

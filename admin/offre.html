@@ -6,7 +6,7 @@
     <style>
         account-lines {
             display: grid;
-            grid-template-columns: 0.2fr 0.2fr 3.6fr 0.3fr 0.2fr 0.3fr 0.3fr 0.2fr;
+            grid-template-columns: 0.2fr 0.2fr 0.2fr 3.6fr 0.3fr 0.2fr 0.3fr 0.3fr 0.2fr;
         }
         account-lines > legend {
             display: block;
@@ -181,6 +181,7 @@
             <account-head-definition>
                 <legend>Position</legend>
                 <legend>Document</legend>
+                <legend>Position soumission</legend>
                 <legend>Désignation</legend>
                 <legend>Quantité</legend>
                 <legend>Unité</legend>
@@ -191,6 +192,7 @@
             <account-line-definition>
                 <div style="font-family: monospace;" type="position"></div>
                 <div style="font-family: monospace;" data-name="docref"></div>
+                <input type="text" name="posref" placeholder="Position soumission" />
                 <textarea name="description"></textarea>
                 <input mandatory  type="number" name="quantity" step="0.01">
                 <select name="unit">

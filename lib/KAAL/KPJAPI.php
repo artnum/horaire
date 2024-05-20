@@ -4,7 +4,7 @@ namespace KAAL;
 use Throwable;
 use Monolog\Level;
 use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
+use Monolog\Handler\SyslogHandler;
 
 class KPJAPI extends \PJAPI\PJAPI {
     protected array $conf;
@@ -13,7 +13,7 @@ class KPJAPI extends \PJAPI\PJAPI {
     public function __construct(string $dir) {
         parent::__construct($dir);
         $this->logger = new Logger('kaal');
-        $this->logger->pushHandler(new StreamHandler(__DIR__ . '/../../logs/kaal.log', Level::Debug));
+        $this->logger->pushHandler(new SyslogHandler('kaal', 'local6'));
         $this->conf = require('conf/kaal.php');
     }
 

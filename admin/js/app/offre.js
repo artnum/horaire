@@ -1,6 +1,6 @@
 import { AccountingDocAPI } from './$script/src/JAPI/AccountingDoc.js'
 import { AccountingDocLineAPI } from './$script/src/JAPI/AccountingDocLine.js'
-import { ContactAPI } from './$script/src/JAPI/Contact.js'
+// import { ContactAPI } from './$script/src/JAPI/Contact.js'
 import { ProjectAPI } from './$script/src/JAPI/Project.js'
 import { JFormData } from './$script/vendor/js/formdata/src/formdata.js'
 import { Barrier } from './$script/src/lib/barrier.js'
@@ -12,7 +12,7 @@ const projectAPI = new ProjectAPI()
 const accountingDocLineAPI = new AccountingDocLineAPI()
 const AccountingDoc = new AccountingDocAPI()
 const AccountingCondition = new AccountingConditionAPI()
-const Contact = new ContactAPI()
+//const Contact = new ContactAPI()
 
 class AccountingDocUI {
     constructor () {
@@ -21,19 +21,22 @@ class AccountingDocUI {
         this.project = null
     }
 
-    renderDocBreadcrumbs (projectId, force = false) {
+    renderDocBreadcrumbs (projectId, doc, force = false) {
         return new Promise((resolve, reject) => {
             const node = document.querySelector('.breadcrumbs')
             if (!node.dataset.invalid) {
                 node.dataset.invalid = 'true'
             }
             if (node.dataset.invalid === 'false' && !force) { return resolve() }
-            AccountingDoc.listByProject(projectId)
+            ;(() => {
+                if (projectId) { return AccountingDoc.listByProject(projectId) }
+                return AccountingDoc.listFromDocument(doc.id)
+            })()
             .then(docs => {
                 ; (new Barrier('accountingDocUI')).register()
                 .then(_ => {
                     node.dataset.invalid = 'false'
-                    this.loadConditionBase(docs[docs.length - 1].id)
+                    if (docs.length > 0) { this.loadConditionBase(docs[docs.length - 1].id) }
                     const breadcrumbs = docs.toReversed()
                     .map(a => {
                         return `<div id="${a.id}" class="available">
@@ -75,7 +78,7 @@ class AccountingDocUI {
     }
 
     render (doc, lines, project) {
-        this.renderDocBreadcrumbs(project.id)
+        this.renderDocBreadcrumbs(project ? project.id : null, doc)
         .then(_ => {
             this.selectDocBreadcrumbs(doc.id)
         })
@@ -111,7 +114,7 @@ class AccountingDocUI {
                 const node = document.querySelector('account-lines')
                 node.dataset.id = doc.id
                 node.id = doc.id
-                const title = `[${documentTitle} ${doc.reference}_${doc.variant}] ${project.reference} - ${project.name}`
+                const title = `[${documentTitle} ${doc.reference}_${doc.variant}] ${project ? project.reference + ' - ' : ''}${project ? project.name : ''}`
                 document.title = title
                 document.querySelector('body > h1').textContent = title
             }
@@ -127,7 +130,13 @@ class AccountingDocUI {
             AccountingDoc.get(docId)
             .then(doc => {
                 return Promise.all([
-                    project === null ? projectAPI.get(doc.project) : Promise.resolve(project),
+                    (project === null 
+                            ? ( 
+                                doc.project 
+                                    ? projectAPI.get(doc.project)
+                                    : Promise.resolve(null)
+                              ) 
+                            : Promise.resolve(project)),
                     AccountingDoc.getLines(doc.id),
                     Promise.resolve(doc)
                 ])
@@ -208,8 +217,13 @@ class AccountingDocUI {
 
 window.addEventListener('load', () => {
     const UI = new AccountingDocUI()
-    UI.load(params.get('project'))
-    
+    if (!params.has('project') && params.has('doc')) {
+        UI.loadDocument(params.get('doc'))
+    } else {
+        UI.load(params.get('project'))
+    }
+
+    /* install event listeners */
     document.querySelector('div.breadcrumbs').addEventListener('click', 
     event => {
         event.target.classList.add('loading')
@@ -219,7 +233,7 @@ window.addEventListener('load', () => {
             .then(doc => {
                 UI.loadDocument(doc.id)
                 .then(_ => {
-                    return UI.renderDocBreadcrumbs(doc.project, true)
+                    return UI.renderDocBreadcrumbs(doc.project, null, true)
                     
                 })
                 .then(_ => {
@@ -234,7 +248,7 @@ window.addEventListener('load', () => {
                 .then(doc => {
                     UI.loadDocument(doc.id)
                     .then(_ => {
-                        return UI.renderDocBreadcrumbs(doc.project, true)
+                        return UI.renderDocBreadcrumbs(doc.project, null, true)
                         
                     })
                     .then(_ => {
@@ -247,6 +261,7 @@ window.addEventListener('load', () => {
         }
         UI.loadDocument(event.target.id)
     })
+    
     document.querySelector('button[name="save"]').addEventListener('click', event => {
         const node = document.querySelector('form[name="accountingDocForm"]')
         const data = new JFormData(node)._data
@@ -324,15 +339,12 @@ window.addEventListener('load', () => {
     })
 */
     document.querySelector('account-lines').addEventListener('lock-line', event => {
-        console.log('lock-line', event.detail)
         accountingDocLineAPI.update(event.detail)
         .then(x => {
-            console.log(x)
             accountingDocLineAPI.lock(event.detail.id)
         })
     })
     document.querySelector('account-lines').addEventListener('unlock-line', event => {
-        console.log('unlock-line', event.detail)
         accountingDocLineAPI.unlock(event.detail.id)
     })
 

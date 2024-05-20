@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS "accountingDocLine" (
 	"id" BIGINT UNSIGNED PRIMARY KEY,
     "docid" BIGINT UNSIGNED NOT NULL,
 	"position" VARCHAR(16) NOT NULL,
+	"posref" VARCHAR(32) NOT NULL DEFAULT '', -- position from reference document (if any)
 	"description" VARCHAR(160) NOT NULL,
 	"quantity" FLOAT DEFAULT 0.0,
 	"unit" VARCHAR(160) DEFAULT '',

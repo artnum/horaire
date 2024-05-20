@@ -108,6 +108,23 @@ export class AccountingDocAPI extends JAPI {
         })
     }
 
+    listFromDocument (documentId) {
+        return new Promise((resolve, reject) => {
+            if (typeof documentId === 'object') { documentId = documentId.id }
+            this.API.exec(
+                AccountingDocAPI.NS,
+                'listFromDocument',
+                {document: documentId}
+            )
+            .then(docs => {
+                return resolve(docs.map(doc => new AccountingDoc(this, doc)))
+            })
+            .catch(err => {
+                return reject(err)
+            })
+        })
+    }
+
     list () {
         return new Promise((resolve, reject) => {
             this.API.exec(
@@ -130,7 +147,7 @@ export class AccountingDocAPI extends JAPI {
             }
         
             if (!document.project) {
-                return reject('Project ID is required')
+                document.project = null
             }
 
             this.API.exec(
