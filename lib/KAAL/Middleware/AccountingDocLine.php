@@ -267,8 +267,8 @@ class AccountingDocLine {
             ) VALUES (
                 :id,
                 :position,
-                :posref,
                 :description,
+                :posref,
                 :quantity,
                 :price,
                 :type,
