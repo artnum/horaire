@@ -47,6 +47,23 @@
             color: gray;
         }
 
+        .account-line__actions {
+            display: flex;
+            justify-content: space-around;
+        }
+        .account-line_button {
+            max-width: 4ch !important;
+            min-width: 4ch !important;
+            max-height: 6ex !important;
+            min-height: 6ex !important;
+            padding: 0;
+            margin: 0;
+        }
+
+        .account-line__rendered-textarea {
+            font-size: 12px;
+        }
+
         account-summary {
             display: block;
             border: 1px solid black;
@@ -159,6 +176,12 @@
             border-top-color: gray !important;
 
         }
+
+        input, select {
+            max-height: 4ex !important;
+            min-height: 4ex !important;
+            min-width: 12ch !important;
+        }
     </style>
     <script type="module" src="$script/vendor/js/accountLines/src/accountLines.js"></script>
     <script src="$script/conf/kaal.js"></script>
@@ -191,16 +214,16 @@
             
             <account-line-definition>
                 <div style="font-family: monospace;" type="position"></div>
-                <div style="font-family: monospace;" data-name="docref"></div>
-                <input type="text" name="posref" placeholder="Position soumission" />
+                <div style="font-family: monospace;" data-name="docref" tabindex="-1"></div>
+                <input type="text" name="posref" placeholder="Pos. soum." />
                 <textarea name="description"></textarea>
                 <input mandatory  type="number" name="quantity" step="0.01">
                 <select name="unit">
-                    <option value="kg">kg</option>
+                    <option value="pce">pce</option>
+                    <option value="m_l">m/l</option>
                     <option value="g">g</option>
                     <option value="l">l</option>
                     <option value="ml">ml</option>
-                    <option value="pcs">pcs</option>
                 </select>
                 <input mandatory type="number" name="price" step="0.01">
                 <input mandatory type="number" name="line_total" step="0.01" to-delete="negate" data-expression="$quantity $price *">
@@ -232,21 +255,21 @@
                     <span data-expression="~ESCOMPTE ldr"></span>
                     <span name="escompte" data-expression="$rabais $ESCOMPTE %- ~INTERMEDIATE ~ESCOMPTE cpr"></span>
                 </legend>
-                <legend>Arrondi 
-                    <input value="0.05" name="ROUNDING">
-                    <span data-expression="~UNROUNDED ldr"></span>
-                    <span name="arrondi" data-expression="0 ~UNROUNDED str $escompte $ROUNDING { jmpz mround ~INTERMEDIATE ~UNROUNDED cpr }"></span>
-                </legend>
                 <legend>
                     TVA <input name="TAX">
                     <span data-expression="~TVA ldr"></span>
-                    <span name="tva" data-expression=" $arrondi $TAX %+ ~INTERMEDIATE ~TVA cpr"></span>
+                    <span name="tva" data-expression="$escompte $TAX %+ ~INTERMEDIATE ~TVA cpr "></span>
+                </legend>
+                <legend>Arrondi 
+                    <input value="0.05" name="ROUNDING">
+                    <span data-expression="~UNROUNDED ldr"></span>
+                    <span name="arrondi" data-expression="$tva $ROUNDING { jmpz mround ~INTERMEDIATE ~UNROUNDED cpr }"></span>
                 </legend>
                 <legend>
                     Total
                     <span></span>
                     <span></span>
-                    <span name="total" class="total" data-expression="$tva"></span>
+                    <span name="total" class="total" data-expression="$arrondi"></span>
                 </legend>
             </account-summary>
             </div>
@@ -274,21 +297,21 @@
                     <span data-expression="~ESCOMPTE ldr"></span>
                     <span name="escompte" data-expression="$rabais $ESCOMPTE %- ~INTERMEDIATE ~ESCOMPTE cpr"></span>
                 </legend>
-                <legend>Arrondi 
-                    <input value="0.05" name="ROUNDING">
-                    <span data-expression="~UNROUNDED ldr"></span>
-                    <span name="arrondi" data-expression="$escompte $ROUNDING { jmpz mround ~INTERMEDIATE ~UNROUNDED cpr }"></span>
-                </legend>
                 <legend>
                     TVA <input name="TAX">
                     <span data-expression="~TVA ldr"></span>
-                    <span name="tva" data-expression="$arrondi $TAX %+ ~INTERMEDIATE ~TVA cpr "></span>
+                    <span name="tva" data-expression="$escompte $TAX %+ ~INTERMEDIATE ~TVA cpr "></span>
+                </legend>
+                <legend>Arrondi 
+                    <input value="0.05" name="ROUNDING">
+                    <span data-expression="~UNROUNDED ldr"></span>
+                    <span name="arrondi" data-expression="$tva $ROUNDING { jmpz mround ~INTERMEDIATE ~UNROUNDED cpr }"></span>
                 </legend>
                 <legend>
                     Total
                     <span></span>
                     <span></span>
-                    <span name="total" class="total" data-expression="$tva"></span>
+                    <span name="total" class="total" data-expression="$arrondi"></span>
                 </legend>
             </account-summary>
             </div>
