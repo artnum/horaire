@@ -1,6 +1,7 @@
 <?PHP
 
 $defaultConf = array(
+  'date-format' => 'long',
   'general' => array(
     'disable-locking' => 1
   ),
