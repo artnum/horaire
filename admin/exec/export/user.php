@@ -86,7 +86,11 @@ try {
     if (!isset($per_person[$row['person_name']])) {
       $per_person[$row['person_name']] = 0;
     }
-    $date = $fmt->format((new DateTime($row['htime_day'])));
+    if ($ini_conf['date-format'] === 'long') {
+      $date = $fmt->format((new DateTime($row['htime_day'])));
+    } else {
+      $date = (new DateTime($row['htime_day']))->format('d.m.Y');
+    }
     if (intval($row['project_uncount']) !== 0) {
       $value = 0;
     } else {
