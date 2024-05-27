@@ -237,7 +237,6 @@ class AccountingDoc  {
 
         $docId = self::normalizeId($document);
         $document = $this->get($docId);
-        $document->related = $docId;
         $document->id = null;
         $document = $this->doCreate($document, true);
         error_log(var_export($document, true));

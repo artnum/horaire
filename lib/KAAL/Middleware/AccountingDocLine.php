@@ -1,7 +1,6 @@
 <?php
 namespace KAAL\Middleware;
 
-use artnum\JStore\Base;
 use STQuery\STQuery as Search;
 use KAAL\Backend\{Cache, Storage};
 use KaalDB\PDO\PDO;
@@ -14,7 +13,6 @@ use KAAL\Utils\{MixedID, Base26};
 use MonoRef\Backend\IStorage;
 use Generator;
 use KAAL\AccessControl;
-use PhpOffice\PhpSpreadsheet\Calculation\Statistical\Distributions\Normal;
 
 class AccountingDocLine {
     use ID;
@@ -41,6 +39,10 @@ class AccountingDocLine {
         $line->related = strval($line->related) ?? null;
         $line->state = $line->state ?? 'open';
         $line->unit = strval($line->unit) ?? null;
+
+        if (isset($line->docref)) {
+            $line->docref = $line->docref . '_' . Base26::encode($line->docvariant);
+        }
 
         $filters = $rbac->has_attribute_filter('docline', 'read');
         foreach ($filters as $filter) {
@@ -143,7 +145,7 @@ class AccountingDocLine {
 
     function get (string|int $id) {
         $id = self::normalizeId($id);
-        $stmt = $this->pdo->prepare('SELECT l.*,d.reference AS docref 
+        $stmt = $this->pdo->prepare('SELECT l.*,d.reference AS docref, d.variant AS docvariant
             FROM accountingDocLine AS l 
             LEFT JOIN accountingDoc AS d ON l.docid = d.id  
             WHERE l.id = :id');
@@ -329,6 +331,12 @@ class AccountingDocLine {
         $stmt = $this->pdo->prepare('SELECT * FROM accountingDocLine WHERE docId = :docId FOR UPDATE');
         $stmt->execute([':docId' => $docId]);
 
+        /* Order matters because position are set on the client side and 
+         * positions are part of a constraints :
+         *  1. Delete, so we free position
+         *  2. Update, so we set position
+         *  3. Add, so we have position correctly set
+         */
         $this->pdo->beginTransaction();
         try {
             $toUpdate = [];
@@ -337,6 +345,11 @@ class AccountingDocLine {
                 $foundLine = false;
                 foreach ($lines as $k => &$line) {
                     $line = self::normalizeIngressLine($line);
+
+                    /* if no document set, it belongs to that document and must be
+                     * added
+                     */
+                    if (!isset($line->docid)) { $line->docid = $docId; continue; }
 
                     /* line sent does not belong to this doc, skip */
                     if ($line->docid !== $docId) { 
@@ -356,7 +369,7 @@ class AccountingDocLine {
                     unset($lines[$k]);
                     continue; /* skip lines that are not open */
                 }
-                if (!$foundLine) {
+                if (!$foundLine) {           
                     yield $this->delete($l->id)->current();
                     continue;
                 }

@@ -14,6 +14,9 @@ const AccountingDoc = new AccountingDocAPI()
 const AccountingCondition = new AccountingConditionAPI()
 //const Contact = new ContactAPI()
 
+const Objects = new Map()
+let textAreaCounter = 0
+
 class AccountingDocUI {
     constructor () {
         this.doc = null
@@ -186,6 +189,82 @@ class AccountingDocUI {
         })
     }
 
+    createTextEditor (node) {
+        const textAreaId = node.dataset.id
+        const value = Objects.get(textAreaId)
+        const textArea = document.createElement('textarea')
+        node.innerHTML = ''
+        node.dataset.type = 'textarea'
+        node.appendChild(textArea)
+
+        const mde = new EasyMDE({
+            element: textArea,
+            initialValue: value,
+            spellChecker: false,
+            status: false,
+            toolbar: [
+                'bold', 'italic', 'heading', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link',  '|', 'preview', '|', 
+                {
+                    name: "bold",
+                    action: (editor) => {
+                        console.log(node, editor.value())
+                        this.createRenderedEditor(node, editor.value(), false)
+                        Objects.set(textAreaId, editor.value())
+                        editor.cleanup()
+                    },
+                    className: "fa fa-save",
+                    title: "Save"
+                }
+            ]
+        })
+
+        mde.codemirror.focus()
+        mde.codemirror.setCursor(mde.codemirror.lineCount(), 0);
+        
+        Objects.set(textAreaId, mde)
+    }
+
+    createRenderedEditor (content, value, folded = true) {
+        Objects.set(content.dataset.id, value)
+        delete content.dataset.started
+        content.innerHTML = ''
+        const textNode = document.createElement('span')
+        content.appendChild(textNode)
+        textNode.innerHTML = marked.parse(value, {gfm: true, breaks: true})
+        const unfold = document.createElement('span')
+
+        if (folded) {
+            unfold.classList.add('unfold')
+            unfold.innerHTML = '<span class="material-symbols-outlined">unfold_more</span>'
+            unfold.dataset.folded = 'false'
+    
+            if (textNode.firstElementChild) {
+                textNode.innerHTML = textNode.firstElementChild.innerHTML
+            }
+        } else {
+            unfold.classList.add('unfold')
+            unfold.innerHTML = '<span class="material-symbols-outlined">unfold_less</span>'
+            unfold.dataset.folded = 'true'
+        }
+
+        content.insertBefore(unfold, content.firstChild)
+
+        unfold.addEventListener('click', event => {
+            if (unfold.dataset.folded === 'false') {
+                content.lastElementChild.innerHTML = marked.parse(value, {gfm: true, breaks: true})
+                unfold.innerHTML = '<span class="material-symbols-outlined">unfold_less</span>'
+                unfold.dataset.folded = 'true'
+            } else {
+                if (content.lastElementChild.firstElementChild) {
+                    content.lastElementChild.innerHTML = content.lastElementChild.firstElementChild.innerHTML
+                }
+                unfold.innerHTML = '<span class="material-symbols-outlined">unfold_more</span>'
+                unfold.dataset.folded = 'false'
+            }
+        })
+       
+    }
+
     _loadCondition (docId, nodeName) {
         const defaultCondition = {
             RPLP: 2.2,
@@ -197,7 +276,6 @@ class AccountingDocUI {
         return new Promise((resolve, reject) => {
             AccountingCondition.lookup(docId)
             .then(condition => {
-
                 const node = document.querySelector(`account-summary[name="${nodeName}"]`)
                 if (node) {
                     node.dataset.id = docId
@@ -307,126 +385,46 @@ window.addEventListener('load', () => {
         .then(_ => {
             UI.loadDocument(data.accountingDocContent.id)
         })
-
- 
-
     })
 
-    //document.querySelector('account-lines[name="accountingDocContent"]').parser = render.render.bind(render)
     const accDoc = document.querySelector('account-lines[name="accountingDocContent"]')
     accDoc.getTextareaValue = (object) => {
-        console.log(object, object.mde)
-        if (object.mde) {
-            return object.mde.value()
+        const mde = Objects.get(object.dataset.id)
+        if (typeof mde === 'object') {
+            if (mde === null) { return }
+            const value = mde.value()
+            mde.cleanup()
+            return value
         }
-        return object?.dataset.value || object.value
+        return mde
     }
+
     accDoc.installTextarea = 
-    (node) => {
+    function (node, isNotLocked = true) {
+        const text = node.value
         const content = document.createElement('div')
+        content.dataset.id = ++textAreaCounter
         content.setAttribute('tabindex', node.getAttribute('tabindex'))
         content.dataset.name = node?.dataset.name || node.getAttribute('name')
         content.dataset.type = 'textarea'
-        content.dataset.value = node.value
-        const textNode = document.createElement('span')
-        content.appendChild(textNode)
-        textNode.innerHTML = marked.parse(node.value, {gfm: true, breaks: true})
-        if (textNode.firstElementChild) {
-            textNode.innerHTML = textNode.firstElementChild.innerHTML
-        }
         node.parentNode.replaceWith(content)
-        const txt = node.value
-
-        const unfold = document.createElement('span')
-        unfold.classList.add('unfold')
-        unfold.dataset.folded = 'false'
-        unfold.innerHTML = ' + '
-        content.insertBefore(unfold, content.firstChild)
-        unfold.addEventListener('click', event => {
-            if (unfold.dataset.folded === 'false') {
-                content.lastElementChild.innerHTML = marked.parse(txt, {gfm: true, breaks: true})
-                unfold.innerHTML = ' v '
-                unfold.dataset.folded = 'true'
-            } else {
-                if (content.lastElementChild.firstElementChild) {
-                    content.lastElementChild.innerHTML = content.lastElementChild.firstElementChild.innerHTML
-                }
-                unfold.innerHTML = ' + '
-                unfold.dataset.folded = 'false'
-            }
-        })
-
-        const startEditor = node => {
-            const x = document.createElement('textarea')
-            node.innerHTML = ''
-            node.appendChild(x)
-
-            const mde = new EasyMDE({
-                element: x,
-                initialValue: txt,
-                hideIcons: ['image', 'side-by-side', 'fullscreen'],
-                spellChecker: false,
-                status: false
-            })
-            node.dataset.type = 'textarea'
-
-            mde.codemirror.focus()
-            mde.codemirror.setCursor(mde.codemirror.lineCount(), 0);
-            
-            node.mde = mde
-            console.log(node, node.mde)
-        }
-
+        this.createRenderedEditor(content, text)
         content.addEventListener('dblclick', event => {
+            if (content.dataset.readonly === 'true') { return }
             if (content.dataset.started) { return }
             content.dataset.started = 'true'
-            startEditor(event.target)
+            this.createTextEditor(event.currentTarget)
         })
         content.addEventListener('keydown', event => {
+            if (content.dataset.readonly === 'true') { return }
             if (content.dataset.started) { return }
             content.dataset.started = 'true'
             if (event.key === 'Tab') { return }
-            startEditor(event.target) 
+            this.createTextEditor(event.currentTarget)
         })
-        /*
-        const mde = new EasyMDE({
-            element: node,
-            initialValue: value,
-            hideIcons: ['image', 'side-by-side', 'fullscreen'],
-            spellChecker: false,
-            status: false
-        })
-        console.log(mde)
+    
+    }.bind(UI)
 
-        return mde */
-    }
-    /*
-    document.querySelector('button[name="setTarget"]').addEventListener('click', event => {
-        const node = document.querySelector('account-summary[name="final"]')
-        const targetValue = parseFloat(node.querySelector('input[name="targetTotal"]').value)
-        const value = node.evaluate(`${targetValue} 1 $tvaPercent 100 / + / 1 $escomptePercent 100 / - / `)
-        node.querySelector('input[name="arrondiBase"]').value = 0
-        const percentRabais = node.evaluate(`100 ${value} 100 * $rplp / - 0.0001 mround`)
-        node.querySelector('input[name="rabaisPercent"]').value = percentRabais
-        node.update()
-    })*/  
-    
-    /*
-    const finalAccountSummary = document.querySelector('account-summary[name="final"]')
-    finalAccountSummary.querySelector('[name="rabaisAbsolute"]').addEventListener('dblclick', event => {
-        const nodeRabaisAbsolute = finalAccountSummary.querySelector('[name="rabaisAbsolute"]')
-        if (nodeRabaisAbsolute.dataset.expression === undefined) { return }
-        delete nodeRabaisAbsolute.dataset.expression
-        delete nodeRabaisAbsolute.dataset.value
-    
-        const nodeRabaisPerc = finalAccountSummary.querySelector('input[name="rabaisPercent"]')
-        const nodeRabais = finalAccountSummary.querySelector('[name="rabais"]')
-        
-        nodeRabaisPerc.disabled = true
-        nodeRabais.dataset.expression = '$rplp $rabaisAbsoluteValue - ~INTERMEDIATE ~RABAIS cpr'
-        nodeRabaisAbsolute.innerHTML = `<input type="text" name="rabaisAbsoluteValue">`
-    })
-*/
     document.querySelector('account-lines').addEventListener('lock-line', event => {
         accountingDocLineAPI.update(event.detail)
         .then(x => {
