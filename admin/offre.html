@@ -2,11 +2,22 @@
 <html>
 <head>
     <title>Offre</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
     <link rel="stylesheet" type="text/css" href="css/admin.css" />
     <style>
+        .cm-formatting {
+            color: gray !important;
+            font-weight: lighter !important;
+        }
         account-lines {
             display: grid;
-            grid-template-columns: 0.2fr 0.2fr 0.2fr 3.6fr 0.3fr 0.2fr 0.3fr 0.3fr 0.2fr;
+            grid-template-columns: 0.2fr 0.2fr 0.2fr 3.6fr 0.3fr 0.2fr 0.3fr 0.3fr 100px;
+            gap: 3px 0px;
+            background-color: rgba(250, 250, 250, 1);
+        }
+        account-lines > div > * {
+            background-color: white;
         }
         account-lines > legend {
             display: block;
@@ -66,7 +77,6 @@
 
         account-summary {
             display: block;
-            border: 1px solid black;
             padding: 1rem;
             max-width: 40ch;
             margin-top: 4ex;
@@ -216,8 +226,8 @@
                 <div style="font-family: monospace;" type="position"></div>
                 <div style="font-family: monospace;" data-name="docref" tabindex="-1"></div>
                 <input type="text" name="posref" placeholder="Pos. soum." />
-                <textarea name="description"></textarea>
-                <input mandatory  type="number" name="quantity" step="0.01">
+                <textarea  mandatory name="description"></textarea>
+                <input type="number" name="quantity" step="0.01">
                 <select name="unit">
                     <option value="pce">pce</option>
                     <option value="m_l">m/l</option>
@@ -225,14 +235,13 @@
                     <option value="l">l</option>
                     <option value="ml">ml</option>
                 </select>
-                <input mandatory type="number" name="price" step="0.01">
-                <input mandatory type="number" name="line_total" step="0.01" to-delete="negate" data-expression="$quantity $price *">
+                <input type="number" name="price" step="0.01">
+                <input type="number" name="line_total" step="0.01" to-delete="negate" data-expression="$quantity $price *">
             </account-line-definition>
         </account-lines>
 
-        <div style="display: flex">
+        <div style="display: flex; align-items: flex-end; justify-content: flex-end; gap: 0 25px; margin-right: 100px;">
             <div>
-            <h2>Offre</h2>
             <account-summary for="accountingDocContent" precision="2" name="base">
                 <legend>
                     Sout-Total 
@@ -240,6 +249,7 @@
                     <span></span>
                     <span class="total" name="gross" data-expression="~IVALUE0 ldr"></span>
                 </legend>
+                <hr>
                 <legend>
                     RPLP <input name="RPLP">            
                     <span data-expression="~RPLP ldr"></span>
@@ -265,6 +275,7 @@
                     <span data-expression="~UNROUNDED ldr"></span>
                     <span name="arrondi" data-expression="$tva $ROUNDING { jmpz mround ~INTERMEDIATE ~UNROUNDED cpr }"></span>
                 </legend>
+                <hr>
                 <legend>
                     Total
                     <span></span>
@@ -274,14 +285,34 @@
             </account-summary>
             </div>
             <div>
-            <h2>Actuel</h2>
             <account-summary name="final" for="accountingDocContent" precision="2">
+                <legend>
+                    Offre
+                    <span></span>
+                    <span></span>
+                    <span class="total" name="gross" data-expression="~IVALUE0 ldr"></span>
+                </legend>
+                <hr>
+                <legend>
+                    Compléments
+                    <span></span>
+                    <span></span>
+                    <span name="gross" data-expression="~IVALUE1 ldr"></span>
+                </legend>
+                <legend>
+                    Suppression
+                    <span></span>
+                    <span></span>
+                    <span name="gross" data-expression="~IVALUE2 ldr abs"></span>
+                </legend>
+                <hr>
                 <legend>
                     Sout-Total 
                     <span></span>
                     <span></span>
                     <span class="total" name="gross" data-expression="$line_total sum"></span>
                 </legend>
+                <hr>
                 <legend>
                     RPLP <input name="RPLP">            
                     <span data-expression="~RPLP ldr"></span>
@@ -307,6 +338,7 @@
                     <span data-expression="~UNROUNDED ldr"></span>
                     <span name="arrondi" data-expression="$tva $ROUNDING { jmpz mround ~INTERMEDIATE ~UNROUNDED cpr }"></span>
                 </legend>
+                <hr>
                 <legend>
                     Total
                     <span></span>

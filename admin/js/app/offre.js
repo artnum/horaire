@@ -5,7 +5,7 @@ import { ProjectAPI } from './$script/src/JAPI/Project.js'
 import { JFormData } from './$script/vendor/js/formdata/src/formdata.js'
 import { Barrier } from './$script/src/lib/barrier.js'
 import { AccountingConditionAPI } from './$script/src/JAPI/AccountingCondition.js'
-import markdownIt from 'https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/+esm'
+import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
 
 const params = new URLSearchParams(window.location.search)
 const projectAPI = new ProjectAPI()
@@ -78,6 +78,7 @@ class AccountingDocUI {
     }
 
     render (doc, lines, project) {
+        document.querySelector('account-lines').getEvaluator().reset()
         this.renderDocBreadcrumbs(project ? project.id : null, doc)
         .then(_ => {
             this.selectDocBreadcrumbs(doc.id)
@@ -177,7 +178,7 @@ class AccountingDocUI {
         this._loadCondition(docId, 'final')
         .then(_ => {
             const final = document.querySelector(`account-summary[name="final"]`)
-            if (final.dataset.id === document.querySelector(`account-summary[name="base"]`).dataset.id) {
+            if (final.dataset.id === document.querySelector(`account-summary[name="base"]`)?.dataset.id) {
                 final.parentNode.style.display = 'none'
             } else {
                 final.parentNode.style.display = 'block'
@@ -198,12 +199,14 @@ class AccountingDocUI {
             .then(condition => {
 
                 const node = document.querySelector(`account-summary[name="${nodeName}"]`)
-                node.dataset.id = docId
-                condition.content = Object.assign(defaultCondition, condition.content)
-                for (const key in condition.content) {
-                    node.querySelector(`input[name="${key}"]`).value = condition.content[key]
+                if (node) {
+                    node.dataset.id = docId
+                    condition.content = Object.assign(defaultCondition, condition.content)
+                    for (const key in condition.content) {
+                        node.querySelector(`input[name="${key}"]`).value = condition.content[key]
+                    }
+                    node.update()
                 }
-                node.update()
                 resolve()
             })
             .catch(cause => {
@@ -309,8 +312,94 @@ window.addEventListener('load', () => {
 
     })
 
-    const render = new markdownIt()
-    document.querySelector('account-lines[name="accountingDocContent"]').parser = render.render.bind(render)
+    //document.querySelector('account-lines[name="accountingDocContent"]').parser = render.render.bind(render)
+    const accDoc = document.querySelector('account-lines[name="accountingDocContent"]')
+    accDoc.getTextareaValue = (object) => {
+        console.log(object, object.mde)
+        if (object.mde) {
+            return object.mde.value()
+        }
+        return object?.dataset.value || object.value
+    }
+    accDoc.installTextarea = 
+    (node) => {
+        const content = document.createElement('div')
+        content.setAttribute('tabindex', node.getAttribute('tabindex'))
+        content.dataset.name = node?.dataset.name || node.getAttribute('name')
+        content.dataset.type = 'textarea'
+        content.dataset.value = node.value
+        const textNode = document.createElement('span')
+        content.appendChild(textNode)
+        textNode.innerHTML = marked.parse(node.value, {gfm: true, breaks: true})
+        if (textNode.firstElementChild) {
+            textNode.innerHTML = textNode.firstElementChild.innerHTML
+        }
+        node.parentNode.replaceWith(content)
+        const txt = node.value
+
+        const unfold = document.createElement('span')
+        unfold.classList.add('unfold')
+        unfold.dataset.folded = 'false'
+        unfold.innerHTML = ' + '
+        content.insertBefore(unfold, content.firstChild)
+        unfold.addEventListener('click', event => {
+            if (unfold.dataset.folded === 'false') {
+                content.lastElementChild.innerHTML = marked.parse(txt, {gfm: true, breaks: true})
+                unfold.innerHTML = ' v '
+                unfold.dataset.folded = 'true'
+            } else {
+                if (content.lastElementChild.firstElementChild) {
+                    content.lastElementChild.innerHTML = content.lastElementChild.firstElementChild.innerHTML
+                }
+                unfold.innerHTML = ' + '
+                unfold.dataset.folded = 'false'
+            }
+        })
+
+        const startEditor = node => {
+            const x = document.createElement('textarea')
+            node.innerHTML = ''
+            node.appendChild(x)
+
+            const mde = new EasyMDE({
+                element: x,
+                initialValue: txt,
+                hideIcons: ['image', 'side-by-side', 'fullscreen'],
+                spellChecker: false,
+                status: false
+            })
+            node.dataset.type = 'textarea'
+
+            mde.codemirror.focus()
+            mde.codemirror.setCursor(mde.codemirror.lineCount(), 0);
+            
+            node.mde = mde
+            console.log(node, node.mde)
+        }
+
+        content.addEventListener('dblclick', event => {
+            if (content.dataset.started) { return }
+            content.dataset.started = 'true'
+            startEditor(event.target)
+        })
+        content.addEventListener('keydown', event => {
+            if (content.dataset.started) { return }
+            content.dataset.started = 'true'
+            if (event.key === 'Tab') { return }
+            startEditor(event.target) 
+        })
+        /*
+        const mde = new EasyMDE({
+            element: node,
+            initialValue: value,
+            hideIcons: ['image', 'side-by-side', 'fullscreen'],
+            spellChecker: false,
+            status: false
+        })
+        console.log(mde)
+
+        return mde */
+    }
     /*
     document.querySelector('button[name="setTarget"]').addEventListener('click', event => {
         const node = document.querySelector('account-summary[name="final"]')

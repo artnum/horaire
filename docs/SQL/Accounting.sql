@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS "accountingDoc" (
 	"created" INTEGER UNSIGNED DEFAULT 0, -- timestamp of creation
 	"deleted" INTEGER UNSIGNED DEFAULT 0, -- timestamp of deletion
 	FOREIGN KEY ("related") REFERENCES "accountingDoc" ("id"),
-	FOREIGN KEY ("project") REFERENCES "project" ("project_id"),
+	-- FOREIGN KEY ("project") REFERENCES "project" ("project_id"),
 	UNIQUE("reference", "variant")
 );
 
