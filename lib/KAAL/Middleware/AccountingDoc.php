@@ -169,6 +169,18 @@ class AccountingDoc  {
         return $ids;
     }
 
+    public function _getDirectParent (mixed $docId) {
+        $docId = self::normalizeId($docId);
+        $stmt = $this->pdo->prepare('SELECT related FROM accountingDoc WHERE id = :id');
+        $stmt->bindParam(':id', $docId, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_OBJ);
+        if (empty($result)) {
+            return null;
+        }
+        return intval($result->related);
+    }
+
     public function _getParents (mixed $docId):array {
         $docId = self::normalizeId($docId);
 
@@ -239,14 +251,9 @@ class AccountingDoc  {
         $document = $this->get($docId);
         $document->id = null;
         $document = $this->doCreate($document, true);
-        error_log(var_export($document, true));
         $linesAPI->copy($docId, $document->id);
 
         return $document;
-    }
-
-    public function getDocumentTree (mixed $project) {
-
     }
 
     public function search (stdClass $search):Generator {
@@ -492,7 +499,7 @@ class AccountingDoc  {
             if ($variant) {
                 $stmt->bindValue(':reference', $document->reference, PDO::PARAM_STR);
             } else {
-                $stmt->bindValue(':reference', $this->ref->get(sprintf('ACCOUNTINGDOC_%s', $document->type), $format), PDO::PARAM_STR);
+                $stmt->bindValue(':reference', $this->ref->get(sprintf('ACCOUNTINGDOC_%s_%s', date('Y') , $document->type), $format), PDO::PARAM_STR);
             }
 
             $stmt->execute();

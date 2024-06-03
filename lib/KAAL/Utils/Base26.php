@@ -9,7 +9,7 @@ namespace KAAL\Utils;
 class Base26 {
     static public function encode (int $num):string {
         $res = '';
-        for ($i = 0; $i >= 0;) {
+        for ($i = $num; $i >= 0;) {
             $res = chr(65 + ($i % 26)) . $res;
             $i = floor($i / 26) - 1;
         }

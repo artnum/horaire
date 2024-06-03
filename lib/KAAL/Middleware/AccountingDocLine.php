@@ -27,7 +27,6 @@ class AccountingDocLine {
 
     protected static function normalizeEgressLine (stdClass $line) {
         $rbac = AccessControl::getInstance();
-
         $line->id = strval($line->id) ?? '0';
         $line->docid = strval($line->docid) ?? '0';
         $line->position = strval($line->position) ?? null;
@@ -157,7 +156,11 @@ class AccountingDocLine {
     function gets (string|int $docId = null) {
         $docId = self::normalizeId($docId);
         $docAPI = new AccountingDoc($this->pdo, $this->cache);
-        $parents = $docAPI->_getIdsForDocument($docId);
+        $parents[] = $docId;
+        $parent = $docAPI->_getDirectParent($docId);
+        if ($parent !== null) {
+            $parents[] = $parent;
+        }
         $stmt = $this->pdo->prepare('SELECT id FROM accountingDocLine WHERE docId IN (' . implode(',', $parents) . ')');
         $stmt->execute();
         while ($line = $stmt->fetch(PDO::FETCH_ASSOC)) {

@@ -205,15 +205,14 @@ class AccountingDocUI {
             toolbar: [
                 'bold', 'italic', 'heading', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link',  '|', 'preview', '|', 
                 {
-                    name: "bold",
+                    name: "done",
                     action: (editor) => {
-                        console.log(node, editor.value())
                         this.createRenderedEditor(node, editor.value(), false)
                         Objects.set(textAreaId, editor.value())
                         editor.cleanup()
                     },
-                    className: "fa fa-save",
-                    title: "Save"
+                    className: "fa fa-check",
+                    title: "Done"
                 }
             ]
         })
@@ -394,8 +393,10 @@ window.addEventListener('load', () => {
             if (mde === null) { return }
             const value = mde.value()
             mde.cleanup()
+            if (value === '') { return }
             return value
         }
+        if (mde === '') { return }
         return mde
     }
 
@@ -422,7 +423,7 @@ window.addEventListener('load', () => {
             if (event.key === 'Tab') { return }
             this.createTextEditor(event.currentTarget)
         })
-    
+        return content
     }.bind(UI)
 
     document.querySelector('account-lines').addEventListener('lock-line', event => {
