@@ -27,7 +27,23 @@
         }
         account-lines > div > * {
             background-color: white;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
         }
+
+
+        account-lines .account-line__placeholder {
+            display: none;
+        }
+
+        account-lines .account-line__dragging > * {
+            opacity: 1 !important;
+        }
+
+        account-lines.dnd-in-progress > div > * {
+            opacity: 0.5;
+        }
+
         account-lines > legend {
             display: block;
             grid-area: header;
@@ -213,6 +229,7 @@
     <div class="action-line">
         <div class="breadcrumbs"></div>
         <div class="tools">
+            <!--<button type="button" name="pdf">PDF</button>//-->
             <button type="button" name="save">Sauver</button>
         </div>
     </div>
@@ -247,7 +264,15 @@
                 <input type="number" name="line_total" step="0.01" to-delete="negate" data-expression="$quantity $price *">
             </account-line-definition>
         </account-lines>
-
+        <!--<br>
+        <account-summary name="test" for="accountingDocContent" precision="2">
+            <legend>
+                Offre
+                <span></span>
+                <span></span>
+                <span class="total" name="gross" data-expression="$line_total sum"></span>
+            </legend>
+        </account-summary>//-->
         <div style="display: flex; align-items: flex-end; justify-content: flex-end; gap: 0 25px; margin-right: 100px;">
             <div>
             <account-summary for="accountingDocContent" precision="2" name="base">
@@ -290,7 +315,7 @@
                     <span></span>
                     <span name="total" class="total" data-expression="$arrondi"></span>
                 </legend>
-            </account-summary>
+            </account-summary for="accountingDocContent" precision="2">
             </div>
             <div>
             <account-summary name="final" for="accountingDocContent" precision="2">
@@ -361,4 +386,5 @@
     </form>
 </body>
 <script type="module" src="$script/admin/app/offre.js"></script>
+<!-- <script type="module" src="$script/admin/app/condition.js"></script> //-->
 </html>

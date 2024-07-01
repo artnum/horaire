@@ -42,36 +42,25 @@ CREATE TABLE IF NOT EXISTS "accountingDocLine" (
 	"related" BIGINT UNSIGNED DEFAULT NULL,
     "state" ENUM('open', 'frozen', 'billed') DEFAULT 'open',
     FOREIGN KEY ("docid") REFERENCES "accountingDoc" ("id"),
-	FOREIGN KEY ("related") REFERENCES "accountingDocLine" ("id"),
-    UNIQUE ("docid", "position")
+	FOREIGN KEY ("related") REFERENCES "accountingDocLine" ("id")
 );
+
+-- changes to be done to remove unique index on docid
+create index _doc_id using btree on accountingDocLine(docid);
+drop index docid on accountingDocLine;
+alter table accountingDocLine rename index _doc_id to docid;
 
 CREATE TABLE IF NOT EXISTS "accountingDocConditionValues" (
 	"docid" BIGINT UNSIGNED NOT NULL,
+	"position" INT UNSIGNED NOT NULL,
 	"name" VARCHAR(160) NOT NULL,
 	"value" FLOAT DEFAULT 0.0,
-	"type" ENUM('absolute', 'percent') DEFAULT 'absolute',
+	"type" ENUM(
+		'absolute', -- absolute value
+		'percent', -- percentage of previous value
+		'subtotal' -- generate a subtotal of previous values
+		) DEFAULT 'absolute',
+	"relation" ENUM('add', 'sub') DEFAULT 'add', -- relation to previous value
 	FOREIGN KEY ("docid") REFERENCES "accountingDoc" ("id"),
 	UNIQUE ("docid", "name")
 );
-
--- OLD DON'T USE, keep for reference
--- condition set are "kind of" immutable
-CREATE TABLE IF NOT EXISTS "accountingDocConditionSet" (
-	"accountingDocConditionSet_id" INTEGER PRIMARY KEY AUTO_INCREMENT,
-	"accountingDocConditionSet_name" VARCHARE(160) NOT NULL,
-	"accountingDocConditionSet_replacedby" INTEGER UNSIGNED DEFAULT 0, -- if not 0, this condition set is replaced by the one with this ID
-);
-
-CREATE TABLE IF NOT EXISTS "accountingDocConditionLine" (
-	"accountingDocConditionLine_id" INTEGER PRIMARY KEY AUTO_INCREMENT,
-	"accountingDocConditionLine_setid" INTEGER UNSIGNED NOT NULL,
-	"accountingDocConditionLine_position" INTEGER UNSIGNED NOT NULL,
-	"accountingDocConditionLine_name" VARCHAR(160) NOT NULL,
-	"accountingDocConditionLine_type" ENUM('surcharge', 'discount', 'rounding') DEFAULT 'surcharge',
-	"accountingDocConditionLine_valuetype" ENUM('absolute', 'percent') DEFAULT 'percent',
-	"accountingDocConditionLine_value" FLOAT DEFAULT 0.0,
-	"accountingDocConditionLine_subtotal" BOOLEAN DEFAULT FALSE -- if true, this condition generate a subtotal that would be used for next conditions
-	"accountingDocConditionLine_account" INTEGER UNSIGNED DEFAULT 0, -- if 0, this condition line is linked to an account
-);
-

@@ -81,7 +81,7 @@ class AccountingDocLine {
         $JSearch = new Search();
         $JSearch->setSearch($search);
         list ($where, $bindings) = $JSearch->toPDO();
-        $stmt = $this->pdo->prepare('SELECT id FROM accountingDocLine WHERE ' . $where . ($forUpdate ? ' FOR UPDATE' : ''));
+        $stmt = $this->pdo->prepare('SELECT id FROM accountingDocLine WHERE ' . $where . ' ORDER BY position ASC ' . ($forUpdate ? ' FOR UPDATE' : ''));
         foreach($bindings as $placeholder => $binding) {
             $stmt->bindValue($placeholder, $binding['value'], $binding['type']);
         }
@@ -161,7 +161,7 @@ class AccountingDocLine {
         if ($parent !== null) {
             $parents[] = $parent;
         }
-        $stmt = $this->pdo->prepare('SELECT id FROM accountingDocLine WHERE docId IN (' . implode(',', $parents) . ')');
+        $stmt = $this->pdo->prepare('SELECT id FROM accountingDocLine WHERE docId IN (' . implode(',', $parents) . ') ORDER BY position ASC');
         $stmt->execute();
         while ($line = $stmt->fetch(PDO::FETCH_ASSOC)) {
             yield $this->get($line['id']);
@@ -335,7 +335,7 @@ class AccountingDocLine {
         $stmt->execute([':docId' => $docId]);
 
         /* Order matters because position are set on the client side and 
-         * positions are part of a constraints :
+         * positions are part of a constraints (but not anymore) :
          *  1. Delete, so we free position
          *  2. Update, so we set position
          *  3. Add, so we have position correctly set
