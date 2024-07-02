@@ -52,7 +52,7 @@ $stmt = $db->prepare($query);
 $stmt->bindValue(':carid', $carid, PDO::PARAM_INT);
 $stmt->execute();
 
-
+$carname = '';
 $writer->writeSheetHeader('Sheet1', ['Voiture' => 'string', 'Date' => 'string', 'Person' => 'string', 'KM' => 'string', 'Défaut' => 'string', 'Comment' => 'string' ]);
 while ($entry = $stmt->fetch()) {
   $status = $KAIROSClient->get($entry['carusage_defect'], 'Status');
@@ -64,11 +64,12 @@ while ($entry = $stmt->fetch()) {
   $status = $KAIROSClient->get($entry['carusage_car'], 'Status');
   if (isset($status['data']) && isset($status['data'][0]) && isset($status['data'][0]['name'])) {
     $car = $status['data'][0]['name'];
+    $carname = $car;
   }
   $date = $dateFormater->format(new DateTime($entry['htime_day']));
   $writer->writeSheetRow('Sheet1', array($car, $date, $entry['person_name'], $entry['carusage_km'], $defect, $entry['carusage_comment']));
 }
-header('Content-Disposition: inline; filename="' . $person . '.xlsx"');
+header('Content-Disposition: inline; filename="' .$carname . '.xlsx"');
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 $writer->writeToStdOut();
 exit(0);
