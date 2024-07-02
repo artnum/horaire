@@ -55,10 +55,12 @@ $stmt->execute();
 $carname = '';
 $writer->writeSheetHeader('Sheet1', ['Voiture' => 'string', 'Date' => 'string', 'Person' => 'string', 'KM' => 'string', 'Défaut' => 'string', 'Comment' => 'string' ]);
 while ($entry = $stmt->fetch()) {
-  $status = $KAIROSClient->get($entry['carusage_defect'], 'Status');
   $defect = '';
-  if (isset($status['data']) && isset($status['data'][0]) && isset($status['data'][0]['name'])) {
-    $defect = $status['data'][0]['name'];
+  if ($entry['carusage_defect'] != 0) {
+    $status = $KAIROSClient->get($entry['carusage_defect'], 'Status');
+    if (isset($status['data']) && isset($status['data'][0]) && isset($status['data'][0]['name'])) {
+      $defect = $status['data'][0]['name'];
+    }
   }
   $car = '';
   $status = $KAIROSClient->get($entry['carusage_car'], 'Status');
