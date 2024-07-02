@@ -89,11 +89,20 @@ KACarAdminUI.prototype = {
                 divCar.classList.add('ka-defect')
             }
             divCar.innerHTML = `
-                <span>${car.name}</span>
+                <span style="cursor: pointer">${car.name}</span>
                 <span>${car.description}</span>
                 <span>${car.usages.length > 0 ? car.usages[0].km : 0}</span>
                 <span>${car.usages.length > 0 ? car.usages[0].defect.name : ''}</span>
             `
+            divCar.firstElementChild.addEventListener('click', event => {
+                const params = {
+                    cid: car.id
+                }
+                Admin.getUrl('admin/exec/export/cars.php', params)
+                .then(url => {
+                  window.open(url)
+                })
+            })
             div.appendChild(divCar)
         })
         return div
