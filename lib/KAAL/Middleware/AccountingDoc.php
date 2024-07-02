@@ -13,7 +13,9 @@ use KAAL\Backend\{Cache, Storage};
 use Snowflake53\ID;
 use KAAL\Utils\{MixedID, Base26};
 use KAAL\AccessControl;
-use wesrv\msg;
+use kPDF\Parsedown\Parsedown;
+use kPDF\kPDF;
+use PhpOffice\PhpWord\TemplateProcessor;
 
 use const PJAPI\{ERR_BAD_REQUEST, ERR_INTERNAL};
 
@@ -576,5 +578,116 @@ class AccountingDoc  {
             $this->pdo->rollBack();
             throw new Exception('Error deleting document', ERR_INTERNAL, $e);
         }
+    }
+
+    public function msword (string|int $id):string {
+
+        $document = $this->get($id);
+        $linesAPI = new AccountingDocLine($this->pdo, $this->cache);
+        $lines = $linesAPI->search((object) ['docid' => $id]);
+        
+        $templateProcessor = new TemplateProcessor(__DIR__ . '/../../../resources/template.docx');
+        
+        $templateProcessor->setValue('reference-document', $document->reference);
+        $templateProcessor->setValue('longue-date', date('d F Y'));
+
+        $arr = [];
+        foreach($lines as $line) {
+            $arr[] = [
+                'position' => $line->position,
+                'position-soumission' => $line->posref,
+                'designation' => $line->description,
+                'quantité' => $line->quantity,
+                'unité' => $line->unit,
+                'prix-unitaire' => $line->price,
+                'total' => $line->quantity * $line->price
+            ];
+        }
+        $templateProcessor->cloneRow('position', count($arr));
+
+        $templateProcessor->saveAs('/tmp/test.docx');
+        return base64_encode(file_get_contents('/tmp/test.docx'));
+    }
+
+    public function pdf (string|int $id):string {
+        $document = $this->get($id);
+        $linesAPI = new AccountingDocLine($this->pdo, $this->cache);
+        $lines = $linesAPI->search((object) ['docid' => $id]);
+        $pdf = new kPDF();
+        $pdf->SetAutoPageBreak(true, 10);
+        $pdf->addTab(10);
+
+        $pdf->SetCompression(false);
+        $pdf->AddPage();
+        $pdf->SetFont('Helvetica', '', 8);
+
+        
+        $pdf->echo('Document: ' . $document->reference);
+        $pdf->break();
+
+        $pdf->addColumn('Position', 10, 20);
+        $pdf->addColumn('Description', 40, 100);
+        $pdf->addColumn('Quantity', 160, 10);
+        $pdf->addColumn('Price', 170, 10);
+        $pdf->addColumn('Total', 180, 10);
+
+        $parsedown = new Parsedown();
+        $total = 0;
+        foreach($lines as $line) {
+            $baseY = $pdf->GetY();
+            $maxY = $baseY;
+            $pdf->setColumn('Position');
+            $pdf->SetFont('Helvetica', '', 10);
+            $pdf->echo($line->position);
+            if ($pdf->GetY() > $maxY) {
+                $maxY = $pdf->GetY();
+            }
+
+            $pdf->SetY($baseY);
+            $pdf->setColumn('Description');
+        
+            $parsedown->pdf($pdf, $line->description);
+            if ($pdf->GetY() > $maxY) {
+                $maxY = $pdf->GetY();
+            }
+            $pdf->SetFont('Helvetica', '', 10);
+
+            $pdf->SetY($baseY);
+            $pdf->setColumn('Quantity');
+
+            $pdf->echo(sprintf("%0.2f",$line->quantity));
+            if ($pdf->GetY() > $maxY) {
+                $maxY = $pdf->GetY();
+            }
+
+            $pdf->SetY($baseY);
+            $pdf->setColumn('Price');
+
+            $pdf->echo(sprintf("%0.2f",$line->price));
+            if ($pdf->GetY() > $maxY) {
+                $maxY = $pdf->GetY();
+            }
+
+            $pdf->setColumn('Total');
+            $pdf->SetY($baseY);
+
+            $total += ($line->price * $line->quantity);
+            $pdf->echo(sprintf("%0.2f", $line->price * $line->quantity));
+            if ($pdf->GetY() > $maxY) {
+                $maxY = $pdf->GetY();
+            }
+
+
+            $pdf->resetColumn();
+            $pdf->SetY($maxY);
+            $pdf->hr();
+        }
+        $pdf->break();
+        $pdf->resetColumn();
+
+        $pdf->setFontSize(14);
+        $pdf->echo('Total: ' . sprintf("%0.2f", $total));
+
+        return base64_encode($pdf->Output('S'));
     }
 }

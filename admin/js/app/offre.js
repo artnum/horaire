@@ -342,6 +342,21 @@ window.addEventListener('load', () => {
         UI.loadDocument(event.target.id)
     })
     
+    /*
+    document.querySelector('button[name="pdf"]').addEventListener('click', event => {
+        AccountingDoc.msword(document.querySelector('account-lines[name="accountingDocContent"]').id)
+        .then(pdf => {
+            const binString = atob(pdf);
+            return Uint8Array.from(binString, (m) => m.codePointAt(0));
+        })
+        .then(pdf => {
+            console.log(pdf)
+            const url = URL.createObjectURL(new Blob([pdf], {type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}))
+            window.open(url, '_blank')
+        })
+    })
+    */
+
     document.querySelector('button[name="save"]').addEventListener('click', event => {
         const node = document.querySelector('form[name="accountingDocForm"]')
         const data = new JFormData(node)._data

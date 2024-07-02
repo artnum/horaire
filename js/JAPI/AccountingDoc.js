@@ -272,4 +272,36 @@ export class AccountingDocAPI extends JAPI {
     updateLines (lines, id) {
         return AccountingDocLineAPI.instance.set(lines, id)
     }
+
+    pdf (id) {
+        return new Promise((resolve, reject) => {
+            this.API.exec(
+                AccountingDocAPI.NS,
+                'pdf',
+                {id}
+            )
+            .then(pdf => {
+                return resolve(pdf)
+            })
+            .catch(err => {
+                return reject(err)
+            })
+        })
+    }
+
+    msword (id) {
+        return new Promise((resolve, reject) => {
+            this.API.exec(
+                AccountingDocAPI.NS,
+                'msword',
+                {id}
+            )
+            .then(pdf => {
+                return resolve(pdf)
+            })
+            .catch(err => {
+                return reject(err)
+            })
+        })
+    }
 }

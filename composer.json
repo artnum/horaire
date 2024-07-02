@@ -5,7 +5,7 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Etienne Marais",
+            "name": "Etienne Bagnoud",
             "email": "etienne@artisan-numerique.ch",
             "role": "Developer"
         }
@@ -38,9 +38,15 @@
         {
             "type": "vcs",
             "url": "https://github.com/artnum/kaal-db"
+        },
+        {
+            "type": "path",
+            "url": "../kPDF"
+            
         }
     ],
     "require": {
+        "artnum/kpdf": "@dev",
         "artnum/bizcuit-swissqr": "^2.0",
         "setasign/tfpdf": "^1.33",
         "endroid/qr-code": "^5.0",
@@ -52,6 +58,7 @@
         "artnum/structured-json-query": "@dev",
         "artnum/kaal-db": "@dev",
         "monolog/monolog": "^3.5",
-        "matthiasmullie/minify": "^1.3"
+        "matthiasmullie/minify": "^1.3",
+        "phpoffice/phpword": "^1.2"
     }
 }
