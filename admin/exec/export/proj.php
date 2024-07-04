@@ -55,6 +55,7 @@ $ldap_db = new artnum\LDAPDB(
    !empty($ini_conf['addressbook']['base']) ? $ini_conf['addressbook']['base'] : NULL
  );
 
+ $bindings = [];
 
 $query = 'SELECT * FROM project
         LEFT JOIN htime ON htime.htime_project = project.project_id
@@ -85,11 +86,32 @@ if (isset($_GET['state'])) {
    }
 }
 
+foreach($_GET as $key => $value) {
+   if ($key === 'state') { continue; }
+   switch ($key) {
+      case 'at':
+         try {
+            $date = new DateTime($value);
+            $value = $date->format('Y-m-d');
+            $query .= ' AND htime.htime_day <= :at';
+            $bindings['at'] = [$value, PDO::PARAM_STR];
+         } catch (Exception $e) {
+            // nothing
+         }
+         break;
+   }
+}
+
 
 $query_items = null;
 try {
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $st = $db->prepare($query);
+    if (!empty($bindings)) {
+      foreach ($bindings as $key => [$value, $type]) {
+        $st->bindValue(':' . $key, $value, $type);
+      }
+    }
 } catch (Exception $e) {
     die($e->getMessage());
 }
@@ -332,6 +354,9 @@ try {
             $bxQuery->setWithAnyfields();
             $bxQuery->add('kb_item_status_id', '7', '>');
             $bxQuery->add('kb_item_status_id', '10', '<');
+            if ($bindings['at']) {
+               $bxQuery->add('is_valid_from', $bindings['at'][0], '<=');
+            }
             $bxQuery->add('project_id', $project['extid'], '=');
             $invoices = $bxInvoice->search($bxQuery);
          }
@@ -345,7 +370,7 @@ try {
          $amount['debiteur'] += floatval($invoice->total_net);
       }
 
-      $repSt = $db->prepare('SELECT 
+      $repartitionQuery = 'SELECT 
             project_id,
             project_reference,
             facture_deleted,
@@ -359,7 +384,14 @@ try {
          FROM repartition 
          LEFT JOIN facture ON facture_id = repartition_facture 
          LEFT JOIN project ON project_id = repartition_project 
-         WHERE "repartition_project" = :id AND "facture_deleted" = 0');
+         WHERE "repartition_project" = :id AND "facture_deleted" = 0';
+      if ($bindings['at']) {
+         $repartitionQuery .= ' AND "facture_date" <= :at';
+      }
+      $repSt = $db->prepare($repartitionQuery);
+      if ($bindings['at']) {
+         $repSt->bindValue(':at', $bindings['at'][0], PDO::PARAM_STR);
+      } 
       $repSt->bindValue(':id', $project['id'], PDO::PARAM_INT);
       if ($repSt->execute()) {
          while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
@@ -500,10 +532,15 @@ try {
    $rc = $writer->countSheetRows('Entrées');
    $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', '=AVERAGE(F2:F' . ($rc - 1) . ')', '=SUM(G2:G' . ($rc - 1) . ')'));
 
+  $date = new DateTime();
+  if ($bindings['at']) {
+    $date = new DateTime($bindings['at'][0]);
+  }
+
    if (!empty($project_name)) {
-      $project_name = date('Y-m-d') . ' - ' . $project_name;
+      $project_name = $date->format('d.m.Y') . ' - ' . $project_name;
    } else {
-      $project_name = date('Y-m-d') . ' - Tous les projets';
+      $project_name = $date->format('d.m.Y') . ' - Tous les projets';
    }
    $writer->setTitle($project_name);
    if (method_exists($writer, 'setHeaderFooter')) {
@@ -514,7 +551,7 @@ try {
          $writer->setHeaderFooter('r', $p['name']);
       } else {
          $writer->setHeaderFooter('c', $project_name);
-         $writer->setHeaderFooter('r', date('Y-m-d H:i:s'));
+         $writer->setHeaderFooter('r', 'Date ' . $date->format('d.m.Y'));
       }
       $writer->setHeaderFooter('c', '&[Tab]', true);
       $writer->setHeaderFooter('r', 'Page &[Page] sur &[Pages]', true);
