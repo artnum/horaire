@@ -311,12 +311,12 @@ try {
       'Nombre d\'heures' => '0.00', 
       'Main d\'œuvre CHF HT' => 'price',
       'Créancier CHF HT' => 'price',
-      'Prox de revient CHF HT' => 'price',
+      'Prix de revient CHF HT' => 'price',
       'Prix vendu CHF' => 'price',
       'Résultat CHF HT' => 'price',
       'Résultat %' => '0.0%',
       'Débiteur CHF HT' => 'price',
-      'Traveux en cours CHF HT' => 'price',
+      'Travaux en cours CHF HT' => 'price',
       'État' => 'string',
       'Ouverture' => 'date',
       'Première entrée' => 'date', 
@@ -372,9 +372,9 @@ try {
             $value = floatval($repData['repartition_value']);
             $tva = floatval($repData['repartition_tva']);
             
-            $calcAmount = $ttc ? ($value * (1 + $tva / 100)) : $value;
+            $calcAmount = $ttc ? ($value / (1 + $tva / 100)) : $value;
             if ($splitvalue > 0) {
-               $calcAmount = $ttc ? ($splitvalue * (1 + $splittva / 100)) : $splitvalue;
+               $calcAmount = $ttc ? ($splitvalue / (1 + $splittva / 100)) : $splitvalue;
             }
             switch (intval($repData['facture_type'])) {
                case 1:
