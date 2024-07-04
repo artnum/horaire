@@ -120,11 +120,13 @@ try {
    $per_person = array();
    /* Entrées */
 
-   $bexioDB = new BizCuit\BexioCTX($ini_conf['bexio']['token']);
-   $bexioDB->setSleep(5);
-   $bxInvoice = new BizCuit\BexioInvoice($bexioDB);
-   $bxContact = new BizCuit\BexioContact($bexioDB);
-
+   if (intval($ini_conf['bexio']['enabled']) != '0') {
+      $bexioDB = new BizCuit\BexioCTX($ini_conf['bexio']['token']);
+      $bexioDB->setSleep(5);
+      $bxInvoice = new BizCuit\BexioInvoice($bexioDB);
+      $bxContact = new BizCuit\BexioContact($bexioDB);
+   }
+   
    foreach ($values as $row) {
       if (!isset($per_project[$row['project_id']])) {
          if ($row['project_manager']) {
@@ -142,7 +144,9 @@ try {
 
          }
 
-         if (str_starts_with(trim($row['project_client']), 'Contact/@bx_')) {
+         $row['project_client'] = '';
+         if (intval($ini_conf['bexio']['enabled']) != '0'
+               && str_starts_with(trim($row['project_client']), 'Contact/@bx_')) {
             try {
                $bxContactId = substr(trim($row['project_client']), 12);
                $bxContactData = $bxContact->get($bxContactId);
@@ -178,6 +182,13 @@ try {
             }
          }
 
+         $created = new DateTime();
+         try {
+            $created = new DateTime("@$row[project_created]");
+         } catch(Exception $e) {
+            /* do nothing */
+         }
+
          $per_project[$row['project_id']] = array(
             'reference' => $row['project_reference'],
             'client' => $row['project_client'],
@@ -189,7 +200,7 @@ try {
             'workcost' => 0, 
             'id' => $row['project_id'],
             'closed' => $row['project_closed'],
-            'created' => new DateTime("@$row[project_created]"),
+            'created' => $created,
             'manager' => $row['project_manager']
          ); 
       }
@@ -297,14 +308,15 @@ try {
       'Nom' => 'string',
       'Client' => 'string',
       'Chef projet' => 'string',
-      'Heure [h]' => '0.00', 
-      'Travail' => 'price',
-      'Créancier HT' => 'price',
-      'Coût HT' => 'price',
-      'Prix vendu' => 'price',
-      'Bénéfice [CHF]' => 'price',
-      'Bénéfice [%]' => '0.0%',
-      'Débiteur HT' => 'price',
+      'Nombre d\'heures' => '0.00', 
+      'Main d\'œuvre CHF HT' => 'price',
+      'Créancier CHF HT' => 'price',
+      'Prox de revient CHF HT' => 'price',
+      'Prix vendu CHF' => 'price',
+      'Résultat CHF HT' => 'price',
+      'Résultat %' => '0.0%',
+      'Débiteur CHF HT' => 'price',
+      'Traveux en cours CHF HT' => 'price',
       'État' => 'string',
       'Ouverture' => 'date',
       'Première entrée' => 'date', 
@@ -314,15 +326,17 @@ try {
       $amount = [ 'creancier' => 0.0, 'debiteur' => 0.0];
 
       $invoices = [];
-      if ($project['extid'] !== null) {
-         $bxQuery = $bxInvoice->newQuery();
-         $bxQuery->setWithAnyfields();
-         $bxQuery->add('kb_item_status_id', '7', '>');
-         $bxQuery->add('kb_item_status_id', '10', '<');
-         $bxQuery->add('project_id', $project['extid'], '=');
-         $invoices = $bxInvoice->search($bxQuery);
+      if (intval($ini_conf['bexio']['enabled']) != '0') {
+         if ($project['extid'] !== null) {
+            $bxQuery = $bxInvoice->newQuery();
+            $bxQuery->setWithAnyfields();
+            $bxQuery->add('kb_item_status_id', '7', '>');
+            $bxQuery->add('kb_item_status_id', '10', '<');
+            $bxQuery->add('project_id', $project['extid'], '=');
+            $invoices = $bxInvoice->search($bxQuery);
+         }
       }
-   
+
       $bxReferences = [];
       foreach ($invoices as $invoice) {
          $reference = $invoice->document_nr;
@@ -335,7 +349,7 @@ try {
          FROM repartition 
          LEFT JOIN facture ON facture_id = repartition_facture 
          LEFT JOIN project ON project_id = repartition_project 
-         WHERE project_id = :id GROUP BY facture_type');
+         WHERE "repartition_project" = :id AND "facture_deleted" = 0');
       $repSt->bindValue(':id', $project['id'], PDO::PARAM_INT);
       if ($repSt->execute()) {
          while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
@@ -370,6 +384,7 @@ try {
          $project['price'] - $project['total_cost'],
          ($project['total_cost'] != 0 && $project['price'] != 0) ? (($project['price'] - $project['total_cost']) / $project['price']) : 0,
          $amount['debiteur'],
+         '=H' . ($writer->countSheetRows('Par projet') + 1) . '-L' . ($writer->countSheetRows('Par projet') + 1),
          $project['closed'] ? 'Fermé' : 'Ouvert',
          $project['created']->format('Y-m-d'),
          !is_null($project['firstdate']) ? $project['firstdate']->format('Y-m-d') : '',
