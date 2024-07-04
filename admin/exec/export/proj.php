@@ -372,9 +372,9 @@ try {
             $value = floatval($repData['repartition_value']);
             $tva = floatval($repData['repartition_tva']);
             
-            $calcAmount = $ttc === 0 ? $value : ($value * (1 + $tva / 100));
+            $calcAmount = $ttc ? ($value * (1 + $tva / 100)) : $value;
             if ($splitvalue > 0) {
-               $calcAmount = $ttc === 0 ? $splitvalue : ($splitvalue * (1 + $splittva / 100));
+               $calcAmount = $ttc ? ($splitvalue * (1 + $splittva / 100)) : $splitvalue;
             }
             switch (intval($repData['facture_type'])) {
                case 1:
