@@ -308,7 +308,10 @@ try {
    }
    
    $factureEndLine = 0;
-   $repSt = $db->prepare('SELECT * FROM "repartition" LEFT JOIN "facture" ON "facture_id" = "repartition_facture" LEFT JOIN "qraddress" ON "facture_qraddress" = "qraddress_id" WHERE "repartition_project" = :id AND "facture_deleted" = 0');
+   $repSt = $db->prepare('SELECT * FROM "repartition" 
+      LEFT JOIN "facture" ON "facture_id" = "repartition_facture" 
+      LEFT JOIN "qraddress" ON "facture_qraddress" = "qraddress_id" 
+      WHERE "repartition_project" = :id AND "facture_deleted" = 0');
    $repSt->bindValue(':id', $row['project_id'], PDO::PARAM_INT);
    if ($repSt->execute()) {
       while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
@@ -396,7 +399,7 @@ try {
             $reference,
             $date->format('Y-m-d'),
             $repData['facture_person'],
-            $ttc ? '=F'.($line+1). '-(F' . ($line+1) . '*E' . ($line+1) .'%)' : $facture_amount,
+            $ttc ? '=F' . ($line+1) . '/(1+E' . ($line+1) .'%)' : $facture_amount,
             $tva,
             $ttc ? $facture_amount : '=D'.($line+1). '+(D' . ($line+1) . '*E' . ($line+1) .'%)', 
             $type, 
@@ -412,7 +415,7 @@ try {
                $reference,
                $date->format('Y-m-d'),
                $repData['facture_person'],
-               $ttc ? '=F'.($line+1). '-(F' . ($line+1) . '*E' . ($line+1) .'%)' : $splitvalue,
+               $ttc ? '=F' . ($line+1) . '/(1+E' . ($line+1) .'%)' : $splitvalue,
                $splittva,
                $ttc ? $splitvalue : '=D'.($line+1). '+(D' . ($line+1) . '*E' . ($line+1) .'%)', 
                $type, 
@@ -484,7 +487,7 @@ try {
    $writer->writeSheetRow('Résumé', ['']); $line++;
    $costLine = $line;
    $writer->writeSheetRow('Résumé', [
-      'Coûts', 
+      'Prix revient', 
       'HT', 
       '', 
       '=D' . $workcostLine . '+D' . $creancierLine . '+D' . $materielMontantLine, 

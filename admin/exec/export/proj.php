@@ -55,6 +55,7 @@ $ldap_db = new artnum\LDAPDB(
    !empty($ini_conf['addressbook']['base']) ? $ini_conf['addressbook']['base'] : NULL
  );
 
+ $bindings = [];
 
 $query = 'SELECT * FROM project
         LEFT JOIN htime ON htime.htime_project = project.project_id
@@ -85,11 +86,32 @@ if (isset($_GET['state'])) {
    }
 }
 
+foreach($_GET as $key => $value) {
+   if ($key === 'state') { continue; }
+   switch ($key) {
+      case 'at':
+         try {
+            $date = new DateTime($value);
+            $value = $date->format('Y-m-d');
+            $query .= ' AND htime.htime_day <= :at';
+            $bindings['at'] = [$value, PDO::PARAM_STR];
+         } catch (Exception $e) {
+            // nothing
+         }
+         break;
+   }
+}
+
 
 $query_items = null;
 try {
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $st = $db->prepare($query);
+    if (!empty($bindings)) {
+      foreach ($bindings as $key => [$value, $type]) {
+        $st->bindValue(':' . $key, $value, $type);
+      }
+    }
 } catch (Exception $e) {
     die($e->getMessage());
 }
@@ -120,11 +142,13 @@ try {
    $per_person = array();
    /* Entrées */
 
-   $bexioDB = new BizCuit\BexioCTX($ini_conf['bexio']['token']);
-   $bexioDB->setSleep(5);
-   $bxInvoice = new BizCuit\BexioInvoice($bexioDB);
-   $bxContact = new BizCuit\BexioContact($bexioDB);
-
+   if (intval($ini_conf['bexio']['enabled']) != '0') {
+      $bexioDB = new BizCuit\BexioCTX($ini_conf['bexio']['token']);
+      $bexioDB->setSleep(5);
+      $bxInvoice = new BizCuit\BexioInvoice($bexioDB);
+      $bxContact = new BizCuit\BexioContact($bexioDB);
+   }
+   
    foreach ($values as $row) {
       if (!isset($per_project[$row['project_id']])) {
          if ($row['project_manager']) {
@@ -142,7 +166,9 @@ try {
 
          }
 
-         if (str_starts_with(trim($row['project_client']), 'Contact/@bx_')) {
+         $row['project_client'] = '';
+         if (intval($ini_conf['bexio']['enabled']) != '0'
+               && str_starts_with(trim($row['project_client']), 'Contact/@bx_')) {
             try {
                $bxContactId = substr(trim($row['project_client']), 12);
                $bxContactData = $bxContact->get($bxContactId);
@@ -178,6 +204,13 @@ try {
             }
          }
 
+         $created = new DateTime();
+         try {
+            $created = new DateTime("@$row[project_created]");
+         } catch(Exception $e) {
+            /* do nothing */
+         }
+
          $per_project[$row['project_id']] = array(
             'reference' => $row['project_reference'],
             'client' => $row['project_client'],
@@ -189,7 +222,7 @@ try {
             'workcost' => 0, 
             'id' => $row['project_id'],
             'closed' => $row['project_closed'],
-            'created' => new DateTime("@$row[project_created]"),
+            'created' => $created,
             'manager' => $row['project_manager']
          ); 
       }
@@ -297,14 +330,15 @@ try {
       'Nom' => 'string',
       'Client' => 'string',
       'Chef projet' => 'string',
-      'Heure [h]' => '0.00', 
-      'Travail' => 'price',
-      'Créancier HT' => 'price',
-      'Coût HT' => 'price',
-      'Prix vendu' => 'price',
-      'Bénéfice [CHF]' => 'price',
-      'Bénéfice [%]' => '0.0%',
-      'Débiteur HT' => 'price',
+      'Nombre d\'heures H' => '0.00', 
+      'Main d\'œuvre CHF HT' => 'price',
+      'Créancier CHF HT' => 'price',
+      'Prix de revient CHF HT' => 'price',
+      'Prix vendu CHF HT' => 'price',
+      'Résultat CHF HT' => 'price',
+      'Résultat %' => '0.0%',
+      'Débiteur CHF HT' => 'price',
+      'Travaux en cours CHF HT' => 'price',
       'État' => 'string',
       'Ouverture' => 'date',
       'Première entrée' => 'date', 
@@ -314,39 +348,72 @@ try {
       $amount = [ 'creancier' => 0.0, 'debiteur' => 0.0];
 
       $invoices = [];
-      if ($project['extid'] !== null) {
-         $bxQuery = $bxInvoice->newQuery();
-         $bxQuery->setWithAnyfields();
-         $bxQuery->add('kb_item_status_id', '7', '>');
-         $bxQuery->add('kb_item_status_id', '10', '<');
-         $bxQuery->add('project_id', $project['extid'], '=');
-         $invoices = $bxInvoice->search($bxQuery);
+      if (intval($ini_conf['bexio']['enabled']) != '0') {
+         if ($project['extid'] !== null) {
+            $bxQuery = $bxInvoice->newQuery();
+            $bxQuery->setWithAnyfields();
+            $bxQuery->add('kb_item_status_id', '7', '>');
+            $bxQuery->add('kb_item_status_id', '10', '<');
+            if ($bindings['at']) {
+               $bxQuery->add('is_valid_from', $bindings['at'][0], '<=');
+            }
+            $bxQuery->add('project_id', $project['extid'], '=');
+            $invoices = $bxInvoice->search($bxQuery);
+         }
       }
-   
+
       $bxReferences = [];
       foreach ($invoices as $invoice) {
          $reference = $invoice->document_nr;
          if (in_array(strval($reference), $bxReferences)) { continue; }
          $bxReferences[] = strval($reference);
-         $amount['debiteur'] += floatval($invoice->total);
+         $amount['debiteur'] += floatval($invoice->total_net);
       }
 
-      $repSt = $db->prepare('SELECT project_id, project_reference, facture_deleted, facture_reference, facture_type, repartition_value
+      $repartitionQuery = 'SELECT 
+            project_id,
+            project_reference,
+            facture_deleted,
+            facture_reference,
+            facture_type,
+            repartition_value,
+            repartition_ttc,
+            repartition_tva,
+            repartition_splittva,
+            repartition_splitvalue
          FROM repartition 
          LEFT JOIN facture ON facture_id = repartition_facture 
          LEFT JOIN project ON project_id = repartition_project 
-         WHERE project_id = :id GROUP BY facture_type');
+         WHERE "repartition_project" = :id AND "facture_deleted" = 0';
+      if ($bindings['at']) {
+         $repartitionQuery .= ' AND "facture_date" <= :at';
+      }
+      $repSt = $db->prepare($repartitionQuery);
+      if ($bindings['at']) {
+         $repSt->bindValue(':at', $bindings['at'][0], PDO::PARAM_STR);
+      } 
       $repSt->bindValue(':id', $project['id'], PDO::PARAM_INT);
       if ($repSt->execute()) {
          while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
             if (intval($repData['facture_deleted']) !== 0) { continue; }
             if (in_array(strval($repData['facture_reference']), $bxReferences)) { continue; }
+
+            $ttc = intval($repData['repartition_ttc']);
+            $splitvalue = floatval($repData['repartition_splitvalue']);
+            $splittva = floatval($repData['repartition_splittva']);
+            $value = floatval($repData['repartition_value']);
+            $tva = floatval($repData['repartition_tva']);
+            
+            $calcAmount = $ttc ? ($value / (1 + $tva / 100)) : $value;
+            if ($splitvalue > 0) {
+               $calcAmount = $ttc ? ($splitvalue / (1 + $splittva / 100)) : $splitvalue;
+            }
             switch (intval($repData['facture_type'])) {
                case 1:
-                  $amount['creancier'] += floatval($repData['repartition_value']);
+                  $amount['creancier'] += $calcAmount;
                break;
                case 2:
-                  $amount['debiteur'] += +floatval($repData['repartition_value']);
+                  $amount['debiteur'] += $calcAmount;
                break;
                case 3:
                case 4:
@@ -370,6 +437,7 @@ try {
          $project['price'] - $project['total_cost'],
          ($project['total_cost'] != 0 && $project['price'] != 0) ? (($project['price'] - $project['total_cost']) / $project['price']) : 0,
          $amount['debiteur'],
+         '=H' . ($writer->countSheetRows('Par projet') + 1) . '-L' . ($writer->countSheetRows('Par projet') + 1),
          $project['closed'] ? 'Fermé' : 'Ouvert',
          $project['created']->format('Y-m-d'),
          !is_null($project['firstdate']) ? $project['firstdate']->format('Y-m-d') : '',
@@ -464,10 +532,15 @@ try {
    $rc = $writer->countSheetRows('Entrées');
    $writer->writeSheetRow('Entrées', array('Total', '', '','', '=SUM(E2:E' . ($rc - 1) . ')', '=AVERAGE(F2:F' . ($rc - 1) . ')', '=SUM(G2:G' . ($rc - 1) . ')'));
 
+  $date = new DateTime();
+  if ($bindings['at']) {
+    $date = new DateTime($bindings['at'][0]);
+  }
+
    if (!empty($project_name)) {
-      $project_name = date('Y-m-d') . ' - ' . $project_name;
+      $project_name = $date->format('d.m.Y') . ' - ' . $project_name;
    } else {
-      $project_name = date('Y-m-d') . ' - Tous les projets';
+      $project_name = $date->format('d.m.Y') . ' - Tous les projets';
    }
    $writer->setTitle($project_name);
    if (method_exists($writer, 'setHeaderFooter')) {
@@ -477,7 +550,8 @@ try {
          $writer->setHeaderFooter('l', 'Projet ' . $p['reference']);
          $writer->setHeaderFooter('r', $p['name']);
       } else {
-         $writer->setHeaderFooter('c', 'Tous les projets');
+         $writer->setHeaderFooter('c', $project_name);
+         $writer->setHeaderFooter('r', 'Date ' . $date->format('d.m.Y'));
       }
       $writer->setHeaderFooter('c', '&[Tab]', true);
       $writer->setHeaderFooter('r', 'Page &[Page] sur &[Pages]', true);

@@ -35,7 +35,7 @@
       </fieldset>
     </form>
     <h2>Projets existants</h2>
-    <input type="button" name="exportall" value="Tout exporter"></input>
+    <input type="button" name="exportall" value="Tout exporter"></input> Jusqu'au : <input type="date" name="at" ></input>
 
     <div class="project-list-parent"></div>
   </main>
@@ -82,10 +82,12 @@
             new KAButton(`Régie`, {group: 'reference'}),
         ]
 
-
+      document.querySelector('input[name="at"]').value = new Date().toISOString().split('T')[0]
       const allExportButton = document.body.querySelector('input[name="exportall"]')
       allExportButton.addEventListener('click', event => {
-        const params = {state: 'open'}
+        let date = document.querySelector('input[name="at"]').value
+        if (!date) { date = new Date().toISOString().split('T')[0] }
+        const params = {state: 'open', 'at': date}
         switch(projecList.selectedState) {
           case 'open': break
           case 'close': params.state = 'closed'; break
