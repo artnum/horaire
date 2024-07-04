@@ -308,11 +308,11 @@ try {
       'Nom' => 'string',
       'Client' => 'string',
       'Chef projet' => 'string',
-      'Nombre d\'heures' => '0.00', 
+      'Nombre d\'heures H' => '0.00', 
       'Main d\'œuvre CHF HT' => 'price',
       'Créancier CHF HT' => 'price',
       'Prix de revient CHF HT' => 'price',
-      'Prix vendu CHF' => 'price',
+      'Prix vendu CHF HT' => 'price',
       'Résultat CHF HT' => 'price',
       'Résultat %' => '0.0%',
       'Débiteur CHF HT' => 'price',
@@ -342,7 +342,7 @@ try {
          $reference = $invoice->document_nr;
          if (in_array(strval($reference), $bxReferences)) { continue; }
          $bxReferences[] = strval($reference);
-         $amount['debiteur'] += floatval($invoice->total);
+         $amount['debiteur'] += floatval($invoice->total_net);
       }
 
       $repSt = $db->prepare('SELECT 
