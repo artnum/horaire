@@ -345,7 +345,17 @@ try {
          $amount['debiteur'] += floatval($invoice->total);
       }
 
-      $repSt = $db->prepare('SELECT project_id, project_reference, facture_deleted, facture_reference, facture_type, repartition_value
+      $repSt = $db->prepare('SELECT 
+            project_id,
+            project_reference,
+            facture_deleted,
+            facture_reference,
+            facture_type,
+            repartition_value,
+            repartition_ttc,
+            repartition_tva,
+            repartition_splittva,
+            repartition_splitvalue
          FROM repartition 
          LEFT JOIN facture ON facture_id = repartition_facture 
          LEFT JOIN project ON project_id = repartition_project 
@@ -355,12 +365,23 @@ try {
          while (($repData = $repSt->fetch(PDO::FETCH_ASSOC))) {
             if (intval($repData['facture_deleted']) !== 0) { continue; }
             if (in_array(strval($repData['facture_reference']), $bxReferences)) { continue; }
+
+            $ttc = intval($repData['repartition_ttc']);
+            $splitvalue = floatval($repData['repartition_splitvalue']);
+            $splittva = floatval($repData['repartition_splittva']);
+            $value = floatval($repData['repartition_value']);
+            $tva = floatval($repData['repartition_tva']);
+            
+            $calcAmount = $ttc === 0 ? $value : ($value * (1 + $tva / 100));
+            if ($splitvalue > 0) {
+               $calcAmount = $ttc === 0 ? $splitvalue : ($splitvalue * (1 + $splittva / 100));
+            }
             switch (intval($repData['facture_type'])) {
                case 1:
-                  $amount['creancier'] += floatval($repData['repartition_value']);
+                  $amount['creancier'] += $calcAmount;
                break;
                case 2:
-                  $amount['debiteur'] += +floatval($repData['repartition_value']);
+                  $amount['debiteur'] += $calcAmount;
                break;
                case 3:
                case 4:
