@@ -513,7 +513,8 @@ try {
          $writer->setHeaderFooter('l', 'Projet ' . $p['reference']);
          $writer->setHeaderFooter('r', $p['name']);
       } else {
-         $writer->setHeaderFooter('c', 'Tous les projets');
+         $writer->setHeaderFooter('c', $project_name);
+         $writer->setHeaderFooter('r', date('Y-m-d H:i:s'));
       }
       $writer->setHeaderFooter('c', '&[Tab]', true);
       $writer->setHeaderFooter('r', 'Page &[Page] sur &[Pages]', true);
