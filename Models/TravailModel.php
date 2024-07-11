@@ -8,6 +8,7 @@ class TravailModel extends artnum\SQL {
       $this->conf('create.ts', true);
       $this->conf('mtime', 'travail_modified');
       $this->conf('mtime.ts', true);
+      $this->conf('force-type', ['travail_phone' => 'string']);
    }
 
   function getUnplanned($options) {
@@ -57,6 +58,7 @@ class TravailModel extends artnum\SQL {
 
   function _write($data, &$id = NULL) {
     global $MSGSrv;
+    $data['phone'] = strval($data['phone']);
     $result = parent::_write($data, $id);
     if ($result['count'] > 0) {
       $MSGSrv->send(json_encode([
