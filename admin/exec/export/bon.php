@@ -274,7 +274,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     ) {
       $PDF->tab(1);
       $PDF->SetFont('helvetica', '', 8);
-      $PDF->printLn($label);
+      $PDF->printLn((string) $label);
       $PDF->tab(1);
       $PDF->SetFont('helvetica', 'B', 10);
       if (!isset($data[$item])) { $data[$item] = null; }
