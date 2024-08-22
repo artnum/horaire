@@ -266,7 +266,7 @@ class AccountingDocUI {
 
     _loadCondition (docId, nodeName) {
         const defaultCondition = {
-            RPLP: 2.2,
+            RPLP: 2.0,
             TAX: 8.1,
             RABAIS: 0,
             ROUNDING: 0.05,
