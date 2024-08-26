@@ -86,6 +86,7 @@ if (isset($_GET['state'])) {
    }
 }
 
+$atDate = null;
 foreach($_GET as $key => $value) {
    if ($key === 'state') { continue; }
    switch ($key) {
@@ -93,8 +94,12 @@ foreach($_GET as $key => $value) {
          try {
             $date = new DateTime($value);
             $value = $date->format('Y-m-d');
-            $query .= ' AND htime.htime_day <= :at';
+            $date->setTime(23, 59, 59);
+            $value2 = $date->getTimestamp();
+            $atDate = $date;
+            $query .= ' AND (htime.htime_day <= :at OR project.project_created <= :at2)';
             $bindings['at'] = [$value, PDO::PARAM_STR];
+            $bindings['at2'] = [$value2, PDO::PARAM_INT];
          } catch (Exception $e) {
             // nothing
          }
@@ -103,7 +108,6 @@ foreach($_GET as $key => $value) {
 }
 
 
-$query_items = null;
 try {
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $st = $db->prepare($query);
@@ -119,20 +123,6 @@ try {
 
 try {
    $st->execute();
-   $values = $st->fetchAll(PDO::FETCH_ASSOC);
-   
-   $ist = null;
-   if (count($values) > 0 && $query_items) {
-      try {
-         $ist = $db->prepare($query_items);
-         $ist->bindValue(':pid', $_GET['pid'], PDO::PARAM_INT);
-         $ist->execute();
-      } catch (Exception $e) {
-         $ist = null;
-      }
-
-   }
-
    $writer = new XLSXWriter();
 
    $person_pricing = [];
@@ -149,7 +139,8 @@ try {
       $bxContact = new BizCuit\BexioContact($bexioDB);
    }
    
-   foreach ($values as $row) {
+   while (($row = $st->fetch(PDO::FETCH_ASSOC)) !== false) {
+      set_time_limit(30);
       if (!isset($per_project[$row['project_id']])) {
          if ($row['project_manager']) {
             try {
@@ -259,56 +250,60 @@ try {
        }
      }
      
-     $datetime = new DateTime($row['htime_day']);
-     $date = $datetime->format('Y-m-d');
+     if ($row['htime_id']) {
+         $datetime = new DateTime($row['htime_day']);
+         $date = $datetime->format('Y-m-d');
 
-     $phour = null;
-     if (isset($person_pricing[$row['person_id']])) {
-        foreach($person_pricing[$row['person_id']] as $line) {
-           if ($line['date'] <= $date) {
-               if ($phour === null) {
-                  $phour = $line;
-               } else {
-                  if ($phour['date'] < $line['date']) {
-                     $phour = $line;
+         if ($atDate && $datetime->getTimestamp() <= $atDate->getTimestamp()) {
+            $phour = null;
+            if (isset($person_pricing[$row['person_id']])) {
+               foreach($person_pricing[$row['person_id']] as $line) {
+                  if ($line['date'] <= $date) {
+                        if ($phour === null) {
+                           $phour = $line;
+                        } else {
+                           if ($phour['date'] < $line['date']) {
+                              $phour = $line;
+                           }
+                        }
                   }
                }
-           }
-        }
-     }
+            }
 
-     $hours = $row['htime_value'] / 3600;
-     $price = $phour !== null ? $phour['price'] : 0.0;
-     $per_entry[] =[
-        $row['project_reference'],
-        $row['project_name'],
-        $pb,
-        $date,
-        $hours,
-        $row['person_name'],
-        is_null($row['project_closed']) ? '' : $row['project_closed'],
-        $row['htime_comment'],
-        $price,
-        $price * $hours
-     ];
+            $hours = $row['htime_value'] / 3600;
+            $price = $phour !== null ? $phour['price'] : 0.0;
+            $per_entry[] =[
+               $row['project_reference'],
+               $row['project_name'],
+               $pb,
+               $date,
+               $hours,
+               $row['person_name'],
+               is_null($row['project_closed']) ? '' : $row['project_closed'],
+               $row['htime_comment'],
+               $price,
+               $price * $hours
+            ];
+  
+            $per_process[$row['process_name']][0] += $row['htime_value'];
+            $per_process[$row['process_name']][1] += $price * $hours;
+            $per_person[$row['person_name']] += $row['htime_value'];
 
-      $per_process[$row['process_name']][0] += $row['htime_value'];
-      $per_process[$row['process_name']][1] += $price * $hours;
-      $per_person[$row['person_name']] += $row['htime_value'];
+            $per_project[$row['project_id']]['extid'] = $row['project_extid'];
+            $per_project[$row['project_id']]['time'] += $row['htime_value'];
+            $per_project[$row['project_id']]['workcost'] += ($hours * $price);
 
-      $per_project[$row['project_id']]['extid'] = $row['project_extid'];
-      $per_project[$row['project_id']]['time'] += $row['htime_value'];
-      $per_project[$row['project_id']]['workcost'] += ($hours * $price);
+            if (is_null($per_project[$row['project_id']]['firstdate'])) { $per_project[$row['project_id']]['firstdate'] = $datetime; }
+            if (is_null($per_project[$row['project_id']]['lastdate'])) { $per_project[$row['project_id']]['lastdate'] = $datetime; }
 
-      if (is_null($per_project[$row['project_id']]['firstdate'])) { $per_project[$row['project_id']]['firstdate'] = $datetime; }
-      if (is_null($per_project[$row['project_id']]['lastdate'])) { $per_project[$row['project_id']]['lastdate'] = $datetime; }
-
-      if ($datetime->getTimestamp() < $per_project[$row['project_id']]['firstdate']->getTimestamp()) {
-        $per_project[$row['project_id']]['firstdate'] = $datetime; 
-      }
-      if ($datetime->getTimestamp() > $per_project[$row['project_id']]['lastdate']->getTimestamp()) {
-        $per_project[$row['project_id']]['lastdate'] = $datetime; 
-      } 
+            if ($datetime->getTimestamp() < $per_project[$row['project_id']]['firstdate']->getTimestamp()) {
+            $per_project[$row['project_id']]['firstdate'] = $datetime; 
+            }
+            if ($datetime->getTimestamp() > $per_project[$row['project_id']]['lastdate']->getTimestamp()) {
+            $per_project[$row['project_id']]['lastdate'] = $datetime; 
+            } 
+         }
+      }     
    }
 
    uasort($per_project, function ($a, $b) {
@@ -479,27 +474,6 @@ try {
       'content' => []
    ];
    $materielMontant = 0;
-   if ($ist) {
-      $items = $ist->fetchAll(PDO::FETCH_ASSOC);
-      if (count($items) > 0) {
-         $line = 1;
-         foreach ($items as $item) {
-            $SheetMateriel['content'][] = [
-               $item['item_reference'],
-               $item['item_name'],
-               $item['item_price'],
-               $item['quantity_value'],
-               $item['person_name'],
-               '',
-               $item['item_price'] * $item['quantity_value']];
-            $materielMontant += $item['item_price'] * $item['quantity_value'];
-            $line++;
-         }
-         $SheetMateriel['content'][] = ['','','','','','',''];
-         $SheetMateriel['content'][] = ['', '', '', '', '', '', '=SUM(G2:G' . $line .  ')'];
-      }
-   }
-
    
    $writer->writeSheetHeader('Par processus', $SheetProcessus['header'], ['widths'=>[25,10, 10]]);
    foreach($SheetProcessus['content'] as $row) {  
