@@ -140,7 +140,7 @@ try {
    }
    
    while (($row = $st->fetch(PDO::FETCH_ASSOC)) !== false) {
-      set_time_limit(30);
+      set_time_limit(300);
       if (!isset($per_project[$row['project_id']])) {
          if ($row['project_manager']) {
             try {
@@ -162,6 +162,7 @@ try {
                && str_starts_with(trim($row['project_client']), 'Contact/@bx_')) {
             try {
                $bxContactId = substr(trim($row['project_client']), 12);
+               set_time_limit(300);
                $bxContactData = $bxContact->get($bxContactId);
                $row['project_client'] = $bxContactData->name_1;
             } catch (Exception $e) {
@@ -353,6 +354,7 @@ try {
                $bxQuery->add('is_valid_from', $bindings['at'][0], '<=');
             }
             $bxQuery->add('project_id', $project['extid'], '=');
+            set_time_limit(300);
             $invoices = $bxInvoice->search($bxQuery);
          }
       }
