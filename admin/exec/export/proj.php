@@ -345,7 +345,7 @@ try {
 
       $invoices = [];
       if (intval($ini_conf['bexio']['enabled']) != '0') {
-         if ($project['extid'] !== null) {
+         if (isset($project['extid']) && $project['extid'] !== null) {
             $bxQuery = $bxInvoice->newQuery();
             $bxQuery->setWithAnyfields();
             $bxQuery->add('kb_item_status_id', '7', '>');
