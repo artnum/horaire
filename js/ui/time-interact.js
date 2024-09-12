@@ -89,6 +89,7 @@ TimeInteractUI.prototype.back = function (previous = null) {
             case 'goto-other-project': return this.gotoOtherProject()
             case 'goto-index': return this.gotoIndex()
             case 'select-project': return this.selectProject(previous.node)
+            case 'goto-my-hours': return this.gotoMyHours()
         }
     }
     this.hideIndex()
@@ -124,6 +125,22 @@ TimeInteractUI.prototype.gotoOtherProject = function () {
     })
 }
 
+TimeInteractUI.prototype.gotoMyHours = function () {
+    this.hasSet = {
+        project: null,
+        travail: null,
+        process: null
+    }
+    this.hideIndex()
+    .then(() => {
+        const container = document.querySelector('div.ka-main-bottom')
+        const div = document.createElement('DIV')
+        div.classList.add('ka-project-detail')
+        container.appendChild(div)
+        this.showRecentTime(container)
+    })
+}
+
 TimeInteractUI.prototype.showIndex = function () {
     return new Promise((resolve) => {
         const project = new KAButton('Autres projets', {click: true, fat: true})
@@ -134,19 +151,8 @@ TimeInteractUI.prototype.showIndex = function () {
 
         const hours = new KAButton('Mes heures', {click: true, fat: true})
         hours.addEventListener('submit', event => {
-            this.hasSet = {
-                project: null,
-                travail: null,
-                process: null
-            }
-            this.hideIndex()
-            .then(() => {
-                const container = document.querySelector('div.ka-main-bottom')
-                const div = document.createElement('DIV')
-                div.classList.add('ka-project-detail')
-                container.appendChild(div)
-                this.showRecentTime(container)
-            })
+            this.history.navigate('goto-my-hours')
+            this.gotoMyHours()
         })
         const forecast = new KAButton('Mon planning provisoire', {click: true, fat: true})
         forecast.addEventListener('submit', event => {
@@ -295,9 +301,7 @@ TimeInteractUI.prototype.loadFromPlanning = function (date) {
             })
         })
         .then(reservations => {
-            
             const req = []
-
             for (const reservation of reservations) {
                 if (affaires.indexOf(reservation.affaire) === -1) { 
                     affaires.push(reservation.affaire)
