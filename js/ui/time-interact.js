@@ -224,6 +224,23 @@ TimeInteractUI.prototype.unloadPlanningSet = function (date) {
     })
 }
 
+TimeInteractUI.prototype.eventSubmitData = function (event) {
+    const detail = event.detail
+    this.selectProject(detail.project.id)
+    .then(_ => {
+        return this.selectTravail(detail.affaire.id)
+    })
+    .then(_ => {
+        return new Promise(resolve => {
+            if (!detail.process.id) { return resolve() }
+            return resolve(this.selectProcess(detail.process.id))
+        })
+    })
+    .then(_ => {
+        this.showTimeBox()
+    })
+}
+
 TimeInteractUI.prototype.loadFromPreviousEntry = function (date, travaux = []) {
     const childOf = date.toISOString().split('T')[0]
 
@@ -255,22 +272,7 @@ TimeInteractUI.prototype.loadFromPreviousEntry = function (date, travaux = []) {
                 window.requestAnimationFrame(() => {
                     container.appendChild(button)
                 })
-                button.addEventListener('submit-data', event => {
-                    const detail = event.detail
-                    this.selectProject(detail.project.id)
-                    .then(_ => {
-                        return this.selectTravail(detail.affaire.id)
-                    })
-                    .then(_ => {
-                        return new Promise(resolve => {
-                            if (!detail.process.id) { return resolve() }
-                            return resolve(this.selectProcess(detail.process.id))
-                        })
-                    })
-                    .then(_ => {
-                        this.showTimeBox()
-                    })
-                })
+                button.addEventListener('submit-data', event => this.eventSubmitData(event))
             })
         }
     })
@@ -329,22 +331,7 @@ TimeInteractUI.prototype.loadFromPlanning = function (date) {
                         container.appendChild(button)
                         resolve(affaires)
                     })
-                    button.addEventListener('submit-data', event => {
-                        const detail = event.detail
-                        this.selectProject(detail.project.id)
-                        .then(_ => {
-                            return this.selectTravail(detail.affaire.id)
-                        })
-                        .then(_ => {
-                            return new Promise(resolve => {
-                                if (!detail.process.id) { return resolve() }
-                                return resolve(this.selectProcess(detail.process.id))
-                            })
-                        })
-                        .then(_ => {
-                            this.showTimeBox()
-                        })
-                    })
+                    button.addEventListener('submit-data', event => this.eventSubmitData(event))
                 }
             })
         })
