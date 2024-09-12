@@ -4,7 +4,7 @@ function KAEntryForm (project, affaire, status, reservation = null) {
     div.classList.add('ka-project-entry')
     div.innerHTML = `
         <span>${project.reference}</span>
-        <span style="background-color: ${status.color}; color: ${kolor.foreground()};">${status.name}</span>
+        <span style="background-color: ${status.color}; color: ${kolor.foreground()};">${status.name || ''}</span>
         <span>${project.name}</span>
         <span>${affaire.reference}</span>
     `
@@ -14,7 +14,7 @@ function KAEntryForm (project, affaire, status, reservation = null) {
     button.addEventListener('click', event => {
         event.preventDefault()
         button.dispatchEvent(new CustomEvent('submit-data', {detail: {
-            project, affaire, process: affaire.status, reservation
+            project, affaire, process: status, reservation
         }}))
     })
 

@@ -42,7 +42,7 @@
         })
     }
 
-    window.onload = () => {
+    window.addEventListener('load-scripts', event => {
         checkBuildNumberAndReload()
         .then(() => {
             document.title = KAAL.title
@@ -57,7 +57,7 @@
                 })
             })
         })
-    }
+    })
 </script>
 
 </html>

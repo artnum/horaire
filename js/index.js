@@ -45,10 +45,17 @@ const imports = [
 ]
 
 window.addEventListener('DOMContentLoaded', event => {
-    for (const imp of imports) {
-        const s = document.createElement('SCRIPT')
-        s.type = "application/javascript"
-        s.src = imp[0]
-        document.body.appendChild(s)
-    }
+    Promise.all((() => {
+        const l = []
+        for (const imp of imports) {
+            l.push(new Promise(resolve => {
+                const s = document.createElement('SCRIPT')
+                s.addEventListener('load', resolve)
+                s.type = "application/javascript"
+                s.src = imp[0]
+                document.head.appendChild(s)
+            }))
+        }
+        return l
+    })()).then(() => window.dispatchEvent(new CustomEvent('load-scripts')))
 })

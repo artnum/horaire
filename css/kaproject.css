@@ -177,21 +177,23 @@ body {
 }
 
 .ka-button2.stacked {
-    border: 3px outset;
-    margin: 3px 0px;
-}
-.ka-button2.stacked[data-open="true"] {
-    border: 3px inset;
+    display: grid;
+    grid-template-columns: 4ch 1fr 1fr;
+    grid-template-rows: 1fr;
 }
 
-.ka-button2.stacked[data-open="true"] > .name {
-    background-color: white;
-    color: black;
+/*.ka-button2.stacked[data-open="true"] {
+}*/
+
+.ka-button2.no-description {
+    grid-template-columns: 4ch 1fr;
+
 }
 
-.ka-button2.stacked > span {
-    display: block;
-    min-width: calc(100% - 6px);
+.ka-head.toggable {
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 4ch 1fr;
 }
 
 .ka-button2.no-description > .name {
@@ -199,25 +201,30 @@ body {
 }
 
 .ka-button2 {
+    grid-template-columns: 4ch 1fr;
     color: black;
+}
+
+.open-close-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    border: 2px outset var(--ka-border-button-color);
+}
+
+.open-close-icon:active {
+    color: var(--ka-text-button-active-color);
 }
 
 .ka-button2 > span {
     cursor: pointer;
     padding: 1.5ex 0.5ch;
     display: inline-block;
-    min-height: 2ex;
-    max-height: 4ex;
     overflow: hidden;
     text-overflow: clip;
     font-family: var(--ka-text-button-font);
     font-size: 14pt;
-}
-
-.ka-button2 .name {
-    max-width: calc(100% - 16ch);
-    min-width: calc(100% - 16ch);
-    height: 100%;
 }
 
 .ka-button2[data-open="true"] > .reference {
@@ -248,8 +255,6 @@ body {
 .ka-project .reference {
     font-weight: bold;
     color: white;
-    min-width: 12ch;
-    max-width: 12ch;
     background-color: darkblue;
     overflow: hidden;
     margin:0;

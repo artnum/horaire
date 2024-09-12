@@ -1,8 +1,25 @@
+function HistoryHandler () {
+    this.history = window.history
+}
+
+HistoryHandler.prototype.back = function () {
+    this.history.back()
+}
+
+HistoryHandler.prototype.navigate = function (where, node = null) {
+    this.history.pushState({where: where, node: node}, '', '')
+}
+
 function TimeInteractUI (userId, workday = 'nyyyyyn') {
     this.eventTarget = new EventTarget()
     this.offset = 0
     this.limit = 100
-    
+    this.history = new HistoryHandler()
+
+    window.addEventListener('popstate', event => {
+        this.back(event.state)
+    })
+
     this.mustHave = {
         project: true,
         process: true,
@@ -61,7 +78,19 @@ TimeInteractUI.prototype.dispatchEvent = function (event) {
     this.eventTarget.dispatchEvent(event)
 }
 
-TimeInteractUI.prototype.back = function () {
+TimeInteractUI.prototype.gotoIndex = function () {
+    this.hideIndex()
+    .then(_ => this.showIndex())
+}
+
+TimeInteractUI.prototype.back = function (previous = null) {
+    if (previous) {
+        switch(previous.where) {
+            case 'goto-other-project': return this.gotoOtherProject()
+            case 'goto-index': return this.gotoIndex()
+            case 'select-project': return this.selectProject(previous.node)
+        }
+    }
     this.hideIndex()
     .then(()=> {
         this.closeProject()
@@ -80,22 +109,27 @@ TimeInteractUI.prototype.hideIndex = function () {
     })
 }
 
+TimeInteractUI.prototype.gotoOtherProject = function () {
+    this.hasSet = {
+        project: null,
+        travail: null,
+        process: null
+    }
+    this.hideIndex()
+    .then(() => {
+        return this.showHeader()
+    })
+    .then(() => {
+        this.loadProject()
+    })
+}
+
 TimeInteractUI.prototype.showIndex = function () {
     return new Promise((resolve) => {
         const project = new KAButton('Autres projets', {click: true, fat: true})
         project.addEventListener('submit', event => {
-            this.hasSet = {
-                project: null,
-                travail: null,
-                process: null
-            }
-            this.hideIndex()
-            .then(() => {
-                return this.showHeader()
-            })
-            .then(() => {
-                this.loadProject()
-            })
+            this.history.navigate('goto-other-project')
+            this.gotoOtherProject()
         })
 
         const hours = new KAButton('Mes heures', {click: true, fat: true})
@@ -149,6 +183,7 @@ TimeInteractUI.prototype.showIndex = function () {
 }
 
 TimeInteractUI.prototype.run = function () {
+    this.history.navigate('goto-index')
     this.addEventListener('change-date', event => {
         if (this.currentDate) {
             this.unloadPlanningSet(this.currentDate)
@@ -157,6 +192,9 @@ TimeInteractUI.prototype.run = function () {
         this.day = date
         this.currentDate = date.toISOString().split('T')[0]
         this.loadFromPlanning(date)
+        .then(loaded => {
+            return this.loadFromPreviousEntry(date, loaded)
+        })
     })
     this.addEventListener('reset-date', event => {
         this.day = null
@@ -186,9 +224,62 @@ TimeInteractUI.prototype.unloadPlanningSet = function (date) {
     })
 }
 
+TimeInteractUI.prototype.loadFromPreviousEntry = function (date, travaux = []) {
+    const childOf = date.toISOString().split('T')[0]
+
+    const past3days = new Date()
+    past3days.setTime(past3days.getTime() - 259200000)
+    
+    kafetch2(KAAL.url(`Htime/_query`), {
+        method:'POST', 
+        body: JSON.stringify({
+            '#and': {
+                person: this.userId,
+                deleted: '--',
+                day: ['>=', past3days.toISOString().split('T')[0] , 'str']
+            }
+        })
+    })
+    .then(times => {
+        const container = document.querySelector('div.ka-main-top')
+        for (const time of times) {
+            if (!time._travail) { continue }
+            if (travaux.indexOf(time.travail) !== -1) { continue }
+            travaux.push(time.travail)
+            const status = time._travail.status || time._project.status
+            kafetch2(`${KAAL.kairos.endpoint}/Status/${status}`)
+            .then(process => {
+                const button = KAEntryForm(time._project, time._travail, process.pop(), time)
+                button.dataset.childOf = childOf
+
+                window.requestAnimationFrame(() => {
+                    container.appendChild(button)
+                })
+                button.addEventListener('submit-data', event => {
+                    const detail = event.detail
+                    this.selectProject(detail.project.id)
+                    .then(_ => {
+                        return this.selectTravail(detail.affaire.id)
+                    })
+                    .then(_ => {
+                        return new Promise(resolve => {
+                            if (!detail.process.id) { return resolve() }
+                            return resolve(this.selectProcess(detail.process.id))
+                        })
+                    })
+                    .then(_ => {
+                        this.showTimeBox()
+                    })
+                })
+            })
+        }
+    })
+}
+
 TimeInteractUI.prototype.loadFromPlanning = function (date) {
+    const affaires = []
     return new Promise((resolve, reject) => {
-        kafetch(`${KAAL.kairos.url}/store/Reservation/_query`, {
+        kafetch2(`${KAAL.kairos.url}/store/Reservation/_query`, {
             method:'POST', 
             body: JSON.stringify({
                 '#and': {
@@ -201,13 +292,10 @@ TimeInteractUI.prototype.loadFromPlanning = function (date) {
                 }
             })
         })
-        .then(result => {
-            if (result.length <= 0) { return [] }
-            return result.data
-        })
         .then(reservations => {
-            const affaires = []
+            
             const req = []
+
             for (const reservation of reservations) {
                 if (affaires.indexOf(reservation.affaire) === -1) { 
                     affaires.push(reservation.affaire)
@@ -239,7 +327,7 @@ TimeInteractUI.prototype.loadFromPlanning = function (date) {
                     button.dataset.childOf = childOf
                     window.requestAnimationFrame(() => {
                         container.appendChild(button)
-                        resolve()
+                        resolve(affaires)
                     })
                     button.addEventListener('submit-data', event => {
                         const detail = event.detail
@@ -270,7 +358,11 @@ TimeInteractUI.prototype.joinAllToStatus = function (reservations) {
             if (results.length <= 0) { results.data = [] }
             const status = results.data
             for (const reservation of reservations) {
-                reservation.status = parseInt(reservation.status)
+                if (reservation.status) {
+                    reservation.status = parseInt(reservation.status)
+                } else {
+                    reservation.status = 0
+                }
                 reservation.affaire.status = parseInt(reservation.affaire.status)
                 if (reservation.status === 0) {
                     reservation.status = reservation.affaire.status
@@ -399,6 +491,14 @@ TimeInteractUI.prototype.loadProject = function () {
     })
 }
 
+TimeInteractUI.prototype.gotoSelectProject = function (project) {
+    const node = document.querySelector(`div.ka-project[data-project="${project}"]`)
+    if (node.dataset.project === this.hasSet.project) {
+        return this.closeProject(node)
+    }
+    this.selectProject(node.dataset.project)
+}
+
 TimeInteractUI.prototype.createProjectNode = function (project, container) {
     const kaproject = KAProject.create(project)
     const div = document.createElement('DIV')
@@ -411,14 +511,14 @@ TimeInteractUI.prototype.createProjectNode = function (project, container) {
     })
     div.addEventListener('click', event => {
         let node = event.target
-        while (node && !node.dataset.project) {
+        while (node && !node.classList.contains('ka-project')) {
             if (node.classList.contains('ka-project-detail') || node.classList.contains('ka-previous-time')) { return } // we click on detail, so we don't handle event there
-            node = node.parentNode 
+            node = node.parentNode
         }
-        if (node.dataset.project === this.hasSet.project) {
-            return this.closeProject(node)
-        }
-        this.selectProject(node.dataset.project)
+        const project = node.dataset.project
+        if (!project)  { return}
+        this.history.navigate('select-project', project)
+        this.gotoSelectProject(project)
     })
     return div
 }
@@ -439,7 +539,7 @@ TimeInteractUI.prototype.showUser = function () {
             
 
             back.addEventListener('submit', event => {
-                this.back()
+                this.history.back()
             })
             logout.addEventListener('submit', event => {
                 new Promise(resolve => {
@@ -560,6 +660,139 @@ TimeInteractUI.prototype.closeProject = function (project) {
     })
 }
 
+TimeInteractUI.prototype.renderProcess = function (container, processes) {
+    const processHead = document.createElement('DIV')
+    processHead.classList.add('ka-head', 'toggable')
+    processHead.innerHTML = '<span class="open-close-icon">🭭</span><span class="title">Processus</span>'
+    processHead.classList.add('open')
+    processHead.addEventListener('click', event => {
+        if ( processHead.firstElementChild.innerHTML === '🭭') {
+            let canClose = false
+            for (let i = 1; i < container.children.length; i++) {
+                if (container.children[i].dataset.open === 'true') { canClose = true; break }
+            }
+            if (canClose) {
+                window.requestAnimationFrame(() => processHead.firstElementChild.innerHTML = '🭬')
+                for (let i = 1; i < container.children.length; i++) {
+                    if (container.children[i].dataset.open === 'true') { continue }
+                    window.requestAnimationFrame(() => container.children[i].style.setProperty('display', 'none'))
+                }
+            }
+        } else {
+            window.requestAnimationFrame(() => processHead.firstElementChild.innerHTML = '🭭')        
+            for (let i = 1; i < container.children.length; i++) {
+                window.requestAnimationFrame(() => container.children[i].style.removeProperty('display'))
+            }
+        }
+    })
+
+    window.requestAnimationFrame(() => {
+        container.appendChild(processHead)
+    })
+    for (const process of processes) {
+        const div = document.createElement('DIV')
+        div.classList.add('ka-button2')
+        const kolor = new Kolor(process.get('color'))
+        div.style.setProperty('--ka-button-background-color', process.get('color'))
+        div.style.setProperty('--ka-button-color', kolor.foreground())
+        div.style.setProperty('--ka-button-blended-bg', kolor.alpha(0.4))
+        div.innerHTML = `<span class="reference"><span class="checkmark">☐</span></span> <span class="name">${process.get('name')}</name>`
+        div.dataset.process = process.uid
+        if (process.uid === this.hasSet.process) {
+            div.dataset.open = 'true'
+        } else {
+            div.dataset.open = 'false'
+        }            
+        window.requestAnimationFrame(() => { 
+            container.appendChild(div)
+        })
+    }
+}
+
+TimeInteractUI.prototype.renderTravaux = function (container, travaux) {
+    if (travaux.length <= 0) { return }
+    const groups = travaux.gets()
+    const travailHead = document.createElement('DIV')
+    travailHead.classList.add('ka-head', 'toggable')
+    travailHead.innerHTML = '<span class="open-close-icon">🭭</span><span class="title">Travail</span>'
+    travailHead.addEventListener('click', event => {
+        if (travailHead.firstElementChild.innerHTML === '🭭') {
+            window.requestAnimationFrame(() => travailHead.firstElementChild.innerHTML = '🭬')
+            for (let i = 1; i < container.children.length; i++) {
+                if (container.children[i].dataset.open === 'true') { continue }
+                window.requestAnimationFrame(() => container.children[i].style.setProperty('display', 'none'))
+            }
+        } else {
+            window.requestAnimationFrame(() => travailHead.firstElementChild.innerHTML = '🭭')        
+            for (let i = 1; i < container.children.length; i++) {
+                window.requestAnimationFrame(() => container.children[i].style.removeProperty('display'))
+            }
+        }
+    })
+
+    window.requestAnimationFrame(() => {
+        container.appendChild(travailHead)
+    })
+
+
+    if (travaux.hasUngrouped()) {
+        for (const travail of travaux.get(groups.shift())) {
+            const div = document.createElement('DIV')
+            div.classList.add('ka-button2', 'stacked')
+            if (travail.get('description').trim() === '' || travail.get('description').trim() === travail.get('reference').trim()) { 
+                div.classList.add('no-description')
+            }
+            div.innerHTML = `
+                <span class="checkmark">☐</span><span class="reference">${travail.get('reference')}</span>
+                <span class="name">${travail.get('description')}</span>`
+            div.dataset.travail = travail.uid
+            div.dataset.process = travail.get('status')
+            if (travail.uid === this.hasSet.travail) {
+                div.dataset.open = 'true'
+            } else {
+                div.dataset.open = 'false'
+            }
+            
+            window.requestAnimationFrame(() => { 
+                container.appendChild(div)
+    
+            })        
+        }
+    }
+
+    if (groups.length > 0) {
+        groups.reverse()
+        for (const group of groups) {
+            const travailHead = document.createElement('DIV')
+            travailHead.classList.add('ka-subhead')
+            travailHead.innerHTML = group
+            window.requestAnimationFrame(() => {
+                container.appendChild(travailHead)
+            })
+            
+            for (const travail of travaux.get(group)) {
+                const div = document.createElement('DIV')
+                div.classList.add('ka-button2', 'stacked')
+                if (travail.get('description').trim() === '') { 
+                    div.classList.add('no-description')
+                }
+                div.innerHTML = `<span class="checkmark">☐</span><span class="reference">${travail.get('reference')}</span> <span class="name">${travail.get('description')}</span>`
+                div.dataset.travail = travail.uid
+                div.dataset.process = travail.get('status')
+                if (travail.uid === this.hasSet.travail) {
+                    div.dataset.open = 'true'
+                } else {
+                    div.dataset.open = 'false'
+                }
+
+                window.requestAnimationFrame(() => { 
+                    container.appendChild(div)
+                })
+            }
+        }
+    }
+}
+
 TimeInteractUI.prototype.openProject = function (project) {
     return new Promise(resolve => {
         const KAPIProject = new KAPI('Project')
@@ -606,142 +839,32 @@ TimeInteractUI.prototype.openProject = function (project) {
             const subcontainer = document.createElement('DIV')
             subcontainer.addEventListener('click', this.handleSelectProcessTravail.bind(this))
             subcontainer.classList.add('ka-project-detail')
+            const processContainer = document.createElement('DIV')
+            processContainer.classList.add('ka-process-container')
+            const travauxContainer = document.createElement('DIV')
+            travauxContainer.classList.add('ka-travail-container')
+
             
-            const hideRequest = []
+            window.requestAnimationFrame(() => {
+                project.classList.add('extended')
+                project.appendChild(subcontainer)
+                subcontainer.appendChild(travauxContainer)
+                subcontainer.appendChild(processContainer)
+                resolve()      
+            })
+    
+            this.renderProcess(processContainer, processes)
+            this.renderTravaux(travauxContainer, travaux)
             for (let node = container.firstElementChild; node; node = node.nextElementSibling) {
                 if (node.dataset.project !== project.dataset.project) {
                     if (node.classList.contains('ka-userbox')) { continue }
-                    hideRequest.push(new Promise(resolve => {
-                        window.requestAnimationFrame(() => {
-                            node.style.setProperty('display', 'none')
-                            resolve()
-                        })
-                    }))
+                    window.requestAnimationFrame(() => {
+                        node.style.setProperty('display', 'none')
+                    })
                 }
             }
-
-            const processHead = document.createElement('DIV')
-            processHead.classList.add('ka-head')
-            processHead.innerHTML = 'Processus'
-
-            new Promise(resolve => {
-                window.requestAnimationFrame(() => {
-                    project.classList.add('extended')
-                    project.appendChild(subcontainer)
-                    subcontainer.appendChild(processHead)
-                    resolve()
-                })
-            })
-            .then(_ => {
-                const chain = Promise.resolve()
-                for (const process of processes) {
-                    const div = document.createElement('DIV')
-                    div.classList.add('ka-button2')
-                    const kolor = new Kolor(process.get('color'))
-                    div.style.setProperty('--ka-button-background-color', process.get('color'))
-                    div.style.setProperty('--ka-button-color', kolor.foreground())
-                    div.style.setProperty('--ka-button-blended-bg', kolor.alpha(0.4))
-                    div.innerHTML = `<span class="reference">${process.get('reference')}</span> <span class="name">${process.get('name')}</name>`
-                    div.dataset.process = process.uid
-                    if (process.uid === this.hasSet.process) {
-                        div.dataset.open = 'true'
-                    } else {
-                        div.dataset.open = 'false'
-                    }
-                    chain.then(() => {
-                        return new Promise(resolve => {
-                            window.requestAnimationFrame(() => { 
-                                subcontainer.appendChild(div)
-                                resolve()
-                            })
-                        })
-                    })
-                }
-
-                if (travaux.length > 0) {
-                    const groups = travaux.gets()
-                    const travailHead = document.createElement('DIV')
-                    travailHead.classList.add('ka-head')
-                    travailHead.innerHTML = 'Travail'
-                    chain.then(() => {
-                        return new Promise(resolve => {
-                            window.requestAnimationFrame(() => {
-                                subcontainer.appendChild(travailHead)
-                                resolve()
-                            })
-                        })
-                    })
-
-                    if (travaux.hasUngrouped()) {
-                        for (const travail of travaux.get(groups.shift())) {
-                            const div = document.createElement('DIV')
-                            div.classList.add('ka-button2', 'stacked')
-                            if (travail.get('description').trim() === '') { 
-                                div.classList.add('no-description')
-                            }
-                            div.innerHTML = `<span class="reference">${travail.get('reference')}</span> <span class="name">${travail.get('description')}</span>`
-                            div.dataset.travail = travail.uid
-                            if (travail.uid === this.hasSet.travail) {
-                                div.dataset.open = 'true'
-                            } else {
-                                div.dataset.open = 'false'
-                            }
-                            chain.then(() => {
-                                return new Promise(resolve => {
-                                    window.requestAnimationFrame(() => { 
-                                        subcontainer.appendChild(div)
-                                        resolve()
-                                    })
-                                })
-                            })
-                        }
-                    }
-
-                    if (groups.length > 0) {
-                        groups.reverse()
-                        for (const group of groups) {
-                            const travailHead = document.createElement('DIV')
-                            travailHead.classList.add('ka-subhead')
-                            travailHead.innerHTML = group
-                            chain.then(() => {
-                                return new Promise(resolve => {
-                                    window.requestAnimationFrame(() => {
-                                        subcontainer.appendChild(travailHead)
-                                        resolve()
-                                    })
-                                })
-                            })
-                            for (const travail of travaux.get(group)) {
-                                const div = document.createElement('DIV')
-                                div.classList.add('ka-button2', 'stacked')
-                                if (travail.get('description').trim() === '') { 
-                                    div.classList.add('no-description')
-                                }
-                                div.innerHTML = `<span class="reference">${travail.get('reference')}</span> <span class="name">${travail.get('description')}</span>`
-                                div.dataset.travail = travail.uid
-                                if (travail.uid === this.hasSet.travail) {
-                                    div.dataset.open = 'true'
-                                } else {
-                                    div.dataset.open = 'false'
-                                }
-                                chain.then(() => {
-                                    return new Promise(resolve => {
-                                        window.requestAnimationFrame(() => { 
-                                            subcontainer.appendChild(div)
-                                            resolve()
-                                        })
-                                    })
-                                })
-                            }
-                        }
-                    }
-                }
-                return chain
-            })
-            .then(() => {
-                if ( this.hasSet.process) { this.showTimeBox() }
-                resolve()
-            })
+            
+            if ( this.hasSet.process) { this.showTimeBox() }
         })
     })
 }
@@ -790,15 +913,22 @@ TimeInteractUI.prototype.selectProject = function (projectId) {
 TimeInteractUI.prototype.selectTravail = function (travailId) {
     return new Promise((resolve) => {
         if (travailId === null) { resolve(); return }
-        const container = document.querySelector('div.ka-container')
-        const subcontainer = container.querySelector('div.ka-project-detail')
+        const container = document.querySelector('div.ka-travail-container')
+        const head = container.querySelector('.ka-head')
+        window.requestAnimationFrame(() => head.firstElementChild.innerHTML = '🭬')
+
         this.hasSet.travail = parseInt(travailId)
-        const animReq = []
-        for (const node of subcontainer.querySelectorAll('.ka-button2[data-travail]')) {
-            if (parseInt(node.dataset.travail) === parseInt(travailId)) {
+        for (let i = 1; i < container.children.length; i++) {
+            const node = container.children[i]
+            if (parseInt(node.dataset?.travail) === parseInt(travailId)) {
                 node.dataset.open = 'true'
+                window.requestAnimationFrame(() => node.querySelector('.checkmark').innerHTML = '🗹')
                 continue
             }
+            window.requestAnimationFrame(() => {
+                if (node.querySelector('.checkmark')) { node.querySelector('.checkmark').innerHTML = '☐' }
+                node.style.display = 'none'
+            })
             delete node.dataset.open
         }
         resolve()
@@ -807,15 +937,24 @@ TimeInteractUI.prototype.selectTravail = function (travailId) {
 
 TimeInteractUI.prototype.selectProcess = function (processId) {
     return new Promise((resolve) => {
-        const container = document.querySelector('div.ka-container')
-        const subcontainer = container.querySelector('div.ka-project-detail')
-        if (!subcontainer) { return resolve() }
+        const container = document.querySelector('div.ka-process-container')
+        const head = container.querySelector('.ka-head')
+        window.requestAnimationFrame(() => head.firstElementChild.innerHTML = '🭬')
         this.hasSet.process = parseInt(processId)
-        for (const node of subcontainer.querySelectorAll('.ka-button2[data-process]')) {
+        for (const node of container.querySelectorAll('.ka-button2[data-process]')) {
             if (parseInt(node.dataset.process) === parseInt(processId)) {
                 node.dataset.open = 'true'
+                window.requestAnimationFrame(() => {
+                    node.querySelector('.checkmark').innerHTML = '🗹'
+                    node.style.display = ''
+
+                })
                 continue
             }
+            window.requestAnimationFrame(() => { 
+                node.querySelector('.checkmark').innerHTML = '☐'
+                node.style.display = 'none'
+            })
             delete node.dataset.open
         }
         resolve()
@@ -1063,14 +1202,15 @@ TimeInteractUI.prototype.handleSelectProcessTravail = function (event) {
     if (node.classList.contains('ka-project')) { return }
 
     const selectItem = []
+    if(node.dataset.travail) {
+        selectItem.push(this.selectTravail(node.dataset.travail))
+    }
 
     if (node.dataset.process) {
         selectItem.push(this.selectProcess(node.dataset.process))
     }
 
-    if(node.dataset.travail) {
-        selectItem.push(this.selectTravail(node.dataset.travail))
-    }
+
     Promise.all(selectItem)
     .then(_ => {
         this.showTimeBox()
@@ -1359,6 +1499,7 @@ TimeInteractUI.prototype.loadTravaux = function (projectId) {
     return new Promise((resolve, reject) => {
         KATravail.getByProject(projectId)
         .then(travaux => {
+            travaux.sort((a,b) => parseInt(a.get('created')) - parseInt(b.get('created')))
             resolve(new KAGroup(travaux))
         })
         .catch(reason => {
