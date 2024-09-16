@@ -274,8 +274,8 @@ TimeInteractUI.prototype.loadFromPreviousEntry = function (date, travaux = []) {
                 if (travaux.indexOf(time.travail) !== -1) { continue }
                 travaux.push(time.travail)
             } else {
-                if (travaux.indexOf(`${time.project}:${time._project.status}`) !== -1) { continue }
-                travaux.push(`${time.project}:${time._project.status}`)
+                if (travaux.indexOf(`${time.project}:${time.process}`) !== -1) { continue }
+                travaux.push(`${time.project}:${time.process}`)
             }
             const status = time._travail?.status || time._project?.status || time.process
             kafetch2(`${KAAL.kairos.endpoint}/Status/${status}`)
