@@ -112,6 +112,14 @@ body {
     cursor: pointer;
     box-shadow: 1px 1px 1px gray;
 }
+.ka-button .time {
+    font-size: 0.9em !important;
+    color: var(--ka-text-alt-button-color);
+}
+
+.ka-button .date, .ka-button .time {
+    padding: 0;
+}
 
 .ka-button.ka-fat {
     font-weight: bold;

@@ -459,20 +459,53 @@ TimeInteractUI.prototype.loadDates = async function () {
     })
 }
 
+TimeInteractUI.prototype.updateTimeInDates = function () {
+    return new Promise(resolve => {
+        for (let i = 0; i < this.dates.length; i++) {
+            const txtDate = this.dates[i].toISOString().split('T')[0]
+            KATemps.getByUserAndDate(this.userId, this.dates[i])
+            .then(temps => {
+                let totalTime = 0
+                for (let j = 0; j < temps.length; j++) {
+                    totalTime += temps[j].get('value')
+                }
+                const d = document.querySelector(`.ka-date-selector div[data-date="${txtDate}"] .time`)
+                if (d) {
+                    window.requestAnimationFrame(() => d.innerHTML = `Déjà entré ${DataUtils.secToHour(totalTime)}`)
+                }
+                resolve()
+            })
+        }
+    })
+}
+
 TimeInteractUI.prototype.showDates = function () {
     return new Promise((resolve) => {
         const div = document.createElement('DIV')
         div.classList.add('ka-date-selector')
-        for (const date of this.dates) {
-            const d = new KAButton(DataUtils.textualShortDate(date), {group: 'date', fat: true})
-            d.dataset.date = date.toISOString().split('T')[0]
-            d.addEventListener('submit', event => {
-                this.dispatchEvent(new CustomEvent('change-date', {detail: event.target.dataset.date}))
+        for (let i = 0; i < this.dates.length; i++) {
+            const date = this.dates[i]
+            KATemps.getByUserAndDate(this.userId, date)
+            .then(temps => {
+                let totalTime = 0
+                for (let j = 0; j < temps.length; j++) {
+                    totalTime += temps[j].get('value')
+                }
+                const d = new KAButton(`<span class="date">${DataUtils.textualShortDate(date)}</span><span class="time">Déjà entré ${DataUtils.secToHour(totalTime)}</span>`, {group: 'date', fat: true})
+                d.style.order =  (date.getTime() / 86400000) | 0
+                d.dataset.date = date.toISOString().split('T')[0]
+                d.addEventListener('submit', event => {
+                    this.dispatchEvent(new CustomEvent('change-date', {detail: event.target.dataset.date}))
+                })
+                d.addEventListener('reset', event => {
+                    this.dispatchEvent(new CustomEvent('reset-date'))
+                })                
+                window.requestAnimationFrame(() => {
+                    div.insertBefore(d, div.firstElementChild)
+                    resolve()
+                })
             })
-            d.addEventListener('reset', event => {
-                this.dispatchEvent(new CustomEvent('reset-date'))
-            })                
-            div.insertBefore(d, div.firstElementChild)
+       
         }
         const container = document.querySelector('div.ka-main-top')
         window.requestAnimationFrame(() => {
@@ -1433,6 +1466,7 @@ TimeInteractUI.prototype.delTime = function (event) {
                 window.requestAnimationFrame(() => {
                     timeEntry.parentNode.removeChild(timeEntry)
                     this.msg('Entrée correctement surpprimée')
+                    this.updateTimeInDates()
                     resolve()
                 })
             })
@@ -1456,6 +1490,7 @@ TimeInteractUI.prototype.setTime = function (project, process, travail, comment,
         })
         temps.save()
         .then(temps => {
+            this.updateTimeInDates()
             resolve(temps)
         })
         .catch(e => {
@@ -1515,6 +1550,7 @@ TimeInteractUI.prototype.addTime = function (event) {
             this.createPreviousTimeTotal(new Date(temps.get('day')))
             this.msg('Entrée correctement ajoutée')
             this.selectTimeEntry(temps.id)
+            this.updateTimeInDates()
         })
     })
     .catch(e => {
