@@ -652,6 +652,11 @@ TimeInteractUI.prototype.showHeader = function () {
     })
 }
 
+TimeInteractUI.prototype.closeCurrentProject = function () {
+    const projectNode = document.querySelector('div.ka-project[data-project]')
+    if (projectNode) { this.closeProject(projectNode) }
+}
+
 TimeInteractUI.prototype.closeProject = function (project) {
     return new Promise(resolve => {
         const container = document.querySelector('div.ka-main-bottom')
@@ -837,6 +842,7 @@ TimeInteractUI.prototype.renderTravaux = function (container, travaux) {
 
 TimeInteractUI.prototype.openProject = function (project) {
     return new Promise(resolve => {
+        this.closeCurrentProject()
         const KAPIProject = new KAPI('Project')
         KAPIProject.get(project.dataset.project)
         .then(projectData => {
