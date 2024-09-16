@@ -251,7 +251,9 @@ TimeInteractUI.prototype.loadFromPreviousEntry = function (date, travaux = []) {
     const childOf = date.toISOString().split('T')[0]
 
     const past3days = new Date()
-    past3days.setTime(past3days.getTime() - 259200000)
+    let p = 259200000
+    if (past3days.getDay() === 1) { p = 432000000 }
+    past3days.setTime(past3days.getTime() - p)
     
     kafetch2(KAAL.url(`Htime/_query`), {
         method:'POST', 
