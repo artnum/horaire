@@ -234,7 +234,7 @@ TimeInteractUI.prototype.eventSubmitData = function (event) {
     const detail = event.detail
     this.selectProject(detail.project.id)
     .then(_ => {
-        return this.selectTravail(detail.affaire.id)
+        return detail.affaire ? this.selectTravail(detail.affaire.id) : this.unselectTravail()
     })
     .then(_ => {
         return new Promise(resolve => {
@@ -268,11 +268,16 @@ TimeInteractUI.prototype.loadFromPreviousEntry = function (date, travaux = []) {
     .then(times => {
         const container = document.querySelector('div.ka-main-top')
         let headAdded = false
+        const timeEntry = []
         for (const time of times) {
-            if (!time._travail) { continue }
-            if (travaux.indexOf(time.travail) !== -1) { continue }
-            travaux.push(time.travail)
-            const status = time._travail.status || time._project.status
+            if (time._travail) {
+                if (travaux.indexOf(time.travail) !== -1) { continue }
+                travaux.push(time.travail)
+            } else {
+                if (travaux.indexOf(`${time.project}:${time._project.status}`) !== -1) { continue }
+                travaux.push(`${time.project}:${time._project.status}`)
+            }
+            const status = time._travail?.status || time._project?.status || time.process
             kafetch2(`${KAAL.kairos.endpoint}/Status/${status}`)
             .then(process => {
                 if (!headAdded) {
@@ -283,7 +288,7 @@ TimeInteractUI.prototype.loadFromPreviousEntry = function (date, travaux = []) {
                     container.appendChild(head)
                     headAdded = true
                 }
-                const button = KAEntryForm(time._project, time._travail, process.pop(), time)
+                const button = KAEntryForm(time._project, time._travail || null, process.pop(), time)
                 button.dataset.childOf = childOf
 
                 window.requestAnimationFrame(() => {

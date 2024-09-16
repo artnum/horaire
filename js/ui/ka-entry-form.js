@@ -6,7 +6,7 @@ function KAEntryForm (project, affaire, status, reservation = null) {
         <span>${project.reference}</span>
         <span style="background-color: ${status.color}; color: ${kolor.foreground()};">${status.name || ''}</span>
         <span>${project.name}</span>
-        <span>${affaire.reference}</span>
+        <span>${affaire?.reference || ''}</span>
     `
 
     const button = new KAButton(div, {fat: true})
