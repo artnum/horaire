@@ -901,6 +901,24 @@ TimeInteractUI.prototype.selectProject = function (projectId) {
     })
 }
 
+TimeInteractUI.prototype.unselectTravail = function () {
+    return new Promise(resolve => {
+        const container = document.querySelector('div.ka-travail-container')
+        const head = container.querySelector('.ka-head')
+        window.requestAnimationFrame(() => head.firstElementChild.innerHTML = '🭭')
+        for (let i = 1; i < container.children.length; i++) {
+            const node = container.children[i]
+            window.requestAnimationFrame(() => {
+                if (node.querySelector('.checkmark')) { node.querySelector('.checkmark').innerHTML = '☐' }
+                node.style.removeProperty('display')
+            })
+            delete node.dataset.open
+        }
+        this.hasSet.travail = null
+        resolve()
+    })
+}
+
 TimeInteractUI.prototype.selectTravail = function (travailId) {
     return new Promise((resolve) => {
         if (travailId === null) { resolve(); return }
@@ -922,6 +940,24 @@ TimeInteractUI.prototype.selectTravail = function (travailId) {
             })
             delete node.dataset.open
         }
+        resolve()
+    })
+}
+
+TimeInteractUI.prototype.unselectProcess = function () {
+    return new Promise(resolve => {
+        const container = document.querySelector('div.ka-process-container')
+        const head = container.querySelector('.ka-head')
+        window.requestAnimationFrame(() => head.firstElementChild.innerHTML = '🭭')
+        for (let i = 1; i < container.children.length; i++) {
+            const node = container.children[i]
+            window.requestAnimationFrame(() => {
+                if (node.querySelector('.checkmark')) { node.querySelector('.checkmark').innerHTML = '☐' }
+                node.style.removeProperty('display')
+            })
+            delete node.dataset.open
+        }
+        this.hasSet.process = null
         resolve()
     })
 }
@@ -1191,14 +1227,22 @@ TimeInteractUI.prototype.handleSelectProcessTravail = function (event) {
     while (!node.classList.contains('ka-button2') && !node.classList.contains('ka-head') && !node.classList.contains('ka-project')) { node = node.parentNode }
     if (node.classList.contains('ka-head')) { return }
     if (node.classList.contains('ka-project')) { return }
-
+    const open = node.dataset.open === 'true' 
     const selectItem = []
     if(node.dataset.travail) {
-        selectItem.push(this.selectTravail(node.dataset.travail))
+        if (open) {
+            selectItem.push(this.unselectTravail())
+        } else {
+            selectItem.push(this.selectTravail(node.dataset.travail))
+        }
     }
 
     if (node.dataset.process) {
-        selectItem.push(this.selectProcess(node.dataset.process))
+        if (open) {
+            selectItem.push(this.unselectProcess())
+        } else {
+            selectItem.push(this.selectProcess(node.dataset.process))
+        }
     }
 
 
