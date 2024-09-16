@@ -358,10 +358,10 @@ TimeInteractUI.prototype.loadFromPlanning = function (date) {
                     button.dataset.childOf = childOf
                     window.requestAnimationFrame(() => {
                         container.appendChild(button)
-                        resolve(affaires)
                     })
                     button.addEventListener('submit-data', event => this.eventSubmitData(event))
                 }
+                resolve(affaires)
             })
         })
     })
