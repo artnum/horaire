@@ -34,6 +34,10 @@ body {
     box-sizing: border-box;
 }
 
+.ka-project {
+    display: grid;
+}
+
 .ka-search {
     padding: 0;
     margin: 0;
