@@ -486,12 +486,21 @@ body {
     align-items: stretch;
 }
 
+.ka-button .ka-project-entry {
+    display: grid;
+    grid-template-columns: 8ch 20ch 1fr 1fr;
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+}
+
 .ka-project-entry span {
     display: grid;
+    overflow: hidden;
+    text-overflow: clip;
+    padding: 0 0.2ch;
     align-items: center;
-    row-gap: 20px;
-    padding: 4px;
-    box-sizing: border-box;
+    justify-items: flex-start;
 }
 
 .ka-project-entry span:first-child {
@@ -607,6 +616,13 @@ input, select {
 .ka-forecast-project .manager {
     background-color:bisque;
     color: black;
+}
+
+.ka-spacer-title {
+    font-size: 0.8em;
+    margin-top: 1ex;
+    font-weight: bold;
+    text-align: right;
 }
 
 @media (max-width: 480px) {

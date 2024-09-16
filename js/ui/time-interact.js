@@ -265,6 +265,7 @@ TimeInteractUI.prototype.loadFromPreviousEntry = function (date, travaux = []) {
     })
     .then(times => {
         const container = document.querySelector('div.ka-main-top')
+        let headAdded = false
         for (const time of times) {
             if (!time._travail) { continue }
             if (travaux.indexOf(time.travail) !== -1) { continue }
@@ -272,6 +273,14 @@ TimeInteractUI.prototype.loadFromPreviousEntry = function (date, travaux = []) {
             const status = time._travail.status || time._project.status
             kafetch2(`${KAAL.kairos.endpoint}/Status/${status}`)
             .then(process => {
+                if (!headAdded) {
+                    const head = document.createElement('DIV')
+                    head.classList.add('ka-spacer-title')
+                    head.dataset.childOf = childOf
+                    head.innerHTML = 'Précédemment enregistré'
+                    container.appendChild(head)
+                    headAdded = true
+                }
                 const button = KAEntryForm(time._project, time._travail, process.pop(), time)
                 button.dataset.childOf = childOf
 
@@ -286,6 +295,7 @@ TimeInteractUI.prototype.loadFromPreviousEntry = function (date, travaux = []) {
 
 TimeInteractUI.prototype.loadFromPlanning = function (date) {
     const affaires = []
+    let headAdded = false
     return new Promise((resolve, reject) => {
         kafetch2(`${KAAL.kairos.url}/store/Reservation/_query`, {
             method:'POST', 
@@ -329,6 +339,14 @@ TimeInteractUI.prototype.loadFromPlanning = function (date) {
                 const childOf = date.toISOString().split('T')[0]
                 const container = document.querySelector('div.ka-main-top')
                 for (const reservation of reservations) {
+                    if (!headAdded) {
+                        const head = document.createElement('DIV')
+                        head.classList.add('ka-spacer-title')
+                        head.dataset.childOf = childOf
+                        head.innerHTML = 'Planifié aujourd\'hui'
+                        container.appendChild(head)
+                        headAdded = true
+                    }
                     const button = KAEntryForm(reservation.affaire.project, reservation.affaire, reservation.affaire.status, reservation)
                     button.dataset.childOf = childOf
                     window.requestAnimationFrame(() => {
