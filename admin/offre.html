@@ -267,6 +267,9 @@
                     <option value="m_l">m/l</option>
                     <option value="kg">kg</option>
                     <option value="h">h</option>
+                    <option value="uv">uv</option>
+                    <option value="m2">m2</option>
+                    <option value="km">km</option>
                 </select>
                 <input type="number" name="price" step="0.01">
                 <input type="number" name="line_total" step="0.01" to-delete="negate" data-expression="$quantity $price *">
@@ -285,7 +288,7 @@
             <div>
             <account-summary for="accountingDocContent" precision="2" name="base">
                 <legend>
-                    Sout-Total 
+                    Sout-Total
                     <span></span>
                     <span></span>
                     <span class="total" name="gross" data-expression="~IVALUE0 ldr"></span>
