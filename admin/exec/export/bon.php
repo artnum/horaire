@@ -430,11 +430,35 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       }
     }
     $PDF->close_block();
+
+
+    $hasGPS = false;
+    if (!empty($travail['travail_urlgps'])) {
+      $y = $PDF->GetY();
+      $QRPosition = $QRCodeYRelative + 2.8;
+      try {
+        [$qr, $logo] = genQRImage($travail['travail_urlgps'], 24, 'gps');
+        (new PdfWriter())->write($qr, $logo, null, [
+          PdfWriter::WRITER_OPTION_PDF => $PDF, 
+          PdfWriter::WRITER_OPTION_X => 169, 
+          PdfWriter::WRITER_OPTION_Y => $QRPosition,
+          PdfWriter::WRITER_OPTION_UNIT => 'mm']);
+        $PDF->Image(__DIR__ . '/../../../resources/tap.png', 197, $QRPosition + 27, 6, 6, 'PNG');
+        $PDF->Link(170, $QRPosition + 1, 28, 28, $travail['travail_urlgps']);
+        $PDF->SetFont('helvetica', '', 7);
+        $PDF->SetXY(173, $QRPosition - 2);
+        $PDF->printLn('Localisation GPS', ['break' => false]);
+        $hasGPS = true;
+        $PDF->SetY($y + 4);
+      } catch(Exception $e) {
+        error_log('QRCode generation failed : ' . $e->getMessage());
+      }
+    }
     $PDF->block('worktime' . $BLK_COUNT);
 
-    $bHeight = 15;
+    $bHeight = $hasGPS ? 15 : 20;
     $PDF->SetFont('helvetica', 'B', 10);
-    $PDF->printLn('Main d\'œuvre');
+    $PDF->printLn('Main d\'œuvre et matière');
     $PDF->br();
     $y = $PDF->GetY();
     $PDF->SetFont('helvetica', '', 10);
@@ -460,7 +484,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetXY($PDF->lMargin, $PDF->GetY());
     $PDF->squaredFrame($bHeight, ['square' => 5, 'lined' => true, 'line-type'=>'dotted']);
     $PDF->SetY($PDF->GetY() + $bHeight + 2);
-    $str = 'Total main d\'œuvre : ';
+    $str = 'Total : ';
     $PDF->SetX(floor($furtherX - $PDF->GetStringWidth($str)));
     $PDF->printLn($str);
     $PDF->Line($PDF->lMargin, $PDF->GetY(), ceil($PDF->w - $PDF->rMargin), $PDF->GetY());
@@ -468,9 +492,9 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->block('others' . $BLK_COUNT);
     $PDF->br();
     $PDF->SetFont('helvetica', 'B', 10);
-    $PDF->printLn('Matériel utilisé et autres charge');
+    $PDF->printLn('Journal d\'activité');
     $PDF->br();
-    $bHeight = 10;
+    $bHeight = $hasGPS ? 35 : 50;
     $y = $PDF->GetY();
     $PDF->SetFont('helvetica', '', 10);
     $furtherX = 0;
@@ -478,7 +502,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->block('matos-head' . $BLK_COUNT);
     $PDF->background_block($colorType);
     $PDF->setColor($PDF->getBWFromColor($colorType));
-    foreach(['Matériaux' => 100, 'Qté' => 20, "Unité" => 20, 'Prix unité' => 20, 'Total' => 0] as $label => $w) {
+    foreach(['Date' => 30, 'Employé' => 30, 'Descriptif' => 0] as $label => $w) {
       $sX = $PDF->GetX();
       $PDF->printTaggedLn(['%h', $label], ['break' => false]);
       $PDF->SetX($PDF->GetX() +  ($w - ($PDF->GetX() - $sX)));
@@ -495,14 +519,6 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetXY($PDF->lMargin, $PDF->GetY());
     $PDF->squaredFrame($bHeight, ['square' => 5, 'lined' => true, 'line-type'=>'dotted']);
     $PDF->SetY($PDF->GetY() + $bHeight + 2);
-    $str = 'Total matériel et autres charges : ';
-    $PDF->SetX(floor($furtherX - $PDF->GetStringWidth($str)));
-    $PDF->printLn($str);
-    $PDF->Line($PDF->lMargin, $PDF->GetY(), ceil($PDF->w - $PDF->rMargin), $PDF->GetY());
-    $PDF->SetY($PDF->GetY() + 2);
-    $PDF->SetFont('helvetica', 'B', 12);
-    $PDF->printLn('Total');
-    $PDF->Line($PDF->lMargin, $PDF->GetY(), ceil($PDF->w - $PDF->rMargin), $PDF->GetY());
     $END_OF_TEXT_POSITION = $PDF->GetY();
     try {
 
@@ -515,26 +531,6 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
       $PDF->Link(167, 8, 35, 35, $travail['travail_urlgps']);
     } catch(Exception $e) {
       error_log('QRCode generation failed : ' . $e->getMessage());
-    }
-
-
-    if (!empty($travail['travail_urlgps'])) {
-      $QRPosition = $QRCodeYRelative + 2.8;
-      try {
-        [$qr, $logo] = genQRImage($travail['travail_urlgps'], 24, 'gps');
-        (new PdfWriter())->write($qr, $logo, null, [
-          PdfWriter::WRITER_OPTION_PDF => $PDF, 
-          PdfWriter::WRITER_OPTION_X => 169, 
-          PdfWriter::WRITER_OPTION_Y => $QRPosition,
-          PdfWriter::WRITER_OPTION_UNIT => 'mm']);
-        $PDF->Image(__DIR__ . '/../../../resources/tap.png', 197, $QRPosition + 27, 6, 6, 'PNG');
-        $PDF->Link(170, $QRPosition + 1, 28, 28, $travail['travail_urlgps']);
-        $PDF->SetFont('helvetica', '', 7);
-        $PDF->SetXY(173, $QRPosition - 2);
-        $PDF->printLn('Localisation GPS', ['break' => false]);
-      } catch(Exception $e) {
-        error_log('QRCode generation failed : ' . $e->getMessage());
-      }
     }
     
     $page_added = false;
