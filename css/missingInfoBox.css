@@ -1,0 +1,7 @@
+.MissingInfoBox {
+    max-width: 90%;
+    margin: auto;
+    padding: 5px;
+    background-color: orange;
+    border: 1px solid orangered;
+}

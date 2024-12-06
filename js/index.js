@@ -41,7 +41,9 @@ const imports = [
     ['$script/src/ui/time-interact.js', 'script'],
     ['$script/src/ui/user-interact.js', 'script'],
     ['$script/src/ui/msg-interact.js', 'script'],
-    ['$script/src/ui/car-interact.js', 'script']
+    ['$script/src/ui/car-interact.js', 'script'],
+    ['$script/src/ui/missing.js', 'script']
+
 ]
 
 window.addEventListener('DOMContentLoaded', event => {
