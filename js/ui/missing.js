@@ -15,6 +15,7 @@ Missing.prototype.init = function () {
         .then(missing => {
             if (missing === null) { return }
             this.data = missing
+            return
         }) 
         .then(_ => {
             resolve()
