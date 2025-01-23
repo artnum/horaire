@@ -58,7 +58,7 @@
             userUI.addEventListener('user-login', event => {
                 if ((new Missing()).isMissing(event.detail.userId)) {
                     const infoBox = document.createElement('DIV')
-                    infoBox.classList.add('MissingInfoBox', 'ka-container')
+                    infoBox.classList.add('MissingInfoBox')
                     infoBox.innerHTML = `Des heures sont manquantes sur certains
                         projets. Veuillez vérifier et remplir le formulaire si des
                         corrections sont nécessaire`
