@@ -51,3 +51,50 @@
 .ka-fieldset {
     border-top: 1px solid var(--ka-border-button-color);
 }
+
+.ka-login-form  {
+    margin: 0 auto;
+    max-width:max-content;
+}
+.ka-login-form span.title, .ka-login-form span.description {
+    display: flex;
+    justify-content: space-around;
+    min-height: 4ex;
+}
+
+.ka-login-form span.title {
+    font-size: 1.2em;
+}
+
+.ka-login-form span.description {
+    font-weight: bold;
+}
+
+.ka-login-form label span {
+    margin-right: 15px;
+}
+.ka-login-form label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.ka-login-form input[readonly] {
+    background-color: var(--ka-input-readonly-bgcolor);
+    border: none;
+}
+
+@media (max-width: 700px) {
+    .ka-login-form {
+        min-width: 100%;
+    }
+    .ka-login-form input {
+        min-width: 100%;
+    }
+    .ka-login-form label{
+        flex-direction: column;
+        padding: 5px 5px;
+        margin-bottom: 20px;
+    }
+}

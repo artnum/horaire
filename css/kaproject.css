@@ -245,13 +245,13 @@ body {
 }
 
 .ka-button2[data-open="true"]  {
-    background-color: var(--ka-button-background-color) !important;
+    background-color: var(--ka-background-button-color) !important;
     color: var(--ka-button-color) !important;
     transition:ease-in-out 0.3s;
 }
 
 .ka-project:hover > .reference {
-    background-color: steelblue;
+    background-color: var(--ka-background-button-color-hover);
 }
 
 .ka-project > span {
@@ -297,13 +297,13 @@ body {
 
 .ka-project > .reference {
     color: white;
-    background-color: darkblue;
+    background-color: var(--ka-background-button-color);
     transition:ease-in-out 0.3s;
 }
 
 .ka-project[data-open="true"] {
     color: white;
-    background-color: darkblue;
+    background-color: var(--ka-background-button-color);
     transition: ease-in-out 0.3s;
 }
 .ka-project[data-open="true"] > .name {

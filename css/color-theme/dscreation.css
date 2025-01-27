@@ -4,11 +4,14 @@
     --ka-button-blended-bg: lavender;
 
     --ka-background-button-color: #71a1dd;
+    --ka-background-button-color-hover: #425f83;
+
     --ka-border-button-color: #405c80;
     --ka-text-button-color: black;
     --ka-text-alt-button-color: darkslategray;
 
-
+    --ka-input-readonly-bgcolor: lightgray;
+    
     --ka-background-button-active-color: #71a1ddcc;
     --ka-border-button-active-color: #405c80cc;
     --ka-text-button-active-color: black;

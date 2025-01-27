@@ -591,21 +591,13 @@ TimeInteractUI.prototype.showUser = function () {
                 this.history.back()
             })
             logout.addEventListener('submit', event => {
-                new Promise(resolve => {
-                    const klogin = new KLogin()
-                    klogin.logout()
-                    .then(() => {
-                        window.requestAnimationFrame(() => {
-                            document.querySelector('div.ka-head').innerHTML = ''
-                            document.querySelector('div.ka-main-top').innerHTML = ''
-                            document.querySelector('div.ka-main-bottom').innerHTML = ''
-                            document.querySelector('div.ka-foot').innerHTML = ''
-                            resolve()
-                        })
-                    })
-                })
+                new KLogin().logout()
                 .then(() => {
-                    this.eventTarget.dispatchEvent(new CustomEvent('user-logout'))
+                    window.location.reload()
+                })
+                .catch(e => {
+                    console.log(e)
+                    window.location.reload()
                 })
             })
 

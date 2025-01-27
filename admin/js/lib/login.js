@@ -51,6 +51,82 @@ KLogin.prototype.init = function (userid, nonce = null) {
     })
 }
 
+KLogin.prototype.generateInvitationCode = function (userid)
+{
+    return new Promise((resolve, reject) => {
+        fetch(new URL('.auth/invitation', this.base), {
+            method: 'POST',
+            body: JSON.stringify({
+                userid: userid
+            })
+        })    
+        .then(response => {
+            if (!response.ok) { return reject(new Error('login error')) }
+            return response.json()
+        })
+        .then(result => {
+            if (result.error) { return reject(new Error('login error')) }
+            resolve(result)
+        })
+        .catch(e => {
+            reject(new Error('login error', {cause: e}))
+        })
+    })
+}
+
+KLogin.prototype.setInvitationPassword = function(invitation, password)
+{
+    return new Promise((resolve, reject) => {
+        this.genPassword(password)
+        .then(key => {
+            fetch(new URL('.auth/connect-by-invitation', this.base), {
+                method: 'POST',
+                body: JSON.stringify({
+                    invitation: invitation,
+                    algo: key.algo,
+                    key: key.derived,
+                    iterations: key.iterations,
+                    salt: key.salt
+                })
+            })
+            .then(response => {
+                if (!response.ok) { return reject(new Error('login error')) }
+                return response.json()
+            })
+            .then(result => {
+                if (result.error) { return reject(new Error('login error')) }
+                resolve(result)
+            })
+            .catch(e => {
+                reject(new Error('login error', {cause: e}))
+            })
+        })
+    })
+}
+
+KLogin.prototype.getInvitationInfo = function (invitation)
+{
+    return new Promise((resolve, reject) => {
+        fetch(new URL('.auth/get-invitation-info', this.base), {
+            method: 'POST',
+            body: JSON.stringify({
+                invitation: invitation
+            })
+        })
+        .then(response => {
+            if (!response.ok) { return reject(new Error('login error')) }
+            return response.json()
+        })
+        .then(result => {
+            if (result.error) { return reject(new Error('login error')) }
+            resolve(result)
+        })
+        .catch(e => {
+            reject(new Error('login error', {cause: e}))
+        })
+    })
+}
+
 KLogin.prototype.arrayToB64 = function (array) {
     return btoa(String.fromCharCode(...new Uint8Array(array)))
 }
@@ -80,8 +156,13 @@ KLogin.prototype.genPassword = function (password) {
         crypto.getRandomValues(outKey.salt)
         crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey'])
         .then(cryptokey => {
-            return crypto.subtle.deriveKey({name: 'PBKDF2', hash: this.halgo, salt: outKey.salt, iterations: outKey.iterations}, 
-                cryptokey, {name: 'HMAC', hash: this.halgo, length: this.getAlgoLength(this.halgo)}, true, ['sign'])
+            return crypto.subtle.deriveKey(
+                {name: 'PBKDF2', hash: this.halgo, salt: outKey.salt, iterations: outKey.iterations}, 
+                cryptokey,
+                {name: 'HMAC', hash: this.halgo, length: this.getAlgoLength(this.halgo)},
+                true,
+                ['sign']
+            )
         })
         .then(cryptokey => {
             return crypto.subtle.exportKey('raw', cryptokey)
@@ -102,7 +183,10 @@ KLogin.prototype.setPassword = function (userid, password) {
         this.genPassword(password)
         .then(key => {
             return fetch(new URL('.auth/setpassword', this.base), {method: 'POST', body:
-                JSON.stringify({userid: userid, key: key.derived, salt: key.salt, iterations: key.iterations, algo: key.algo })})
+                JSON.stringify(
+                    {userid: userid, key: key.derived, salt: key.salt, iterations: key.iterations, algo: key.algo }
+                )
+            })
         })
         .then(response => {
             return response.json()
@@ -121,15 +205,24 @@ KLogin.prototype.genToken = function (params, password, nonce = null) {
         crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey'])
         .then(cryptokey => {
             const salt = this.b64ToArray(params.salt).buffer
-            return crypto.subtle.deriveKey({name: 'PBKDF2', hash: this.halgo, salt: salt, iterations: parseInt(params.count)}, 
-                cryptokey, {name: 'HMAC', hash: this.halgo, length: this.getAlgoLength(this.halgo)}, false, ['sign'])
+            return crypto.subtle.deriveKey(
+                {name: 'PBKDF2', hash: this.halgo, salt: salt, iterations: parseInt(params.count)},
+                cryptokey,
+                {name: 'HMAC', hash: this.halgo, length: this.getAlgoLength(this.halgo)},
+                false,
+                ['sign']
+            )
         })
         .then(key => {
             const auth = this.b64ToArray(params.auth)
             const sign = new Uint8Array(auth.length + (nonce === null ? 0 : nonce.length))
             sign.set(auth)
             if (nonce) { sign.set(nonce, auth.length) }
-            return crypto.subtle.sign({name: 'HMAC', hash: this.halgo, length: this.getAlgoLength(this.halgo)}, key, sign)
+            return crypto.subtle.sign(
+                {name: 'HMAC', hash: this.halgo, length: this.getAlgoLength(this.halgo)},
+                key,
+                sign
+            )
         })
         .then(rawtoken => {
             resolve(this.arrayToB64(rawtoken))
@@ -157,7 +250,7 @@ KLogin.prototype.check = function (token) {
         })
         .then(result => {
             if (!result.done) { return reject(new Error('login error'))}
-            resolve(token)
+            resolve(result)
         })
     })
 }
@@ -263,10 +356,10 @@ KLogin.prototype.login = function (userid, password) {
         .then(token => {
             return this.check(token)
         })
-        .then(token => {
-            localStorage.setItem('klogin-userid', userid)
-            localStorage.setItem('klogin-token', token)
-            resolve(token)
+        .then(result => {
+            localStorage.setItem('klogin-userid', result.uid)
+            localStorage.setItem('klogin-token', result.token)
+            resolve(result)
         })
         .catch(e => {
             reject(new Error('login error', {cause: e}))

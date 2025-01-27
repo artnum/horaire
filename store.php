@@ -80,47 +80,54 @@ $user = new KUser($pdo);
 
 /* Authentication */
 $kauth = new KAALAuth($pdo);
-
 if ($http_request->getCollection() === '.auth') {
   $kauth->run($http_request->getItem(), $user);
   exit(0);
 }
 
-if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
-  if (!($http_request->getCollection() === 'Person' && $http_request->getItem() === '_query')) {
+/* Authorization */
+$acl = new ACL([]);
+if (boolval($KConf->get('old-login')) === true) {
+  $acl->addRule('Person', ACL::WHO_IS_EVERYONE, ACL::LEVEL_ANY, true);
+
+  if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
+    if (!($http_request->getCollection() === 'Person' && $http_request->getItem() === '_query')) {
+      http_response_code(401);
+      exit(0);
+    }
+  } else {
+    $authContent = explode(' ', $_SERVER['HTTP_AUTHORIZATION']);
+    if (count($authContent) !== 2) {
+      if (!($http_request->getCollection() === 'Person' && $http_request->getItem() === '_query')) {
+        http_response_code(401);
+        exit(0);
+      }
+    }
+
+    if (!$kauth->check_auth(trim($authContent[1]), $http_request->getUrl())) {
+      if (!($http_request->getCollection() === 'Person' && $http_request->getItem() === '_query')) {
+        http_response_code(401);
+        exit(0);
+      }
+    }
+  }
+} else {
+  if (!$kauth->check_auth($kauth->get_auth_token())) {
     http_response_code(401);
     exit(0);
   }
-} else {
-  $authContent = explode(' ', $_SERVER['HTTP_AUTHORIZATION']);
-  if (count($authContent) !== 2) {
-    if (!($http_request->getCollection() === 'Person' && $http_request->getItem() === '_query')) {
-      http_response_code(401);
-      exit(0);
-    }
-  }
-
-  if (!$kauth->check_auth(trim($authContent[1]), $http_request->getUrl())) {
-    if (!($http_request->getCollection() === 'Person' && $http_request->getItem() === '_query')) {
-      http_response_code(401);
-      exit(0);
-    }
-  }
 }
 
-/* Authorization */
-$acl = new ACL([]);
-
-$acl->addRule('*', -1, ACL::LEVEL_ANY, true);
+$acl->addRule('*', ACL::WHO_IS_USER, ACL::LEVEL_ANY, true);
 
 /* Accounting */
 $audit = new SQLAudit($logpdo, true);
-
 $store->init($KConf);
 if ($acl->check($store->getCollection(), $kauth->get_current_userid(), $store->getOperation(), $store->getOwner())) {
   try {
     $store->setAcl($acl);
     [$request, $response] = $store->run($KConf);
+    fastcgi_finish_request();
     $audit->audit($request, $response, $kauth->get_current_userid());
   } catch (Exception $e) {
     error_log($e->getMessage());

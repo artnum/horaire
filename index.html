@@ -54,9 +54,8 @@
             document.title = KAAL.title
             const userUI = new UserInteractUI()
             userUI.run()
-
-            userUI.addEventListener('user-login', event => {
-                if ((new Missing()).isMissing(event.detail.userId)) {
+            .then(user => {
+                if ((new Missing()).isMissing(user.uid)) {
                     const infoBox = document.createElement('DIV')
                     infoBox.classList.add('MissingInfoBox')
                     infoBox.innerHTML = `Des heures sont manquantes sur certains
@@ -67,7 +66,7 @@
                     })
                     document.body.insertBefore(infoBox, document.body.firstElementChild)
                 }
-                const timeUI = new TimeInteractUI(event.detail.userId, event.detail.workday)
+                const timeUI = new TimeInteractUI(user.uid, user.workday)
                 timeUI.run()
                 timeUI.addEventListener('user-logout', event => {
                     userUI.run()

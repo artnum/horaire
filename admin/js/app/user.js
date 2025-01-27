@@ -35,8 +35,7 @@ const base = window.location.pathname.split('/')
               <option value="32" ${parseInt(user.level) === 32 ? 'selected' : ''}>Gestion temps, projet et processus</option>
               <option value="16" ${parseInt(user.level) === 16 ? 'selected' : ''}>Gestion de tout</option>
           </select></label><br/>
-          <label for="password">Mot de passe : <input type="password" name="password" value=""></label><br><span class="notice" data-name="password-modified">Le mot de passe ne sera pas modifié</span><br>
-          <label for="disabled"> Désactiver : <input type="checkbox" name="disabled" ${parseInt(user.disabled) === 0 ? '' : 'checked'} /></label><br>
+    
           <label for="order">Ordre au planning : <input name="order" type="text" value="${user.order}"/><br>
             Jour de travail : <br>
             <label><input type="checkbox" ${user.workday.charAt(1) === 'y' ? 'checked' : ''} name="workday_1"> Lundi</label>
@@ -197,20 +196,6 @@ const base = window.location.pathname.split('/')
                       })
                     })
 
-                  })
-                  .then(user => {
-                    /* change password if needed */
-                    return new Promise((resolve, reject) => {
-                      if (!content.password) { return resolve(user) }
-                      KLoginInstance.setPassword(user.id, content.password)
-                      .then(_ => {
-                        return KLoginInstance.disconnectAll(user.id)
-                      })
-                      .then(_ => {
-                        return resolve(user)
-                      })
-                      .catch(cause => reject(cause))
-                    })
                   })
                   .then(user => {
                     /* display new user, close popup */
@@ -421,6 +406,7 @@ const base = window.location.pathname.split('/')
          <td>${entry.order}</td>
          <td>
          <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="edit">Modifier</button>
+         <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="invitation">Inviter</button>
          <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="pricing">Tarif horaire</button>
          <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="connections">Connections (${entry._connections.length})</button>
          <button data-user="${entry.id}" data-username="${entry.name}" type="button" data-action="delete">Supprimer</button></td>`
@@ -626,8 +612,23 @@ const base = window.location.pathname.split('/')
     })
   }
 
+  function generate_invitation_link (userid)
+  {
+    KLoginInstance.generateInvitationCode(userid)
+    .then(code => {
+      const invitlink = KAAL.url(`?invitation=${code.invitation}`)
+      window.Admin.popup(
+        `Le lien d'invitation est <a href="${invitlink}">${invitlink}</a>`,
+        'Lien d\'invitation', { closable: true }
+      )
+    })
+    .catch(e => {
+      MsgInteractUI('error', 'Erreur création du lien d\'invitation')
+    })
+  }
+
   window.addEventListener('load', function () {
-    const UserTable = new Artnum.DTable({ table: 'users' })
+    //const UserTable = new Artnum.DTable({ table: 'users' })
     window.addEventListener('update', (event) => {
       if (!event.detail) { return }
       if (!event.detail.type) { return }
@@ -644,6 +645,9 @@ const base = window.location.pathname.split('/')
       switch (event.target.dataset.action) {
         case 'edit':
           editUser(node.dataset.id)
+          break
+        case 'invitation':
+          generate_invitation_link(node.dataset.id)
           break
         case 'delete':
           deleteUser(node.dataset.id).then(() => {

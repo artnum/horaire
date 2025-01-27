@@ -10,9 +10,12 @@ class KAALAuth {
         'SHA-384' => ['sha384', 48],
         'SHA-512' => ['sha512', 64]
     ];
+
+    const INVITATION_BYTES_LENGTH = 16; // 128 bits
     const SHARE_NONE = 0x00;
     const SHARE_TEMPORARY = 0x01;
     const SHARE_LIMITED_ONCE = 0x02; /* share until used once but with time limit */
+    const SHARE_INVITATION = 0x03;
     const SHARE_NOT_TIMED = 0x80; /* not used, below time apply, above time don't apply */
     const SHARE_PERMANENT = 0x81;
     const SHARE_PROXY = 0x82; /* to create token for proxy, never expires, not bound to any url, not bound to any user */
@@ -28,6 +31,83 @@ class KAALAuth {
 
     function get_current_userid() {
         return $this->current_userid;
+    }
+
+    function generate_invitation($userid)
+    {
+        $bytes = random_bytes(KAALAuth::INVITATION_BYTES_LENGTH);
+        $authvalue = rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
+        if ($this->add_auth($userid, $authvalue, '', KAALAuth::SHARE_INVITATION, 0, $this->timeout)) {
+            return $authvalue;
+        }
+        return '';
+    }
+
+    function auth_by_invitation($invitation)
+    {
+        $pdo = $this->pdo;
+        try {
+            $stmt = $pdo->prepare(sprintf('SELECT * FROM %s WHERE auth = :auth', $this->table));
+            $stmt->bindValue(':auth', $invitation, PDO::PARAM_STR);
+            $stmt->execute();
+            while (($row = $stmt->fetch(PDO::FETCH_ASSOC))) {
+                if (intval($row['share']) != KAALAuth::SHARE_INVITATION) {
+                    /* overtime, delete and next auth token ... if any */
+                    $this->del_specific_connection($row['uid']);                    
+                    continue;
+                }
+                if ((time() - intval($row['started']) > intval($row['duration']))) {
+                    $this->del_specific_connection($row['uid']);                    
+                    continue;
+                }
+                return $row['userid'];
+            }
+            return false;
+        } catch(Exception $e) {
+            error_log(sprintf('kaal-auth <auth-by-invitation>, "%s"', $e->getMessage()));
+        }
+    }
+
+    function get_invitation_info($invitation)
+    {
+        $pdo = $this->pdo;
+        try {
+            $stmt = $pdo->prepare(sprintf('SELECT * FROM %s WHERE auth = :auth', $this->table));
+            $stmt->bindValue(':auth', $invitation, PDO::PARAM_STR);
+            $stmt->execute();
+            $userid = null;
+            while (($row = $stmt->fetch(PDO::FETCH_ASSOC))) {
+                if (intval($row['share']) != KAALAuth::SHARE_INVITATION) {
+                    /* overtime, delete and next auth token ... if any */
+                    $this->del_specific_connection($row['uid']);                    
+                    continue;
+                }
+                if ((time() - intval($row['started']) > intval($row['duration']))) {
+                    $this->del_specific_connection($row['uid']);                    
+                    continue;
+                }
+                $userid = $row['userid'];
+                break;
+            }
+            if ($userid == null) { return false; }
+            $stmt =$this->pdo->prepare('SELECT "person_id", "person_name", "person_username" FROM "person" WHERE "person_id" = :id');
+            $stmt->bindValue(':id', intval($userid), PDO::PARAM_INT);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row || empty($row)) { return false; }
+            return [$row['person_name'], $row['person_username']];
+        } catch(Exception $e) {
+            error_log(sprintf('kaal-auth <get-invitation-info>, "%s"', $e->getMessage()));
+        }
+    }
+
+    function delete_invitation($userid)
+    {
+        $pdo = $this->pdo;
+        $stmt = $pdo->prepare(sprintf('DELETE FROM %s WHERE userid = :userid AND share = :share', $this->table));
+        $stmt->bindValue(':share', KAALAuth::SHARE_INVITATION, PDO::PARAM_INT);
+        $stmt->bindValue(':userid', intval($userid), PDO::PARAM_INT);
+        $stmt->execute();
     }
 
     function generate_auth ($userid, $hpw, $cnonce = '', $hash = 'SHA-256') {
@@ -127,10 +207,14 @@ class KAALAuth {
         if ($duration === -1) { $duration = $this->timeout; }
         try {
             $urlid = '';
-            if ($sharetype !== KAALAuth::SHARE_NONE) {
-                $urlid = sha1($url);
-            } else {
-                $url = '';
+            switch($sharetype) {
+                default:
+                    $urlid = sha1($url);
+                    break;
+                case KAALAuth::SHARE_NONE:
+                case KAALAuth::SHARE_INVITATION:
+                    $url = '';
+                    break;
             }
             $stmt = $pdo->prepare(sprintf('INSERT INTO %s (userid, auth, started, duration, remotehost, remoteip, useragent, share, urlid, url, comment) VALUES (:uid, :auth, :started, :duration, :remotehost, :remoteip, :useragent, :share, :urlid, :url, :comment);', $this->table));
             $stmt->bindValue(':uid', $userid, PDO::PARAM_STR);
@@ -442,6 +526,7 @@ class KAALAuth {
                     if (empty($content['auth'])) { throw new Exception(); }
                     if (!$this->confirm_auth($content['auth'])) { throw new Exception(); }
                     $this->refresh_auth($content['auth']);
+                    $this->delete_invitation($this->current_userid);
                     if ($step === 'getshareable') {
                         $hash = 'SHA-256';
                         if (!empty($content['hash']) && isset(KAALAuth::HASH[$content['hash']])) {
@@ -467,7 +552,7 @@ class KAALAuth {
                         echo json_encode(['done' => true, 'token' => $token, 'duration' => $duration]);
                         break;
                     }
-                    echo json_encode(['done' => true]);
+                    echo json_encode(['done' => true, 'uid' => $this->current_userid, 'token' => $content['auth']]);
                     break;
                 case 'quit':
                     if (empty($content['auth'])) { throw new Exception(); }
@@ -527,6 +612,25 @@ class KAALAuth {
                     }
                     echo json_encode(['userid' => intval($content['userid'])]);
                     break;
+                case 'invitation':
+                    $token = $this->get_auth_token();
+                    if (!$this->check_auth($token)) { throw new Exception(); }
+                    $userid = $this->get_id($token);
+                    if (empty($content['userid'])) { throw new Exception(); }
+                    $stmt =$this->pdo->prepare('SELECT "person_id", "person_level" FROM "person" WHERE "person_id" = :id');
+                    $stmt->bindValue(':id', intval($userid), PDO::PARAM_INT);
+                    $stmt->execute();
+                    if ($stmt->rowCount() !== 1) { throw new Exception(); }
+                    $data = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if (intval($data['person_level']) > 16) { 
+                        throw new Exception();
+                    }
+                    $invitation = $this->generate_invitation($content['userid']);
+                    if (empty($invitation)) {
+                        throw new Exception();
+                    }
+                    echo json_encode(['invitation' => $invitation]);
+                    break;
                 case 'disconnect-by-id':
                     $token = $this->get_auth_token();
                     if (!$this->check_auth($token)) { throw new Exception(); }
@@ -536,9 +640,26 @@ class KAALAuth {
                     $success = $this->del_all_connection_by_id($conn['uid']);
                     echo json_encode(['done' => $success]);
                     break;
+                case 'get-invitation-info':
+                    if (empty($content['invitation'])) { throw new Exception(); }
+                    $person = $this->get_invitation_info($content['invitation']);
+                    if (!$person) { throw new Exception(); }
+                    echo json_encode(['name' => $person[0], 'username' => $person[1]]);
+                    break;
+                case 'connect-by-invitation':
+                    if (empty($content['invitation'])) {  throw new Exception(); }
+                    $userid = $this->auth_by_invitation($content['invitation']);
+                    if (empty($userid)) { throw new Exception(); }
+                    $content['userid'] = $userid;
+                    $invitation_login = true;
+                    /* set invitation_login and fall through, as everything is
+                       sent to set new password
+                    */
                 case 'setpassword':
-                    $token = $this->get_auth_token();
-                    if (!$this->check_auth($token)) { throw new Exception(); }
+                    if (!$invitation_login) {
+                        $token = $this->get_auth_token();
+                        if (!$this->check_auth($token)) { throw new Exception(); }
+                    }
                     if (empty($content['userid'])) { throw new Exception(); }
                     if (empty($content['key'])) { throw new Exception(); }
                     if (empty($content['salt'])) { throw new Exception(); }
@@ -560,6 +681,12 @@ class KAALAuth {
                         'key_salt' => $content['salt']
                         ]
                     );
+                    /* delete all invitation for user if we log in through
+                     * invitation and password is set
+                     */
+                    if ($invitation_login) {
+                        $this->delete_invitation($content['userid']);
+                    }
                     echo json_encode(['userid' => intval($content['userid'])]);
                     break;
             }
@@ -571,5 +698,4 @@ class KAALAuth {
             exit(0);
         }
     }
-
 }

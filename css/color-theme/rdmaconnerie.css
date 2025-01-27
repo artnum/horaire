@@ -1,16 +1,15 @@
 :root {
-    --ka-button-background-color: darkblue;
+    --ka-button-background-color: #E96012;
     --ka-button-color: white;
     --ka-button-blended-bg: lavender;
 
-    --ka-background-button-color: hsla(333, 49%, 49%, 0.7);
-    --ka-background-button-color-hover: hsla(333, 49%, 49%, 1);
-
-    --ka-input-readonly-bgcolor: lightgray;
-
-    --ka-border-button-color: hsla(333, 49%, 49%, 0.7);
+    --ka-background-button-color: #E96012;
+    --ka-background-button-color-hover: #88380a;
+    --ka-border-button-color: #351604;
     --ka-text-button-color: black;
     --ka-text-alt-button-color: indigo;
+
+    --ka-input-readonly-bgcolor: lightgray;
 
     --ka-background-button-active-color: hsla(333, 49%, 49%, 0.3);
     --ka-border-button-active-color: hsla(333, 49%, 49%, 0.7);
@@ -20,8 +19,8 @@
     --ka-text-default-font: 'B612 Mono', 'monospace';
     --ka-text-button-font: 'Archivo Narrow', 'sans-serif';
 
-    --rose: hsla(333, 49%, 49%, 0.7);
-    --dark-rose: hsla(333, 90%, 20%, 0.7);
+    --rose: #E96012;
+    --dark-rose: #351604;
     --background-color: white;
     --title-background-color: black;
     --text-color: black;
