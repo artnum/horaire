@@ -1,17 +1,18 @@
 <?php
-class KAALAuth {
+namespace KAAL;
+
+use PDO;
+use Exception;
+use KAAL\Crypto;
+
+class Auth {
     protected $pdo;
     protected $table;
     protected $timeout;
     protected $current_userid;
 
-    const HASH = [
-        'SHA-256' => ['sha256', 32],
-        'SHA-384' => ['sha384', 48],
-        'SHA-512' => ['sha512', 64]
-    ];
-
     const INVITATION_BYTES_LENGTH = 16; // 128 bits
+
     const SHARE_NONE = 0x00;
     const SHARE_TEMPORARY = 0x01;
     const SHARE_LIMITED_ONCE = 0x02; /* share until used once but with time limit */
@@ -34,10 +35,9 @@ class KAALAuth {
     }
 
     function generate_invitation($userid)
-    {
-        $bytes = random_bytes(KAALAuth::INVITATION_BYTES_LENGTH);
-        $authvalue = rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
-        if ($this->add_auth($userid, $authvalue, '', KAALAuth::SHARE_INVITATION, 0, $this->timeout)) {
+    {  
+        $authvalue =  Crypto::get_random_tag(self::INVITATION_BYTES_LENGTH);
+        if ($this->add_auth($userid, $authvalue, '', self::SHARE_INVITATION, 0, $this->timeout)) {
             return $authvalue;
         }
         return '';
@@ -51,7 +51,7 @@ class KAALAuth {
             $stmt->bindValue(':auth', $invitation, PDO::PARAM_STR);
             $stmt->execute();
             while (($row = $stmt->fetch(PDO::FETCH_ASSOC))) {
-                if (intval($row['share']) != KAALAuth::SHARE_INVITATION) {
+                if (intval($row['share']) != self::SHARE_INVITATION) {
                     /* overtime, delete and next auth token ... if any */
                     $this->del_specific_connection($row['uid']);                    
                     continue;
@@ -77,7 +77,7 @@ class KAALAuth {
             $stmt->execute();
             $userid = null;
             while (($row = $stmt->fetch(PDO::FETCH_ASSOC))) {
-                if (intval($row['share']) != KAALAuth::SHARE_INVITATION) {
+                if (intval($row['share']) != self::SHARE_INVITATION) {
                     /* overtime, delete and next auth token ... if any */
                     $this->del_specific_connection($row['uid']);                    
                     continue;
@@ -105,35 +105,37 @@ class KAALAuth {
     {
         $pdo = $this->pdo;
         $stmt = $pdo->prepare(sprintf('DELETE FROM %s WHERE userid = :userid AND share = :share', $this->table));
-        $stmt->bindValue(':share', KAALAuth::SHARE_INVITATION, PDO::PARAM_INT);
+        $stmt->bindValue(':share', self::SHARE_INVITATION, PDO::PARAM_INT);
         $stmt->bindValue(':userid', intval($userid), PDO::PARAM_INT);
         $stmt->execute();
     }
 
     function generate_auth ($userid, $hpw, $cnonce = '', $hash = 'SHA-256') {
-        $sign = random_bytes(KAALAuth::HASH[$hash][1]);
-        $authvalue = base64_encode(hash_hmac(KAALAuth::HASH[$hash][0], $sign . $cnonce, base64_decode($hpw), true));
-        if ($this->add_auth($userid, $authvalue, '', KAALAuth::SHARE_NONE)) {
-            return base64_encode($sign);
+        $crypto = new Crypto($hash);
+        $sign = $crypto->get_random_bytes();
+        $authvalue = $crypto->stringify($crypto->hmac($sign . $cnonce, base64_decode($hpw)));
+        if ($this->add_auth($userid, $authvalue, '', self::SHARE_NONE)) {
+            return $crypto->stringify($sign);
         }
         return '';
     }
 
-    function generate_share_auth ($userid, $authvalue, $url, $permanent = KAALAuth::SHARE_PERMANENT, $comment = '', $duration = -1, $hash = 'SHA-256') {
+    function generate_share_auth ($userid, $authvalue, $url, $permanent = self::SHARE_PERMANENT, $comment = '', $duration = -1, $hash = 'SHA-256') {
         $share_authvalue = $this->get_share_auth($userid, $url, $permanent);
         if (!empty($share_authvalue)) { 
             $this->refresh_auth($share_authvalue);
             return $share_authvalue; 
         }
-        $sign = random_bytes(KAALAuth::HASH[$hash][1]);
-        $share_authvalue = base64_encode(hash_hmac(KAALAuth::HASH[$hash][0], $sign, base64_decode($authvalue), true));
+        $crypto = new Crypto($hash);
+        $sign = $crypto->get_random_bytes();
+        $share_authvalue = $crypto->stringify($crypto->hmac($sign, base64_decode($authvalue)));
         if ($this->add_auth($userid, $share_authvalue, $this->prepare_url($url), $permanent, $comment, $duration)) {
             return $share_authvalue;
         }
         return '';
     }
 
-    function get_share_auth($userid, $url, $permanent = KAALAuth::SHARE_PERMANENT) {
+    function get_share_auth($userid, $url, $permanent = self::SHARE_PERMANENT) {
         $url = $this->prepare_url($url);
         $urlid = sha1($url);
         $stmt = $this->pdo->prepare(sprintf('SELECT * FROM %s WHERE userid = :userid AND urlid = :urlid AND share = :share', $this->table));
@@ -198,7 +200,7 @@ class KAALAuth {
         }
     }
 
-    function add_auth ($userid, $authvalue, $url = '', $sharetype = KAALAuth::SHARE_NONE, $comment = '', $duration = -1) {
+    function add_auth ($userid, $authvalue, $url = '', $sharetype = self::SHARE_NONE, $comment = '', $duration = -1) {
         $pdo = $this->pdo;
         $done = false;
         $ip = $_SERVER['REMOTE_ADDR'];
@@ -211,8 +213,8 @@ class KAALAuth {
                 default:
                     $urlid = sha1($url);
                     break;
-                case KAALAuth::SHARE_NONE:
-                case KAALAuth::SHARE_INVITATION:
+                case self::SHARE_NONE:
+                case self::SHARE_INVITATION:
                     $url = '';
                     break;
             }
@@ -274,7 +276,7 @@ class KAALAuth {
             $stmt->bindValue(':auth', $authvalue, PDO::PARAM_STR);
             $stmt->execute();
             while (($row = $stmt->fetch(PDO::FETCH_ASSOC))) {
-                if ((intval($row['share']) < KAALAuth::SHARE_NOT_TIMED)
+                if ((intval($row['share']) < self::SHARE_NOT_TIMED)
                     && (time() - intval($row['time']) > intval($row['duration']))
                 ) {
                     /* overtime, delete and next auth token ... if any */
@@ -284,25 +286,25 @@ class KAALAuth {
                 
                 switch(intval($row['share'])) {
                     default:
-                    case KAALAuth::SHARE_NOT_TIMED:
+                    case self::SHARE_NOT_TIMED:
                         break;
-                    case KAALAuth::SHARE_NONE:
+                    case self::SHARE_NONE:
                         $this->current_userid = intval($row['userid']);
                         return true;
-                    case KAALAuth::SHARE_PERMANENT:
-                    case KAALAuth::SHARE_TEMPORARY:
+                    case self::SHARE_PERMANENT:
+                    case self::SHARE_TEMPORARY:
                         if ($row['urlid'] !== $urlid) { break; }
                         $this->current_userid = intval($row['userid']);
                         return true;
                         break;
-                    case KAALAuth::SHARE_PROXY: // proxy have complete access
+                    case self::SHARE_PROXY: // proxy have complete access
                         $this->current_userid = 0;
                         return true;
-                    case KAALAuth::SHARE_USER_PROXY:
+                    case self::SHARE_USER_PROXY:
                         $this->current_userid = intval($row['userid']);
                         break;
-                    case KAALAuth::SHARE_UNLIMITED_ONCE:
-                    case KAALAuth::SHARE_LIMITED_ONCE:
+                    case self::SHARE_UNLIMITED_ONCE:
+                    case self::SHARE_LIMITED_ONCE:
                         $this->current_userid = intval($row['userid']);
                         $this->del_all_connection_by_id($row['uid']);
                         return true;
@@ -342,7 +344,10 @@ class KAALAuth {
             $stmt->execute();
             while (($row = $stmt->fetch(PDO::FETCH_ASSOC))) {
                 if (
-                    (intval($row['share']) !== KAALAuth::SHARE_PERMANENT && intval($row['share']) !== KAALAuth::SHARE_PROXY) 
+                    (
+                        intval($row['share']) !== self::SHARE_PERMANENT 
+                        && intval($row['share']) !== self::SHARE_PROXY
+                    )
                     && (time() - intval($row['time']) > intval($row['duration']))
                 ) {
                     $this->del_specific_auth($row['auth']);
@@ -386,8 +391,11 @@ class KAALAuth {
                     $del->execute();
                 } else {
                    $auth = '';
-                   if (intval($row['share']) === KAALAuth::SHARE_PERMANENT || intval($row['share']) === KAALAuth::SHARE_TEMPORARY) {
-                    $auth = $row['auth'];
+                   if (
+                        intval($row['share']) === self::SHARE_PERMANENT 
+                        || intval($row['share']) === self::SHARE_TEMPORARY
+                    ) {
+                        $auth = $row['auth'];
                    }
                    $connections[] = [
                     'uid' => $row['uid'],
@@ -487,7 +495,7 @@ class KAALAuth {
         }
     }
 
-    function run ($step, artnum\JStore\AuthUser $user) {        
+    function run ($step, \artnum\JStore\AuthUser $user) {        
         try {
             header('Content-Type: application/json', true);
             if (empty($_SERVER['PATH_INFO'])) {
@@ -502,7 +510,7 @@ class KAALAuth {
                 case 'init':
                     $cnonce = null;
                     $hash = 'SHA-256';
-                    if (!empty($content['hash']) && isset(KAALAuth::HASH[$content['hash']])) {
+                    if (!empty($content['hash']) && Crypto::algo_available($content['hash'])) {
                         $hash = $content['hash'];
                     }
                     if (!empty($content['cnonce'])) { $cnonce = base64_decode($content['cnonce']); }
@@ -529,7 +537,7 @@ class KAALAuth {
                     $this->delete_invitation($this->current_userid);
                     if ($step === 'getshareable') {
                         $hash = 'SHA-256';
-                        if (!empty($content['hash']) && isset(KAALAuth::HASH[$content['hash']])) {
+                        if (!empty($content['hash']) && Crypto::algo_available($content['hash'])) {
                             $hash = $content['hash'];
                         }
                         $once = ((isset($content['once'])) ? ($content['once'] == true) : false);
@@ -541,8 +549,8 @@ class KAALAuth {
                             $userid,
                             $content['auth'],
                             $content['url'], 
-                            $once ? ($permanent ? KAALAuth::SHARE_UNLIMITED_ONCE : KAALAuth::SHARE_LIMITED_ONCE) 
-                                  : ($permanent ? KAALAuth::SHARE_PERMANENT : KAALAuth::SHARE_TEMPORARY),
+                            $once ? ($permanent ? self::SHARE_UNLIMITED_ONCE : self::SHARE_LIMITED_ONCE) 
+                                  : ($permanent ? self::SHARE_PERMANENT : self::SHARE_TEMPORARY),
                             $comment,
                             $duration,
                             $hash

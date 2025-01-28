@@ -4,10 +4,10 @@ require('lib/ini.php');
 require('lib/dbs.php');
 require('conf/wesrv.php');
 require('wesrv/lib/msg.php');
-require('lib/auth.php');
 require('lib/user.php');
 require('vendor/autoload.php');
 
+use KAAL\Auth;
 use artnum\JStore\ACL;
 use artnum\JStore\SQLAudit;
 
@@ -79,7 +79,7 @@ if (!empty($_SERVER['HTTP_X_CLIENT_ID'])) {
 $user = new KUser($pdo);
 
 /* Authentication */
-$kauth = new KAALAuth($pdo);
+$kauth = new Auth($pdo);
 if ($http_request->getCollection() === '.auth') {
   $kauth->run($http_request->getItem(), $user);
   exit(0);
