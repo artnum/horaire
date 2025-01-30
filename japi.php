@@ -5,6 +5,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 use KAAL\KPJAPI;
 use KAAL\AccessControl;
+use KAAL\Auth;
 
 $memusage = memory_get_peak_usage();
 $start = microtime(true);
@@ -22,6 +23,20 @@ if ($load[0] > 0.8) {
 }
 
 $logger->info('API V4::Start', ['memory' => $memusage, 'load' => $load]);
+
+use KaalDB\PDO\PDO;
+
+$pdo = PDO::getInstance(
+    $api->conf('storage.pdo-string'),
+    $api->conf('storage.user'), 
+    $api->conf('storage.password')
+);
+
+$auth = new Auth($pdo);
+if (!$auth->check_auth($auth->get_auth_token())) {
+    http_response_code(401);
+    exit(0);
+}
 
 $api->init();
 $api->run();

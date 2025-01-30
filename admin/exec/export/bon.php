@@ -3,13 +3,13 @@ require('../../../vendor/autoload.php');
 include('artnum/autoload.php');
 require('../../../lib/ini.php');
 require('../../../lib/dbs.php');
-require('../../../lib/auth.php');
 require('../../../lib/user.php');
 
 
 include('pdf.php');
 include('artnum/bvrkey.php');
 
+use KAAL\Auth;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\Logo\Logo;
@@ -54,7 +54,7 @@ $MyURL .= implode('&', $parmas);
 $ini_conf = load_ini_configuration();
 $pdo = init_pdo($ini_conf);
 $authpdo = init_pdo($ini_conf, 'authdb');
-$KAuth = new KAALAuth($authpdo);
+$KAuth = new Auth($authpdo);
 $KUser = new KUser($pdo);
 
 if (!$KAuth->check_auth($KAuth->get_auth_token(), $BaseURL . '/' . $_SERVER['REQUEST_URI'])) {

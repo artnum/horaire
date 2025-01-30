@@ -3,15 +3,17 @@ require('artnum/autoload.php');
 require('../../../lib/ini.php');
 require('../../../lib/dbs.php');
 require('../../../lib/urldn.php');
-require('../../../lib/auth.php');
 
 require('../../vendor/autoload.php');
+
+use KAAL\Auth;
+
 $BaseURL = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'];
 
 $ini_conf = load_ini_configuration();
 
 $authpdo = init_pdo($ini_conf, 'authdb');
-$KAuth = new KAALAuth($authpdo);
+$KAuth = new Auth($authpdo);
 
 if (!$KAuth->check_auth($KAuth->get_auth_token(), $BaseURL . '/' . $_SERVER['REQUEST_URI'])) {
   http_response_code(401);
