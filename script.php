@@ -13,6 +13,7 @@ if ($type === '.js' || $type === 'mjs') {
     header('Content-Type: text/css; charset=utf-8');
 } else {
     http_response_code(404);
+    fastcgi_finish_request();
     exit(0);
 }
 header('Content-Encoding: gzip');
@@ -54,6 +55,7 @@ $path = __DIR__ . '/' . $base . '/' . implode('/', $parts);
 $origfmtime = filemtime($path);
 if ($origfmtime === false) {
     http_response_code(404);
+    fastcgi_finish_request();
     exit(0);
 }
 
@@ -67,6 +69,7 @@ if ($ftime === false || $origfmtime > intval($ftime)) {
         $content = gzencode(file_get_contents($path));
         $memcache->set('JSCACHE/' . $idx . '/content', $content);
         echo $content;
+        fastcgi_finish_request();
         exit(0);
     } else {
         require 'vendor/autoload.php';
@@ -79,8 +82,10 @@ if ($ftime === false || $origfmtime > intval($ftime)) {
         $content = $compiler->gzip(null);
         $memcache->set('JSCACHE/' . $idx . '/content', $content);
         echo $content;
+        fastcgi_finish_request();
         exit(0);
     }
 }
 echo $memcache->get('JSCACHE/' . $idx . '/content');
+fastcgi_finish_request();
 exit(0);
