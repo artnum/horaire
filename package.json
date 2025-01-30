@@ -1,14 +1,11 @@
 {
-  "name": "Kaal",
+  "name": "kaal",
   "license": "MIT",
   "main": "index.html",
   "dependencies": {
     "@popperjs/core": "^2.0.6",
     "artnum": "artnum/js",
-    "dijit": "^1.15.0",
-    "dojo": "^1.15.0",
     "font-awesome": "^4.7.0",
-    "popper.js": "^1.15.0",
-    "transliteration": "^2.1.5"
+    "popper.js": "^1.15.0"
   }
 }

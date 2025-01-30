@@ -142,7 +142,18 @@ UIKAProjectList.prototype.sort = function (by, asc = true) {
         
 }
 
-UIKAProjectList.prototype.doSearchEvent = _debounce(function (value, onlyProject = false) {
+function ka_project_debounce (fn, delay) {
+    let timeout = null
+    return function(...args) {
+        if (timeout) { clearTimeout(timeout) }
+        timeout = setTimeout(() => {
+            fn.call(this, ...args)
+            timeout = null
+        }, delay)    
+    }
+}
+
+UIKAProjectList.prototype.doSearchEvent = ka_project_debounce(function (value, onlyProject = false) {
     this.textSearch(value, onlyProject)
 }, 250)
 

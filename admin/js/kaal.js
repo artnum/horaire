@@ -29,6 +29,7 @@ KAAL.message = function (msg, level = 'error') {
     }, timeout)
     return [msgBox, timeoutId]
 }
+
 KAAL.error = function (msg) {
     KAAL.message(msg, 'error')
 }
