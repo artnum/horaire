@@ -1,5 +1,7 @@
 :root {
     --company-color: #71a1dd;
+    --company-color-dark: #405c80;
+
     --ka-button-background-color: darkblue;
     --ka-button-color: white;
     --ka-button-blended-bg: lavender;
@@ -7,7 +9,7 @@
     --ka-background-button-color: #71a1dd;
     --ka-background-button-color-hover: #425f83;
 
-    --ka-border-button-color: #405c80;
+    --ka-border-button-color: var(--company-color-dark);
     --ka-text-button-color: black;
     --ka-text-alt-button-color: darkslategray;
 
@@ -21,8 +23,6 @@
     --ka-text-default-font: 'B612 Mono', 'monospace';
     --ka-text-button-font: 'Archivo Narrow', 'sans-serif';
 
-    --rose: var(--company-color);
-    --dark-rose: #405c80;
     --background-color: white;
     --title-background-color: black;
     --text-color: black;

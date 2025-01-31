@@ -1,23 +1,27 @@
 :root {
-    --company-color: hsla(333, 49%, 49%, 0.7);
-    --company-color-dark: hsla(333, 90%, 20%, 0.7);
+    --company-color: #059905;
+    --company-color-dark: #034703;
+    --company-color-light: #08d608;
+
+    --company-text-color: white;
+    --company-text-color-on-light: black;
 
     --ka-button-background-color: darkblue;
     --ka-button-color: white;
     --ka-button-blended-bg: lavender;
 
-    --ka-background-button-color: hsla(333, 49%, 49%, 0.7);
-    --ka-background-button-color-hover: hsla(333, 49%, 49%, 1);
-
-    --ka-input-readonly-bgcolor: lightgray;
+    --ka-background-button-color: var(--company-color);
+    --ka-background-button-color-hover: var(--company-color-dark);
 
     --ka-border-button-color: var(--company-color-dark);
-    --ka-text-button-color: black;
-    --ka-text-alt-button-color: indigo;
+    --ka-text-button-color: var(--company-text-color);
+    --ka-text-alt-button-color: darkslategray;
 
-    --ka-background-button-active-color: hsla(333, 49%, 49%, 0.3);
-    --ka-border-button-active-color: hsla(333, 49%, 49%, 0.7);
-    --ka-text-button-active-color: black;
+    --ka-input-readonly-bgcolor: lightgray;
+    
+    --ka-background-button-active-color: var(--company-color-light);
+    --ka-border-button-active-color: #405c80cc;
+    --ka-text-button-active-color: var(--company-text-color-on-light);
 
     --ka-text-default-font: 'B612', 'sans-serif';
     --ka-text-default-font: 'B612 Mono', 'monospace';
@@ -28,8 +32,8 @@
     --text-color: black;
     --title-text-color: white;
     --fg-color-on-dark: white;
-    --input-background-color: hsla(260, 100%, 90%, 0.2);
-    --input-border-color: hsla(260, 100%, 90%, 1);
+    --input-background-color: #71a2dd50;
+    --input-border-color: #405c8050;
     --input-background-color-error: hsla(340, 100%, 90%, 1);
     --default-highlight-color-base: 100, 100%, 40%;
     --highlight-bgcolor: hsla(133, 60%, 60%, 0.2);
