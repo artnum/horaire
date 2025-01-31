@@ -1,4 +1,6 @@
 :root {
+    --company-color: hsla(333, 49%, 49%, 0.7);
+    
     --ka-button-background-color: darkblue;
     --ka-button-color: white;
     --ka-button-blended-bg: lavender;
@@ -20,7 +22,7 @@
     --ka-text-default-font: 'B612 Mono', 'monospace';
     --ka-text-button-font: 'Archivo Narrow', 'sans-serif';
 
-    --rose: hsla(333, 49%, 49%, 0.7);
+    --rose: var(var(--company-color));
     --dark-rose: hsla(333, 90%, 20%, 0.7);
     --background-color: white;
     --title-background-color: black;

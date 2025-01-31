@@ -1,4 +1,5 @@
 :root {
+    --company-color: #71a1dd;
     --ka-button-background-color: darkblue;
     --ka-button-color: white;
     --ka-button-blended-bg: lavender;
@@ -20,7 +21,7 @@
     --ka-text-default-font: 'B612 Mono', 'monospace';
     --ka-text-button-font: 'Archivo Narrow', 'sans-serif';
 
-    --rose: #71a1dd;
+    --rose: var(--company-color);
     --dark-rose: #405c80;
     --background-color: white;
     --title-background-color: black;

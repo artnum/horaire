@@ -1,7 +1,7 @@
 <html>
 
 <head>
-  <title>Horaire</title>
+  <title></title>
   <link rel="icon" type="image/x-icon" href="../favicon.ico" />
   <link rel="stylesheet" href="css/admin.css" type="text/css" />
   <link rel="stylesheet" href="../node_modules/font-awesome/css/font-awesome.min.css" type="text/css" />
@@ -118,7 +118,7 @@
 
     switch (target) {
       default:
-        window.document.title = `Horaire[${event.target.textContent}]`
+        window.document.title = `[KAAL] ${KAAL.title}/${event.target.textContent}`
         window.location.hash = target
         
 
@@ -145,7 +145,7 @@
   }
 
   function open(ref) {
-    window.requestAnimationFrame(() => ref.innerHTML = '')
+    ref.innerHTML = ''
     let buttons = [
       { level: 128, node: `project.html`, label: 'Projets', nodeid: 'prj' },
       //{ level: 64, node: `process.html`, label: 'Processus' },
@@ -162,6 +162,11 @@
     buttons = buttons.filter(e => {
       return KAAL.nodes.indexOf(e.nodeid) !== -1
     })
+
+    const company = document.createElement('div')
+    company.classList.add('company', 'button')
+    company.innerHTML = KAAL.title;
+    ref.appendChild(company)
 
     buttons.forEach((e) => {
       if (parseInt(e.level) >= parseInt(window.level)) {
@@ -182,7 +187,8 @@
     .then(() => {
       let base = window.location.pathname.split('/')
       while (!base[0]) { base.shift() }
-
+      window.document.title = `[KAAL] ${KAAL.title}`
+    
       let url = new URL(`${window.location.origin}/${base.shift()}/`)
       const klogin = new KLogin(KAAL.getBase())
       klogin.getToken()

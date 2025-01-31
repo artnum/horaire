@@ -186,6 +186,11 @@ div.button a {
     font-family: sans-serif;
 }
 
+div.button.company {
+    background-color: var(--company-color);
+    font-size: 0.8em;
+}
+
 body {
     margin: 0;
     padding: 0;
