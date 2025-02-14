@@ -1,5 +1,4 @@
 const adminImports = [
-    ['$script/admin/ui/ka-project-list.js', 'script'],
     ['$script/admin/ui/ka-project-form.js', 'script'],
     ['$script/admin/ui/ka-contact-form.js', 'script'],
     ['$script/admin/ui/ka-contact.js', 'script'],

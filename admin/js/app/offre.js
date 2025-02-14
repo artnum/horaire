@@ -341,9 +341,8 @@ window.addEventListener('load', () => {
         }
         UI.loadDocument(event.target.id)
     })
-    
-    /*
-    document.querySelector('button[name="pdf"]').addEventListener('click', event => {
+
+    document.querySelector('button[name="pdf"]')?.addEventListener('click', event => {
         AccountingDoc.msword(document.querySelector('account-lines[name="accountingDocContent"]').id)
         .then(pdf => {
             const binString = atob(pdf);
@@ -355,7 +354,6 @@ window.addEventListener('load', () => {
             window.open(url, '_blank')
         })
     })
-    */
 
     document.querySelector('button[name="save"]').addEventListener('click', event => {
         const node = document.querySelector('form[name="accountingDocForm"]')

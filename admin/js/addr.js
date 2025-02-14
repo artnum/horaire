@@ -1,2 +1,2 @@
-import { Address } from './address.js';
+import Address from './address.js';
 window.Addr = Address

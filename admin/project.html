@@ -53,11 +53,12 @@
 <script src="$script/admin/string.js"></script>
 <script src="$script/admin/stores.js"></script>
 <script src="$script/admin/store/user.js"></script>
-<script src="$script/admin/addr.js" type="module"></script>
 <script src="$script/admin/ked.js"></script>
 <script src="$script/src/index.js"></script>
 <script src="$script/admin/index.js"></script>
-<script>
+<script type="module">
+  import UIKAProjectList from './$script/admin/ui/ka-project-list.js'
+
   window.Conf = { workweek: 5, weekhours: 42 }
   window.Conf.workday = window.Conf.weekhours / window.Conf.workweek
 

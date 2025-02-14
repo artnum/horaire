@@ -13,7 +13,7 @@ const HtmlForm = `<label><input type="radio" value="person" name="c:type" checke
 <label for="c:mail">E-mail</label><input type="text" name="c:mail"><span class="addMore"></span><br />
 <button type="button" name="save">Enregistrer</button><button type="button" name="reset">Annuler</button><br />`
 
-export class Address {
+export default class Address {
     constructor(node, options = { displayName: 'c:displayname', contactStore: '../Contact/' }) {
         this.options = options
         this.contactStore = new SContactStore(this.options.contactStore)
