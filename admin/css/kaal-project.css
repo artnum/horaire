@@ -1,0 +1,50 @@
+:root {
+    --usable-width: 0;
+    --kaal-card-spacing: 5px;
+    --kaal-card-distribution-count: 3;
+    --kaal-card-width: calc(
+        (var(--usable-width) - (var(--kaal-card-spacing) * var(--kaal-card-distribution-count) * 2))
+        / var(--kaal-card-distribution-count)
+    );
+    --kaal-card-ratio: 1.618;
+}
+
+.kaal-project-card-container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.kaal-card-project {
+    display: flex;
+    flex-direction: column;
+    box-shadow: 3px 3px 5px 0px rgba(0,0,0,0.75);
+    box-sizing: border-box;
+    min-width: var(--kaal-card-width);
+    max-width: var(--kaal-card-width);
+    min-height: calc(var(--kaal-card-width) / var(--kaal-card-ratio));
+    max-height: calc(var(--kaal-card-width) / var(--kaal-card-ratio));
+    margin: var(--kaal-card-spacing);
+    background-color: var(--company-color-light);
+}
+
+.kaal-card-project .main {
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.kaal-card-project .footer {
+    bottom: 0;
+    min-height: 20px;
+    min-width: 100%;
+    background-color: lightblue;
+
+}
+
+.kaal-card-project .title {
+    padding: 4px 0px;
+    display: flex;
+    justify-content: space-around;
+    background-color: var(--company-color-dark);
+    color: var(--company-text-color);
+    font-size: 1em;
+}

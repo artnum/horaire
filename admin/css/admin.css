@@ -6,6 +6,7 @@
 @import 'list.css';
 @import 'car.css';
 @import 'buttons.css';
+@import 'kaal-project.css';
 
 @import '../../css/color.css';
 @import url('https://fonts.googleapis.com/css?family=B612|B612+Mono&display=swap');
@@ -122,7 +123,7 @@ input[type=submit]:active, input[type=button]:active, input[type=reset]:active, 
 
 input[type=submit][data-open="1"], input[type=button][data-open="1"], input[type=reset][data-open="1"], button[data-open="1"], .ka-button[data-open="1"] {
     border: 3px inset darkgray !important;
-    background-color: var(--rose) !important;
+    background-color: var(--company-color) !important;
 }
 
 label {
@@ -609,7 +610,7 @@ fieldset.half {
     cursor: pointer;
 }
 .ka-navigation a:active {
-    color: var(--rose);
+    color: var(--company-color);
 }
 .ka-navigation a.inactive {
     color: lightgrey !important;
@@ -784,7 +785,7 @@ label.inerror {
     font-size: 14px;
     padding: 2px;
     margin: 1px 1px;
-    border: solid 2px var(--dark-rose);
+    border: solid 2px var(--company-color-dark);
     order: 1 !important;
     display: grid;
     grid-template-columns: 32px 1fr;
@@ -806,7 +807,7 @@ label.inerror {
 
 
 .kmultiselect > div.selected {
-    background-color: var(--rose);
+    background-color: var(--company-color);
     color: white;
 }
 .kmultiselect > div.add-new {
