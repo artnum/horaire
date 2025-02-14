@@ -72,7 +72,7 @@
           window.logged = true
           window.level = parseInt(user.level)
           if (location.search) {
-            window.location = location.search.substring(1)
+            window.location = location.search.substring(1) ?? ''
             return
           }
           open(ref)
@@ -86,6 +86,7 @@
   }
 
   window.addEventListener('hashchange', event => {
+    if (!window.location.hash.substring(1)) { return }
     const node = document.querySelector(`a[href="${window.location.hash.substring(1)}"]`)
     exec({target: node, preventDefault: function () {} })
   })
