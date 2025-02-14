@@ -1,6 +1,7 @@
 <?php 
 namespace KAAL\Middleware;
 
+use Exception;
 use KaalDB\LDAP\{LDAP, Entry};
 use KAAL\Backend\Cache;
 use STQuery\STQuery as Search;
@@ -153,12 +154,29 @@ class Contact {
         return sprintf('uid=%s', $uid);
     }
 
+    /**
+     * 
+     * @param string $uid 
+     * @return LDAPContactEntry 
+     * @throws Exception 
+     * 
+     * @OperationType read
+     */
     public function get(string $uid): LDAPContactEntry
     {
         $rdn = $this->uid2rdn($uid);
         return new LDAPContactEntry($this->ldap->read(sprintf('%s,%s', $rdn, $this->basedn)));
     }
 
+
+    /**
+     * 
+     * @param stdClass $search 
+     * @return Generator 
+     * @throws Exception 
+     * 
+     * @OperationType search
+     */
     public function search(stdClass $search):Generator {
         $JSearch = new Search();
         $JSearch->setSearch($search);
@@ -172,6 +190,13 @@ class Contact {
         }
     }
 
+    /**
+     * 
+     * @return Generator 
+     * @throws Exception 
+     * 
+     * @OperationType search
+     */
     public function list():Generator {
         $result = $this->ldap->list($this->basedn, '(objectClass=*)');
         foreach ($result as $entry) {
@@ -182,6 +207,14 @@ class Contact {
         }
     }
 
+    /**
+     * 
+     * @param stdClass $jsonEntry 
+     * @return LDAPContactEntry 
+     * @throws Exception 
+     * 
+     * @OperationType create
+     */
     public function create(stdClass $jsonEntry): LDAPContactEntry {
         $entry = new JSONContactEntry($jsonEntry);
         if (isset($entry->uid)) {
@@ -191,6 +224,14 @@ class Contact {
         return new LDAPContactEntry($this->ldap->add($dn, $entry));
     }
 
+    /**
+     * 
+     * @param stdClass $jsonEntry 
+     * @return LDAPContactEntry 
+     * @throws Exception 
+     * 
+     * @OperationType modify
+     */
     public function modify (stdClass $jsonEntry): LDAPContactEntry {
         $entry = new JSONContactEntry($jsonEntry);
         $dn = sprintf('uid=%s,%s', $entry->uid, $this->basedn);

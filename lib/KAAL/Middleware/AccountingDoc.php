@@ -187,7 +187,8 @@ class AccountingDoc  {
         $docId = self::normalizeId($docId);
 
         $parents = [];
-        $stmt = $this->pdo->prepare('SELECT related FROM accountingDoc WHERE id = :id');
+        $stmt = $this->pdo->prepare('SELECT related 
+            FROM accountingDoc WHERE id = :id');
         $stmt->bindParam(':id', $docId, PDO::PARAM_INT);
         do {
             $stmt->execute();
@@ -227,7 +228,8 @@ class AccountingDoc  {
         $docId = self::normalizeId($docId);
 
         $childs = [];
-        $stmt = $this->pdo->prepare('SELECT id FROM accountingDoc WHERE related = :id');
+        $stmt = $this->pdo->prepare('SELECT id 
+            FROM accountingDoc WHERE related = :id');
         $stmt->bindParam(':id', $docId, PDO::PARAM_INT);
         do {
             $stmt->execute();
@@ -592,6 +594,7 @@ class AccountingDoc  {
         $templateProcessor->setValue('longue-date', date('d F Y'));
 
         $arr = [];
+        $total = 0;
         foreach($lines as $line) {
             $arr[] = [
                 'position' => $line->position,
@@ -602,9 +605,16 @@ class AccountingDoc  {
                 'prix-unitaire' => $line->price,
                 'total' => $line->quantity * $line->price
             ];
+            $total += $line->quantity * $line->price;
         }
-        $templateProcessor->cloneRow('position', count($arr));
-
+        $templateProcessor->cloneRowAndSetValues('position', $arr);
+        /*$templateProcessor->cloneRowAndSetValues('position-total', [
+            [
+                'position-total' => 'Total',
+                'document-total' => $total
+            ]
+        ]);*/
+        $templateProcessor->deleteBlock('block-total');
         $templateProcessor->saveAs('/tmp/test.docx');
         return base64_encode(file_get_contents('/tmp/test.docx'));
     }
