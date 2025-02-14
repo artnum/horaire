@@ -1,26 +1,31 @@
-import { JAPI } from './$script/src/JAPI/JAPI.js'
+import { JAPI, JAPIIterator } from './$script/src/JAPI/JAPI.js'
 
 const NS = 'Project'
+const listSize = 20
 
 class Project {
     constructor(API, project) {
         this.API = API
-        this.id = String(project.id)
-        this.reference = project.reference
-        this.name = project.name
-        this.closed = project.closed === null ? new Date(0) : new Date(project.closed)
-        this.opened = project.opened === null ? new Date(0) : new Date(project.opened)
-        this.targetEnd = project.targetEnd === null ? new Date(0) : new Date(project.targetEnd)
-        this.deleted = project.deleted === null ? new Date(0) : new Date(parseInt(project.deleted) * 1000)
-        this.created = project.created === null ? new Date(0) : new Date(parseInt(project.created) * 1000)
-        this.modified = project.modified === null ? new Date(0) : new Date(parseInt(project.modified) * 1000)
-        this.uncount = project.uncount !== 0 ? true : false
-        this.client = project.client
-        this.price = parseFloat(project.price)
-        this.manager = String(project.manager)
-        this.extid = String(project.extid)
-        this.ordering = parseInt(project.ordering)
-        this.process = String(project.process)
+        this.fromObject(project)
+    }
+
+    fromObject(object) {
+        this.id = String(object.id)
+        this.reference = object.reference
+        this.name = object.name
+        this.closed = object.closed === null ? new Date(0) : new Date(object.closed)
+        this.opened = object.opened === null ? new Date(0) : new Date(object.opened)
+        this.targetEnd = object.targetEnd === null ? new Date(0) : new Date(object.targetEnd)
+        this.deleted = object.deleted === null ? new Date(0) : new Date(parseInt(object.deleted) * 1000)
+        this.created = object.created === null ? new Date(0) : new Date(parseInt(object.created) * 1000)
+        this.modified = object.modified === null ? new Date(0) : new Date(parseInt(object.modified) * 1000)
+        this.uncount = object.uncount !== 0 ? true : false
+        this.client = object.client
+        this.price = parseFloat(object.price)
+        this.manager = String(object.manager)
+        this.extid = String(object.extid)
+        this.ordering = parseInt(object.ordering)
+        this.process = String(object.process)
     }
 
     clone () {
@@ -48,6 +53,17 @@ class Project {
         }
     }
 
+    load() {
+        return new Promise((resolve, reject) => {
+            this.API.get(this.id)
+            .then(object => {
+                this.fromObject(object)
+                return resolve(this)
+            })
+            .catch(e => reject(e))
+        })
+    }
+
     update () {
         return this.API.update(this)
     }
@@ -66,6 +82,13 @@ export class ProjectAPI extends JAPI {
         super()
     }
     
+    static getInstance() {
+        if (!this.instance) {
+            this.instance = new ProjectAPI()
+        }
+        return this.instance
+    }
+
     static get NS () {
         return NS
     }
@@ -84,5 +107,31 @@ export class ProjectAPI extends JAPI {
                 return reject(err)
             })
         })
+    }
+
+    list () {
+        const callback = (offset, size) => {
+            return new Promise((resolve, reject) => {
+                this.API.exec(
+                    ProjectAPI.NS,
+                    'list',
+                    {offset: offset, size: size}
+                )
+                .then(projects => {
+                    let last = false
+                    if (projects[projects.length - 1].__more) {
+                        projects.pop()
+                    } else {
+                        last = true
+                    }
+                    return resolve([projects.map(p => new Project(this, p)), last])
+                })
+                .catch(err => {
+                    return reject(err)
+                })
+            })
+        }
+
+        return new JAPIIterator(callback, listSize)    
     }
 }

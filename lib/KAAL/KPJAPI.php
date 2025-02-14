@@ -45,8 +45,8 @@ class KPJAPI extends \PJAPI\PJAPI {
         return $conf;
     }
 
-    protected function emitError(Throwable $e) {
-        parent::emitError($e);
+    protected function emitError(int $stream, Throwable $e) {
+        parent::emitError($stream, $e);
         $i = 0;
         while ($e) {
             $i++;
