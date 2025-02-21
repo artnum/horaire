@@ -1057,7 +1057,7 @@ export default class UIKAProjectList {
                     form.addEventListener('submit', event => {
                         event.preventDefault()
                         const submitter = event.submitter
-                        data = new FormData(event.currentTarget)
+                        const data = new FormData(event.currentTarget)
                         const travail = {
                             reference: data.get('reference'),
                             description: data.get('description'),
