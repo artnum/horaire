@@ -34,8 +34,6 @@ function genQRImage ($txt, $size = 30, $icon = 'clock') {
   $writer->write($qrCode, $logo, null, ['compression_level' => 0])->saveToFile($filename);*/
 }
 
-$ADD_PAGE_SEPARATION = false;
-
 $path = explode('/', $_SERVER['PHP_SELF']);
 for ($i = 0; $i < 4; $i++) {
   array_pop($path);
@@ -112,7 +110,6 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $Audit->new_action('PRINT', 'Project', $_GET['pid'], $KAuth->get_current_userid(), $MyURL); 
     if (!($tdata = [$st->fetch()])) { die('Erreur'); }
   } else {
-    $ADD_PAGE_SEPARATION = true;
     $st = $pdo->prepare('SELECT * FROM "travail" WHERE "travail_project" = :project');
     if (!$st) { die('Erreur de base de données'); }
     $st->bindParam(':project', $_GET['pid'], PDO::PARAM_INT);
@@ -258,15 +255,24 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->printLn('Noter les heures', ['break' => false]);
     $PDF->SetXY($x, $y);
 
+    $PDF->SetFont('helvetica', '', 8);
+    $PDF->printLn('Référence');
+    $PDF->SetFont('helvetica', 'B', 10);
+    if (!isset($data['travail_reference'])) { $data['travail_reference'] = null; }
+    if ($data['travail_reference'] === 'null') { $data['travail_reference'] = null; }
+    $PDF->printLn($data['travail_reference'] ? $data['travail_reference'] : ' ', ['max-width' =>85]);
+    $PDF->br();
+
     $y = $PDF->GetY();
     $PDF->SetY($y + 8);
     $PDF->squaredFrame(47, array('line-type' => 'dotted', 'square' => 9.3, 'lined' => true));
     $PDF->SetY($y);
     
     $i = 0;
+    
     foreach([
         'bon_number' => 'N° de bon',
-        'travail_reference' => 'Référence',
+        //'travail_reference' => 'Référence',
         'create_travail_info' => 'Création',
         'print_travail_info' => 'Impression',
         'travail_phone' => 'Téléphone',
@@ -449,7 +455,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
         $PDF->SetXY(173, $QRPosition - 2);
         $PDF->printLn('Localisation GPS', ['break' => false]);
         $hasGPS = true;
-        $PDF->SetY($y + 4);
+        $PDF->SetY($y + 10);
       } catch(Exception $e) {
         error_log('QRCode generation failed : ' . $e->getMessage());
       }
@@ -494,7 +500,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetFont('helvetica', 'B', 10);
     $PDF->printLn('Journal d\'activité');
     $PDF->br();
-    $bHeight = $hasGPS ? 35 : 50;
+    $bHeight = $hasGPS ? 20 : 50;
     $y = $PDF->GetY();
     $PDF->SetFont('helvetica', '', 10);
     $furtherX = 0;
@@ -564,9 +570,6 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->drawLine(ceil($PDF->GetX()  + 3), ceil($PDF->GetY() + 3), floor($PDF->w - $PDF->rMargin - $PDF->GetX() - 3), 0, 'dotted');
     $PDF->close_block();
 
-    if ($ADD_PAGE_SEPARATION && !$page_added) {
-      $PDF->AddBlankPage();
-    }
     $BLK_COUNT++;
   }
   $PDF->Output($Filename, 'I');
