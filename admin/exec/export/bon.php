@@ -500,7 +500,7 @@ if (isset($_GET['pid']) && is_numeric($_GET['pid'])) {
     $PDF->SetFont('helvetica', 'B', 10);
     $PDF->printLn('Journal d\'activité');
     $PDF->br();
-    $bHeight = $hasGPS ? 20 : 50;
+    $bHeight = $hasGPS ? 20 : 40;
     $y = $PDF->GetY();
     $PDF->SetFont('helvetica', '', 10);
     $furtherX = 0;
