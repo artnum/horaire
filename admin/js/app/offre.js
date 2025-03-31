@@ -1,14 +1,14 @@
-import { AccountingDocAPI } from './$script/src/JAPI/AccountingDoc.js'
+import AccountingDocAPI from './$script/src/JAPI/AccountingDoc.js'
 import { AccountingDocLineAPI } from './$script/src/JAPI/AccountingDocLine.js'
 // import { ContactAPI } from './$script/src/JAPI/Contact.js'
-import { ProjectAPI } from './$script/src/JAPI/Project.js'
+import { ProjectAPI as ProjectAPIClass } from './$script/src/JAPI/content/Project.js'
 import { JFormData } from './$script/vendor/js/formdata/src/formdata.js'
 import { Barrier } from './$script/src/lib/barrier.js'
 import { AccountingConditionAPI } from './$script/src/JAPI/AccountingCondition.js'
 import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
 
 const params = new URLSearchParams(window.location.search)
-const projectAPI = new ProjectAPI()
+const projectAPI = ProjectAPIClass.getInstance()
 const accountingDocLineAPI = new AccountingDocLineAPI()
 const AccountingDoc = new AccountingDocAPI()
 const AccountingCondition = new AccountingConditionAPI()
@@ -299,8 +299,10 @@ window.addEventListener('load', () => {
     const UI = new AccountingDocUI()
     if (!params.has('project') && params.has('doc')) {
         UI.loadDocument(params.get('doc'))
-    } else {
+    } else if (params.has('project')) {
         UI.load(params.get('project'))
+    } else { 
+        return 
     }
 
     /* install event listeners */
