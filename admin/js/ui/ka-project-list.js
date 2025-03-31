@@ -1,4 +1,4 @@
-import { ProjectAPI } from "./$script/src/JAPI/Project.js"
+import { ProjectAPI } from "./$script/src/JAPI/content/Project.js"
 import Debounce  from "./$script/admin/lib/debounce.js"
 
 export default class UIKAProjectList {

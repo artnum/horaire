@@ -94,41 +94,29 @@ export class ProjectAPI extends JAPI {
     }
 
     get (id) {
-        return new Promise((resolve, reject) => {
-            this.API.exec(
-                ProjectAPI.NS,
-                'get',
-                {id: id}
-            )
-            .then(project => {
-                return resolve(new Project(this, project))
-            })
-            .catch(err => {
-                return reject(err)
-            })
-        })
+        return this.API.exec(
+            ProjectAPI.NS,
+            'get',
+            {id: id}
+        )
+        .then(project => new Project(this, project))
     }
 
     list () {
         const callback = (offset, size) => {
-            return new Promise((resolve, reject) => {
-                this.API.exec(
-                    ProjectAPI.NS,
-                    'list',
-                    {offset: offset, size: size}
-                )
-                .then(projects => {
-                    let last = false
-                    if (projects[projects.length - 1].__more) {
-                        projects.pop()
-                    } else {
-                        last = true
-                    }
-                    return resolve([projects.map(p => new Project(this, p)), last])
-                })
-                .catch(err => {
-                    return reject(err)
-                })
+            return this.API.exec(
+                ProjectAPI.NS,
+                'list',
+                {offset: offset, size: size}
+            )
+            .then(projects => {
+                let last = false
+                if (projects[projects.length - 1].__more) {
+                    projects.pop()
+                } else {
+                    last = true
+                }
+                return [projects.map(p => new Project(this, p)), last]
             })
         }
 
