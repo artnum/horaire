@@ -2,6 +2,23 @@
     --company-color: hsla(333, 49%, 49%, 0.7);
     --company-color-dark: hsla(333, 90%, 20%, 0.7);
 
+    --company-text-color: white;
+    --company-text-color-on-light: black;
+
+    --ka-main-nav-separator-color: var(--company-color-dark);
+
+    --ka-tooltip-fg-color: black;
+    --ka-tooltip-bg-color: rgb(250, 250, 170);
+    --ka-tooltip-shadow-color: rgb(49, 49, 0);
+    --ka-tooltip-border-color: black;
+
+    --ka-navigation-item-selected-fg-color: white;
+    --ka-navigation-item-selected-bg-color: black;
+    --ka-navigation-item-unselected-fg-color: black;
+    --ka-navigation-item-unselected-bg-color: white;
+    --ka-navigation-item-hover-fg-color: white;
+    --ka-navigation-item-hover-bg-color: var(--company-color-dark);;
+
     --ka-button-background-color: darkblue;
     --ka-button-color: white;
     --ka-button-blended-bg: lavender;
