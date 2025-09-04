@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg id="svg1404" width="54" height="18" version="1.1" viewBox="0 0 14.288 4.7625" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <defs id="defs1401">
+  <symbol id="right">
+   <rect id="rect1952" width="4.7625" height="4.7625" fill="none"/>
+   <path id="path1691" d="m2.3812 2.6458v1.8521l-2.1167-2.1167 2.1167-2.1167v1.8521h2.1167v0.52917z" fill="#b3b3b3" stroke="#b3b3b3" stroke-linecap="round" stroke-linejoin="round" stroke-width=".2"/>
+  </symbol>
+  <symbol id="left">
+   <rect id="rect2564" x="4.7625" y="9.5367e-8" width="4.7625" height="4.7625" fill="none"/>
+   <path id="path1857" d="m7.1438 2.6458v1.8521l2.1167-2.1167-2.1167-2.1167v1.8521h-2.1167v0.52917z" fill="#b3b3b3" stroke="#b3b3b3" stroke-linecap="round" stroke-linejoin="round" stroke-width=".2"/>
+  </symbol>
+  <symbol id="close">
+   <rect id="rect2618" x="9.525" y="9.5367e-8" width="4.7625" height="4.7625" fill="none"/>
+   <path id="path1757" d="m10.164 0.26458-0.37414 0.37414 1.7425 1.7425-1.7425 1.7425 0.37414 0.37414 1.7425-1.7425 1.7425 1.7425 0.37414-0.37414-1.7425-1.7425 1.7425-1.7425-0.37414-0.37414-1.7425 1.7425z" fill="#b3b3b3" stroke="#b3b3b3" stroke-linecap="round" stroke-linejoin="round" stroke-width=".2"/>
+  </symbol>
+ </defs>
+ <g id="layer1">
+  <use id="use3353" xlink:href="#right"/>
+  <use id="use3364" xlink:href="#left"/>
+  <use id="use3380" xlink:href="#close"/>
+ </g>
+</svg>
