@@ -1,0 +1,160 @@
+<?php
+
+namespace KAAL\Middleware;
+
+use Exception;
+use Generator;
+use KAAL\Context;
+use KAAL\Utils\FinalException;
+use KAAL\Utils\MixedID;
+use KAAL\Utils\Normalizer;
+use PDO;
+use Snowflake53\ID;
+use stdClass;
+
+use const PJAPI\{ERR_BAD_REQUEST, ERR_INTERNAL };
+
+class Time
+{
+    use ID;
+    use MixedID;
+    use Normalizer;
+
+    public function __construct(private Context $context)
+    {
+
+    }
+
+    private function normalizeEgressTimeEntry(stdClass $entry)
+    {
+        if ($entry->id === null || empty($entry->id)) {
+            throw new Exception('ID missing', ERR_INTERNAL);
+        }
+        $entry->id = self::normalizeId($entry->id);
+        /*hstatus.status_id AS hstatus_id, hstatus.status_name
+                     AS hstatus_name, hstatus.status_color AS hsatus_color,
+                     tstatus.status_id AS tstatus_id, tstatus.status_name
+                     AS tstatus_name, tstatus.status_color AS tstatus_color,
+                     htime_id, htime_day, htime_value, htime_process,
+                     htime_comment, htime_dinner, htime_km, project_id,
+                     project_reference, project_name, travail_id, travail_reference,
+                     travail_description, travail_status
+        */
+        $entry->day = self::normalizeDate($entry->day);
+        $entry->value = self::normalizeTimestamp($entry->value);
+        $entry->comment = self::normalizeString($entry->comment);
+        $entry->dinner = self::normalizeBool($entry->dinner);
+        $entry->km = self::normalizeInt($entry->km);
+        $entry->project->id = self::normalizeId($entry->project->id);
+        $entry->project->name = self::normalizeString($entry->project->name);
+        $entry->project->reference = self::normalizeString($entry->project->reference);
+        $entry->travail->id = self::normalizeId($entry->travail->id);
+        $entry->travail->reference = self::normalizeString($entry->travail->reference);
+        $entry->travail->description = self::normalizeString($entry->travail->description);
+        $entry->travail->status->id = self::normalizeId($entry->travail->status->id);
+        $entry->travail->status->name = self::normalizeString($entry->travail->status->name);
+        $entry->travail->status->color = self::normalizeString($entry->travail->status->color);
+        $entry->status->id = self::normalizeId($entry->status->id);
+        $entry->status->name = self::normalizeString($entry->status->name);
+        $entry->status->color = self::normalizeString($entry->status->color);
+
+        return $entry;
+    }
+
+    public function getMyMonth(int $year, int $month): Generator
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
+        $strYear = strval($year);
+        $strMonth = strval($month);
+        if (!ctype_digit($strMonth) || !ctype_digit($strYear)) {
+            throw new FinalException('Bad year or month', ERR_BAD_REQUEST);
+        }
+
+        /* TESTED QUERY :
+         * SELECT hstatus.status_id AS hstatus_id, hstatus.status_name AS hstatus_name,
+         * hstatus.status_color AS hsatus_color, tstatus.status_id AS tstatus_id,
+         * tstatus.status_name AS tstatus_name, tstatus.status_color AS tstatus_color,
+         * htime_id, htime_day, htime_value, htime_process, htime_comment, htime_dinner,
+         * htime_km, project_id, project_reference, project_name, travail_id, travail_reference,
+         * travail_description, travail_status
+         * FROM htime
+         * LEFT JOIN project ON htime_project = project_id
+         * LEFT JOIN travail ON htime_travail = travail_id
+         * LEFT JOIN kairos.status AS tstatus ON travail_status = tstatus.status_id
+         * LEFT JOIN kairos.status AS hstatus ON htime_process = hstatus.status_id
+         * WHERE htime_day LIKE '2025-08-%'
+         *       AND htime_person = 48
+         *       AND COALESCE(htime_deleted, 0) = 0
+         */
+
+        $query = sprintf(
+            "SELECT hstatus.status_id AS hstatus_id, hstatus.status_name 
+             AS hstatus_name, hstatus.status_color AS hsatus_color,
+             tstatus.status_id AS tstatus_id, tstatus.status_name 
+             AS tstatus_name, tstatus.status_color AS tstatus_color,
+             htime_id, htime_day, htime_value,
+             htime_comment, htime_dinner, htime_km, project_id,
+             project_reference, project_name, travail_id, travail_reference,
+             travail_description
+            FROM htime
+            LEFT JOIN project ON htime_project = project_id
+            LEFT JOIN travail ON htime_travail = travail_id
+            LEFT JOIN kairos.status AS tstatus ON travail_status = tstatus.status_id
+            LEFT JOIN kairos.status AS hstatus ON htime_process = hstatus.status_id
+            WHERE htime_day LIKE '%s-%s-%%'
+                AND htime_person = :person
+                AND COALESCE(htime_deleted, 0) = 0
+            ",
+            $strYear,
+            $strMonth
+        );
+        $stmt = $this->context->pdo()->prepare($query);
+        $stmt->bindValue(
+            ':person',
+            $this->context->auth()->get_current_userid(),
+            PDO::PARAM_INT
+        );
+        $stmt->execute();
+
+        while (($timeEntry = $stmt->fetch(PDO::FETCH_ASSOC))) {
+            $timeEntryObj = new stdClass();
+            $timeEntryObj->project = new stdClass();
+            $timeEntryObj->travail = new stdClass();
+            $timeEntryObj->status = new stdClass();
+            foreach ($timeEntry as $k => $v) {
+                $kparts = explode('_', $k, 2);
+                if (count($kparts) < 2) {
+                    $timeEntryObj->{$kparts[0]} = $v;
+                } else {
+                    switch ($kparts[0]) {
+                        case 'htime':
+                            $timeEntryObj->{$kparts[1]} = $v;
+                            break;
+                        case 'travail':
+                            $timeEntryObj->travail->{$kparts[1]} = $v;
+                            break;
+                        case 'project':
+                            $timeEntryObj->project->{$kparts[1]} = $v;
+                            break;
+                        case 'hstatus':
+                            $timeEntryObj->status->{$kparts[1]} = $v;
+                            break;
+                        case 'tstatus':
+                            if (!isset($timeEntryObj->travail->status)) {
+                                $timeEntryObj->travail->status = new stdClass();
+                            }
+                            $timeEntryObj->travail->status->{$kparts[1]} = $v;
+                            break;
+                    }
+                }
+            }
+            yield $this->normalizeEgressTimeEntry(timeEntryObj);
+        }
+    }
+
+}
