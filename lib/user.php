@@ -1,23 +1,41 @@
 <?php
-class KUser implements artnum\JStore\AuthUser {
-    function __construct($pdo) {
+
+use PDO;
+
+class KUser implements artnum\JStore\AuthUser
+{
+    private PDO $pdo;
+    public function __construct($pdo)
+    {
         $this->pdo = $pdo;
     }
-    public function get($id) {
-        $stmt =$this->pdo->prepare('SELECT "person_username", "person_name", "person_id", "person_key", "person_keyopt" FROM "person" WHERE "person_id" = :id AND "person_disabled" = 0 AND "person_deleted" IS NULL');
+    public function get($id)
+    {
+        $stmt = $this->pdo->prepare('
+            SELECT "person_username", "person_name", "person_id", "person_key", "person_keyopt" 
+            FROM "person"
+            WHERE "person_id" = :id AND "person_disabled" = 0 AND COALESCE("person_deleted",0) = 0
+        ');
         $stmt->bindValue(':id', intval($id), PDO::PARAM_INT);
         $stmt->execute();
-        if ($stmt->rowCount() !== 1) { throw new Exception(); }
+        if ($stmt->rowCount() !== 1) {
+            throw new Exception();
+        }
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
         $keyopts = explode(' ', $data['person_keyopt']);
-        if (count($keyopts) < 2) { throw new Exception(); }
+        if (count($keyopts) < 2) {
+            throw new Exception();
+        }
         $algo = 'SHA-256';
         if (!empty($keyopts[2])) {
-            switch($keyopts[2]) {
+            switch ($keyopts[2]) {
                 default:
-                case 'SHA-256': $algo = 'SHA-256'; break;
-                case 'SHA-384': $algo = 'SHA-384'; break;
-                case 'SHA-512': $algo = 'SHA-512'; break;
+                case 'SHA-256': $algo = 'SHA-256';
+                    break;
+                case 'SHA-384': $algo = 'SHA-384';
+                    break;
+                case 'SHA-512': $algo = 'SHA-512';
+                    break;
             }
         }
         return [
@@ -30,23 +48,32 @@ class KUser implements artnum\JStore\AuthUser {
             'username' => $data['person_username']
         ];
     }
-    public function getByUsername($username) {
-        $stmt =$this->pdo->prepare('SELECT "person_id" FROM "person" WHERE LOWER("person_username") = :username');
+    public function getByUsername($username)
+    {
+        $stmt = $this->pdo->prepare('SELECT "person_id" FROM "person" WHERE LOWER("person_username") = :username');
         $stmt->bindValue(':username', strtolower($username), PDO::PARAM_STR);
         $stmt->execute();
-        if ($stmt->rowCount() !== 1) { throw new Exception(); }
+        if ($stmt->rowCount() !== 1) {
+            throw new Exception();
+        }
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (empty($data['person_id'])) { throw new Exception(); }
+        if (empty($data['person_id'])) {
+            throw new Exception();
+        }
         return ['id' => intval($data['person_id'])];
     }
-    public function setPassword($id, $key, $keyopts = []) {
+    public function setPassword($id, $key, $keyopts = [])
+    {
         $algo = 'SHA-256';
         if (!empty($keyopts['key_algo'])) {
-            switch($keyopts['key_algo']) {
+            switch ($keyopts['key_algo']) {
                 default:
-                case 'SHA-256': $algo = 'SHA-256'; break;
-                case 'SHA-384': $algo = 'SHA-384'; break;
-                case 'SHA-512': $algo = 'SHA-512'; break;
+                case 'SHA-256': $algo = 'SHA-256';
+                    break;
+                case 'SHA-384': $algo = 'SHA-384';
+                    break;
+                case 'SHA-512': $algo = 'SHA-512';
+                    break;
             }
         }
         $keystr = strval($keyopts['key_iterations']) . ' ' . $keyopts['key_salt'] . ' ' . $algo;
@@ -59,3 +86,4 @@ class KUser implements artnum\JStore\AuthUser {
         return $stmt->execute();
     }
 }
+

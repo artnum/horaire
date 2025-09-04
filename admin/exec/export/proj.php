@@ -106,6 +106,22 @@ foreach($_GET as $key => $value) {
             // nothing
          }
          break;
+      case 'year':
+         try {
+            $at = $value . '-01-01';
+            $at2 = $value . '-12-31';
+            $query .= ' AND project.project_id IN (
+                  SELECT DISTINCT project_id FROM htime 
+                  WHERE htime_deleted IS NULL AND htime_day >= :at AND htime_day <= :at2
+               )
+            ';
+            $atDate = new DateTime($at2);
+            $atDate->setTime(23, 59, 59);
+            $bindings['at'] = [$at, PDO::PARAM_STR];
+            $bindings['at2'] = [$at2, PDO::PARAM_STR];
+         } catch (Exception $e) {
+            // nothing
+         }
    }
 }
 

@@ -16,7 +16,6 @@ class Reference extends BASEReference
             if (str_starts_with($match, ':id')) {
                 $f = str_replace(':id', '', $match);
                 $f = str_replace(':', '', $f);
-                echo $f;
                 $base = str_replace($match, sprintf('%' . $f . 'd', $refId), $base);
             }
             switch($match) {

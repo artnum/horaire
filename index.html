@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
+  <head>
     <title></title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="conf/kaal.js"></script>
     <script src="js/index.js"></script>
     <link href="css/kaproject.css" rel="stylesheet" />
@@ -10,69 +10,74 @@
     <link href="css/missingInfoBox.css" rel="stylesheet" />
 
     <link href="css/fontawesome-all.min.css" rel="stylesheet" />
-</head>
+  </head>
 
-<body>
+  <body>
     <div class="ka-container">
-        <div class="ka-head"></div>
-        <div class="ka-main-top"></div>
-        <div class="ka-main-bottom"></div>
-        <div class="ka-foot"></div>
+      <div class="ka-head"></div>
+      <div class="ka-main-top"></div>
+      <div class="ka-main-bottom"></div>
+      <div class="ka-foot"></div>
     </div>
-</body>
-<script>
+  </body>
+  <script>
     function checkBuildNumberAndReload() {
-        return new Promise(resolve => {
-            const currentBuild = localStorage.getItem('kaal-build-number')
-            fetch(new URL(`build_number`, window.location))
-                .then(response => {
-                    if (!response.ok) { throw new Error() }
-                    return response.text()
-                })
-                .then(buildNumber => {
-                    localStorage.setItem('kaal-build-number', buildNumber)
-                    if (parseInt(currentBuild) !== parseInt(buildNumber)) {
-                        throw new Error()
-                    }
-                    resolve()
-                })
-                .catch(_ => {
-                    window.location.reload(true)
-                    resolve()
-                })
-        })
+      return new Promise((resolve) => {
+        const currentBuild = localStorage.getItem("kaal-build-number");
+        fetch(new URL(`build_number`, window.location))
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error();
+            }
+            return response.text();
+          })
+          .then((buildNumber) => {
+            localStorage.setItem("kaal-build-number", buildNumber);
+            if (parseInt(currentBuild) !== parseInt(buildNumber)) {
+              throw new Error();
+            }
+            resolve();
+          })
+          .catch((_) => {
+            window.location.reload(true);
+            resolve();
+          });
+      });
     }
 
-    window.addEventListener('load-scripts', event => {
-        checkBuildNumberAndReload()
+    window.addEventListener("load-scripts", (event) => {
+      checkBuildNumberAndReload()
         .then(() => {
-            const missing = new Missing()
-            return missing.init()
+          const missing = new Missing();
+          return missing.init();
         })
-        .then(_ => {
-            document.title = KAAL.title
-            const userUI = new UserInteractUI()
-            userUI.run()
-            .then(user => {
-                if ((new Missing()).isMissing(user.uid)) {
-                    const infoBox = document.createElement('DIV')
-                    infoBox.classList.add('MissingInfoBox')
-                    infoBox.innerHTML = `Des heures sont manquantes sur certains
+        .then((_) => {
+          document.title = KAAL.title;
+          const userUI = new UserInteractUI();
+          userUI.run().then((user) => {
+            if (new Missing().isMissing(user.uid)) {
+              const infoBox = document.createElement("DIV");
+              infoBox.classList.add("MissingInfoBox");
+              infoBox.innerHTML = `Des heures sont manquantes sur certains
                         projets. Veuillez vérifier et remplir le formulaire si des
-                        corrections sont nécessaire`
-                    infoBox.addEventListener('click', event => {
-                        event.currentTarget.parentNode.removeChild(event.currentTarget)
-                    })
-                    document.body.insertBefore(infoBox, document.body.firstElementChild)
-                }
-                const timeUI = new TimeInteractUI(user.uid, user.workday)
-                timeUI.run()
-                timeUI.addEventListener('user-logout', event => {
-                    userUI.run()
-                })
-            })
-        })
-    })
-</script>
-
+                        corrections sont nécessaire`;
+              infoBox.addEventListener("click", (event) => {
+                event.currentTarget.parentNode.removeChild(
+                  event.currentTarget,
+                );
+              });
+              document.body.insertBefore(
+                infoBox,
+                document.body.firstElementChild,
+              );
+            }
+            const timeUI = new TimeInteractUI(user.uid, user.workday);
+            timeUI.run();
+            timeUI.addEventListener("user-logout", (event) => {
+              userUI.run();
+            });
+          });
+        });
+    });
+  </script>
 </html>
