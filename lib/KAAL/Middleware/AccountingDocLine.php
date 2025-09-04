@@ -2,7 +2,6 @@
 namespace KAAL\Middleware;
 
 use STQuery\STQuery as Search;
-use KAAL\Backend\{Cache, Storage};
 use KaalDB\PDO\PDO;
 use Exception;
 use stdClass;
@@ -10,23 +9,19 @@ use const PJAPI\{ERR_BAD_REQUEST, ERR_INTERNAL};
 use Snowflake53\ID;
 use Normalizer;
 use KAAL\Utils\{MixedID, Base26};
-use MonoRef\Backend\IStorage;
 use Generator;
-use KAAL\AccessControl;
+use KAAL\Context;
 
 class AccountingDocLine {
     use ID;
     use MixedID;
-    protected PDO $pdo;
-    protected IStorage $cache;
 
-    function __construct(PDO $pdo, IStorage $cache) {
-        $this->pdo = $pdo;
-        $this->cache = $cache;
+
+    function __construct(private Context $context) {
+
     }
 
     protected static function normalizeEgressLine (stdClass $line) {
-        $rbac = AccessControl::getInstance();
         $line->id = strval($line->id) ?? '0';
         $line->docid = strval($line->docid) ?? '0';
         $line->position = strval($line->position) ?? null;
@@ -43,20 +38,10 @@ class AccountingDocLine {
             $line->docref = $line->docref . '_' . Base26::encode($line->docvariant);
         }
 
-        $filters = $rbac->has_attribute_filter('docline', 'read');
-        foreach ($filters as $filter) {
-            unset($line->$filter);
-        }
-
         return $line;
     }
 
     protected static function normalizeIngressLine (stdClass $line) {
-        $rbac = AccessControl::getInstance();
-        $filters = $rbac->has_attribute_filter('docline', 'write');
-        foreach ($filters as $filter) {
-            unset($line->$filter);
-        }
     
         if (isset($line->id)) { $line->id = self::normalizeId($line->id); }
         if (isset($line->docid)) { $line->docid = self::normalizeId($line->docid); }
@@ -81,7 +66,7 @@ class AccountingDocLine {
         $JSearch = new Search();
         $JSearch->setSearch($search);
         list ($where, $bindings) = $JSearch->toPDO();
-        $stmt = $this->pdo->prepare('SELECT id FROM accountingDocLine WHERE ' . $where . ' ORDER BY position ASC ' . ($forUpdate ? ' FOR UPDATE' : ''));
+        $stmt = $this->context->pdo()->prepare('SELECT id FROM accountingDocLine WHERE ' . $where . ' ORDER BY position ASC ' . ($forUpdate ? ' FOR UPDATE' : ''));
         foreach($bindings as $placeholder => $binding) {
             $stmt->bindValue($placeholder, $binding['value'], $binding['type']);
         }
@@ -100,14 +85,14 @@ class AccountingDocLine {
     function setStates (string|int|stdClass $docId, string $state = 'frozen') {
         try {
             $docId = self::normalizeId($docId);
-            $this->pdo->beginTransaction();
-            $stmt = $this->pdo->prepare('UPDATE accountingDocLine SET state = :state WHERE docId = :docId');
+            $this->context->pdo()->beginTransaction();
+            $stmt = $this->context->pdo()->prepare('UPDATE accountingDocLine SET state = :state WHERE docId = :docId');
             $stmt->bindValue(':state', $state, PDO::PARAM_STR);
             $stmt->bindValue(':docId', $docId, PDO::PARAM_INT);
             $stmt->execute();
-            $this->pdo->commit();
+            $this->context->pdo()->commit();
         } catch (Exception $e) {
-            $this->pdo->rollBack();
+            $this->context->pdo()->rollBack();
             throw new Exception('Error setting state', ERR_INTERNAL, $e);
         }
     }
@@ -115,14 +100,14 @@ class AccountingDocLine {
     function lock (string|int|stdClass $id) {
         $id = self::normalizeId($id);
         try { 
-            $this->pdo->beginTransaction();
-            $stmt = $this->pdo->prepare('UPDATE accountingDocLine SET state = :state WHERE id = :id');
+            $this->context->pdo()->beginTransaction();
+            $stmt = $this->context->pdo()->prepare('UPDATE accountingDocLine SET state = :state WHERE id = :id');
             $stmt->bindValue(':state', 'frozen', PDO::PARAM_STR);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
-            $this->pdo->commit();
+            $this->context->pdo()->commit();
         } catch (Exception $e) {
-            $this->pdo->rollBack();
+            $this->context->pdo()->rollBack();
             throw new Exception('Error locking line', ERR_INTERNAL, $e);
         }
     }
@@ -130,21 +115,21 @@ class AccountingDocLine {
     function unlock (string|int $id) {
         try {
             $id = self::normalizeId($id);
-            $this->pdo->beginTransaction();
-            $stmt = $this->pdo->prepare('UPDATE accountingDocLine SET state = :state WHERE id = :id');
+            $this->context->pdo()->beginTransaction();
+            $stmt = $this->context->pdo()->prepare('UPDATE accountingDocLine SET state = :state WHERE id = :id');
             $stmt->bindValue(':state', 'open', PDO::PARAM_STR);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
-            $this->pdo->commit();
+            $this->context->pdo()->commit();
         } catch (Exception $e) {
-            $this->pdo->rollBack();
+            $this->context->pdo()->rollBack();
             throw new Exception('Error locking line', ERR_INTERNAL, $e);
         }
     }
 
     function get (string|int $id) {
         $id = self::normalizeId($id);
-        $stmt = $this->pdo->prepare('SELECT l.*,d.reference AS docref, d.variant AS docvariant
+        $stmt = $this->context->pdo()->prepare('SELECT l.*,d.reference AS docref, d.variant AS docvariant
             FROM accountingDocLine AS l 
             LEFT JOIN accountingDoc AS d ON l.docid = d.id  
             WHERE l.id = :id');
@@ -153,15 +138,15 @@ class AccountingDocLine {
         return self::normalizeEgressLine($stmt->fetch(PDO::FETCH_OBJ));
     }
 
-    function gets (string|int $docId = null) {
+    function gets (string|int|null $docId) {
         $docId = self::normalizeId($docId);
-        $docAPI = new AccountingDoc($this->pdo, $this->cache);
+        $docAPI = new AccountingDoc($this->context);
         $parents[] = $docId;
         $parent = $docAPI->_getDirectParent($docId);
         if ($parent !== null) {
             $parents[] = $parent;
         }
-        $stmt = $this->pdo->prepare('SELECT id FROM accountingDocLine WHERE docId IN (' . implode(',', $parents) . ') ORDER BY position ASC');
+        $stmt = $this->context->pdo()->prepare('SELECT id FROM accountingDocLine WHERE docId IN (' . implode(',', $parents) . ') ORDER BY position ASC');
         $stmt->execute();
         while ($line = $stmt->fetch(PDO::FETCH_ASSOC)) {
             yield $this->get($line['id']);
@@ -175,34 +160,34 @@ class AccountingDocLine {
         if (empty($lines)) {
             throw new Exception('No lines to update', ERR_BAD_REQUEST);
         }
-        $stmt = $this->pdo->prepare('UPDATE accountingDocLine SET state = :state WHERE id = :id');
-        $this->pdo->beginTransaction();
+        $stmt = $this->context->pdo()->prepare('UPDATE accountingDocLine SET state = :state WHERE id = :id');
+        $this->context->pdo()->beginTransaction();
         try {
             foreach ($lines as $line) {
                 $stmt->execute([':state' => $line->state, ':id' => $line->id]);
             }
         } catch (\Exception $e) {
-            $this->pdo->rollBack();
+            $this->context->pdo()->rollBack();
             throw new Exception('Error updating line', ERR_INTERNAL ,$e);
         }
-        $this->pdo->commit();
+        $this->context->pdo()->commit();
     }
 
     function delete (string|int $id) {
         $id = self::normalizeId($id);
-        $stmt = $this->pdo->prepare('DELETE FROM accountingDocLine WHERE id = :id');
+        $stmt = $this->context->pdo()->prepare('DELETE FROM accountingDocLine WHERE id = :id');
         yield ['deleted' => ['id' => $id, 'success' => $stmt->execute([':id' => $id])]];
     }
 
-    function add (stdClass $line, string|int $docId = null) {
+    function add (stdClass $line, string|int|null $docId) {
         if (empty($line) || empty($docId)) {
             throw new Exception('No line to add');
         }
         $docId = self::normalizeId($docId);
         $line = self::normalizeIngressLine($line);
         $id = $this->get64();
-        $this->pdo->beginTransaction();
-        $stmt = $this->pdo->prepare('INSERT INTO accountingDocLine (
+        $this->context->pdo()->beginTransaction();
+        $stmt = $this->context->pdo()->prepare('INSERT INTO accountingDocLine (
             id,
             position,
             posref,
@@ -244,20 +229,20 @@ class AccountingDocLine {
         $stmt->bindValue(':docId', $docId, PDO::PARAM_INT);
         $success = $stmt->execute();
         if (!$success) {
-            $this->pdo->rollBack();
+            $this->context->pdo()->rollBack();
             return ['added' => ['id' => $this->get($id), 'success' => $success]];
         }
-        $this->pdo->commit();
+        $this->context->pdo()->commit();
         return ['added' => ['line' => $this->get($id), 'success' => $success]];
     }
 
     function copy ($from, $to) {
-        $selection = $this->pdo->prepare('SELECT * FROM accountingDocLine WHERE docid = :from');
+        $selection = $this->context->pdo()->prepare('SELECT * FROM accountingDocLine WHERE docid = :from');
         $selection->bindValue(':from', $from, PDO::PARAM_INT);
         $selection->execute();
         while (($line = $selection->fetch(PDO::FETCH_OBJ)) !== false) {
             $id = $this->get64();
-            $stmt = $this->pdo->prepare('INSERT INTO accountingDocLine (
+            $stmt = $this->context->pdo()->prepare('INSERT INTO accountingDocLine (
                 id,
                 position,
                 description,
@@ -299,7 +284,7 @@ class AccountingDocLine {
 
     function update (stdClass $line) {
         $line = self::normalizeIngressLine($line);
-        $stmt = $this->pdo->prepare('UPDATE accountingDocLine SET 
+        $stmt = $this->context->pdo()->prepare('UPDATE accountingDocLine SET 
             position = :position,
             posref = :posref,
             description = :description,
@@ -328,10 +313,10 @@ class AccountingDocLine {
         return ['updated' => ['line' => $this->get($line->id), 'success' => true]];
     }
 
-    function set (array $lines = null, string|int $docId) {
+    function set (?array $lines, string|int $docId) {
         $docId = self::normalizeId($docId);
 
-        $stmt = $this->pdo->prepare('SELECT * FROM accountingDocLine WHERE docId = :docId FOR UPDATE');
+        $stmt = $this->context->pdo()->prepare('SELECT * FROM accountingDocLine WHERE docId = :docId FOR UPDATE');
         $stmt->execute([':docId' => $docId]);
 
         /* Order matters because position are set on the client side and 
@@ -340,7 +325,7 @@ class AccountingDocLine {
          *  2. Update, so we set position
          *  3. Add, so we have position correctly set
          */
-        $this->pdo->beginTransaction();
+        $this->context->pdo()->beginTransaction();
         try {
             $toUpdate = [];
             while($l = $stmt->fetch(PDO::FETCH_OBJ)) {
@@ -387,9 +372,9 @@ class AccountingDocLine {
                 yield $this->add($line, $docId);
             }
         } catch (\Exception $e) {
-            $this->pdo->rollBack();
+            $this->context->pdo()->rollBack();
             throw $e;
         }
-        $this->pdo->commit();
+        $this->context->pdo()->commit();
     }
 }

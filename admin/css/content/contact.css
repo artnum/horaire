@@ -1,0 +1,10 @@
+.ka-contact-list {
+    display: flex;
+    padding: 2px;
+    border: 1px solid black;
+    box-shadow: 5px 5px 5px 0px var(--ka-tooltip-shadow-color);
+}
+
+.ka-contact-list .contact {
+    width: minmax(20%, 500px);
+}

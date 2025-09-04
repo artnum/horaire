@@ -1,5 +1,7 @@
 <?php
 
+use BizCuit\BXObject\BXObject;
+
 require('bxcache.php');
 trait BexioJSONCache {
     protected $bxcache;
@@ -206,6 +208,11 @@ abstract class BexioModel
         
     }
 
+    function processEntry (BXObject $object):BXObject
+    {
+        return $object;
+    }
+
     function write($arg, &$id = NULL) {
         try {
             $object = $this->api->new();
@@ -217,6 +224,7 @@ abstract class BexioModel
                 $this->bxcache->delete($object->getType() . '/' . $object->getId());
             }
             $object = $this->api->update($object);
+            $object = $this->processEntry($object);
             $this->store_cache($object->getType() . '/' . $object->getId(), $object->toJson(), 1);
             return $object;
         } catch (Exception $e) {
@@ -234,6 +242,7 @@ abstract class BexioModel
             $object->{$object->getIDName()} = $id;
             $this->bxcache->delete($object->getType() . '/' . $object->getId());
             $object = $this->api->set($object);
+            $object = $this->processEntry($object);
             $this->store_cache($object->getType() . '/' . $object->getId(), $object->toJson(), 1);
         } catch (Exception $e) {
             return $this->handleError($e);
@@ -269,7 +278,7 @@ abstract class BexioModel
             if (!$object) { 
                 return $this->try_read_cache($this->api->getType() . '/' . $arg);
             }
-
+            $object = $this->processEntry($object);
             $jsonObject = $object->toJson();
             $this->bxcache->put($this->api->getType() . '/' . $arg, $jsonObject);
             $this->store_cache($this->api->getType() . '/' . $arg, $jsonObject, 1);
@@ -339,6 +348,7 @@ abstract class BexioModel
             $tocache = [];
             foreach($this->api->list($limit[0], $limit[1]) as $item) {
                 $tocache[] = $item->getId();
+                $object = $this->processEntry($item);
                 $jsonObject = $item->toJson();
                 $this->bxcache->put($item->getType() . '/' . $item->getId(), $jsonObject);
                 $this->store_cache($item->getType() . '/' . $item->getId(), $jsonObject, 1);
@@ -428,6 +438,7 @@ abstract class BexioModel
             $tocache = [];
             foreach ($results as $object) {
                 $tocache[] = $object->getId();
+                $object = $this->processEntry($object);
                 $jsonObject = $object->toJson();
                 $this->bxcache->put($object->getType() . '/' . $object->getId(), $jsonObject);
                 $this->store_cache($object->getType() . '/' . $object->getId(), $jsonObject, 1);

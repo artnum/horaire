@@ -1,0 +1,310 @@
+div.ka-main-content {
+    display: grid;
+    height: 100vh;
+    grid-template-columns: minmax(20%, 300px) 1fr minmax(20%, 300px);
+    grid-template-rows: auto 1fr min-content;
+    grid-template-areas: 
+        "module module module"
+        "navigation main action"
+        "status status status";
+}
+
+.error-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(120, 120, 120, 0.5);
+}
+
+.error-box .message {
+  font-weight: bold;
+  display: block;
+  padding: 4px;
+  background-color: white;
+  color: #8B4000;
+}
+
+section.ka-main {
+    flex: 1;
+    height: 100%;
+    padding-left: 5px;
+    grid-area: main;
+    overflow-y: auto;
+}
+
+section.ka-main.with-navigation {
+    border-left: 2px solid var(--ka-main-nav-separator-color);
+}
+
+section.ka-main-nav {
+    flex: 0 0 300px;
+    padding-right: 5px;
+    padding-left: 5px;
+    grid-area: navigation;
+    overflow-y: scroll;
+}
+
+section.ka-main-nav .new-item {
+  background-color: lightgreen !important;
+}
+
+section.ka-main-nav .new-item.selected {
+  color: black !important;
+}
+
+section.ka-main-nav .item:hover {
+    color: var(--ka-navigation-item-hover-fg-color);
+    background-color: var(--ka-navigation-item-hover-bg-color);
+}
+
+section.ka-main-nav .item {
+    color: var(--ka-navigation-item-unselected-fg-color);
+    background-color: var(--ka-navigation-item-unselected-bg-color);
+    padding: 4px;
+}
+
+.item.disabled {
+    opacity: 0.5;
+}
+
+
+section.ka-main-nav .item.selected, section.ka-main-nav .item.selected:hover {
+    color: var(--ka-navigation-item-selected-fg-color);
+    background-color: var(--ka-navigation-item-selected-bg-color);
+}
+
+section.ka-module {
+    display: flex;
+    height: max-content;
+    grid-area: module;
+}
+
+section.ka-status {
+    display: grid;
+    font-size: 8pt;
+    font-family: monospace;
+    grid-template-columns: 4fr 2fr 1fr;
+    grid-area: status;
+    gap: 3px;
+    border-top: 3px outset black;
+}
+section.ka-status > div {
+    background-color: gray;
+    color: white;
+}
+
+.ka-order-container {
+    padding: 4px;
+}
+
+.drag-over {
+    background-color: lightblue !important;
+}
+
+.dragged {
+    background-color: transparent !important;
+    color: black !important;
+    font-weight: bolder;
+}
+
+.item {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+}
+
+.orderable {
+    cursor: grab;
+}
+
+.UserUI .item.orderable:nth-child(odd) {
+    background-color: lightgrey;
+}
+
+.UserUI .item.orderable:nth-child(even) {
+    background-color: darkgrey;
+    color: white;
+}
+
+.item.broken {
+    color: #ff4500 !important; /* orange-red */
+    background: linear-gradient(
+        45deg,
+        rgba(128, 128, 128, 0.3),
+        rgba(255, 69, 0, 0.2)
+    ); /* gradient mix of grey and orange */
+    opacity: 0.65;
+    text-decoration: line-through;
+    text-decoration-color: #ff0000; /* red strikethrough */
+    text-decoration-thickness: 2px; /* thicker line */
+    pointer-events: none; /* prevents interaction */
+    transition: all 0.3s ease;
+}
+
+.ka-order-container {
+    min-height: 2ex;
+    border: 1px solid black;
+}
+
+.ka-main-action {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.main-action-item {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.main-action-item:hover {
+  background-color: var(--ka-navigation-item-hover-bg-color);
+}
+
+.main-action-item:active {
+  border: 2px solid blue;
+}
+
+form.data-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 6px;
+  row-gap: 6px;
+}
+
+form.data-form h1,
+form.data-form h2,
+form.data-form h3,
+form.data-form h4,
+form.data-form h5,
+form.data-form h6
+{
+  grid-column-end: span 2;
+}
+
+form.data-form label {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  column-gap: 6px;
+  align-items: end;
+}
+
+form.data-form label span.label 
+{
+  border-bottom: 4px solid transparent;
+}
+
+form.data-form label input,
+form.data-form label button, 
+form.data-form label select,
+form.data-form label textarea
+{
+  padding: 0;
+  margin: 0;
+}
+
+form.floating-form {
+  background-color: white;
+  border: 1px solid black;
+  gap:4px;
+}
+
+form.serial-form {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.serial-form-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  max-width: 400px;
+  min-width: 400px;
+
+}
+
+form.multiselect-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.multiselect {
+  display: flex;
+  flex-flow: row wrap;
+}
+
+.multiselect-item {
+  display: grid;
+  grid-template-columns: 0.2fr 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  max-width: 400px;
+  min-width: 400px;
+  cursor: pointer;
+}
+
+.multiselect-item .check {
+  grid-column-start: 1;
+  grid-column-end: span 1;
+  grid-row-start: 1;
+}
+
+.multiselect-item .check input {
+  padding: 0;
+  margin: 0;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+}
+
+.multiselect-item .name {
+  grid-column-start: 2;
+  grid-column-end: span 3;
+  grid-row-start: 1;
+}
+
+.multiselect-item .description {
+  grid-column-start: 2;
+  grid-column-end: span 3;
+  grid-row-start: 2;
+  font-size: 0.8em;
+  margin-left: 4ex;
+}
+.tab-container {
+  margin: 5px;
+  margin-top: 4ex;
+}
+.tab-header  {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 6px;
+}
+
+.tab-header .tab-button {
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+.tab-header .tab-button-placeholder {
+  background-color: lightgray;
+  color: gray;
+  cursor: not-allowed;
+}
+
+.tab-header .tab-button.active {
+  border: 1px solid black;
+  border-bottom: none;
+  color: white;
+  background-color: black;
+}
+.tab-content {
+  border-top: 1px solid black;
+  overflow: auto;
+}
