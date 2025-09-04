@@ -1,6 +1,7 @@
 import { JAPI } from './$script/src/JAPI/JAPI.js'
 import { AccountingDocLineAPI } from './$script/src/JAPI/AccountingDocLine.js'
 import { base26 } from './$script/src/lib/base26.js'
+import format from './$script/src/lib/format.js'
 const NS = 'AccountingDoc'
 
 class AccountingDoc {
@@ -29,6 +30,10 @@ class AccountingDoc {
         this.type = doc.type
         this.condition = doc.condition
         this.related = doc.related ?? null
+    }
+
+    get freference() {
+        return format.printf("%s_%s", this.reference, this.variant)
     }
 
     clone () {
@@ -64,7 +69,7 @@ class AccountingDoc {
     }
 }
 
-export class AccountingDocAPI extends JAPI {
+export default class AccountingDocAPI extends JAPI {
     constructor() {
         super()
         this.LineAPI = AccountingDocLineAPI.instance
@@ -75,193 +80,142 @@ export class AccountingDocAPI extends JAPI {
     }
 
     get (id) {
-        return new Promise((resolve, reject) => {
-            if (typeof id === 'object') { id = id.id }
-            this.API.exec(
-                AccountingDocAPI.NS,
-                'get', 
-                {id: id}
-            )
-            .then(doc => {
-                return resolve(new AccountingDoc(this, doc))
-            })
-            .catch(err => {
-                return reject(err)
-            })
-        })
+
+        if (typeof id === 'object') { id = id.id }
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'get', 
+            {id: id}
+        )
+        .then(doc => new AccountingDoc(this, doc))
     }
 
     listByProject (projectId) {
-        return new Promise((resolve, reject) => {        
-            if (typeof projectId === 'object') { projectId = projectId.id }
-            this.API.exec(
-                AccountingDocAPI.NS,
-                'listByProject',
-                {project: projectId}
-            )
-            .then(docs => {
-                return resolve(docs.map(doc => new AccountingDoc(this, doc)))
-            })
-            .catch(err => {
-                return reject(err)
-            })
-        })
+        if (typeof projectId === 'object') { projectId = projectId.id }
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'listByProject',
+            {project: projectId}
+        )
+        .then(docs => docs.map(doc => new AccountingDoc(this, doc)))
+    }
+
+
+    listByType (type) {      
+        if (typeof type === 'object') { projectId = projectId.type }
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'listByType',
+            {type: type}
+        )
+        .then(docs => docs.map(doc => new AccountingDoc(this, doc)))
     }
 
     listFromDocument (documentId) {
-        return new Promise((resolve, reject) => {
-            if (typeof documentId === 'object') { documentId = documentId.id }
-            this.API.exec(
-                AccountingDocAPI.NS,
-                'listFromDocument',
-                {document: documentId}
-            )
-            .then(docs => {
-                return resolve(docs.map(doc => new AccountingDoc(this, doc)))
-            })
-            .catch(err => {
-                return reject(err)
-            })
-        })
+        if (typeof documentId === 'object') { documentId = documentId.id }
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'listFromDocument',
+            {document: documentId}
+        )
+        .then(docs => docs.map(doc => new AccountingDoc(this, doc)))
     }
 
     list () {
-        return new Promise((resolve, reject) => {
-            this.API.exec(
-                AccountingDocAPI.NS,
-                'list'
-            )
-            .then(docs => {
-                return resolve(docs.map(doc => new AccountingDoc(this, doc)))
-            })
-            .catch(err => {
-                return reject(err)
-            })
-        })
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'list'
+        )
+        .then(docs => docs.map(doc => new AccountingDoc(this, doc)))
     }
 
     create (document) {
-        return new Promise((resolve, reject) => {
-            if (document instanceof AccountingDoc) {
-                document = document.toJSON()
-            }
-        
-            if (!document.project) {
-                document.project = null
-            }
+        if (document instanceof AccountingDoc) {
+            document = document.toJSON()
+        }
+    
+        if (!document.project) {
+            document.project = null
+        }
 
-            this.API.exec(
-                AccountingDocAPI.NS,
-                'create',
-                {document}
-            )
-            .then(doc => {
-                return resolve(new AccountingDoc(this, doc))
-            })
-            .catch(err => {
-                return reject(err)
-            })
-        })
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'create',
+            {document}
+        )
+        .then(doc => new AccountingDoc(this, doc))
     }
 
     createVariant (document) {
-        return new Promise((resolve, reject) => {
-            if (document instanceof AccountingDoc) {
-                document = document.toJSON()
-                if (!document.id) {
-                    return reject('Project ID is required')
-                }
+        if (document instanceof AccountingDoc) {
+            document = document.toJSON()
+            if (!document.id) {
+                return reject('Project ID is required')
             }
-        
-            this.API.exec(
-                AccountingDocAPI.NS,
-                'createVariant',
-                {document}
-            )
-            .then(doc => {
-                return resolve(new AccountingDoc(this, doc))
-            })
-            .catch(err => {
-                return reject(err)
-            })
-        })
+        }
+    
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'createVariant',
+            {document}
+        )
+        .then(doc => new AccountingDoc(this, doc))
     }
     update (document) {
-        return new Promise((resolve, reject) => {
-            if (document instanceof AccountingDoc) {
-                document = document.toJSON()
-            }
-            if (!document.id) {
-                return reject('Document ID is required')
-            }
-            this.API.exec(
-                AccountingDocAPI.NS,
-                'update',
-                {document}
-            )
-            .then(doc => {
-                return resolve(new AccountingDoc(this, doc))
-            })
-            .catch(err => {
-                return reject(err)
-            })
-        })
+        if (document instanceof AccountingDoc) {
+            document = document.toJSON()
+        }
+        if (!document.id) {
+            return Promise.reject('Document ID is required')
+        }
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'update',
+            {document}
+        )
+        .then(doc => new AccountingDoc(this, doc))
     }
 
     delete (document) {
-        return new Promise((resolve, reject) => {
-            if (document instanceof AccountingDoc) {
-                document = document.toJSON()
+        if (document instanceof AccountingDoc) {
+            document = document.toJSON()
+        }
+        if (!document.id) {
+            return Promise.reject('Document ID is required')
+        }
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'delete',
+            {id: document.id}
+        )
+        .then(state => {
+            if (state.deleted.success) {
+                return state.deleted
             }
-            if (!document.id) {
-                return reject('Document ID is required')
-            }
-            this.API.exec(
-                AccountingDocAPI.NS,
-                'delete',
-                {id: document.id}
-            )
-            .then(state => {
-                if (state.deleted.success) {
-                    return resolve(state.deleted)
-                }
-                return reject()
-            }).catch(err => {
-                return reject(err)
-            })
+            throw new Error()
         })
     }
 
     getCurrent (projectId) {
-        return new Promise((resolve, reject) => {
-            this.API.exec(
-                AccountingDocAPI.NS,
-                'getCurrent',
-                {project: projectId}
-            )
-            .then(doc => {
-                if (doc === null) { return resolve(null) }
-                return resolve(new AccountingDoc(this, doc))
-            })
-            .catch(err => {
-                return reject(err)
-            })
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'getCurrent',
+            {project: projectId}
+        )
+        .then(doc => {
+            if (doc === null) { return null }
+            return new AccountingDoc(this, doc)
         })
     }
 
     nextStep(accDoc) {
-        return new Promise((resolve, reject) => {
-            this.API.exec(
-                AccountingDocAPI.NS,
-                'nextStep',
-                {id: accDoc}
-            )
-            .then(newDocument => {
-                resolve(newDocument)
-            })
-            .catch(err => {
-                reject(err)
-            })
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'nextStep',
+            {id: accDoc}
+        )
+        .then(newDocument => {
+            return newDocument
         })
     }
 
@@ -274,34 +228,27 @@ export class AccountingDocAPI extends JAPI {
     }
 
     pdf (id) {
-        return new Promise((resolve, reject) => {
-            this.API.exec(
-                AccountingDocAPI.NS,
-                'pdf',
-                {id}
-            )
-            .then(pdf => {
-                return resolve(pdf)
-            })
-            .catch(err => {
-                return reject(err)
-            })
-        })
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'pdf',
+            {id}
+        )
     }
 
     msword (id) {
-        return new Promise((resolve, reject) => {
-            this.API.exec(
-                AccountingDocAPI.NS,
-                'msword',
-                {id}
-            )
-            .then(pdf => {
-                return resolve(pdf)
-            })
-            .catch(err => {
-                return reject(err)
-            })
-        })
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'msword',
+            {id}
+        )
+    }
+
+    probableNextReference(type) {
+        return this.API.exec(
+            AccountingDocAPI.NS,
+            'getProbableNextReference',
+            {type}
+        )
+           
     }
 }

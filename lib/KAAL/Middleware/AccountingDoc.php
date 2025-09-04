@@ -1,48 +1,41 @@
 <?php
+
 namespace KAAL\Middleware;
 
 use STQuery\STQuery as Search;
 use Exception;
 use Generator;
-use MonoRef\Backend\IStorage;
 use KAAL\Utils\Reference;
 use stdClass;
 use Normalizer;
 use KaalDB\PDO\PDO;
-use KAAL\Backend\{Cache, Storage};
+use KAAL\Context;
 use Snowflake53\ID;
 use KAAL\Utils\{MixedID, Base26};
-use KAAL\AccessControl;
 use kPDF\Parsedown\Parsedown;
 use kPDF\kPDF;
 use PhpOffice\PhpWord\TemplateProcessor;
 
 use const PJAPI\{ERR_BAD_REQUEST, ERR_INTERNAL};
 
-class AccountingDoc  {
+class AccountingDoc
+{
     use ID;
     use MixedID;
-    protected PDO $pdo;
     protected Reference $ref;
-    protected IStorage|null $cache;
 
-    function __construct(PDO $pdo, IStorage|null $cache = null) {
-        $this->pdo = $pdo;
-        $this->pdo->beginTransaction();
-        if ($cache !== null) {
-            $this->ref = new Reference($cache);
-            $this->cache = $cache;
-        }
-    }
 
-    function __destruct()
+    public function __construct(private Context $context)
     {
-        if ($this->pdo->inTransaction()) {
-            $this->pdo->commit();
-        }
+        $this->ref = new Reference($context->cache());
     }
 
-    protected static function normalizeEgressDocument (stdClass $document):stdClass {
+    public function __destruct()
+    {
+    }
+
+    protected static function normalizeEgressDocument(stdClass $document): stdClass
+    {
         if (empty($document)) {
             throw new Exception('No document provided', ERR_BAD_REQUEST);
         }
@@ -91,17 +84,21 @@ class AccountingDoc  {
             $document->project = null;
         }
         $document->type = strval($document->type);
+        if (isset($document->document_id)) {
+            $document->document_id = (string) $document->document_id;
+        }
         return $document;
     }
 
-    protected static function normalizeIngressDocument (stdClass $document):stdClass {
+    protected static function normalizeIngressDocument(stdClass $document): stdClass
+    {
         if (empty($document)) {
             throw new Exception('No document provided', ERR_BAD_REQUEST);
         }
 
         if (empty($document->variant)) {
             $document->variant = 0;
-        } else if (!is_int($document->variant)) {
+        } elseif (!is_int($document->variant)) {
             if (!ctype_alpha($document->variant)) {
                 throw new Exception('Invalid variant', ERR_BAD_REQUEST);
             }
@@ -148,21 +145,27 @@ class AccountingDoc  {
         } else {
             $document->date = date('Y-m-d H:i', strtotime($document->date));
         }
-    
+
         $document->project = intval($document->project);
-        if (isset($document->related)) { $document->related = intval($document->related); }
-        else { $document->related = null; }
+        if (isset($document->related)) {
+            $document->related = intval($document->related);
+        } else {
+            $document->related = null;
+        }
         $document->condition = intval($document->condition);
         $document->created = intval($document->created);
         $document->deleted = intval($document->deleted);
         $document->type = strval($document->type);
         $document->name = Normalizer::normalize(strval($document->name));
         $document->description = Normalizer::normalize(strval($document->description));
-
+        if (isset($document->document_id)) {
+            $document->document_id = intval($document->document_id);
+        }
         return $document;
     }
 
-    public function _getIdsForDocument (mixed $docId):array {
+    public function _getIdsForDocument(mixed $docId): array
+    {
         $document = $this->get($docId);
         $ids = [$docId];
         if ($document->type !== 'offer') {
@@ -171,9 +174,10 @@ class AccountingDoc  {
         return $ids;
     }
 
-    public function _getDirectParent (mixed $docId) {
+    public function _getDirectParent(mixed $docId)
+    {
         $docId = self::normalizeId($docId);
-        $stmt = $this->pdo->prepare('SELECT related FROM accountingDoc WHERE id = :id');
+        $stmt = $this->context->pdo()->prepare('SELECT related FROM accountingDoc WHERE id = :id');
         $stmt->bindParam(':id', $docId, PDO::PARAM_INT);
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_OBJ);
@@ -183,11 +187,12 @@ class AccountingDoc  {
         return intval($result->related);
     }
 
-    public function _getParents (mixed $docId):array {
+    public function _getParents(mixed $docId): array
+    {
         $docId = self::normalizeId($docId);
 
         $parents = [];
-        $stmt = $this->pdo->prepare('SELECT related 
+        $stmt = $this->context->pdo()->prepare('SELECT related 
             FROM accountingDoc WHERE id = :id');
         $stmt->bindParam(':id', $docId, PDO::PARAM_INT);
         do {
@@ -197,14 +202,23 @@ class AccountingDoc  {
                 break;
             }
             $parent = intval($result->related);
-            if ($parent === 0) { break; }
+            if ($parent === 0) {
+                break;
+            }
             $parents[] = $parent;
             $docId = $parent;
         } while ($parent !== null);
         return $parents;
     }
 
-    public function tree (mixed $docId):stdClass {
+    public function tree(mixed $docId): stdClass
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
         $docId = self::normalizeId($docId);
         $document = $this->get($docId);
         $document->parents = $this->_getParents($docId);
@@ -212,23 +226,31 @@ class AccountingDoc  {
         return $document;
     }
 
-    public function listFromDocument(mixed $document):Generator {
+    public function listFromDocument(mixed $document): Generator
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
         $docId = self::normalizeId($document);
         $docs = [$docId];
         $docs = array_merge($docs, $this->_getParents($docId));
         $docs = array_merge($docs, $this->_getChilds($docId));
         rsort($docs);
-        
-        foreach($docs as $doc) {
+
+        foreach ($docs as $doc) {
             yield $this->get($doc);
         }
     }
 
-    public function _getChilds (mixed $docId): array {
+    public function _getChilds(mixed $docId): array
+    {
         $docId = self::normalizeId($docId);
 
         $childs = [];
-        $stmt = $this->pdo->prepare('SELECT id 
+        $stmt = $this->context->pdo()->prepare('SELECT id 
             FROM accountingDoc WHERE related = :id');
         $stmt->bindParam(':id', $docId, PDO::PARAM_INT);
         do {
@@ -238,18 +260,24 @@ class AccountingDoc  {
                 break;
             }
             $child = intval($result->id);
-            if ($child === 0) { break; }
+            if ($child === 0) {
+                break;
+            }
             $childs[] = $child;
             $docId = $child;
         } while ($child !== null);
         return $childs;
     }
 
-    public function createVariant (string|int|stdClass $document) {
-        $rbac = AccessControl::getInstance();
-        $rbac->can('accounting', ['write']);
-        
-        $linesAPI = new AccountingDocLine($this->pdo, $this->cache);
+    public function createVariant(string|int|stdClass $document)
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
+        $linesAPI = new AccountingDocLine($this->context->pdo(), $this->context->cache());
 
         $docId = self::normalizeId($document);
         $document = $this->get($docId);
@@ -260,13 +288,18 @@ class AccountingDoc  {
         return $document;
     }
 
-    public function search (stdClass $search):Generator {
-        $rbac = AccessControl::getInstance();
-        $rbac->can('accounting', ['search']);
+    public function search(stdClass $search): Generator
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
         try {
             $JSearch = new Search($search);
-            list ($where, $values) = $JSearch->toPDO();
-            $stmt = $this->pdo->prepare(
+            list($where, $values) = $JSearch->toPDO();
+            $stmt = $this->context->pdo()->prepare(
                 'SELECT id FROM accountingDoc 
                  WHERE ' . $where . '
                  ORDER BY id DESC'
@@ -275,7 +308,7 @@ class AccountingDoc  {
                 $stmt->bindValue($key, $value['value'], $value['type']);
             }
             $stmt->execute();
-            while($row = $stmt->fetch(PDO::FETCH_OBJ)) {
+            while ($row = $stmt->fetch(PDO::FETCH_OBJ)) {
                 yield $this->get(strval($row->id));
             }
         } catch (Exception $e) {
@@ -283,34 +316,66 @@ class AccountingDoc  {
         }
     }
 
-    public function getOffers ():Generator {
-        $rbac = AccessControl::getInstance();
-        $rbac->can('accounting', ['search']);
+    public function getOffers(): Generator
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
 
         return $this->search((object) ['type' => 'offer', 'deleted' => 0, 'project' => '-']);
     }
 
-    private function getRawDocument (string|int $id):stdClass {
+    private function getRawDocument(string|int $id): stdClass
+    {
         try {
-            $stmt = $this->pdo->prepare('SELECT * FROM accountingDoc WHERE id = :id');
+            $this->context->rbac()->can(
+                $this->context->auth(),
+                get_class($this),
+                __FUNCTION__
+            );
+
+            $stmt = $this->context->pdo()->prepare('SELECT * FROM accountingDoc WHERE id = :id');
             $stmt->bindValue(':id', self::normalizeId($id), PDO::PARAM_INT);
             $stmt->execute();
-            return self::normalizeEgressDocument($stmt->fetch(PDO::FETCH_OBJ));
+            $document = self::normalizeEgressDocument($stmt->fetch(PDO::FETCH_OBJ));
+
+            $stmt = $this->context->pdo()->prepare('
+                SELECT contact_id,type
+                FROM documents_contacts 
+                WHERE document_id = :document_id
+            ');
+            $stmt->bindValue(':document_id', (int)$document->document_id, PDO::PARAM_INT);
+            $stmt->execute();
+            $document->contact_ids = [];
+            while (($contact = $stmt->fetch(PDO::FETCH_OBJ))) {
+                $contact->contact_id = (string)$contact->contact_id;
+                $document->contact_ids[] = $contact;
+            }
+            return $document;
         } catch (Exception $e) {
             throw new Exception('Error getting document', ERR_INTERNAL, $e);
         }
     }
 
-    public function nextStep (string|int $id):stdClass {
+    public function nextStep(string|int $id): stdClass
+    {
         try {
-            $linesAPI = new AccountingDocLine($this->pdo, $this->cache);
+            $this->context->rbac()->can(
+                $this->context->auth(),
+                get_class($this),
+                __FUNCTION__
+            );
+
+            $linesAPI = new AccountingDocLine($this->context->pdo(), $this->context->cache());
             $docId = self::normalizeId($id);
-            $this->pdo->beginTransaction();
+            $this->context->pdo()->beginTransaction();
             foreach ($linesAPI->_rawSearch((object) ['docid' => $id], true) as $id) {
                 $linesAPI->lock($id);
             }
             $originalDocument = $this->get($docId);
-            switch($originalDocument->type) {
+            switch ($originalDocument->type) {
                 case 'offer':
                     $type = 'execution';
                     break;
@@ -320,7 +385,7 @@ class AccountingDoc  {
                 default:
                     throw new Exception('Invalid type', ERR_BAD_REQUEST);
             }
-            
+
             $document = new stdClass();
             $document->related = $originalDocument->id;
             $document->type = $type;
@@ -328,20 +393,27 @@ class AccountingDoc  {
             /* copying the project attribute set is less flexible but simplify
              * queries. There is almost no chance that a document flow will be
              * set to another projet.
-             */ 
+             */
             $document->project = $originalDocument->project;
 
             $new =  $this->create($document);
-            $this->pdo->commit();
+            $this->context->pdo()->commit();
             return $new;
         } catch (Exception $e) {
-            $this->pdo->rollBack();
+            $this->context->pdo()->rollBack();
             throw new Exception('Error locking document', ERR_INTERNAL, $e);
         }
     }
 
-    public function get (string|int $id):stdClass {
+    public function get(string|int $id): stdClass
+    {
         try {
+            $this->context->rbac()->can(
+                $this->context->auth(),
+                get_class($this),
+                __FUNCTION__
+            );
+
             $id = self::normalizeId($id);
             $document = $this->getRawDocument($id);
             if ($document->related) {
@@ -350,7 +422,7 @@ class AccountingDoc  {
                     throw new Exception('Base document not found', ERR_BAD_REQUEST);
                 }
                 foreach ($baseDoc as $key => $value) {
-                    switch($key) {
+                    switch ($key) {
                         case 'deleted':
                         case 'created':
                         case 'variant':
@@ -368,15 +440,22 @@ class AccountingDoc  {
         }
     }
 
-    public function getCurrent (string|stdClass $project):stdClass|null {
+    public function getCurrent(string|stdClass $project): stdClass|null
+    {
         try {
+            $this->context->rbac()->can(
+                $this->context->auth(),
+                get_class($this),
+                __FUNCTION__
+            );
+
             if (is_object($project)) {
                 $project = intval($project->id);
             } else {
                 $project = intval($project);
             }
 
-            $stmt = $this->pdo->prepare(
+            $stmt = $this->context->pdo()->prepare(
                 'SELECT id FROM accountingDoc 
                  WHERE deleted = 0 AND project = :project
                  ORDER BY id DESC LIMIT 1'
@@ -392,22 +471,29 @@ class AccountingDoc  {
         }
     }
 
-    public function listByProject (string|stdClass $project):Generator {
+    public function listByProject(string|stdClass $project): Generator
+    {
         try {
+            $this->context->rbac()->can(
+                $this->context->auth(),
+                get_class($this),
+                __FUNCTION__
+            );
+
             if (is_object($project)) {
                 $project = intval($project->id);
             } else {
                 $project = intval($project);
             }
 
-            $stmt = $this->pdo->prepare(
+            $stmt = $this->context->pdo()->prepare(
                 'SELECT id FROM accountingDoc 
                  WHERE deleted = 0 AND project = :project
                  ORDER BY id DESC'
             );
             $stmt->bindValue(':project', $project, PDO::PARAM_INT);
             $stmt->execute();
-            while($row = $stmt->fetch(PDO::FETCH_OBJ)) {
+            while ($row = $stmt->fetch(PDO::FETCH_OBJ)) {
                 yield $this->get($row->id);
             }
         } catch (Exception $e) {
@@ -415,15 +501,46 @@ class AccountingDoc  {
         }
     }
 
-    public function list ():Generator {
+    public function listByType(string $type): Generator
+    {
         try {
-            $stmt = $this->pdo->prepare(
-                    'SELECT id FROM accountingDoc 
+            $this->context->rbac()->can(
+                $this->context->auth(),
+                get_class($this),
+                __FUNCTION__
+            );
+
+            $stmt = $this->context->pdo()->prepare(
+                'SELECT id FROM accountingDoc 
+                     WHERE deleted = 0 AND type = :type
+                     ORDER BY id DESC'
+            );
+            $stmt->bindValue(':type', $type, PDO::PARAM_STR);
+            $stmt->execute();
+            while ($row = $stmt->fetch(PDO::FETCH_OBJ)) {
+                yield $this->get($row->id);
+            }
+        } catch (Exception $e) {
+            throw new Exception('Error getting documents', ERR_INTERNAL, $e);
+        }
+    }
+
+    public function list(): Generator
+    {
+        try {
+            $this->context->rbac()->can(
+                $this->context->auth(),
+                get_class($this),
+                __FUNCTION__
+            );
+
+            $stmt = $this->context->pdo()->prepare(
+                'SELECT id FROM accountingDoc 
                      WHERE deleted = 0 
                      ORDER BY id DESC'
-                    );
+            );
             $stmt->execute();
-            while($row = $stmt->fetch(PDO::FETCH_OBJ)) {
+            while ($row = $stmt->fetch(PDO::FETCH_OBJ)) {
                 yield $this->get($row->id);
             }
         } catch (Exception $e) {
@@ -431,8 +548,11 @@ class AccountingDoc  {
         }
     }
 
-    private function doCreate (stdClass $document, bool $variant = false):stdClass {
-        $this->pdo->beginTransaction();
+    private function doCreate(stdClass $document, bool $variant = false): stdClass
+    {
+        $this->context->pdo()->beginTransaction();
+        $doc = new Documents($this->context->pdo(), $this->context->cache());
+        $doc_id = $doc->create($document);
         try {
             $related = null;
             if ($document->related) {
@@ -445,6 +565,7 @@ class AccountingDoc  {
             $query = 'INSERT INTO accountingDoc 
                     (
                         id,
+                        document_id,
                         reference,
                         project,
                         name,
@@ -457,6 +578,7 @@ class AccountingDoc  {
                     ) 
                     VALUES (
                         :id,
+                        :document_id,
                         :reference,
                         :project,
                         :name,
@@ -467,13 +589,13 @@ class AccountingDoc  {
                         :related,
                         %s
                     )';
-            
+
             if ($variant) {
                 $query = sprintf($query, '(SELECT MAX(ac.variant) FROM accountingDoc AS ac WHERE ac.reference = :reference) + 1');
             } else {
                 $query = sprintf($query, '0');
             }
-            $stmt = $this->pdo->prepare($query);
+            $stmt = $this->context->pdo()->prepare($query);
 
             if ($document->project === null) {
                 $stmt->bindValue(':project', null, PDO::PARAM_NULL);
@@ -491,36 +613,77 @@ class AccountingDoc  {
             $stmt->bindValue(':name', $document->name, PDO::PARAM_STR);
             $stmt->bindValue(':description', $document->description, PDO::PARAM_STR);
             $stmt->bindValue(':date', date('Y-m-d H:i'), PDO::PARAM_STR);
+            $stmt->bindValue(':document_id', $doc_id, PDO::PARAM_INT);
 
             $id = $this->get64();
             $stmt->bindValue(':id', intval($id), PDO::PARAM_INT);
             $format = '';
             switch ($document->type) {
-                case 'offer': $format = 'O:yy:-:id04:'; break;
-                case 'order': $format = 'C:yy:-:id04:'; break;
-                case 'execution': $format = 'E:yy:-:id04:'; break;
+                case 'offer': $format = 'O:yy:-:id04:';
+                    break;
+                case 'order': $format = 'C:yy:-:id04:';
+                    break;
+                case 'execution': $format = 'E:yy:-:id04:';
+                    break;
             }
             if ($variant) {
                 $stmt->bindValue(':reference', $document->reference, PDO::PARAM_STR);
             } else {
-                $stmt->bindValue(':reference', $this->ref->get(sprintf('ACCOUNTINGDOC_%s_%s', date('Y') , $document->type), $format), PDO::PARAM_STR);
+                $stmt->bindValue(':reference', $this->ref->get(sprintf('ACCOUNTINGDOC_%s_%s', date('Y'), $document->type), $format), PDO::PARAM_STR);
             }
 
             $stmt->execute();
-            $this->pdo->commit();
+            $this->context->pdo()->commit();
             return $this->get($id);
         } catch (Exception $e) {
-            $this->pdo->rollBack();
+            $this->context->pdo()->rollBack();
             throw new Exception('Error creating document', ERR_INTERNAL, $e);
         }
     }
 
-    public function create (stdClass $document):stdClass {
+    public function getProbableNextReference(string $type): stdClass
+    {
+        try {
+            $this->context->rbac()->can(
+                $this->context->auth(),
+                get_class($this),
+                __FUNCTION__
+            );
+
+            $query = 'SELECT CAST(SUBSTRING(reference, LOCATE(\'-\', reference) + 1) AS INT) + 1 AS next_reference 
+                FROM accountingDoc 
+                WHERE type = :type 
+                    AND date like CONCAT(YEAR(CURDATE()), "-%");';
+            $stmt = $this->context->pdo()->prepare($query);
+            $stmt->bindValue(':type', $type, PDO::PARAM_STR);
+            $stmt->execute();
+            $row = $stmt->fetch();
+            return (object) ['reference' => sprintf('%s%s-%04d', substr(ucfirst($type), 0, 1), date('y'), $row[0])];
+        } catch (Exception $e) {
+            throw new Exception('Error getting next reference', ERR_INTERNAL, $e);
+        }
+    }
+
+    public function create(stdClass $document): stdClass
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
         $document = self::normalizeIngressDocument($document);
         return $this->doCreate($document);
     }
 
-    public function update (stdClass $document):stdClass {
+    public function update(stdClass $document): stdClass
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
         $document = self::normalizeIngressDocument($document);
 
         $originalDocument = $this->getRawDocument($document->id);
@@ -537,36 +700,43 @@ class AccountingDoc  {
             }
         }
 
-        $this->pdo->beginTransaction();
-        try {    
-            $stmt = $this->pdo->prepare(
-                    'UPDATE accountingDoc SET 
+        $this->context->pdo()->beginTransaction();
+        try {
+            $stmt = $this->context->pdo()->prepare(
+                'UPDATE accountingDoc SET 
                         name = :name,
                         description = :description
                     WHERE id = :id'
-                );
+            );
             $stmt->bindValue(':id', intval($document->id), PDO::PARAM_INT);
             $stmt->bindValue(':name', $document->name, PDO::PARAM_STR);
             $stmt->bindValue(':description', $document->description, PDO::PARAM_STR);
 
             $stmt->execute();
-            $this->pdo->commit();
+            $this->context->pdo()->commit();
             return $this->get($document->id);
         } catch (Exception $e) {
-            $this->pdo->rollBack();
+            $this->context->pdo()->rollBack();
             throw new Exception('Error updating document', ERR_INTERNAL, $e);
         }
     }
 
-    public function delete (stdClass|int|string $id):stdClass {
+    public function delete(stdClass|int|string $id): stdClass
+    {
         try {
+            $this->context->rbac()->can(
+                $this->context->auth(),
+                get_class($this),
+                __FUNCTION__
+            );
+
             if (is_object($id)) {
                 $id = $id->id;
             }
             $id = self::normalizeId($id);
 
-            $this->pdo->beginTransaction();
-            $stmt = $this->pdo->prepare(
+            $this->context->pdo()->beginTransaction();
+            $stmt = $this->context->pdo()->prepare(
                 'UPDATE accountingDoc
                  SET deleted = :deleted
                  WHERE id = :id'
@@ -574,28 +744,34 @@ class AccountingDoc  {
             $stmt->bindValue(':deleted', time(), PDO::PARAM_INT);
             $stmt->bindValue(':id', intval($id), PDO::PARAM_INT);
             $stmt->execute();
-            $this->pdo->commit();
+            $this->context->pdo()->commit();
             return  (object) ['deleted' => ['id' => intval($id), 'success' => true]];
         } catch (Exception $e) {
-            $this->pdo->rollBack();
+            $this->context->pdo()->rollBack();
             throw new Exception('Error deleting document', ERR_INTERNAL, $e);
         }
     }
 
-    public function msword (string|int $id):string {
+    public function msword(string|int $id): string
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
 
         $document = $this->get($id);
-        $linesAPI = new AccountingDocLine($this->pdo, $this->cache);
+        $linesAPI = new AccountingDocLine($this->context->pdo(), $this->context->cache());
         $lines = $linesAPI->search((object) ['docid' => $id]);
-        
+
         $templateProcessor = new TemplateProcessor(__DIR__ . '/../../../resources/template.docx');
-        
+
         $templateProcessor->setValue('reference-document', $document->reference);
         $templateProcessor->setValue('longue-date', date('d F Y'));
 
         $arr = [];
         $total = 0;
-        foreach($lines as $line) {
+        foreach ($lines as $line) {
             $arr[] = [
                 'position' => $line->position,
                 'position-soumission' => $line->posref,
@@ -619,9 +795,16 @@ class AccountingDoc  {
         return base64_encode(file_get_contents('/tmp/test.docx'));
     }
 
-    public function pdf (string|int $id):string {
+    public function pdf(string|int $id): string
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
         $document = $this->get($id);
-        $linesAPI = new AccountingDocLine($this->pdo, $this->cache);
+        $linesAPI = new AccountingDocLine($this->context->pdo(), $this->context->cache());
         $lines = $linesAPI->search((object) ['docid' => $id]);
         $pdf = new kPDF();
         $pdf->SetAutoPageBreak(true, 10);
@@ -631,7 +814,7 @@ class AccountingDoc  {
         $pdf->AddPage();
         $pdf->SetFont('Helvetica', '', 8);
 
-        
+
         $pdf->echo('Document: ' . $document->reference);
         $pdf->break();
 
@@ -643,7 +826,7 @@ class AccountingDoc  {
 
         $parsedown = new Parsedown();
         $total = 0;
-        foreach($lines as $line) {
+        foreach ($lines as $line) {
             $baseY = $pdf->GetY();
             $maxY = $baseY;
             $pdf->setColumn('Position');
@@ -655,7 +838,7 @@ class AccountingDoc  {
 
             $pdf->SetY($baseY);
             $pdf->setColumn('Description');
-        
+
             $parsedown->pdf($pdf, $line->description);
             if ($pdf->GetY() > $maxY) {
                 $maxY = $pdf->GetY();
@@ -665,7 +848,7 @@ class AccountingDoc  {
             $pdf->SetY($baseY);
             $pdf->setColumn('Quantity');
 
-            $pdf->echo(sprintf("%0.2f",$line->quantity));
+            $pdf->echo(sprintf("%0.2f", $line->quantity));
             if ($pdf->GetY() > $maxY) {
                 $maxY = $pdf->GetY();
             }
@@ -673,7 +856,7 @@ class AccountingDoc  {
             $pdf->SetY($baseY);
             $pdf->setColumn('Price');
 
-            $pdf->echo(sprintf("%0.2f",$line->price));
+            $pdf->echo(sprintf("%0.2f", $line->price));
             if ($pdf->GetY() > $maxY) {
                 $maxY = $pdf->GetY();
             }
@@ -701,3 +884,4 @@ class AccountingDoc  {
         return base64_encode($pdf->Output('S'));
     }
 }
+

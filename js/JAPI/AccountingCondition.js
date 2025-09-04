@@ -19,50 +19,26 @@ export class AccountingConditionAPI extends JAPI {
     }
 
     lookup (docid) {
-        return new Promise((resolve, reject) => {
-            this.API.exec(
-                AccountingConditionAPI.NS,
-                'lookup',
-                {docId: docid}
-            )
-            .then(lines => {
-                resolve(lines)
-            })
-            .catch(err => {
-                reject(err)
-            })
-        })
+        return this.API.exec(
+            AccountingConditionAPI.NS,
+            'lookup',
+            {docId: docid}
+        )
     }
 
     get (docid) {
-        return new Promise((resolve, reject) => {
-            this.API.exec(
-                AccountingConditionAPI.NS,
-                'get',
-                {condition: docid}
-            )
-            .then(lines =>  {
-                resolve(lines)
-            })
-            .catch(err => {
-                reject(err)
-            })
-        })
+        return this.API.exec(
+            AccountingConditionAPI.NS,
+            'get',
+            {condition: docid}
+        )
     }
 
     set (condition) {
-        return new Promise((resolve, reject) => {
-            this.API.exec(
-                AccountingConditionAPI.NS,
-                'create',
-                {condition}
-            )
-            .then(updated => {
-                return resolve(updated)
-            })
-            .catch(err => {
-                reject(err)
-            })
-        })
+        this.API.exec(
+            AccountingConditionAPI.NS,
+            'create',
+            {condition}
+        )
     }
 }

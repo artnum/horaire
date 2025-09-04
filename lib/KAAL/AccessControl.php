@@ -2,82 +2,159 @@
 
 namespace KAAL;
 
-use const PJAPI\{ERR_BAD_REQUEST, ERR_INTERNAL};
+use stdClass;
 use Exception;
-use KAAL\IRole;
+use PDO;
 
+use const PJAPI\{ERR_BAD_REQUEST, ERR_INTERNAL, ERR_FORBIDDEN};
+
+/**
+ * Simple AccessControl base on a module. Each users has access to some modules
+ * and each module has access to some RPC Call. When a RPC Call is done, it
+ * verify that user can do it by seeing if he has access to a module that
+ * allows that RPC Call.
+ *
+ * @category Authentication
+ * @package  KAAL\AAA
+ * @author   Etienne Bagnoud <etienne@artnum.ch>
+ * @license  MIT https://opensource.org/license/mit
+ */
 class AccessControl
 {
-    static private $instance;
-    private $current;
-    private $previous;
-    public function __construct(?IRole $currentRole = null)
+    /**
+     * Constructor obviously, the linter require me to add a description
+     *
+     * @param array $definition List of definiion for roles and access
+     * @param PDO   $db         A PDO object to access the database
+     */
+    public function __construct(private array $definition, private PDO $db)
     {
-        $this->current = $currentRole;
-        $this->previous = null;
-        self::$instance = $this;
-    }
 
-    public function __destruct()
-    {
-        self::$instance = null;
-    }
-
-    public static function getInstance()
-    {
-        if (!isset(self::$instance)) {
-            throw new Exception('RBAC not initialized', ERR_INTERNAL);
-        }
-        return self::$instance;
     }
 
     /**
-     * Check if the role can perform the action.
-     * @param mixed $role The user role
-     * @param mixed $resource The resource to check
-     * @param mixed $action The action to check
-     * @return true 
-     * @throws Exception 
+     * Compare tenant of two objects. They must match.
+     *
+     * @param Auth     $auth The auth object
+     * @param stdClass $a    First object with _tenant_id as field
+     * @param stdClass $b    Second object with _tenant_id as a field
+     *
+     * @return true Always true if tenants are the same
+     * @throws Exception A forbidden exception if tenants are different
      */
-    public function can(string $resource, string|array $action)
+    public function cmpTenant(Auth $auth, stdClass $a, stdClass $b): true
     {
-        if (is_string($action)) {
-            $action = [$action];
+        if (empty($a->_tenant_id)) {
+            throw new Exception('Forbidden');
         }
-        if (false) {
-            throw new Exception('Permission denied', ERR_BAD_REQUEST);
+        if (empty($b->_tenant_id)) {
+            throw new Exception('Forbidden');
+        }
+        if ($a->_tenant_id !== $b->_tenant_id) {
+            throw new Exception('Forbidden');
+        }
+
+        if ($auth->get_tenant_id() !== $a->_tenant_id) {
+            throw new Exception('Forbidden');
+        }
+
+        return true;
+    }
+
+    /**
+     * Returns roles defined in definition
+     *
+     * @return stdClass Roles
+     */
+    public function getRoles(): stdClass
+    {
+        if (!isset($this->definition['roles'])) {
+            return new stdClass();
+        }
+        return (object) $this->definition['roles'];
+    }
+
+    public function isExistingRole(string $role): bool
+    {
+        if (!isset($this->definition['roles'])) {
+            return false;
+        }
+        if (!isset($this->definition['roles'][$role])) {
+            return false;
         }
         return true;
     }
 
     /**
-     * Return a list of attributes that the role don't have access to.
-     * @param mixed $role 
-     * @return array 
+     * Some roles infer other roles, so this resolve thoses inferences
+     *
+     * @param array $roles Roles to set
+     *
+     * @return array Complete roles array with all inferences
      */
-    public function has_attribute_filter($resource, $action) {
-        return [];
+    public function resolveInferences(array $roles): array
+    {
+        $infered = [];
+        foreach ($roles as $role) {
+            if (!isset($this->definition['roles'][$role])) {
+                continue;
+            }
+            if (!isset($this->definition['roles'][$role]['infer'])) {
+                continue;
+            }
+
+            $infered = array_merge($this->definition['roles'][$role]['infer'], $infered);
+        }
+        return array_merge($infered, $roles);
     }
 
     /**
-     * Impersonate a role.
-     * @param IRole $role 
-     * @return void 
-     * @throws Exception 
+     * Check if the current user can do the operation
+     *
+     * @param Auth   $auth      The auth object
+     * @param strins $namespace The namespace the operation is in
+     * @param string $operation The opertation itself
+     *
+     * @return true Always true, throws if user can't proceed
+     * @throws Exception An exception indicating user can't do the operation
      */
-    public function impersonate (IRole $role) {
-        $this->can('rbac', 'impersonate');
-        $this->previous = $this->current;
-        $this->current = $role;
-    }
+    public function can(
+        Auth $auth,
+        string $namespace,
+        string $operation,
+    ): true {
+        try {
+            $namespace = explode('\\', $namespace);
+            $namespace = array_pop($namespace);
+            if (!isset($this->definition['rpc'][$namespace])
+                || !isset($this->definition['rpc'][$namespace][$operation])
+            ) {
+                throw new Exception('No definition for endpoint [' . $namespace . '::' . $operation . ']');
+            }
 
-    /**
-     * Stop impersonating a role.
-     * @return void 
-     */
-    public function revert() {
-        $this->current = $this->previous;
-        $this->previous = null;
-    }
+            $userid = $auth->get_current_userid();
+            if ($userid < 0) {
+                throw new Exception('No user identified');
+            }
 
+            $requiredModules = $this->definition['rpc'][$namespace][$operation];
+            if (empty($requiredModules)) {
+                return true; // Edge case: no modules required
+            }
+
+            $placeholders = implode(',', array_fill(0, count($requiredModules), '?'));
+            $query = "SELECT 1 FROM acls WHERE person_id = ? AND module IN ($placeholders) LIMIT 1";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute(array_merge([$userid], $requiredModules));
+            $result = $stmt->fetch(PDO::FETCH_NUM);
+
+            if ($result) {
+                return true;
+            }
+
+            throw new Exception('No match found', ERR_BAD_REQUEST);
+        } catch (Exception $e) {
+            throw new Exception('Permission denied', ERR_FORBIDDEN, $e);
+        }
+    }
 }

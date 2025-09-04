@@ -1,5 +1,5 @@
+<!DOCTYPE html>
 <html>
-
 <head>
   <title></title>
   <link rel="icon" type="image/x-icon" href="../favicon.ico" />
@@ -8,12 +8,6 @@
 </head>
 
 <body>
-  <div class="bexiodown">Bexio déconnecté</div>
-  <header>
-    <h1>Administration</h1>
-  </header>
-  <main class="flex">
-  </main>
 </body>
 <script src="$script/conf/kaal.js"></script>
 <script src="$script/admin/lib/login.js"></script>
@@ -21,210 +15,12 @@
 <script src="$script/admin/fetch.js"></script>
 <script src="$script/src/data/person.js"></script>
 <script src="$script/src/data/utils.js"></script>
-<script type="text/javascript">
-  function login(ref) {
-    let div = document.createElement('DIV')
-    let form = document.createElement('FORM')
-
-    form.innerHTML = `<label for="username">Utilisateur : <input type="text" name="username" class="darkbg"></label><br>
-                     <label for="password">Mot de passe : <input type="password" name="password" class="darkbg"></label><br>
-                     <button type="submit">Authentifier</button>`
-
-    div.classList.add('login')
-    div.appendChild(form)
-    window.requestAnimationFrame(function () { ref.appendChild(div) })
-
-    form.addEventListener('submit', function (event) {
-      event.preventDefault()
-      let nodeForm = event.target
-      for (; nodeForm.nodeName !== 'FORM'; nodeForm = nodeForm.parentNode);
-      let inputs = nodeForm.getElementsByTagName('INPUT')
-      let password = null
-      let username = null
-      for (var i = 0; i < inputs.length; i++) {
-        switch (inputs[i].getAttribute('name')) {
-          case 'password':
-            password = inputs[i].value
-            inputs[i].value = ''
-            break
-          case 'username':
-            username = inputs[i].value
-            break
-        }
-      }
-
-      let base = window.location.pathname.split('/')
-      while (!base[0]) { base.shift() }
-
-      const url = new URL(`${window.location.origin}/${base.shift()}/`)
-
-      const klogin = new KLogin(KAAL.getBase())
-      klogin.getUserid(username)
-        .then(userid => {
-          return klogin.login(userid, password)
-        })
-        .then(() => {
-          return klogin.getUser()
-        }).then(userid => {
-          return KAPerson.load(userid)
-        })
-        .then(user => {
-          window.logged = true
-          window.level = parseInt(user.level)
-          if (location.search) {
-            window.location = location.search.substring(1) ?? ''
-            return
-          }
-          open(ref)
-        })
-        .catch(e => {
-          console.log(e)
-          alert('Autentification échouée')
-        })
-    })
-
-  }
-
-  window.addEventListener('hashchange', event => {
-    if (!window.location.hash.substring(1)) { return }
-    const node = document.querySelector(`a[href="${window.location.hash.substring(1)}"]`)
-    exec({target: node, preventDefault: function () {} })
-  })
-
-  ; (() => {
-    const fetchChannel = new BroadcastChannel('fetch-channel')
-    let DownTiming = 0
-    let WarningSet = false
-    fetchChannel.onmessage = message => {
-      switch (message.data) {
-        case 'bexio-down':
-          DownTiming = performance.now()
-          if (WarningSet) { return }
-          WarningSet = true
-          return window.requestAnimationFrame(() => document.body.classList.add('bexio-down'))
-        case 'bexio-up':
-          if (performance.now() - DownTiming < 10000) { return }
-          if (!WarningSet) { return }
-          WarningSet = false
-          return  window.requestAnimationFrame(() => document.body.classList.remove('bexio-down'))
-      }
-    }
-  })()
-
-
-  function exec(event) {
-    event.preventDefault()
-    let main = event.target
-    const target = event.target.getAttribute('href')
-
-    switch (target) {
-      default:
-        window.document.title = `[KAAL] ${KAAL.title}/${event.target.textContent}`
-        window.location.hash = target
-        
-
-        while (main.nodeName !== 'MAIN') { main = main.parentNode; }
-        document.body.classList.add('pageview')
-        let iframe = main.nextElementSibling
-        if (!iframe || iframe.nodeName !== 'IFRAME') {
-          iframe = document.createElement('IFRAME')
-          main.parentNode.insertBefore(iframe, main.nextSibling)
-        }
-
-        iframe.setAttribute('src', target)
-        break
-      case 'exit':
-        let base = window.location.pathname.split('/')
-        while (!base[0]) { base.shift() }
-        (new KLogin(KAAL.getBase())).logout()
-        .then(_ => {
-          window.location.hash = ''
-          window.location.reload()
-        })
-        break
-    }
-  }
-
-  function open(ref) {
-    ref.innerHTML = ''
-    let buttons = [
-      { level: 128, node: `project.html`, label: 'Projets', nodeid: 'prj' },
-      //{ level: 64, node: `process.html`, label: 'Processus' },
-      { level: 16, node: `user.html`, label: 'Utilisateurs', nodeid: 'user'},
-      { level: 32, node: `time.html`, label: 'Temps', nodeid: 'time' },
-      { level: 32, node: `bill.html`, label: 'Facture', nodeid: 'bill' },
-      { level: 32, node: 'debt.html', label: 'Débiteur', nodeid: 'debitor'},
-      { level: 128, node: `item.html`, label: 'Matériels', nodeid: 'items' },
-      { level: 128, node: `../../kairos/`, label: 'Planification', nodeid: 'plan' },
-      //{ level: 128, node: `view-gantt.html`, label: 'Vue général' },
-      { level: 32, node: 'car.html', label: 'Véhicule', nodeid: 'car'},
-      { level: 256, node: `exit`, label: 'Déconnexion', nodeid: 'exit' },
-    ]
-    buttons = buttons.filter(e => {
-      return KAAL.nodes.indexOf(e.nodeid) !== -1
-    })
-
-    const company = document.createElement('div')
-    company.classList.add('company', 'button')
-    company.innerHTML = KAAL.title;
-    ref.appendChild(company)
-
-    buttons.forEach((e) => {
-      if (parseInt(e.level) >= parseInt(window.level)) {
-        let div = document.createElement('DIV')
-        div.classList.add('button')
-        let link = document.createElement('A')
-        link.setAttribute('href', e.node)
-        link.addEventListener('click', exec)
-        link.appendChild(document.createTextNode(e.label))
-        div.appendChild(link)
-        window.requestAnimationFrame(() => ref.appendChild(div))
-      }
-    })
-  }
-
-  window.addEventListener('load', (event) => {
-    checkBuildNumberAndReload()
-    .then(() => {
-      let base = window.location.pathname.split('/')
-      while (!base[0]) { base.shift() }
-      window.document.title = `[KAAL] ${KAAL.title}`
-    
-      let url = new URL(`${window.location.origin}/${base.shift()}/`)
-      const klogin = new KLogin(KAAL.getBase())
-      klogin.getToken()
-        .then(token => {
-          if (token) {
-            klogin.check(token)
-              .then(() => {
-                return klogin.getUser()
-              })
-              .then(userid => {
-                return KAPerson.load(userid)
-              })
-              .then(user => {
-                window.logged = true
-                window.level = parseInt(user.level)
-                let main = document.getElementsByTagName('main')[0]
-                main.innerHTML = ''
-                if (location.search) {
-                  window.location = location.search.substring(1)
-                  return
-                }
-                open(main)
-              })
-              .catch(() => {
-                let main = document.getElementsByTagName('main')[0]
-                main.innerHTML = ''
-                login(main)
-              })
-          } else {
-            let main = document.getElementsByTagName('main')[0]
-            main.innerHTML = ''
-            login(main)
-          }
-        })
-      })
+<script type="module">
+  import App from './$script/admin/app/app.js'
+  const KAALApp = new App(document.body)
+  KAALApp.login()
+  .then(user => {
+    KAALApp.run()
   })
 </script>
 </html>
