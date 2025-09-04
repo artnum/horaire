@@ -1,83 +1,84 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <link rel="stylesheet" type="text/css" href="css/admin.css" />
-  <link rel="stylesheet" type="text/css" href="css/codebox.css" />
-  <style type="text/css">
-    .list > div {
-      min-height: 4ex;
-      cursor: pointer;
-    }
-    .paiement fieldset {
-      border: solid 1px black;
+  <head>
+    <link rel="stylesheet" type="text/css" href="css/admin.css" />
+    <link rel="stylesheet" type="text/css" href="css/codebox.css" />
+    <style type="text/css">
+      .list > div {
+        min-height: 4ex;
+        cursor: pointer;
+      }
+      .paiement fieldset {
+        border: solid 1px black;
+      }
+
+      .paiement legend {
+        font-weight: bold;
+        color: white;
+        background-color: black;
+      }
+      .paiement label {
+        display: block;
+      }
+      .paiement .condition {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        margin: 0.5em 0;
+      }
+      .paiement .condition label {
+        font-family: "Courier New", Courier, monospace;
+        font-weight: bold;
+      }
+      .client.alt_0 {
+        color: darkblue;
+      }
+      .client {
+        max-width: 32ch !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .reference {
+        max-width: 12ch !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .center {
+        text-align: center;
+      }
+    </style>
+    <title>Horaire</title>
+    <link
+      href="https://fonts.googleapis.com/css?family=Passion+One"
+      rel="stylesheet"
+    />
+  </head>
+  <body></body>
+  <script src="../../../kcore/index.js"></script>
+  <script src="../../conf/kaal.js"></script>
+  <script src="js/lib/login.js"></script>
+  <script src="js/kaal.js"></script>
+  <script src="js/fetch.js"></script>
+  <script src="js/lib/kapi.js"></script>
+  <script src="../../node_modules/popper.js/dist/umd/popper.min.js"></script>
+  <script src="../../node_modules/artnum/String.js"></script>
+  <script src="../../node_modules/artnum/Date.js"></script>
+  <script src="../../node_modules/artnum/Path.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/stores.js"></script>
+  <script src="js/ui/ka-bxfacture-list.js"></script>
+  <script src="../../js/ui/ka-button.js"></script>
+  <script src="js/ui/ka-contact.js"></script>
+  <script src="js/index.js"></script>
+
+  <script>
+    function load() {
+      const factureUI = new UIKABXFactureList();
+      factureUI.render().then((x) => {
+        document.body.appendChild(factureUI.domNode);
+      });
     }
 
-    .paiement legend {
-      font-weight: bold;
-      color: white;
-      background-color: black;
-    }
-    .paiement label {
-      display: block;
-    }
-    .paiement .condition {
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      margin: 0.5em 0;
-    }
-    .paiement .condition label {
-      font-family: 'Courier New', Courier, monospace;
-      font-weight: bold;
-    }
-    .client.alt_0 {
-      color: darkblue;
-    }
-    .client {
-      max-width: 32ch !important;
-      overflow:hidden;
-      text-overflow: ellipsis;
-    }
-    .reference {
-      max-width: 12ch !important;
-      overflow: hidden;;
-      text-overflow:  ellipsis;
-    }
-    .center {
-      text-align: center;
-    }
-  </style>
-<title>Horaire</title>
-<link href="https://fonts.googleapis.com/css?family=Passion+One" rel="stylesheet">
-</head>
-<body>
-</body>
-<script src="../../kcore/index.js"></script>
-<script src="../conf/kaal.js"></script>
-<script src="js/lib/login.js"></script>
-<script src="js/kaal.js"></script>
-<script src="js/fetch.js"></script>
-<script src="js/lib/kapi.js"></script>
-<script src="../node_modules/popper.js/dist/umd/popper.min.js"></script>
-<script src="../node_modules/artnum/String.js"></script>
-<script src="../node_modules/artnum/Date.js"></script>
-<script src="../node_modules/artnum/Path.js"></script>
-<script src="js/admin.js"></script>
-<script src="js/stores.js"></script>
-<script src="js/ui/ka-bxfacture-list.js"></script>
-<script src="../js/ui/ka-button.js"></script>
-<script src="js/ui/ka-contact.js"></script>
-<script src="js/index.js"></script>
-
-<script>
-  function load() {
-    const factureUI = new UIKABXFactureList()
-    factureUI.render()
-    .then(x => {
-      document.body.appendChild(factureUI.domNode)
-    })
-  }
-
-  window.addEventListener('kcore-loaded', load)
-</script>
+    window.addEventListener("kcore-loaded", load);
+  </script>
 </html>
