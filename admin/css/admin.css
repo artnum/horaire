@@ -12,7 +12,12 @@
 @import "app.css";
 @import "content/contact.css";
 
+/* Actually in transition, so relative path can be different, 
+ * TODO : fix this dirty hack
+ */
 @import "../../../css/color.css";
+@import "../../css/color.css";
+
 @import url("https://fonts.googleapis.com/css?family=B612|B612+Mono&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap");
 
