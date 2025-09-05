@@ -463,7 +463,7 @@ class AccountingDoc
             $stmt->bindValue(':project', $project, PDO::PARAM_INT);
             $stmt->execute();
             if ($stmt->rowCount() === 0) {
-                return null;
+                return (object)['id' => null];
             }
             return $this->get($stmt->fetch(PDO::FETCH_OBJ)->id);
         } catch (Exception $e) {
