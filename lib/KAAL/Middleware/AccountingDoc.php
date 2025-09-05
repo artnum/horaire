@@ -277,7 +277,7 @@ class AccountingDoc
             __FUNCTION__
         );
 
-        $linesAPI = new AccountingDocLine($this->context->pdo(), $this->context->cache());
+        $linesAPI = new AccountingDocLine($this->context);
 
         $docId = self::normalizeId($document);
         $document = $this->get($docId);
@@ -368,7 +368,7 @@ class AccountingDoc
                 __FUNCTION__
             );
 
-            $linesAPI = new AccountingDocLine($this->context->pdo(), $this->context->cache());
+            $linesAPI = new AccountingDocLine($this->context);
             $docId = self::normalizeId($id);
             $this->context->pdo()->beginTransaction();
             foreach ($linesAPI->_rawSearch((object) ['docid' => $id], true) as $id) {
@@ -761,7 +761,7 @@ class AccountingDoc
         );
 
         $document = $this->get($id);
-        $linesAPI = new AccountingDocLine($this->context->pdo(), $this->context->cache());
+        $linesAPI = new AccountingDocLine($this->context);
         $lines = $linesAPI->search((object) ['docid' => $id]);
 
         $templateProcessor = new TemplateProcessor(__DIR__ . '/../../../resources/template.docx');
@@ -804,7 +804,7 @@ class AccountingDoc
         );
 
         $document = $this->get($id);
-        $linesAPI = new AccountingDocLine($this->context->pdo(), $this->context->cache());
+        $linesAPI = new AccountingDocLine($this->context);
         $lines = $linesAPI->search((object) ['docid' => $id]);
         $pdf = new kPDF();
         $pdf->SetAutoPageBreak(true, 10);
@@ -884,4 +884,3 @@ class AccountingDoc
         return base64_encode($pdf->Output('S'));
     }
 }
-

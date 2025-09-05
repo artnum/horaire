@@ -1,44 +1,37 @@
-import { JAPI } from './JAPI.js'
+import { JAPI } from "./JAPI.js";
 
-const NS = 'AccountingCondition'
+const NS = "AccountingCondition";
 
 export class AccountingConditionAPI extends JAPI {
-    constructor() {
-        super()
-    }
+  constructor() {
+    super();
+  }
 
-    static get instance() {
-        if (AccountingConditionAPI.Instance === undefined) {
-            AccountingConditionAPI.Instance = new AccountingConditionAPI()
-        }
-        return AccountingConditionAPI.Instance
+  static get instance() {
+    if (AccountingConditionAPI.Instance === undefined) {
+      AccountingConditionAPI.Instance = new AccountingConditionAPI();
     }
+    return AccountingConditionAPI.Instance;
+  }
 
-    static get NS() {
-        return NS
-    }
+  static get NS() {
+    return NS;
+  }
 
-    lookup (docid) {
-        return this.API.exec(
-            AccountingConditionAPI.NS,
-            'lookup',
-            {docId: docid}
-        )
-    }
+  lookup(docid) {
+    return this.API.exec(AccountingConditionAPI.NS, "lookup", {
+      docId: docid,
+    });
+  }
 
-    get (docid) {
-        return this.API.exec(
-            AccountingConditionAPI.NS,
-            'get',
-            {condition: docid}
-        )
-    }
+  get(docid) {
+    return this.API.exec(AccountingConditionAPI.NS, "get", {
+      condition: docid,
+    });
+  }
 
-    set (condition) {
-        this.API.exec(
-            AccountingConditionAPI.NS,
-            'create',
-            {condition}
-        )
-    }
+  set(condition) {
+    return this.API.exec(AccountingConditionAPI.NS, "create", { condition });
+  }
 }
+
