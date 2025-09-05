@@ -194,7 +194,7 @@ class AccountingDocLine
     {
         $id = self::normalizeId($id);
         $stmt = $this->context->pdo()->prepare('DELETE FROM accountingDocLine WHERE id = :id');
-        yield ['deleted' => ['id' => $id, 'success' => $stmt->execute([':id' => $id])]];
+        yield (object)['deleted' => ['id' => $id, 'success' => $stmt->execute([':id' => $id])]];
     }
 
     public function add(stdClass $line, string|int|null $docId)
@@ -249,10 +249,10 @@ class AccountingDocLine
         $success = $stmt->execute();
         if (!$success) {
             $this->context->pdo()->rollBack();
-            return ['added' => ['id' => $this->get($id), 'success' => $success]];
+            return (object)['added' => ['id' => $this->get($id), 'success' => $success]];
         }
         $this->context->pdo()->commit();
-        return ['added' => ['line' => $this->get($id), 'success' => $success]];
+        return (object)['added' => ['line' => $this->get($id), 'success' => $success]];
     }
 
     public function copy($from, $to)
@@ -331,7 +331,7 @@ class AccountingDocLine
         $stmt->bindValue(':unit', $line->unit, PDO::PARAM_STR);
         $stmt->bindValue(':id', $line->id, PDO::PARAM_INT);
         $stmt->execute();
-        return ['updated' => ['line' => $this->get($line->id), 'success' => true]];
+        return (object)['updated' => ['line' => $this->get($line->id), 'success' => true]];
     }
 
     public function set(?array $lines, string|int $docId)
@@ -409,4 +409,3 @@ class AccountingDocLine
         $this->context->pdo()->commit();
     }
 }
-
