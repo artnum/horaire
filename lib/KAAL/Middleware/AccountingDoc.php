@@ -342,7 +342,7 @@ class AccountingDoc
             $document = self::normalizeEgressDocument($stmt->fetch(PDO::FETCH_OBJ));
 
             $stmt = $this->context->pdo()->prepare('
-                SELECT contact_id,type
+                SELECT contact_id,type_id
                 FROM documents_contacts 
                 WHERE document_id = :document_id
             ');
