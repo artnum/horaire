@@ -383,7 +383,7 @@ class Auth
         $done = false;
         $ip = $_SERVER['REMOTE_ADDR'];
         $host = empty($_SERVER['REMOTE_HOST']) ? $ip : $_SERVER['REMOTE_HOST'];
-        $ua = !empty($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
+        $ua = !empty($_SERVER['HTTP_USER_AGENT']) ? hash('sha256', $_SERVER['HTTP_USER_AGENT']) : '';
         if ($duration === -1) {
             $duration = $this->timeout;
         }
