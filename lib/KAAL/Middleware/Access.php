@@ -65,6 +65,11 @@ class Access
      */
     private function setLegacyAccessLevel(int $userid, int $level): void
     {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
         $stmt = $this->context->pdo()->prepare(
             'UPDATE `person` SET `person_level` = :level WHERE `person_id` = :id'
         );
@@ -76,6 +81,11 @@ class Access
 
     public function deleteUserRoles(int|string|stdClass $userid): stdClass
     {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
         $tenant_id = $this->context->auth()->get_tenant_id();
         $userid = self::normalizeId($userid);
 
@@ -126,6 +136,11 @@ class Access
      */
     public function setUserRoles(int|string|stdClass $userid, array $roles): stdClass
     {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
         $tenant_id = $this->context->auth()->get_tenant_id();
         $userid = self::normalizeId($userid);
         $roles = array_values(
