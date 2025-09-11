@@ -270,7 +270,7 @@ class Auth
     {
         $crypto = new Crypto($hash);
         $sign = $crypto->get_random_bytes();
-        $authvalue = $crypto->stringify($crypto->hmac($sign . $cnonce, base64_decode($hpw)));
+        $authvalue = $crypto->stringify($crypto->hmac($sign . $cnonce, Base64::decode($hpw)));
         if ($this->add_auth($userid, $authvalue, '', self::SHARE_NONE)) {
             return $crypto->stringify($sign);
         }
@@ -286,7 +286,7 @@ class Auth
         }
         $crypto = new Crypto($hash);
         $sign = $crypto->get_random_bytes();
-        $share_authvalue = $crypto->stringify($crypto->hmac($sign, base64_decode($authvalue)));
+        $share_authvalue = $crypto->stringify($crypto->hmac($sign, Base64::decode($authvalue)));
         if ($this->add_auth($userid, $share_authvalue, $this->prepare_url($url), $permanent, $comment, $duration)) {
             return $share_authvalue;
         }
@@ -383,7 +383,7 @@ class Auth
         $done = false;
         $ip = $_SERVER['REMOTE_ADDR'];
         $host = empty($_SERVER['REMOTE_HOST']) ? $ip : $_SERVER['REMOTE_HOST'];
-        $ua = !empty($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
+        $ua = !empty($_SERVER['HTTP_USER_AGENT']) ? hash('sha256', $_SERVER['HTTP_USER_AGENT']) : '';
         if ($duration === -1) {
             $duration = $this->timeout;
         }

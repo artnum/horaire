@@ -11,35 +11,41 @@ use stdClass;
 
 use const PJAPI\{ERR_BAD_REQUEST, ERR_INTERNAL};
 
-class Documents {
-    const MAX_TYPE_LENGTH = 20;
+class Documents
+{
     use ID;
     use MixedID;
+    public const MAX_TYPE_LENGTH = 20;
     protected PDO $pdo;
     protected IStorage|null $cache;
 
-    function __construct(PDO $pdo, IStorage|null $cache = null)
+    public function __construct(PDO $pdo, IStorage|null $cache = null)
     {
         $this->pdo = $pdo;
         if ($cache !== null) {
             $this->cache = $cache;
         }
     }
-    protected static function normalizeEgressDocument (stdClass $document):stdClass {
+    protected static function normalizeEgressDocument(stdClass $document): stdClass
+    {
         switch ($document->type) {
-            case 'offer': $format = 'O:yy:-:id04:'; break;
-            case 'order': $format = 'C:yy:-:id04:'; break;
-            case 'execution': $format = 'E:yy:-:id04:'; break;
+            case 'offer': $format = 'O:yy:-:id04:';
+                break;
+            case 'order': $format = 'C:yy:-:id04:';
+                break;
+            case 'execution': $format = 'E:yy:-:id04:';
+                break;
         }
         return $document;
     }
 
-    protected static function normalizeIngressDocument (stdClass $document):stdClass {
+    protected static function normalizeIngressDocument(stdClass $document): stdClass
+    {
         if (empty($document)) {
             throw new Exception('No document provided', ERR_BAD_REQUEST);
         }
         $document->type = strtolower(strval($document->type));
-        switch($document->type) {
+        switch ($document->type) {
             case 'offer':
             case 'order':
             case 'execution':
@@ -49,11 +55,11 @@ class Documents {
             default:
                 throw new Exception('Invalid document type', ERR_BAD_REQUEST);
         }
-        
+
         return $document;
     }
 
-    public function get(string|int $id):stdClass
+    public function get(string|int $id): stdClass
     {
         try {
             $id = self::normalizeId($id);
@@ -69,18 +75,18 @@ class Documents {
         }
     }
 
-    public function create (stdClass $document):int
+    public function create(stdClass $document): int
     {
-        try{
+        try {
             $document = self::normalizeIngressDocument($document);
             $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare('
-                INSERT INTO "documents" 
+                INSERT INTO documents
                     (id, type, year, created)
                 VALUES
                     (:id, :type, YEAR(CURRENT_DATE()), UNIX_TIMESTAMP())
             ');
-            $id = self::get64();
+            $id = self::get63();
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             $stmt->bindValue(':type', $document->type, PDO::PARAM_STR);
             $stmt->execute();
@@ -93,3 +99,4 @@ class Documents {
     }
 
 }
+

@@ -277,7 +277,7 @@ class AccountingDoc
             __FUNCTION__
         );
 
-        $linesAPI = new AccountingDocLine($this->context->pdo(), $this->context->cache());
+        $linesAPI = new AccountingDocLine($this->context);
 
         $docId = self::normalizeId($document);
         $document = $this->get($docId);
@@ -342,7 +342,7 @@ class AccountingDoc
             $document = self::normalizeEgressDocument($stmt->fetch(PDO::FETCH_OBJ));
 
             $stmt = $this->context->pdo()->prepare('
-                SELECT contact_id,type
+                SELECT contact_id,type_id
                 FROM documents_contacts 
                 WHERE document_id = :document_id
             ');
@@ -368,7 +368,7 @@ class AccountingDoc
                 __FUNCTION__
             );
 
-            $linesAPI = new AccountingDocLine($this->context->pdo(), $this->context->cache());
+            $linesAPI = new AccountingDocLine($this->context);
             $docId = self::normalizeId($id);
             $this->context->pdo()->beginTransaction();
             foreach ($linesAPI->_rawSearch((object) ['docid' => $id], true) as $id) {
@@ -463,7 +463,7 @@ class AccountingDoc
             $stmt->bindValue(':project', $project, PDO::PARAM_INT);
             $stmt->execute();
             if ($stmt->rowCount() === 0) {
-                return null;
+                return (object)['id' => null];
             }
             return $this->get($stmt->fetch(PDO::FETCH_OBJ)->id);
         } catch (Exception $e) {
@@ -761,7 +761,7 @@ class AccountingDoc
         );
 
         $document = $this->get($id);
-        $linesAPI = new AccountingDocLine($this->context->pdo(), $this->context->cache());
+        $linesAPI = new AccountingDocLine($this->context);
         $lines = $linesAPI->search((object) ['docid' => $id]);
 
         $templateProcessor = new TemplateProcessor(__DIR__ . '/../../../resources/template.docx');
@@ -804,7 +804,7 @@ class AccountingDoc
         );
 
         $document = $this->get($id);
-        $linesAPI = new AccountingDocLine($this->context->pdo(), $this->context->cache());
+        $linesAPI = new AccountingDocLine($this->context);
         $lines = $linesAPI->search((object) ['docid' => $id]);
         $pdf = new kPDF();
         $pdf->SetAutoPageBreak(true, 10);
@@ -884,4 +884,3 @@ class AccountingDoc
         return base64_encode($pdf->Output('S'));
     }
 }
-

@@ -1,5 +1,9 @@
 <?php
 
+if (php_sapi_name() !== 'cli') {
+    exit(0);
+}
+
 require('../../vendor/autoload.php');
 require('../../lib/ini.php');
 require('../../lib/dbs.php');
@@ -8,16 +12,18 @@ require('../../lib/auth.php');
 $ini_conf = load_ini_configuration();
 $db = init_pdo($ini_conf);
 if (is_null($db)) {
-  throw new Exception('Storage database not reachable');
-  exit(0);
+    throw new Exception('Storage database not reachable');
+    exit(0);
 }
 
 $stmt = $db->prepare('SELECT * FROM facture WHERE facture_qrdata <> \'\'');
 $stmt->execute();
 
-while(($facture = $stmt->fetch())) {
+while (($facture = $stmt->fetch())) {
     $output = preg_split("/\r\n|\n/", $facture['facture_qrdata']);
-    if ($output === false) { continue; }
+    if ($output === false) {
+        continue;
+    }
     /* remove trailing spaces */
     $output = array_map('trim', $output);
 
@@ -27,7 +33,9 @@ while(($facture = $stmt->fetch())) {
     }
 
     $qrref = $output[BizCuit\SwissQR\QRCH\RmtInf\Ref];
-    if (empty($qrref)) { continue; }
+    if (empty($qrref)) {
+        continue;
+    }
     if (strval($qrref) === strval($facture['facture_reference'])) {
         continue;
     }

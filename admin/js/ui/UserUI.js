@@ -706,11 +706,12 @@ export default class UserUI {
       this.userAPI
         .list()
         .then((list) => {
-          console.log(list);
           if (!list) {
             return [];
           }
-          return list.sort((a, b) => a.order - b.order);
+          return list
+            .filter((a) => !a.disabled)
+            .sort((a, b) => a.order - b.order);
         })
         .then((list) => {
           this.viewable = [];

@@ -14,7 +14,7 @@
     <h2>Ajouter</h2>
     <form onsubmit="addTime(event)" data-source="Htime">
       <label for="person">Personne : </label><select data-source="Person"
-        data-options="{parameters: {'search.deleted': '-', 'search.disabled': 0}}" name="person"></select><br />
+        data-options="{parameters: {'search.deleted': '0', 'search.disabled': 0}}" name="person"></select><br />
       <label for="day">Jour :</label><input type="date" name="day" /> <label for="hour">Temps :</label><input
         type="text" name="hour" />
       <label for="dinner"><input type="checkbox" name="dinner" /> Repas</label><br />
@@ -55,7 +55,7 @@
     <h2>Rerchercher</h2>
     <form onsubmit="submitForm(event)" data-source="Htime">
       <label for="person">Personne : </label><select data-source="Person" name="person"
-        data-options="{parameters: {'search.deleted': '-', 'search.disabled': '0'}}">
+        data-options="{parameters: {'search.deleted': '0', 'search.disabled': '0'}}">
         <option value=""></option>
       </select><br />
       <label for="from">Du </label><input onchange="syncToFrom(event)" name="from" type="date" /><label for="to"> au
