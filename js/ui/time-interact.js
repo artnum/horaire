@@ -133,19 +133,31 @@ TimeInteractUI.prototype.gotoMyHours = function () {
     travail: null,
     process: null,
   };
-  this.hideIndex().then(() => {
-    const container = document.querySelector("div.ka-main-bottom");
-    const div = document.createElement("DIV");
-    div.classList.add("ka-project-detail");
-    container.appendChild(div);
-    this.showRecentTime(container);
-  });
-  /*      return import("./$script/src/lib/widgets/MonthlyTimesheet.js");
+  this.hideIndex()
+    .then(() => {
+      const link = document.createElement("LINK");
+      link.rel = "stylesheet";
+      link.type = "text/css";
+      link.href = "css/MonthlySheet.css";
+      window.requestAnimationFrame(() => {
+        document.head.appendChild(link);
+      });
+      return Promise.all([
+        import("./$script/src/lib/widgets/MonthlyTimesheet.js"),
+        import("./$script/src/JAPI/Time.js"),
+      ]);
     })
-    .then((MTModule) => {
+    .then(([MTModule, TimeAPI]) => {
+      const japi = new TimeAPI.default();
       const container = document.querySelector("div.ka-main-bottom");
-      const x = new MTModule.default(container);
-    });*/
+      return Promise.all([
+        Promise.resolve(new MTModule.default(container, japi)),
+        japi.getMyMonth(new Date().getMonth() + 1),
+      ]);
+    })
+    .then(([mtmodule, values]) => {
+      mtmodule.setData(values);
+    });
 };
 
 TimeInteractUI.prototype.showIndex = function () {
@@ -1438,7 +1450,9 @@ TimeInteractUI.prototype.showRecentTime = function (container = null) {
       });
       new Promise((resolve) => {
         window.requestAnimationFrame(() => {
-          subcontainer.parentNode.appendChild(div);
+          if (subcontainer) {
+            subcontainer.parentNode.appendChild(div);
+          }
           resolve();
         });
       }).then(() => {
@@ -1913,4 +1927,3 @@ TimeInteractUI.prototype.loadTravaux = function (projectId) {
       });
   });
 };
-

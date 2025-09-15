@@ -29,20 +29,40 @@ class GlobalView {
   constructor(parent, date) {
     this.selectedDate = date || new Date();
     this.parent = parent;
+    this.currentMonth = {};
     /* novembre 2026 */
     //this.selectedDate.setMonth(this.selectedDate.getMonth() + 14);
 
-    this.selectedDate.setMonth(this.selectedDate.getMonth() + 3);
+    //    this.selectedDate.setMonth(this.selectedDate.getMonth() + 3);
   }
 
   nextDate() {
     this.selectedDate.setMonth(this.selectedDate.getMonth() + 1);
     this.render();
+    new KaalEvents().exec(this.parent, "request", {
+      date: this.selectedDate.toString(),
+    });
   }
 
   previousDate() {
     this.selectedDate.setMonth(this.selectedDate.getMonth() - 1);
     this.render();
+    new KaalEvents().exec(this.parent, "request", {
+      date: this.selectedDate.toString(),
+    });
+  }
+
+  _renderData() {
+    for (const day in this.parent.currentMonth) {
+      const values = this.parent.currentMonth[day];
+      let time = 0;
+      for (let i = 0; i < values.length; i++) {
+        time += values[i].value;
+      }
+      const hour = time / 3600;
+      this.#structure.querySelector(`[data-date="${day}"] .time`).innerHTML =
+        hour;
+    }
   }
 
   _renderCalContent() {
@@ -82,7 +102,8 @@ class GlobalView {
 
       const day = i;
       window.requestAnimationFrame(() => {
-        cell.innerHTML = `<div class="day">${day}</div>`;
+        cell.dataset.date = day;
+        cell.innerHTML = `<div class="day">${day}</div><div class="time"></div>`;
         cell.setAttribute("tabindex", 0);
         cell.classList.remove("empty");
       });
@@ -200,7 +221,8 @@ class SelectView {
 
 export default class MonthlyTimesheet {
   #loaded;
-  constructor(attachTo) {
+  constructor(attachTo, datasource = null) {
+    this.datasource = datasource;
     this.areas = {
       title: document.createElement("div"),
       subtitle: document.createElement("div"),
@@ -232,6 +254,17 @@ export default class MonthlyTimesheet {
       this.displayDateTime.bind(this),
       1000,
     );
+    new KaalEvents().set(this, "request", (event) => {
+      if (!this.datasource) {
+        return;
+      }
+      const date = new Date(event.data.date);
+      this.datasource
+        .getMyMonth(date.getMonth() + 1, date.getFullYear())
+        .then((values) => {
+          this.setData(values);
+        });
+    });
   }
 
   load(what) {
@@ -243,10 +276,12 @@ export default class MonthlyTimesheet {
       default:
         const globalview = new GlobalView(this, new Date());
         globalview.render();
+        this.currentLoaded = globalview;
         break;
       case "day-view":
         const dayview = new DayView(this);
         dayview.render();
+        this.currentLoaded = globalview;
         break;
     }
     this.#loaded = what;
@@ -299,5 +334,20 @@ export default class MonthlyTimesheet {
 
   destroy() {
     window.clearInterval(this.dateHourIntervalId);
+  }
+
+  /**
+   * @param {Array} values
+   */
+  setData(values = null) {
+    this.currentMonth = {};
+    for (let i = 0; i < values.length; i++) {
+      const date = new Date(values[i].day);
+      if (!this.currentMonth[date.getDate()]) {
+        this.currentMonth[date.getDate()] = [];
+      }
+      this.currentMonth[date.getDate()].push(values[i]);
+    }
+    this.currentLoaded._renderData();
   }
 }

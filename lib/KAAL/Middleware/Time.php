@@ -45,16 +45,22 @@ class Time
         $entry->comment = self::normalizeString($entry->comment);
         $entry->dinner = self::normalizeBool($entry->dinner);
         $entry->km = self::normalizeInt($entry->km);
-        $entry->project->id = self::normalizeId($entry->project->id);
+        if (!empty($entry->project->id)) {
+            $entry->project->id = self::normalizeId($entry->project->id);
+        }
         $entry->project->name = self::normalizeString($entry->project->name);
         $entry->project->reference = self::normalizeString($entry->project->reference);
-        $entry->travail->id = self::normalizeId($entry->travail->id);
-        $entry->travail->reference = self::normalizeString($entry->travail->reference);
-        $entry->travail->description = self::normalizeString($entry->travail->description);
-        $entry->travail->status->id = self::normalizeId($entry->travail->status->id);
-        $entry->travail->status->name = self::normalizeString($entry->travail->status->name);
-        $entry->travail->status->color = self::normalizeString($entry->travail->status->color);
-        $entry->status->id = self::normalizeId($entry->status->id);
+        if (!empty($entry->travail->id)) {
+            $entry->travail->id = self::normalizeId($entry->travail->id);
+            $entry->travail->reference = self::normalizeString($entry->travail->reference);
+            $entry->travail->description = self::normalizeString($entry->travail->description);
+            $entry->travail->status->id = self::normalizeId($entry->travail->status->id);
+            $entry->travail->status->name = self::normalizeString($entry->travail->status->name);
+            $entry->travail->status->color = self::normalizeString($entry->travail->status->color);
+        }
+        if (!empty($entry->status->id)) {
+            $entry->status->id = self::normalizeId($entry->status->id);
+        }
         $entry->status->name = self::normalizeString($entry->status->name);
         $entry->status->color = self::normalizeString($entry->status->color);
 
@@ -70,11 +76,10 @@ class Time
         );
 
         $strYear = strval($year);
-        $strMonth = strval($month);
+        $strMonth = str_pad(strval($month), 2, '0', STR_PAD_LEFT);
         if (!ctype_digit($strMonth) || !ctype_digit($strYear)) {
             throw new FinalException('Bad year or month', ERR_BAD_REQUEST);
         }
-
         /* TESTED QUERY :
          * SELECT hstatus.status_id AS hstatus_id, hstatus.status_name AS hstatus_name,
          * hstatus.status_color AS hsatus_color, tstatus.status_id AS tstatus_id,
@@ -109,6 +114,7 @@ class Time
             WHERE htime_day LIKE '%s-%s-%%'
                 AND htime_person = :person
                 AND COALESCE(htime_deleted, 0) = 0
+            ORDER BY htime_day ASC
             ",
             $strYear,
             $strMonth
@@ -153,8 +159,7 @@ class Time
                     }
                 }
             }
-            yield $this->normalizeEgressTimeEntry(timeEntryObj);
+            yield $this->normalizeEgressTimeEntry($timeEntryObj);
         }
     }
-
 }

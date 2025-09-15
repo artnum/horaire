@@ -2,7 +2,11 @@ class KaalEvent {
   constructor(event, node) {
     this.target = node;
     this.type = event.type;
-    this.data = node.dataset;
+    if (!event.dataset) {
+      this.data = node.dataset || {};
+    } else {
+      this.data = event.dataset;
+    }
     this.kaalSource = event.kaalSource;
   }
 }
@@ -29,8 +33,6 @@ export default class KaalEvents {
     KaalEvents.#counter = 1;
   }
 
-  garbageCollector() {}
-
   eventHandler(event) {
     if (event.kaalSource && event.kaalSource === KaalEvents.#uuid) {
       return;
@@ -39,17 +41,27 @@ export default class KaalEvents {
       event.kaalSource = KaalEvents.#uuid;
     }
     let node = event.target;
-    if (!node.dataset.kaalEventsCounter) {
-      node = node.closest("[data-kaal-events-counter]");
+    if (node instanceof HTMLElement && !node.dataset.kaalEventsId) {
+      node = node.closest("[data-kaal-events-id]");
     }
     if (KaalEvents.#events.has(node)) {
       KaalEvents.#events.get(node)[event.type]?.(new KaalEvent(event, node));
     }
   }
 
+  exec(node, type, data = {}) {
+    if (KaalEvents.#events.has(node)) {
+      KaalEvents.#events
+        .get(node)
+        [
+          type
+        ]?.(new KaalEvent({ type, kaalSource: KaalEvents.#uuid, dataset: data }, node));
+    }
+  }
+
   set(node, type, callback) {
-    if (!node.dataset.kaalEventsCounter) {
-      node.dataset.kaalEventsCounter = KaalEvents.#counter++;
+    if (node instanceof HTMLElement && !node.dataset.kaalEventsId) {
+      node.dataset.kaalEventsId = KaalEvents.#counter++;
     }
     if (!Array.isArray(type)) {
       type = [type];
