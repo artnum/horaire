@@ -446,10 +446,7 @@ export default class Kolor {
     } else {
       hex = "#000000";
     }
-    if (alpha) {
-      return `${hex}${toHex(this.#color[3])}`;
-    }
-    return `${hex}ff`;
+    return new Kolor(alpha ? `${hex}${toHex(this.#color[3])}` : `${hex}ff`);
   }
 
   complementary(alpha = true) {
@@ -460,7 +457,7 @@ export default class Kolor {
     if (alpha) {
       comp[3] = this.#color[3];
     }
-    return this.hex(comp);
+    return new Kolor(this.hex(comp));
   }
 
   hex() {
@@ -469,5 +466,9 @@ export default class Kolor {
 
   alpha(alpha) {
     return `rgba(${this.#color[0]}, ${this.#color[1]}, ${this.#color[2]}, ${alpha})`;
+  }
+
+  toString() {
+    return this.hex();
   }
 }
