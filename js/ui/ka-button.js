@@ -90,8 +90,8 @@ function KAButton(
   }
   interactPart.addEventListener("click", KAButton.toggleButton.bind(ctx));
   interactPart.addEventListener("select", KAButton.selectButton.bind(ctx));
-  if (!options.click && !KAButton.eventsAdded) {
-    KAButton.eventsAdded = true;
+  if (!options.click && !KAButton.__eventsAdded) {
+    KAButton.__eventsAdded = true;
     window.addEventListener(
       "close-all-kabutton",
       function (event) {
