@@ -10,6 +10,7 @@ RewriteRule ^.*$ - [E=CWD:%2]
 
 RewriteRule ^(?:.*)/?\$api/?(.*)$ %{ENV:CWD}japi.php/$1 [L]
 RewriteRule ^(?:.*)/?\$script/?(.*)$ %{ENV:CWD}script.php/$1 [R,L]
+RewriteRule ^(?:.*)/?\$time/?(.*)$ %{ENV:CWD}time.php [L]
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

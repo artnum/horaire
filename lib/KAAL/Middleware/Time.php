@@ -2,6 +2,8 @@
 
 namespace KAAL\Middleware;
 
+use DateInterval;
+use DateTime;
 use Exception;
 use Generator;
 use KAAL\Context;
@@ -54,9 +56,11 @@ class Time
             $entry->travail->id = self::normalizeId($entry->travail->id);
             $entry->travail->reference = self::normalizeString($entry->travail->reference);
             $entry->travail->description = self::normalizeString($entry->travail->description);
-            $entry->travail->status->id = self::normalizeId($entry->travail->status->id);
-            $entry->travail->status->name = self::normalizeString($entry->travail->status->name);
-            $entry->travail->status->color = self::normalizeString($entry->travail->status->color);
+            if (!empty($entry->travail->status->id)) {
+                $entry->travail->status->id = self::normalizeId($entry->travail->status->id);
+                $entry->travail->status->name = self::normalizeString($entry->travail->status->name);
+                $entry->travail->status->color = self::normalizeString($entry->travail->status->color);
+            }
         }
         if (!empty($entry->status->id)) {
             $entry->status->id = self::normalizeId($entry->status->id);
@@ -99,7 +103,7 @@ class Time
 
         $query = sprintf(
             "SELECT hstatus.status_id AS hstatus_id, hstatus.status_name 
-             AS hstatus_name, hstatus.status_color AS hsatus_color,
+             AS hstatus_name, hstatus.status_color AS hstatus_color,
              tstatus.status_id AS tstatus_id, tstatus.status_name 
              AS tstatus_name, tstatus.status_color AS tstatus_color,
              htime_id, htime_day, htime_value,
@@ -161,5 +165,51 @@ class Time
             }
             yield $this->normalizeEgressTimeEntry($timeEntryObj);
         }
+    }
+
+    public function getMyWritableDays()
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
+        $userid = $this->context->auth()->get_current_userid();
+
+        /* TODO : fetch that from configuration */
+        $delay = 2;
+
+        $days = [];
+        $interval = new DateInterval('P1D');
+        $origin = new DateTime();
+        /* the delay is the number of days that can be written, but if there
+         * is week-end work planned, it extends the delay */
+        do {
+            $weekDay = intval($origin->format('w'));
+            $date = $origin->format('Y-m-d');
+            if ($weekDay == 6 || $weekDay == 0) {
+                $stmt = $this->context->pdo()->prepare(
+                    "SELECT reservation_id 
+                     FROM kairos.reservation 
+                     WHERE reservation_dend = :date 
+                       AND reservation_target = :person
+                    LIMIT 1"
+                );
+                $stmt->bindValue(':date', $date, PDO::PARAM_STR);
+                $stmt->bindValue(':person', strval($userid), PDO::PARAM_STR);
+                $stmt->execute();
+                if ($stmt->rowCount() > 0) {
+                    $days[] = $date;
+                }
+                $origin->sub($interval);
+                continue;
+            }
+            $days[] = $date;
+            $delay--;
+            $origin->sub($interval);
+        } while ($delay > 0);
+
+        return (object) ['writable' => $days];
     }
 }

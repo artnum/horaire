@@ -3,13 +3,13 @@
 if (!getenv('DEBUG')) {
     header("Cache-Control: public");
     header("Expires: " . gmdate("D, d M Y H:i:s", time() + 3600) . " GMT");
-} 
+}
 
 $path = trim($_SERVER['PATH_INFO']);
 $type = substr($path, -3);
 if ($type === '.js' || $type === 'mjs') {
     header('Content-Type: application/javascript; charset=utf-8');
-} else if ($type === 'css') {
+} elseif ($type === 'css') {
     header('Content-Type: text/css; charset=utf-8');
 } else {
     http_response_code(404);
@@ -21,11 +21,17 @@ header('Content-Encoding: gzip');
 /* remove double slashes */
 $parts = array_values(
     array_filter(
-        explode('/', $path), 
-        function($v) {
-            if ($v === '') { return false; }
-            if ($v === '.') { return false; }
-            if ($v === '..') { return false; }
+        explode('/', $path),
+        function ($v) {
+            if ($v === '') {
+                return false;
+            }
+            if ($v === '.') {
+                return false;
+            }
+            if ($v === '..') {
+                return false;
+            }
             return true;
         }
     )
@@ -65,7 +71,7 @@ $memcache->addServer('localhost', 11211);
 $ftime = $memcache->get('JSCACHE/'. $idx . '/time');
 if ($ftime === false || $origfmtime > intval($ftime)) {
     $memcache->set('JSCACHE/' . $idx . '/time', $origfmtime);
-    if (getenv('DEBUG')) { 
+    if (getenv('DEBUG')) {
         $content = gzencode(file_get_contents($path));
         $memcache->set('JSCACHE/' . $idx . '/content', $content);
         echo $content;
@@ -89,3 +95,4 @@ if ($ftime === false || $origfmtime > intval($ftime)) {
 echo $memcache->get('JSCACHE/' . $idx . '/content');
 fastcgi_finish_request();
 exit(0);
+

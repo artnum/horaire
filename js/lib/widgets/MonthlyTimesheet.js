@@ -1,24 +1,7 @@
 import KaalEvents from "../Events.js";
-
-// Returns the ISO week of the date.
-const getWeek = function (d) {
-  const date = new Date(d);
-  date.setHours(0, 0, 0, 0);
-  // Thursday in current week decides the year.
-  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
-  // January 4 is always in week 1.
-  var week1 = new Date(date.getFullYear(), 0, 4);
-  // Adjust to Thursday in week 1 and count number of weeks from date to week1.
-  return (
-    1 +
-    Math.round(
-      ((date.getTime() - week1.getTime()) / 86400000 -
-        3 +
-        ((week1.getDay() + 6) % 7)) /
-        7,
-    )
-  );
-};
+import Kolor from "../WidgetBase/Kolor.js";
+import FormatHour from "../FormatHour.js";
+import DateTime from "../DateTime.js";
 
 class GlobalView {
   #structure;
@@ -30,10 +13,6 @@ class GlobalView {
     this.selectedDate = date || new Date();
     this.parent = parent;
     this.currentMonth = {};
-    /* novembre 2026 */
-    //this.selectedDate.setMonth(this.selectedDate.getMonth() + 14);
-
-    //    this.selectedDate.setMonth(this.selectedDate.getMonth() + 3);
   }
 
   nextDate() {
@@ -53,97 +32,162 @@ class GlobalView {
   }
 
   _renderData() {
-    for (const day in this.parent.currentMonth) {
-      const values = this.parent.currentMonth[day];
-      let time = 0;
-      for (let i = 0; i < values.length; i++) {
-        time += values[i].value;
-      }
-      const hour = time / 3600;
-      this.#structure.querySelector(`[data-date="${day}"] .time`).innerHTML =
-        hour;
-    }
+    return new Promise((resolve) => {
+      /* queue an animation frame, so it will be after the frames of the
+       * structure building calls ensuring that the whole structure is available */
+      new Promise((resolve) => {
+        window.requestAnimationFrame((_) => resolve());
+      }).then((_) => {
+        let month_time = 0;
+        const weeks_times = {};
+        for (const day in this.parent.currentMonth) {
+          const values = this.parent.currentMonth[day];
+          let time = 0;
+          for (let i = 0; i < values.length; i++) {
+            time += values[i].value;
+          }
+          month_time += time;
+
+          const week = new DateTime(new Date(values[0].day)).isoWeekNumber();
+          if (weeks_times[week]) {
+            weeks_times[week] += time;
+          } else {
+            weeks_times[week] = time;
+          }
+          const hour = new FormatHour(time);
+          window.requestAnimationFrame(
+            (_) =>
+              (this.#structure.querySelector(
+                `[data-date="${day}"] .time`,
+              ).innerHTML = hour),
+          );
+        }
+        for (const w in weeks_times) {
+          console.log(w);
+          const time = new FormatHour(weeks_times[w]);
+          window.requestAnimationFrame((_) => {
+            this.#structure.querySelector(
+              `[data-week="${w}"] .week-time`,
+            ).innerHTML = time;
+          });
+        }
+
+        this.parent.setSubtitle(new FormatHour(month_time));
+        return resolve();
+      });
+    });
   }
 
   _renderCalContent() {
-    const events = new KaalEvents();
+    return new Promise((resolve) => {
+      this.parent.datasource.getMyWritableDays().then((days) => {
+        const events = new KaalEvents();
 
-    const dayMapping = ["6", "0", "1", "2", "3", "4", "5"];
-    const day0 = new Date(this.selectedDate);
-    day0.setDate(1);
-    const day30 = new Date(this.selectedDate);
-    day30.setMonth(this.selectedDate.getMonth() + 1);
-    day30.setDate(0);
+        const dayMapping = ["6", "0", "1", "2", "3", "4", "5"];
+        const day0 = new Date(this.selectedDate);
+        day0.setDate(1);
+        const day30 = new Date(this.selectedDate);
+        day30.setMonth(this.selectedDate.getMonth() + 1);
+        day30.setDate(0);
 
-    let currentDay = day0.getDay();
-    let row = 0;
-    const week = getWeek(day0);
+        let currentDay = day0.getDay();
+        let row = 0;
+        const week = new DateTime(day0).isoWeekNumber();
 
-    for (let j = 0; j < parseInt(dayMapping[currentDay]); j++) {
-      const rnode = this.#structure.querySelector(`.row-${row}`);
-      const cell = rnode.querySelector(`.column-${j}`);
-      window.requestAnimationFrame(() => {
-        cell.classList.add("empty");
-      });
-    }
-    const n = this.#structure.querySelector(`.week-${row}`);
-    if (n) {
-      window.requestAnimationFrame(() => {
-        n.innerHTML = `Semaine ${week}`;
-      });
-    }
-
-    let i = 0;
-    for (i = 1; i <= day30.getDate(); i++) {
-      const rnode = this.#structure.querySelector(`.row-${row}`);
-      const cell = rnode.querySelector(
-        `.column-${dayMapping[currentDay % 7]}`,
-      );
-
-      const day = i;
-      window.requestAnimationFrame(() => {
-        cell.dataset.date = day;
-        cell.innerHTML = `<div class="day">${day}</div><div class="time"></div>`;
-        cell.setAttribute("tabindex", 0);
-        cell.classList.remove("empty");
-      });
-      events.set(cell, "click", (event) => {
-        this.parent.load("day-view");
-      });
-
-      if (currentDay % 7 == 0 && day < day30.getDate()) {
-        row++;
-        const week = getWeek(day0.getTime() + 86400000 * i);
+        days.writable = days.writable
+          .map((date) => new Date(date))
+          .filter((date) => {
+            if (date.getFullYear() != day0.getFullYear()) {
+              return 0;
+            }
+            if (
+              date.getMonth() != day0.getMonth() &&
+              date.getMonth() != day30.getMonth()
+            ) {
+              return 0;
+            }
+            return 1;
+          })
+          .map((date) => date.getDate());
+        for (let j = 0; j < parseInt(dayMapping[currentDay]); j++) {
+          const rnode = this.#structure.querySelector(`.row-${row}`);
+          const cell = rnode.querySelector(`.column-${j}`);
+          window.requestAnimationFrame(() => {
+            cell.classList.add("empty");
+          });
+        }
         const n = this.#structure.querySelector(`.week-${row}`);
+        n.dataset.week = week;
         if (n) {
           window.requestAnimationFrame(() => {
             n.innerHTML = `<div class="week">Semaine ${week}</div><div class="week-time"></div>`;
-            n.classList.remove("empty");
           });
         }
-      }
-      currentDay++;
-    }
-    for (;;) {
-      const rnode = this.#structure.querySelector(`.row-${row}`);
-      if (!rnode) {
-        break;
-      }
-      const cell = rnode.querySelector(
-        `.column-${dayMapping[currentDay % 7]}`,
-      );
-      cell.classList.add("empty");
-      if (currentDay % 7 == 0) {
-        row++;
-        const n = this.#structure.querySelector(`.week-${row}`);
-        if (n) {
+
+        let i = 0;
+        for (i = 1; i <= day30.getDate(); i++) {
+          const rnode = this.#structure.querySelector(`.row-${row}`);
+          const cell = rnode.querySelector(
+            `.column-${dayMapping[currentDay % 7]}`,
+          );
+          const day = i;
+          const is_writable = days.writable.includes(day);
           window.requestAnimationFrame(() => {
-            n.classList.add("empty");
+            cell.innerHTML = `<div class="day">${day}</div><div class="time"></div>`;
+            cell.dataset.date = day;
+            cell.setAttribute("tabindex", 0);
+            cell.classList.remove("empty");
+            if (is_writable) {
+              cell.classList.add("writable");
+            } else {
+              cell.classList.remove("writable");
+            }
           });
+          events.set(cell, "click", (event) => {
+            const date = new Date(this.selectedDate);
+            date.setDate(event.target.dataset.date);
+            this.parent.load("day-view", date, is_writable);
+          });
+
+          if (currentDay % 7 == 0 && day < day30.getDate()) {
+            row++;
+            const week = new DateTime(
+              day0.getTime() + 86400000 * i,
+            ).isoWeekNumber();
+            const n = this.#structure.querySelector(`.week-${row}`);
+            if (n) {
+              n.dataset.week = week;
+              window.requestAnimationFrame(() => {
+                n.innerHTML = `<div class="week">Semaine ${week}</div><div class="week-time"></div>`;
+                n.classList.remove("empty");
+              });
+            }
+          }
+          currentDay++;
         }
-      }
-      currentDay++;
-    }
+        for (;;) {
+          const rnode = this.#structure.querySelector(`.row-${row}`);
+          if (!rnode) {
+            break;
+          }
+          const cell = rnode.querySelector(
+            `.column-${dayMapping[currentDay % 7]}`,
+          );
+          cell.classList.add("empty");
+          if (currentDay % 7 == 0) {
+            row++;
+            const n = this.#structure.querySelector(`.week-${row}`);
+            if (n) {
+              window.requestAnimationFrame(() => {
+                n.classList.add("empty");
+              });
+            }
+          }
+          currentDay++;
+        }
+        resolve();
+      });
+    });
   }
 
   _renderCalStructure() {
@@ -176,38 +220,105 @@ class GlobalView {
   }
 
   render() {
-    this.parent.setContent(this._renderCalStructure());
-    this._renderCalContent();
+    return new Promise((resolve) => {
+      const calStructure = this._renderCalStructure();
+      this._renderCalContent().then((_) => {
+        const date = new Intl.DateTimeFormat(undefined, {
+          month: "long",
+          year: "numeric",
+        }).format(this.selectedDate);
 
+        const title = document.createElement("SPAN");
+        title.innerHTML = date;
+        this.parent.setTitle(date);
+
+        const next = document.createElement("DIV");
+        const previous = document.createElement("DIV");
+
+        next.classList.add("icon");
+        previous.classList.add("icon");
+
+        const events = new KaalEvents();
+        events.set(next, "click", (_) => this.nextDate());
+        events.set(previous, "click", (_) => this.previousDate());
+
+        this.parent.setAction([previous], [next]);
+        this.parent.setContent(calStructure);
+        return resolve();
+      });
+    });
+  }
+}
+
+class DayView {
+  constructor(parent, date, writable = false) {
+    this.parent = parent;
+    this.date = date;
+    this.root = document.createElement("div");
+    this.writable = writable;
+  }
+  render() {
     const date = new Intl.DateTimeFormat(undefined, {
+      day: "numeric",
       month: "long",
       year: "numeric",
-    }).format(this.selectedDate);
+    }).format(this.date);
 
     const title = document.createElement("SPAN");
     title.innerHTML = date;
     this.parent.setTitle(date);
 
-    const next = document.createElement("DIV");
-    const previous = document.createElement("DIV");
+    this.parent.setContent(this.root);
 
-    next.classList.add("icon");
-    previous.classList.add("icon");
+    const close = document.createElement("DIV");
+    close.classList.add("icon");
 
-    const events = new KaalEvents();
-    events.set(next, "click", (_) => this.nextDate());
-    events.set(previous, "click", (_) => this.previousDate());
-
-    this.parent.setAction([previous], [next]);
+    new KaalEvents().set(close, "click", (_) =>
+      this.parent.load("global-view", this.date).then((parent) => {
+        parent.currentLoaded._renderData();
+      }),
+    );
+    this.parent.setAction([], [close]);
+    this._renderData();
+    return Promise.resolve();
   }
-}
 
-class DayView {
-  constructor(parent, day) {
-    this.parent = parent;
+  _renderEntry(entry) {
+    const entryNode = document.createElement("DIV");
+    const bgcolor = new Kolor(
+      entry.travail.id ? entry.travail.status.color : entry.status.color,
+    );
+    entryNode.innerHTML = `
+      <div style="background-color: ${bgcolor}; color: ${bgcolor.foreground()};">${entry.project.reference}</div>
+      <div>${entry.project.name}</div>
+      <div>${new FormatHour(entry.value)}</div>
+      <div>${entry.travail.reference || ""}</div>
+    `;
+    return entryNode;
   }
-  render() {
-    this.parent.setContent(document.createElement("div"));
+  _renderAddEntry() {
+    const entryNode = document.createElement("DIV");
+    entryNode.innerHTML = `<div class="add">Ajouter</div>`;
+    return entryNode;
+  }
+
+  _renderData() {
+    const dayData = this.parent.currentMonth[this.date.getDate()];
+    if (!dayData && !this.writable) {
+      return;
+    }
+    const totalTime = !dayData
+      ? 0
+      : dayData.reduce((acc, entry) => acc + entry.value, 0);
+    const nodes = !dayData
+      ? []
+      : dayData.map((entry) => this._renderEntry(entry));
+    if (this.writable) {
+      nodes.push(this._renderAddEntry());
+    }
+    window.requestAnimationFrame((_) => this.root.replaceChildren(...nodes));
+    this.parent.setSubtitle(new FormatHour(totalTime));
+    return Promise.resolve();
   }
 }
 class DayModifyView {}
@@ -221,8 +332,10 @@ class SelectView {
 
 export default class MonthlyTimesheet {
   #loaded;
+  #parentNode;
   constructor(attachTo, datasource = null) {
     this.datasource = datasource;
+    this.#parentNode = attachTo;
     this.areas = {
       title: document.createElement("div"),
       subtitle: document.createElement("div"),
@@ -237,7 +350,7 @@ export default class MonthlyTimesheet {
     }
 
     window.requestAnimationFrame(() => {
-      attachTo.replaceChildren(
+      this.#parentNode.replaceChildren(
         this.areas.leftAction,
         this.areas.title,
         this.areas.rightAction,
@@ -245,9 +358,8 @@ export default class MonthlyTimesheet {
         this.areas.content,
         this.areas.bottom,
       );
+      this.#parentNode.classList.add("calendar-container");
     });
-    attachTo.classList.add("calendar-container");
-    this.load("global-view");
 
     this.displayDateTime();
     this.dateHourIntervalId = window.setInterval(
@@ -268,23 +380,38 @@ export default class MonthlyTimesheet {
   }
 
   load(what) {
-    if (what === this.#loaded) {
-      return;
-    }
-    switch (what) {
-      case "global-view":
-      default:
-        const globalview = new GlobalView(this, new Date());
-        globalview.render();
-        this.currentLoaded = globalview;
-        break;
-      case "day-view":
-        const dayview = new DayView(this);
-        dayview.render();
-        this.currentLoaded = globalview;
-        break;
-    }
-    this.#loaded = what;
+    return new Promise((resolve) => {
+      if (what === this.#loaded) {
+        return resolve(this);
+      }
+      new Promise((resolve) => {
+        switch (what) {
+          case "global-view":
+          default:
+            const globalview = new GlobalView(
+              this,
+              arguments[1] || new Date(),
+            );
+            globalview.render().then((_) => {
+              this.currentLoaded = globalview;
+              resolve();
+            });
+            break;
+          case "day-view":
+            const args = Array.from(arguments);
+            args.shift();
+            const dayview = new DayView(this, ...args);
+            dayview.render().then((_) => {
+              this.currentLoaded = dayview;
+              resolve();
+            });
+            break;
+        }
+        this.#loaded = what;
+      }).then((_) => {
+        return resolve(this);
+      });
+    });
   }
 
   setAny(what, ...nodes) {
@@ -305,6 +432,9 @@ export default class MonthlyTimesheet {
     return this.setAny("title", nodes);
   }
 
+  setSubtitle(...nodes) {
+    return this.setAny("subtitle", nodes);
+  }
   setContent(...nodes) {
     return this.setAny("content", ...nodes);
   }
@@ -333,6 +463,9 @@ export default class MonthlyTimesheet {
   }
 
   destroy() {
+    window.requestAnimationFrame((_) =>
+      this.#parentNode.classList.remove("calendar-container"),
+    );
     window.clearInterval(this.dateHourIntervalId);
   }
 
@@ -340,6 +473,7 @@ export default class MonthlyTimesheet {
    * @param {Array} values
    */
   setData(values = null) {
+    console.log("run setData");
     this.currentMonth = {};
     for (let i = 0; i < values.length; i++) {
       const date = new Date(values[i].day);

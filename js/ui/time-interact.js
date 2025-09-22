@@ -150,8 +150,9 @@ TimeInteractUI.prototype.gotoMyHours = function () {
     .then(([MTModule, TimeAPI]) => {
       const japi = new TimeAPI.default();
       const container = document.querySelector("div.ka-main-bottom");
+      const mtmodule = new MTModule.default(container, japi);
       return Promise.all([
-        Promise.resolve(new MTModule.default(container, japi)),
+        mtmodule.load("global-view"),
         japi.getMyMonth(new Date().getMonth() + 1),
       ]);
     })
