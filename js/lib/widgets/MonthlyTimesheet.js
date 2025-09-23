@@ -2,6 +2,7 @@ import KaalEvents from "../Events.js";
 import Kolor from "../WidgetBase/Kolor.js";
 import FormatHour from "../FormatHour.js";
 import DateTime from "../DateTime.js";
+import Select from "./Select.js";
 
 class GlobalView {
   #structure;
@@ -63,7 +64,6 @@ class GlobalView {
           );
         }
         for (const w in weeks_times) {
-          console.log(w);
           const time = new FormatHour(weeks_times[w]);
           window.requestAnimationFrame((_) => {
             this.#structure.querySelector(
@@ -345,20 +345,16 @@ export default class MonthlyTimesheet {
       bottom: document.createElement("div"),
     };
 
+    const intermediateContainer = document.createElement("DIV");
+    intermediateContainer.classList.add("calendar-container");
+
     for (const prop in this.areas) {
       this.areas[prop].classList.add(`monthly-sheet-${prop}`, "area");
+      intermediateContainer.appendChild(this.areas[prop]);
     }
 
     window.requestAnimationFrame(() => {
-      this.#parentNode.replaceChildren(
-        this.areas.leftAction,
-        this.areas.title,
-        this.areas.rightAction,
-        this.areas.subtitle,
-        this.areas.content,
-        this.areas.bottom,
-      );
-      this.#parentNode.classList.add("calendar-container");
+      this.#parentNode.replaceChildren(intermediateContainer);
     });
 
     this.displayDateTime();
@@ -463,9 +459,6 @@ export default class MonthlyTimesheet {
   }
 
   destroy() {
-    window.requestAnimationFrame((_) =>
-      this.#parentNode.classList.remove("calendar-container"),
-    );
     window.clearInterval(this.dateHourIntervalId);
   }
 
@@ -473,7 +466,6 @@ export default class MonthlyTimesheet {
    * @param {Array} values
    */
   setData(values = null) {
-    console.log("run setData");
     this.currentMonth = {};
     for (let i = 0; i < values.length; i++) {
       const date = new Date(values[i].day);

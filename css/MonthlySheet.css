@@ -122,6 +122,9 @@
 
 .calendar .cell .day {
 }
+.calendar .cell.writable {
+  background-color: orange;
+}
 .calendar .cell .time {
   text-align: center;
   font-weight: bold;

@@ -27,7 +27,12 @@ class Time
 
     }
 
-    private function normalizeEgressTimeEntry(stdClass $entry)
+    private function _normalizeIngressTimeEntry(stdClass $entry)
+    {
+        return $entry;
+    }
+
+    private function _normalizeEgressTimeEntry(stdClass $entry)
     {
         if ($entry->id === null || empty($entry->id)) {
             throw new Exception('ID missing', ERR_INTERNAL);
@@ -163,20 +168,11 @@ class Time
                     }
                 }
             }
-            yield $this->normalizeEgressTimeEntry($timeEntryObj);
+            yield $this->_normalizeEgressTimeEntry($timeEntryObj);
         }
     }
-
-    public function getMyWritableDays()
+    private function _getWritableDay(int $userid)
     {
-        $this->context->rbac()->can(
-            $this->context->auth(),
-            get_class($this),
-            __FUNCTION__
-        );
-
-        $userid = $this->context->auth()->get_current_userid();
-
         /* TODO : fetch that from configuration */
         $delay = 2;
 
@@ -210,6 +206,35 @@ class Time
             $origin->sub($interval);
         } while ($delay > 0);
 
-        return (object) ['writable' => $days];
+        return $days;
+
+    }
+
+    public function getMyWritableDays()
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
+        return (object) ['writable' => $this->_getWritableDay($this->context->auth()->get_current_userid())];
+    }
+
+    public function addToMyTime(stdClass $entry)
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
+        $entry = $this->_normalizeIngressTimeEntry($entry);
+
+        $userid = $this->context->auth()->get_current_userid();
+        $wDay = $this->_getWritableDay($userid);
+        if (!in_array($entry->day->format('Y-m-d'), $wDay, true)) {
+            throw new FinalException('This day is not writable');
+        }
     }
 }
