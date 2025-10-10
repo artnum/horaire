@@ -14,12 +14,15 @@ import Serial from "./widgets/Serial.js";
 import SchemaModel from "../../../js/JAPI/SchemaModel.js";
 import Tab from "./widgets/Tab.js";
 import { ConfigurationAPI } from "../../../js/JAPI/content/Configuration.js";
+import Address from "../../../js/lib/widgets/Address.js";
 
 const UserGroupAPI = UserGroupClass.getInstance();
 const AccessAPI = new AccessAPIClass();
 const NewItemUIChangeTimeout = 5000;
 
 export default class UserUI {
+  #personnalAddress;
+
   /**
    * @param app {App}
    */
@@ -51,7 +54,7 @@ export default class UserUI {
           event.target.dataset.invitation,
         )
         .then((result) => {
-          return this._renderInvitations(node.dataset.userid);
+          return this.#renderInvitations(node.dataset.userid);
         })
         .then((node) => {
           const old = document.querySelector("div.invitation");
@@ -85,10 +88,18 @@ export default class UserUI {
    * @param user {object}
    */
   renderPriceList(user) {
-    const pricing = new Serial(this.app, {
-      validity: "Depuis",
-      value: "Valeur",
-    });
+    const pricing = new Serial(
+      this.app,
+      {
+        validity: "Depuis",
+        value: "Valeur",
+      },
+      {
+        types: {
+          validity: { type: "date" },
+        },
+      },
+    );
     return new Promise((resolve, reject) => {
       Promise.all([
         user.id.length > 0
@@ -282,7 +293,7 @@ export default class UserUI {
                     event.target.value.split(" "),
                   );
                   if (parts.length > 1) {
-                    let usernameGuess = `${parts.shift().toLowerCase().substring(0, 1)}${parts.shift().toLowerCase()}`;
+                    let usernameGuess = `${parts.shift().toLowerCase()}.${parts.shift().toLowerCase()}`;
                     usernameNode.value = usernameGuess;
                   }
                 }
@@ -367,7 +378,6 @@ export default class UserUI {
       .getContentNode()
       .querySelector('[data-name="pricing"]');
     const pricing = Serial.getFormValue(pricingForm);
-    console.log(pricing);
   }
 
   putNodeInActiveZone(node) {
@@ -406,16 +416,23 @@ export default class UserUI {
     return new Promise((resolve, reject) => {
       this._saveUser()
         .then((user) => {
+          const addresses = this.#personnalAddress
+            .getValues()
+            .filter(
+              (address) => address._checksum != address._previous_checksum,
+            );
+          console.log(addresses);
           this.currentUser = user;
           return Promise.all([
             Promise.resolve(user),
             this.pc.save(user.id),
+            this.#savePersonnalAddresses(user.id, addresses),
             this._saveGoups(user.id),
             this._saveAccessRight(user.id),
             this._savePricing(user.id),
           ]);
         })
-        .then(([user, pcuser, groups, access, pricing]) => {
+        .then(([user, pcuser, personnalAddresss, groups, access, pricing]) => {
           resolve(user);
         })
         .catch((e) => {
@@ -424,7 +441,11 @@ export default class UserUI {
     });
   }
 
-  _renderQrInvitation(node, invitation) {
+  #savePersonnalAddresses(userid, addresses) {
+    return this.userAPI.setPersonnalAddresses(userid, addresses);
+  }
+
+  #renderQrInvitation(node, invitation) {
     l10n.load({ delete: "Supprimer l'invitation" }).then((strings) => {
       node.innerHTML = `<p><a href="${invitation.url}"><img src="data:image/png;base64,${invitation.qrimage}"></a>
           <br>
@@ -435,7 +456,7 @@ export default class UserUI {
     });
   }
 
-  _renderInvitations(id) {
+  #renderInvitations(id) {
     return new Promise((resolve, reject) => {
       const node = document.createElement("DIV");
       node.classList.add("invitation");
@@ -455,14 +476,69 @@ export default class UserUI {
           node.addEventListener("click", (event) => {
             event.preventDefault();
             this.userAPI.generateInvitation(id).then((invitation) => {
-              this._renderQrInvitation(node, invitation);
+              this.#renderQrInvitation(node, invitation);
             });
           });
         } else {
           const lastInvitation = invitations.pop();
-          this._renderQrInvitation(node, lastInvitation);
+          this.#renderQrInvitation(node, lastInvitation);
         }
         resolve(node);
+      });
+    });
+  }
+
+  #homeAddressModule(user, translations, container) {
+    return new Promise((resolve) => {
+      const msAddress = new Address(this.app);
+      const addressFormTitle = document.createElement("H3");
+      addressFormTitle.innerHTML = `${translations.personAddress} ${help.get("Address.general")}`;
+      container.appendChild(addressFormTitle);
+      container.appendChild(msAddress.getDomNode());
+      this.#personnalAddress = msAddress;
+      resolve();
+      this.userAPI.getPersonnalAddresses(user).then((addresses) => {
+        console.log(addresses);
+        msAddress.popuplate(addresses);
+      });
+    });
+  }
+
+  #childrenModule(user, translations, container) {
+    return new Promise((resolve) => {
+      resolve();
+    });
+  }
+
+  #civilStatusModule(user, translations, container) {
+    return new Promise((resolve) => {
+      const s = new Serial(
+        this.app,
+        {
+          status: "État civil",
+          since: "Depuis",
+          spouse: "Conjoint",
+        },
+        {
+          types: {
+            since: {
+              type: "date",
+            },
+            spouse: {
+              type: "function",
+              options: {
+                callback: () => {
+                  const msAddress = new Address(this.app);
+                  return Promise.resolve(msAddress.getDomNode());
+                },
+              },
+            },
+          },
+        },
+      );
+      s.render().then((n) => {
+        container.addTab("civilStatus", "État civil", n, 0);
+        resolve();
       });
     });
   }
@@ -497,6 +573,7 @@ export default class UserUI {
           AccessAPI.getDataAPI(),
           "accessRights",
         );
+
         Promise.all([
           l10n.load({
             groups: "Groupes",
@@ -504,10 +581,11 @@ export default class UserUI {
             accessRight: "Droits d'accès",
             priceTitle: "Prix de l'heure",
             childs: "Enfants",
+            personAddress: "Adresse personnelle",
           }),
           this.renderUserForm(user),
           this.pc.form(user),
-          this._renderInvitations(id),
+          this.#renderInvitations(id),
         ]).then(([tr, userForm, personnalDataForm, invitationForm]) => {
           tabInterface.addPlaceholderTab("pricing", tr.priceTitle, 0);
           tabInterface.addPlaceholderTab(
@@ -534,41 +612,53 @@ export default class UserUI {
             this.pc.popuplate(personnalDataForm);
             node.appendChild(personnalDataForm);
           }
-          node.appendChild(invitationForm);
-          this.renderPriceList(user).then((priceList) => {
-            tabInterface.addTab("pricing", tr.priceTitle, priceList);
-          });
-          //tabInterface.addTab('civil-status', tr.civilStatus, document.createElement('DIV'), 1)
-          //tabInterface.addTab('childs', tr.childs, document.createElement('DIV'), 2)
 
-          Promise.all([
-            msGroups.render(),
-            user.id ? UserGroupAPI.forUser(user.id) : Promise.resolve([]),
-          ]).then(([groupMulti, forUserSelected]) => {
-            msGroups.setSelected(forUserSelected);
-            tabInterface.addTab(
-              "groups",
-              `${tr.groups} ${help.get("User.groups")}`,
-              groupMulti,
-              99,
-            );
-          });
+          this.#homeAddressModule(user, tr, node)
+            .then((_) => this.#childrenModule(user, tr, node))
+            .then((_) => this.#civilStatusModule(user, tr, tabInterface))
+            .then((_) => {
+              node.appendChild(invitationForm);
+              this.renderPriceList(user).then((priceList) => {
+                tabInterface.addTab("pricing", tr.priceTitle, priceList);
+              });
+              tabInterface.addTab(
+                "childs",
+                tr.childs,
+                document.createElement("DIV"),
+                2,
+              );
 
-          Promise.all([
-            msAccess.render(),
-            user.id ? AccessAPI.getUserRoles(user.id) : Promise.resolve([]),
-          ]).then(([accessMulti, userRoles]) => {
-            tabInterface.addTab(
-              "rights",
-              `${tr.accessRight} ${help.get("User.accessRights")}`,
-              accessMulti,
-              98,
-            );
-            msAccess.setSelected(userRoles);
-          });
-          node.appendChild(tabInterface.container);
-          this.app.setContent(node);
-          resolve();
+              Promise.all([
+                msGroups.render(),
+                user.id ? UserGroupAPI.forUser(user.id) : Promise.resolve([]),
+              ]).then(([groupMulti, forUserSelected]) => {
+                msGroups.setSelected(forUserSelected);
+                tabInterface.addTab(
+                  "groups",
+                  `${tr.groups} ${help.get("User.groups")}`,
+                  groupMulti,
+                  99,
+                );
+              });
+
+              Promise.all([
+                msAccess.render(),
+                user.id
+                  ? AccessAPI.getUserRoles(user.id)
+                  : Promise.resolve([]),
+              ]).then(([accessMulti, userRoles]) => {
+                tabInterface.addTab(
+                  "rights",
+                  `${tr.accessRight} ${help.get("User.accessRights")}`,
+                  accessMulti,
+                  98,
+                );
+                msAccess.setSelected(userRoles);
+              });
+              node.appendChild(tabInterface.container);
+              this.app.setContent(node);
+              resolve();
+            });
         });
       });
     });

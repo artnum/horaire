@@ -2,11 +2,13 @@
 
 namespace KAAL\Middleware;
 
+use Address as AddressAddress;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Exception;
 use Generator;
 use KAAL\Context;
+use KAAL\Service\Address;
 use KAAL\Utils\FinalException;
 use stdClass;
 use KAAL\Utils\MixedID;
@@ -177,7 +179,9 @@ class User
         $user->level = self::normalizeInt($user->level);
         $user->order = self::normalizeInt($user->order);
         $user->efficiency = self::normalizeFloat($user->efficiency);
-        $user->workday = self::normalizeString($user->workday);
+        if (isset($user->workday)) {
+            $user->workday = self::normalizeString($user->workday);
+        }
 
         return $user;
     }
@@ -884,6 +888,39 @@ class User
             yield $this->normalizeEgressPrice(
                 (object) $this->unprefix($row)
             );
+        }
+    }
+
+    public function getPersonnalAddresses(int|stdClass $id): Generator
+    {
+        if ($id instanceof stdClass) {
+            $id = self::normalizeId($id->id);
+        }
+        $addrService = new Address($this->context);
+        foreach ($addrService->getByKind($this->context->auth()->get_tenant_id(), $id, 'HOMEADDR') as $address) {
+            yield $address;
+        }
+    }
+
+    public function setPersonnalAddresses($id, array $addresses): Generator
+    {
+        $id = self::normalizeId($id);
+        foreach ($addresses as $address) {
+            if (!empty($address->since)) {
+                $address->since = self::normalizeDate($address->since);
+            }
+            $addrService = new Address($this->context);
+            if (empty($address->id) || $address->id === 'new') {
+                $relation = (object)[
+                    'kind' => 'HOMEADDR',
+                    'since' => empty($address->since) ? '0001-01-01' : $address->since,
+                    'priority' => 0
+                ];
+                yield $addrService->createAddress($id, $this->context->auth()->get_tenant_id(), $relation, $address);
+            } else {
+                $address->id = self::normalizeId($address->id);
+                yield $addrService->editAddress($this->context->auth()->get_tenant_id(), $address);
+            }
         }
     }
 }
