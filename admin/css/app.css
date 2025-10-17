@@ -4,9 +4,9 @@ div.ka-main-content {
   grid-template-columns: minmax(20%, 300px) 1fr minmax(20%, 300px);
   grid-template-rows: auto 1fr min-content;
   grid-template-areas:
-    "module module module"
-    "navigation main action"
-    "status status status";
+    'module module module'
+    'navigation main action'
+    'status status status';
 }
 
 .error-box {
@@ -193,6 +193,14 @@ form.data-form label {
   align-items: end;
 }
 
+form.data-form label.error {
+  color: red;
+}
+
+form.data-form label.must {
+  text-decoration: underline;
+}
+
 form.data-form label.unwanted {
   opacity: 0.75;
 }
@@ -214,6 +222,7 @@ form.data-form label textarea {
 }
 
 form.floating-form {
+  box-shadow: 3px 4px 4px black;
   background-color: white;
   border: 1px solid black;
   gap: 4px;
@@ -290,6 +299,10 @@ form.multiselect-form {
   gap: 6px;
 }
 
+.tab-button.error {
+  background-color: red !important;
+}
+
 .tab-header .tab-button {
   padding: 10px;
   box-sizing: border-box;
@@ -297,10 +310,33 @@ form.multiselect-form {
   border-bottom: none;
   background-color: lightgray;
 }
+
 .tab-header .tab-button:hover {
   border: 2px solid black;
   border-bottom: none;
 }
+
+.tab-menu-context {
+  min-width: 300px;
+  background-color: white;
+  border: 1px solid black;
+  box-shadow: 3px 4px 4px black;
+}
+
+.tab-menu-context .tab-menu-item {
+  min-height: 4.2ex;
+  border: 4px solid white;
+  box-sizing: border-box;
+  width: 100%;
+  color: black;
+  background-color: lightgray;
+}
+
+.tab-menu-context .tab-menu-item:hover {
+  background-color: black;
+  color: white;
+}
+
 .tab-header .tab-button-placeholder {
   background-color: lightgray;
   color: gray;

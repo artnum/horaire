@@ -46,7 +46,7 @@ class Address
     /* as per https://www.six-group.com/dam/download/banking-services/standardization/qr-bill/ig-qr-bill-v2.3-fr.pdf
      * « 4.1.1 Jeu de caractères ».
      */
-    public function containsInvalidCodePoint(string $string): bool
+    private function containsInvalidCodePoint(string $string): bool
     {
         $allowedRanges = (
             '\x{0020}-\x{007E}' .  // Basic Latin (U+0020 – U+007E)
@@ -71,6 +71,83 @@ class Address
 
 
         return $address;
+    }
+
+    public function validate(stdClass $address)
+    {
+        $field_errors = [];
+        if (empty($address->name)
+            || mb_strlen($address->name) > self::FIELD_NAME_LENGTH
+            || $this->containsInvalidCodePoint($address->name)
+        ) {
+            $field_errors[] = 'name';
+        }
+        /* default to CH */
+        if (!empty($address->country)) {
+            if (strlen($address->country) > self::FIELD_COUNTRY_LENGTH) {
+                $field_errors[] = 'country';
+            }
+        }
+
+        if (!empty($address->ext1) && (
+            mb_strlen($address->ext1) > self::FIELD_EXT1_LENGTH
+            || $this->containsInvalidCodePoint($address->ext1)
+        )) {
+            $field_errors[] = 'ext1';
+        }
+
+        if (!empty($address->ext2) && (
+            mb_strlen($address->ext2) > self::FIELD_EXT1_LENGTH
+            || $this->containsInvalidCodePoint($address->ext2)
+        )) {
+            $field_errors[] = 'ext2';
+        }
+
+        if ($address->type === self::TYPE_STRUCTURED) {
+            if (!empty($address->str_or_line1)
+                && (mb_strlen($address->str_or_line1, 'UTF-8')
+                    > self::FIELD_STREET_LENGTH
+                || $this->containsInvalidCodePoint($address->str_or_line1))
+            ) {
+                $field_errors[] = 'str_or_line1';
+            }
+            if (!empty($address->num_or_line2)
+                && (mb_strlen($address->num_or_line2, 'UTF-8')
+                    > self::FIELD_HOUSENUM_LENGTH
+                || $this->containsInvalidCodePoint($address->num_or_line2))
+            ) {
+                $field_errors[] = 'num_or_line2';
+            }
+
+            if (empty($address->postal_code)
+                || mb_strlen($address->postal_code, 'UTF-8') > self::FIELD_POSTALCODE_LENGTH
+                || $this->containsInvalidCodePoint($address->postal_code)
+            ) {
+                $field_errors[] = 'postal_code';
+            }
+            if (empty($address->locality)
+                || mb_strlen($address->locality, 'UTF-8') > self::FIELD_LOCALITY_LENGTH
+                || $this->containsInvalidCodePoint($address->locality)
+            ) {
+                $field_errors[] = 'locality';
+            }
+        } elseif ($address->type === self::TYPE_UNSTRUCTURED) {
+            if (!empty($address->str_or_line1)
+                && (mb_strlen($address->str_or_line1, 'UTF-8')
+                    > self::FIELD_LINE1_LENGTH
+                || $this->containsInvalidCodePoint($address->str_or_line1))
+            ) {
+                $field_errors[] = 'str_or_line1';
+            }
+            if (!empty($address->num_or_line2)
+                && (mb_strlen($address->num_or_line2, 'UTF-8')
+                    > self::FIELD_LINE2_LENGTH
+                || $this->containsInvalidCodePoint($address->num_or_line2))
+            ) {
+                $field_errors[] = 'num_or_line2';
+            }
+        }
+        return (object)['errors' => $field_errors];
     }
 
     protected function normalizeIngressAddress(stdClass $address): stdClass
@@ -108,8 +185,6 @@ class Address
             || $this->containsInvalidCodePoint($address->ext1)
         )) {
             throw new VException('Ext1');
-        } else {
-            $address->ext1 = '';
         }
 
         if (!empty($address->ext2) && (
@@ -117,8 +192,6 @@ class Address
             || $this->containsInvalidCodePoint($address->ext2)
         )) {
             throw new VException('Ext2');
-        } else {
-            $address->ext2 = '';
         }
 
         if ($address->type === self::TYPE_STRUCTURED) {
@@ -247,33 +320,99 @@ class Address
         }
     }
 
-    public function editAddress(int $tenant_id, stdClass $address): int
+    public function editAddress(int $entity_id, int $tenant_id, stdClass $relation, stdClass $address): int
     {
-        $address = $this->normalizeIngressAddress($address);
-        if (empty($address->id)) {
-            throw new VException('id');
-        }
-        $stmt = $this->context->pdo()->prepare("
-            UPDATE addresses
-            SET type = :type, str_or_line1 = :str_or_line1, num_or_line2 = :num_or_line2,
-            postal_code = :postal_code, locality = :locality, country = :country,
-            ext1 = :ext1, ext2 = :ext2
-            WHERE id = :id AND tenant_id = :tenant_id
-            LIMIT 1
+        try {
+            $relation = $this->normalizeIngressRelation($relation);
+            $address = $this->normalizeIngressAddress($address);
+
+            $this->context->pdo()->beginTransaction();
+
+            if (empty($address->id)) {
+                throw new VException('id');
+            }
+            $stmt = $this->context->pdo()->prepare("
+                UPDATE addresses
+                SET type = :type, str_or_line1 = :str_or_line1, num_or_line2 = :num_or_line2,
+                postal_code = :postal_code, locality = :locality, country = :country,
+                ext1 = :ext1, ext2 = :ext2
+                WHERE id = :id AND tenant_id = :tenant_id
+                LIMIT 1
             ");
-        $stmt->bindValue(":type", $address->type, PDO::PARAM_STR);
-        $stmt->bindValue(":str_or_line1", $address->str_or_line1, PDO::PARAM_STR);
-        $stmt->bindValue(":num_or_line2", $address->num_or_line2, PDO::PARAM_STR);
-        $stmt->bindValue(":postal_code", $address->postal_code, PDO::PARAM_STR);
-        $stmt->bindValue(":locality", $address->locality, PDO::PARAM_STR);
-        $stmt->bindValue(":country", $address->country, PDO::PARAM_STR);
-        $stmt->bindValue(":ext1", $address->ext1, PDO::PARAM_STR);
-        $stmt->bindValue(":ext2", $address->ext2, PDO::PARAM_STR);
-        $stmt->bindValue(":id", $address->id, PDO::PARAM_INT);
-        $stmt->bindValue(":tenant_id", $tenant_id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $address->id;
+            $stmt->bindValue(":type", $address->type, PDO::PARAM_STR);
+            $stmt->bindValue(":str_or_line1", $address->str_or_line1, PDO::PARAM_STR);
+            $stmt->bindValue(":num_or_line2", $address->num_or_line2, PDO::PARAM_STR);
+            $stmt->bindValue(":postal_code", $address->postal_code, PDO::PARAM_STR);
+            $stmt->bindValue(":locality", $address->locality, PDO::PARAM_STR);
+            $stmt->bindValue(":country", $address->country, PDO::PARAM_STR);
+            $stmt->bindValue(":ext1", $address->ext1, PDO::PARAM_STR);
+            $stmt->bindValue(":ext2", $address->ext2, PDO::PARAM_STR);
+            $stmt->bindValue(":id", $address->id, PDO::PARAM_INT);
+            $stmt->bindValue(":tenant_id", $tenant_id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $stmt = $this->context->pdo()->prepare("
+                UPDATE address_to_entity 
+                SET kind = :kind, priority = :priority, since = :since
+                WHERE tenant_id = :tenant_id AND entity_id = :entity_id AND address_id = :address_id
+            ");
+            $stmt->bindValue(':kind', $relation->kind, PDO::PARAM_STR);
+            $stmt->bindValue(':since', $relation->since, PDO::PARAM_STR);
+            $stmt->bindValue(':priority', $relation->priority, PDO::PARAM_INT);
+            $stmt->bindValue(':tenant_id', $tenant_id, PDO::PARAM_INT);
+            $stmt->bindValue(':entity_id', $entity_id, PDO::PARAM_INT);
+            $stmt->bindValue(':address_id', $address->id, PDO::PARAM_INT);
+            if (!$stmt->execute()) {
+                throw new Exception('Database error');
+            }
+
+            return $address->id;
+        } catch (Exception $e) {
+            if ($this->context->pdo()->inTransaction()) {
+                $this->context->pdo()->rollBack();
+            }
+            throw $e;
+        }
     }
+
+    public function deleteAddress(int $entity_id, int $tenant_id, stdClass $relation, stdClass $address): int
+    {
+        try {
+            $this->context->pdo()->beginTransaction();
+            $relation = $this->normalizeIngressRelation($relation);
+            $addressId = self::normalizeId($address->id);
+
+            $stmt = $this->context->pdo()->prepare("
+                DELETE FROM address_to_entity
+                WHERE tenant_id = :tenant_id AND entity_id = :entity_id
+                    AND address_id = :address_id AND kind = :kind
+                    AND priority = :priority
+            ");
+            $stmt->bindValue(":tenant_id", $tenant_id, PDO::PARAM_INT);
+            $stmt->bindValue(":entity_id", $entity_id, PDO::PARAM_INT);
+            $stmt->bindValue(":address_id", $addressId, PDO::PARAM_INT);
+            $stmt->bindValue(":kind", $relation->kind, PDO::PARAM_STR);
+            $stmt->bindValue(":priority", $relation->priority, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $stmt = $this->context->pdo()->prepare("
+                DELETE FROM addresses
+                WHERE tenant_id = :tenant_id AND id = :id
+            ");
+            $stmt->bindValue(":tenant_id", $tenant_id, PDO::PARAM_INT);
+            $stmt->bindValue(":id", $addressId, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $this->context->pdo()->commit();
+            return $address->id;
+        } catch (Exception $e) {
+            if ($this->context->pdo()->inTransaction()) {
+                $this->context->pdo()->rollBack();
+            }
+            throw $e;
+        }
+    }
+
 
     public function createAddress(int $entity_id, int $tenant_id, stdClass $relation, stdClass $address): int
     {
@@ -326,6 +465,7 @@ class Address
             }
 
             $this->context->pdo()->commit();
+
             return $address->id;
         } catch (Exception $e) {
             if ($this->context->pdo()->inTransaction()) {

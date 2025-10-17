@@ -9,91 +9,98 @@ export default class checksum {
    * @param {Number|String} seed
    */
   static ckString(str, seed = 0xffffffff) {
-    if (typeof seed == "string") {
-      seed = Number(seed.startsWith("0x") ? seed : `0x${seed}`);
+    if (typeof seed == 'string') {
+      seed = Number(seed.startsWith('0x') ? seed : `0x${seed}`)
     }
 
-    let crc = seed;
+    let crc = seed
     for (let i = 0; i < str.length; i++) {
-      const b = str.charCodeAt(i) & 0xff;
-      crc = (crc >>> 8) ^ crcTable[(crc ^ b) & 0xff];
+      const b = str.charCodeAt(i) & 0xff
+      crc = (crc >>> 8) ^ crcTable[(crc ^ b) & 0xff]
     }
-    crc = crc ^ 0xffffffff;
-    return Number(crc >>> 0).toString(16);
+    crc = crc ^ 0xffffffff
+    return Number(crc >>> 0).toString(16)
   }
 
   static ckValue(value, seed = 0xffffffff) {
     switch (typeof value) {
-      case "string":
-        return checksum.ckString(value, seed);
-      case "number":
-        return checksum.ckString(value.toString(), seed);
-      case "bigint":
-        return checksum.ckString(value.toString(), seed);
-      case "boolean":
-        return checksum.ckString(value ? "true" : "false", seed);
-      case "undefined":
-        return checksum.ckString("undefined", seed);
-      case "object":
+      case 'string':
+        return checksum.ckString(value, seed)
+      case 'number':
+        return checksum.ckString(value.toString(), seed)
+      case 'bigint':
+        return checksum.ckString(value.toString(), seed)
+      case 'boolean':
+        return checksum.ckString(value ? 'true' : 'false', seed)
+      case 'undefined':
+        return checksum.ckString('undefined', seed)
+      case 'object':
         return Array.isArray(value)
           ? checksum.ckArray(value, seed)
-          : checksum.ckObject(value, seed);
+          : checksum.ckObject(value, seed)
     }
   }
 
   /**
-   *  @param {Object} object
+   * Checksum an object using CRC32.
+   * The object keys are sorted with localeCompare, it runs recursively if
+   * object contains object or array
+   * @param {Object} object
    */
   static ckObject(object, seed = 0xffffffff) {
     if (Array.isArray(object)) {
-      return checksum.ckArray(object);
+      return checksum.ckArray(object)
     }
-    let crc = seed;
-    const keys = Object.keys(object).sort((a, b) => a.localeCompare(b));
+    let crc = seed
+    const keys = Object.keys(object).sort((a, b) => a.localeCompare(b))
     for (let i = 0; i < keys.length; i++) {
-      if (keys[i].startsWith("_")) {
-        continue;
+      if (keys[i].startsWith('_')) {
+        continue
       }
-      crc = checksum.ckValue(keys[i], crc);
-      crc = checksum.ckValue(object[keys[i]], crc);
+      crc = checksum.ckValue(keys[i], crc)
+      crc = checksum.ckValue(object[keys[i]], crc)
     }
-    return crc.toString(16);
+    return crc.toString(16)
   }
 
   /**
+   * Checksum an array using CRC32
+   * The array is sorted first. When element of array type mismatch, the type
+   * is sorted and if type match, it uses simple type comparison
+   * (localeCompare for string, === for number, ...)
    * @param {Array} array
    */
   static ckArray(array, seed = 0xffffffff) {
-    let crc = seed;
+    let crc = seed
 
     array = array.sort((a, b) => {
-      const type_a = typeof a;
-      const type_b = typeof b;
+      const type_a = typeof a
+      const type_b = typeof b
       if (type_a != type_b) {
-        return type_a.localeCompare(type_b);
+        return type_a.localeCompare(type_b)
       }
 
       switch (type_a) {
-        case "string":
-          return a.localeCompare(b);
-        case "object":
-          return Number(checksum.ckObject(a)) - Number(checksum.ckObject(b));
-        case "undefined":
-          return 0;
-        case "boolean":
-          a = a ? 1 : 0;
-          b = b ? 1 : 0;
+        case 'string':
+          return a.localeCompare(b)
+        case 'object':
+          return Number(checksum.ckObject(a)) - Number(checksum.ckObject(b))
+        case 'undefined':
+          return 0
+        case 'boolean':
+          a = a ? 1 : 0
+          b = b ? 1 : 0
         // fallthrough
-        case "bigint":
-        case "number":
-          return a - b;
+        case 'bigint':
+        case 'number':
+          return a - b
       }
-    });
+    })
 
     for (let i = 0; i < array.length; i++) {
-      crc = checksum.ckValue(array[i], crc);
+      crc = checksum.ckValue(array[i], crc)
     }
-    return crc.toString(16);
+    return crc.toString(16)
   }
 }
 
@@ -144,4 +151,4 @@ const crcTable = [
   0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693,
   0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94,
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d,
-];
+]

@@ -172,13 +172,20 @@ class User
         unset($user->modified);
         unset($user->tenant_id);
 
-        $user->disabled = self::normalizeBool($user->disabled) ? 1 : 0;
-
+        if (isset($user->disabled)) {
+            $user->disabled = self::normalizeBool($user->disabled) ? 1 : 0;
+        }
+        if (isset($user->level)) {
+            $user->level = self::normalizeInt($user->level);
+        }
+        if (isset($user->order)) {
+            $user->order = self::normalizeInt($user->order);
+        }
+        if (isset($user->efficiency)) {
+            $user->efficiency = self::normalizeFloat($user->efficiency);
+        }
         $user->name = self::normalizeString($user->name);
         $user->username = self::normalizeString($user->username);
-        $user->level = self::normalizeInt($user->level);
-        $user->order = self::normalizeInt($user->order);
-        $user->efficiency = self::normalizeFloat($user->efficiency);
         if (isset($user->workday)) {
             $user->workday = self::normalizeString($user->workday);
         }
@@ -416,7 +423,7 @@ class User
         $user = $this->normalizeIngressUser($user, $this->context->crypto());
 
         if (!isset($user->id)) {
-            /* TODO fix every js code that use this id as integer */
+            /* TODO : fix every js code that use this id as integer */
             $user->id = self::get53($this->context->machine_id);
             $isNew = true;
         }
@@ -774,6 +781,9 @@ class User
 
     private function normalizeIngressPrice(stdClass $price): stdClass
     {
+        if (!empty($price->_id)) {
+            $price->id = $price->_id;
+        }
         if (isset($price->id)) {
             $price->id = self::normalizeId($price->id);
         }
@@ -786,7 +796,6 @@ class User
         if (isset($price->validity)) {
             $price->validity = self::normalizeDate($price->validity);
         }
-        $price->tenant_id = $this->context->auth()->get_tenant_id();
         return $price;
     }
 
@@ -799,17 +808,10 @@ class User
         return $price;
     }
 
-    public function setPrice(stdClass $price): stdClass
+    private function _setPrice(int $userid, int $tenant_id, stdClass $price): bool
     {
-        $this->context->rbac()->can(
-            $this->context->auth(),
-            get_class($this),
-            __FUNCTION__
-        );
-
-        $stmt = $this->normalizeIngressPrice($price);
         $stmt = $this->context->pdo()->prepare(
-            'INSERT INTO `prixheure` (`prixheure_id`, `prixheure_person`
+            'INSERT INTO `prixheure` (`prixheure_id`, `prixheure_person`,
                 `prixheure_value`, `prixheure_validity`, `tenant_id`)
             VALUES (:id, :person, :value, :validity, :tenant)
             ON DUPLICATE KEY UPDATE `prixheure_value` = VALUES(`prixheure_value`), 
@@ -825,14 +827,75 @@ class User
         );
         $stmt->bindValue(
             ':tenant',
-            $price->tenant_id,
+            $tenant_id,
             PDO::PARAM_INT
         );
         $stmt->bindValue(':value', $price->value, PDO::PARAM_STR);
         $stmt->bindValue(':validity', $price->validity, PDO::PARAM_STR);
-        $stmt->bindValue(':person', $price->person, PDO::PARAM_INT);
+        $stmt->bindValue(':person', $userid, PDO::PARAM_INT);
 
         $stmt->execute();
+        var_dump($price);
+        return $price->id;
+
+    }
+
+    private function _deletePrice(int $tenant_id, stdClass $price): int
+    {
+        $stmt = $this->context->pdo()->prepare(
+            'DELETE FROM `prixheure`
+            WHERE `prixheure_id` = :id
+                AND `tenant_id` = :tenant'
+        );
+        $stmt->bindValue(':id', $price->id, PDO::PARAM_INT);
+        $stmt->bindValue(
+            ':tenant',
+            $tenant_id,
+            PDO::PARAM_INT
+        );
+        $stmt->execute();
+        return $price->id;
+    }
+
+    public function setPricing(int|string|stdClass $user, stdClass $prices): Generator
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+        $tenant_id = $this->context->auth()->get_tenant_id();
+        $userid = self::normalizeId($user);
+        try {
+            $this->context->pdo()->beginTransaction();
+            foreach (array_merge($prices->modified, $prices->created) as $price) {
+                $price = $this->normalizeIngressPrice($price);
+                yield (object) ['id' => $this->_setPrice($userid, $tenant_id, $price)];
+            }
+            foreach ($prices->deleted as $price) {
+                $price = $this->normalizeIngressPrice($price);
+                yield (object)[$this->_deletePrice($tenant_id, $price)];
+            }
+            $this->context->pdo()->commit();
+        } catch (Exception $e) {
+            if ($this->context->pdo()->inTransaction()) {
+                $this->context->pdo()->rollBack();
+            }
+        }
+    }
+
+    public function setPrice(int|string|stdClass $user, stdClass $price): stdClass
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
+        $userid = self::normalizeId($user);
+        $tenant_id = $this->context->auth()->get_tenant_id();
+        $price = $this->normalizeIngressPrice($price);
+        $this->_setPrice($userid, $tenant_id, $price);
         return $this->normalizeEgressPrice($price);
     }
 
@@ -843,19 +906,9 @@ class User
             get_class($this),
             __FUNCTION__
         );
+        $tenant_id = $this->context->auth()->get_tenant_id();
         $price = $this->normalizeIngressPrice($price);
-        $stmt = $this->context->pdo()->prepare(
-            'DELETE FROM `prixheure`
-            WHERE `prixheure_id` = :id
-                AND `tenant_id` = :tenant'
-        );
-        $stmt->bindValue(':id', $price->id, PDO::PARAM_INT);
-        $stmt->bindValue(
-            ':tenant',
-            $price->tenant_id,
-            PDO::PARAM_INT
-        );
-
+        $this->_deletePrice($tenant_id, $price);
         return (object)['id' => strval($price->id)];
     }
 
@@ -870,6 +923,7 @@ class User
             __FUNCTION__
         );
 
+        $tenant_id = $this->context->auth()->get_tenant_id();
         $price = $this->normalizeIngressPrice($price);
 
         $stmt = $this->context->pdo()->prepare(
@@ -877,22 +931,31 @@ class User
                 `prixheure_validity`, `tenant_id`
             FROM `prixheure`
             WHERE `prixheure_person` = :person
-                AND `tenant_id` = :tenant'
+                AND `tenant_id` = :tenant
+            ORDER BY `prixheure_validity` DESC'
         );
 
         $stmt->bindValue(':person', $price->person, PDO::PARAM_INT);
-        $stmt->bindValue(':tenant', $price->tenant_id, PDO::PARAM_INT);
+        $stmt->bindValue(':tenant', $tenant_id, PDO::PARAM_INT);
         $stmt->execute();
 
+        $i = 0;
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
-            yield $this->normalizeEgressPrice(
+            $price = $this->normalizeEgressPrice(
                 (object) $this->unprefix($row)
             );
+            $price->_order = ++$i;
+            yield $price;
         }
     }
 
     public function getPersonnalAddresses(int|stdClass $id): Generator
     {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
         if ($id instanceof stdClass) {
             $id = self::normalizeId($id->id);
         }
@@ -902,8 +965,14 @@ class User
         }
     }
 
-    public function setPersonnalAddresses($id, array $addresses): Generator
+    public function setPersonnalAddresses(int|string|stdClass $id, array $addresses): Generator
     {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
         $id = self::normalizeId($id);
         foreach ($addresses as $address) {
             if (!empty($address->since)) {
@@ -916,11 +985,35 @@ class User
                     'since' => empty($address->since) ? '0001-01-01' : $address->since,
                     'priority' => 0
                 ];
-                yield $addrService->createAddress($id, $this->context->auth()->get_tenant_id(), $relation, $address);
+                yield (object) ['address' => $addrService->createAddress($id, $this->context->auth()->get_tenant_id(), $relation, $address)];
             } else {
                 $address->id = self::normalizeId($address->id);
-                yield $addrService->editAddress($this->context->auth()->get_tenant_id(), $address);
+                $relation = (object) [
+                    'kind' => 'HOMEADDR',
+                    'since' => empty($address->since) ? '0001-01-01' : $address->since,
+                    'priority' => 0
+                ];
+                yield (object)['address' => $addrService->editAddress($id, $this->context->auth()->get_tenant_id(), $relation, $address)];
             }
+        }
+    }
+
+    public function deletePersonnalAddresses(int|string|stdClass $id, array $addresses)
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+        $addrService = new Address($this->context);
+        $id = self::normalizeId($id);
+        foreach ($addresses as $address) {
+            $relation = (object)[
+                                'kind' => 'HOMEADDR',
+                                'priority' => 0
+                            ];
+
+            yield (object) ['id' => $addrService->deleteAddress($id, $this->context->auth()->get_tenant_id(), $relation, $address)];
         }
     }
 }
