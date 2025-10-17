@@ -17,8 +17,8 @@ class AppEventSystem {
     if (!this.listeners.has(eventName)) {
       this.listeners.set(eventName, new Set())
     }
-    this.listeners.get(eventName).add(callback);
-    return () => this.off(eventName, callback);
+    this.listeners.get(eventName).add(callback)
+    return () => this.off(eventName, callback)
   }
 
   off(eventName, callback) {
@@ -53,7 +53,7 @@ export default class App {
     this.errorBoxes = new Map()
     this.access = new Privilege(new AccessAPI())
     this.init()
-    this.events.on('navigate', _ => this.clearBlockError())
+    this.events.on('navigate', (_) => this.clearBlockError())
   }
 
   setupRoute() {
@@ -69,61 +69,62 @@ export default class App {
       Promise.all([
         this.clearContent(),
         this.clearNavigation(),
-        this.clearMainAction()
-      ])
-        .then(() => {
-          this.parentNode.classList.add('pageview', object)
-          this.parentNode.classList.remove(this.currentObject)
-          this.currentObject = object
-          switch (object) {
-            case 'UserUI':
-            case 'QuoteUI':
-              this.main.classList.add('with-navigation')
-              import(`./$script/admin/ui/${object}.js`)
-                .then(module => {
-                  const ui = new module['default'](this, this.main, this.navigation)
-                  ui.init()
-                    .then(_ => {
-                      Promise.all([
-                        ui.main()
-                          .then(node => {
-                            if (node) { this.appendContent(node) }
-                          }),
-                        ui.navigation()
-                          .then(node => {
-                            if (node) { this.appendNavigation(node) }
-                          })
-                      ])
-                        .then(_ => {
-                          ui.run()
-                        })
-                    })
+        this.clearMainAction(),
+      ]).then(() => {
+        this.parentNode.classList.add('pageview', object)
+        this.parentNode.classList.remove(this.currentObject)
+        this.currentObject = object
+        switch (object) {
+          case 'UserUI':
+          case 'QuoteUI':
+            this.main.classList.add('with-navigation')
+            import(`./$script/admin/ui/${object}.js`).then((module) => {
+              const ui = new module['default'](this, this.main, this.navigation)
+              ui.init().then((_) => {
+                Promise.all([
+                  ui.main().then((node) => {
+                    if (node) {
+                      this.appendContent(node)
+                    }
+                  }),
+                  ui.navigation().then((node) => {
+                    if (node) {
+                      this.appendNavigation(node)
+                    }
+                  }),
+                ]).then((_) => {
+                  ui.run()
                 })
-              break;
-            default: (() => {
+              })
+            })
+            break
+          default:
+            ;(() => {
               const iframe = document.createElement('IFRAME')
               iframe.classList.add('ka-main-iframe')
               iframe.src = `${new URL(window.location).toString()}/${object}.html`
               this.appendContent(iframe)
               iframe.focus()
             })()
-              break
-            case 'home':
-              window.location.reload()
-              break
-            case 'exit':
-              this.events.emitApp('logout')
-              break
-            case 'kairos': (() => {
+            break
+          case 'home':
+            window.location.reload()
+            break
+          case 'exit':
+            this.events.emitApp('logout')
+            break
+          case 'kairos':
+            ;(() => {
               const iframe = document.createElement('IFRAME')
               iframe.classList.add('ka-main-iframe')
               iframe.src = KAAL.kairos.url
               this.appendContent(iframe)
               iframe.focus()
             })()
-              break
+            break
 
-            case 'offer': (() => {
+          case 'offer':
+            ;(() => {
               const url = new URL(window.location)
               url.hash = ''
               const iframe = document.createElement('IFRAME')
@@ -132,11 +133,11 @@ export default class App {
               this.appendContent(iframe)
               iframe.focus()
             })()
-              break
-          }
-        })
+            break
+        }
+      })
     })
-    window.addEventListener('message', event => {
+    window.addEventListener('message', (event) => {
       if (event.data.type === 'route') {
         RouterHandler.executeRoute(event.data.action)
       }
@@ -147,7 +148,7 @@ export default class App {
     const fetchChannel = new BroadcastChannel('fetch-channel')
     /*let DownTiming = 0
     let WarningSet = false*/
-    fetchChannel.onmessage = message => {
+    fetchChannel.onmessage = (message) => {
       switch (message.data) {
         case 'bexio-down':
           this.setStatus(l10n.t('Bexio indisponible'))
@@ -166,9 +167,11 @@ export default class App {
   }
 
   setupWindowHandler() {
-    window.addEventListener('hashchange', event => {
+    window.addEventListener('hashchange', (event) => {
       const hash = window.location.hash
-      if (!hash.substring(1)) { return }
+      if (!hash.substring(1)) {
+        return
+      }
       RouterHandler.executeRoute(`open:${hash.substring(1)}`)
     })
 
@@ -184,12 +187,16 @@ export default class App {
   }
 
   setEventHandler(evenType, callback) {
-    this.eventsListsHandler.set(evenType, callback);
+    this.eventsListsHandler.set(evenType, callback)
   }
 
   setupEventHandler(rootNode) {
     this.eventsListsHandler = new Map()
-    rootNode.addEventListener('click', (event) => this._runEvent('click', event), { capture: true })
+    rootNode.addEventListener(
+      'click',
+      (event) => this._runEvent('click', event),
+      { capture: true },
+    )
   }
 
   init() {
@@ -231,15 +238,14 @@ export default class App {
 
     this.parentNode.appendChild(this.root)
 
-    this.events.on('logout', _ => this.logout())
+    this.events.on('logout', (_) => this.logout())
   }
 
   logout() {
     const klogin = new KLogin(KAAL.getBase())
-    klogin.logout()
-      .then(() => {
-        RouterHandler.executeRoute('open:home')
-      })
+    klogin.logout().then(() => {
+      RouterHandler.executeRoute('open:home')
+    })
   }
 
   run() {
@@ -248,114 +254,135 @@ export default class App {
       this.clearContent(),
       this.clearModule(),
       this.clearNavigation(),
-      this.clearMainAction()
-    ])
-      .then(() => {
-        let buttons = [
-          { level: 128, callback: () => { RouterHandler.executeRoute('open:QuoteUI') }, node: `offre.html`, label: 'Offre', nodeid: 'quote' },
-          { level: 128, node: `open:project`, label: 'Projets', nodeid: 'prj' },
-          //{ level: 64, node: `process.html`, label: 'Processus' },
-          { level: 16, callback: () => { RouterHandler.executeRoute('open:UserUI') }, node: `open:user`, label: 'Utilisateurs', nodeid: 'user' },
-          { level: 32, node: `open:time`, label: 'Temps', nodeid: 'time' },
-          { level: 32, node: `open:bill`, label: 'Facture', nodeid: 'bill' },
-          { level: 32, node: 'open:debt', label: 'Débiteur', nodeid: 'debitor' },
-          { level: 128, node: `open:item`, label: 'Matériels', nodeid: 'items' },
-          { level: 128, node: 'open:kairos', label: 'Planification', nodeid: 'plan' },
-          //{ level: 128, node: `view-gantt.html`, label: 'Vue général' },
-          { level: 32, node: 'open:car', label: 'Véhicule', nodeid: 'car' },
-          { level: 256, node: 'open:exit', label: 'Déconnexion', nodeid: 'exit' },
-        ]
-        buttons = buttons.filter(e => {
-          return KAAL.nodes.indexOf(e.nodeid) !== -1
-        })
-
-        const company = document.createElement('div')
-        company.classList.add('company', 'button')
-        company.innerHTML = KAAL.title;
-        this.appendModule(company)
-
-        buttons.forEach((e) => {
-          if (parseInt(e.level) >= parseInt(this.loggedUser.level)) {
-            let div = document.createElement('DIV')
-            div.classList.add('button')
-
-            if (e.callback) {
-              div.addEventListener('click', e.callback)
-              div.innerHTML = `<a>${e.label}</a>`
-            } else {
-              let link = document.createElement('A')
-              link.setAttribute('href', e.node)
-              link.addEventListener('click', (event) => {
-                event.preventDefault()
-                RouterHandler.executeRoute(e.node)
-              })
-              link.appendChild(document.createTextNode(e.label))
-              div.appendChild(link)
-            }
-            this.appendModule(div)
-          }
-        })
+      this.clearMainAction(),
+    ]).then(() => {
+      let buttons = [
+        {
+          level: 128,
+          callback: () => {
+            RouterHandler.executeRoute('open:QuoteUI')
+          },
+          node: `offre.html`,
+          label: 'Offre',
+          nodeid: 'quote',
+        },
+        { level: 128, node: `open:project`, label: 'Projets', nodeid: 'prj' },
+        //{ level: 64, node: `process.html`, label: 'Processus' },
+        {
+          level: 16,
+          callback: () => {
+            RouterHandler.executeRoute('open:UserUI')
+          },
+          node: `open:user`,
+          label: 'Utilisateurs',
+          nodeid: 'user',
+        },
+        { level: 32, node: `open:time`, label: 'Temps', nodeid: 'time' },
+        { level: 32, node: `open:bill`, label: 'Facture', nodeid: 'bill' },
+        { level: 32, node: 'open:debt', label: 'Débiteur', nodeid: 'debitor' },
+        { level: 128, node: `open:item`, label: 'Matériels', nodeid: 'items' },
+        {
+          level: 128,
+          node: 'open:kairos',
+          label: 'Planification',
+          nodeid: 'plan',
+        },
+        //{ level: 128, node: `view-gantt.html`, label: 'Vue général' },
+        { level: 32, node: 'open:car', label: 'Véhicule', nodeid: 'car' },
+        { level: 256, node: 'open:exit', label: 'Déconnexion', nodeid: 'exit' },
+      ]
+      buttons = buttons.filter((e) => {
+        return KAAL.nodes.indexOf(e.nodeid) !== -1
       })
+
+      const company = document.createElement('div')
+      company.classList.add('company', 'button')
+      company.innerHTML = KAAL.title
+      this.appendModule(company)
+
+      buttons.forEach((e) => {
+        if (parseInt(e.level) >= parseInt(this.loggedUser.level)) {
+          let div = document.createElement('DIV')
+          div.classList.add('button')
+
+          if (e.callback) {
+            div.addEventListener('click', e.callback)
+            div.innerHTML = `<a>${e.label}</a>`
+          } else {
+            let link = document.createElement('A')
+            link.setAttribute('href', e.node)
+            link.addEventListener('click', (event) => {
+              event.preventDefault()
+              RouterHandler.executeRoute(e.node)
+            })
+            link.appendChild(document.createTextNode(e.label))
+            div.appendChild(link)
+          }
+          this.appendModule(div)
+        }
+      })
+    })
   }
 
   login() {
     return new Promise((resolve, reject) => {
       const klogin = new KLogin(KAAL.getBase())
-      new Promise(resolve => {
-        klogin.isLogged()
-          .then(x => {
-            klogin.getUser()
-              .then(userid => {
+      new Promise((resolve) => {
+        klogin
+          .isLogged()
+          .then((x) => {
+            klogin
+              .getUser()
+              .then((userid) => {
                 return KAPerson.load(userid)
               })
-              .then(user => {
+              .then((user) => {
                 resolve(user)
               })
-
           })
-          .catch(e => {
+          .catch((e) => {
             resolve(false)
           })
-      })
-        .then(logged => {
-          if (logged) {
-            this.loggedUser = logged
-            this.setUser(this.loggedUser.username)
-            return resolve(this.loggedUser)
-          }
+      }).then((logged) => {
+        if (logged) {
+          this.loggedUser = logged
+          this.setUser(this.loggedUser.username)
+          return resolve(this.loggedUser)
+        }
 
-          const loginForm = document.createElement('FORM')
-          loginForm.innerHTML = `
+        const loginForm = document.createElement('FORM')
+        loginForm.innerHTML = `
                     <label for="username">Utilisateur : <input type="text" name="username" class="darkbg"></label><br>
                     <label for="password">Mot de passe : <input type="password" name="password" class="darkbg"></label><br>
                     <button type="submit">Authentifier</button>
                 `
-          this.appendContent(loginForm)
+        this.appendContent(loginForm)
 
-          loginForm.addEventListener('submit', event => {
-            event.preventDefault()
-            const data = new FormData(event.currentTarget)
-            klogin.getUserid(data.get('username'))
-              .then(userid => {
-                return klogin.login(userid, data.get('password'))
-              })
-              .then(() => {
-                return klogin.getUser()
-              })
-              .then(userid => {
-                return KAPerson.load(userid)
-              })
-              .then(user => {
-                this.loggedUser = user
-                this.setUser(this.loggedUser.username)
-                this.clearContent()
-                return resolve(this.loggedUser)
-              })
-              .catch(() => {
-                alert(l10n.t('Autentification échouée'))
-              })
-          })
+        loginForm.addEventListener('submit', (event) => {
+          event.preventDefault()
+          const data = new FormData(event.currentTarget)
+          klogin
+            .getUserid(data.get('username'))
+            .then((userid) => {
+              return klogin.login(userid, data.get('password'))
+            })
+            .then(() => {
+              return klogin.getUser()
+            })
+            .then((userid) => {
+              return KAPerson.load(userid)
+            })
+            .then((user) => {
+              this.loggedUser = user
+              this.setUser(this.loggedUser.username)
+              this.clearContent()
+              return resolve(this.loggedUser)
+            })
+            .catch(() => {
+              alert(l10n.t('Autentification échouée'))
+            })
         })
+      })
     })
   }
 
@@ -368,7 +395,6 @@ export default class App {
     this.module.innerHTML = ''
     return Promise.resolve(this)
   }
-
 
   clearStatus() {
     this.status.querySelector('.message').innerHTML = ''
@@ -388,7 +414,6 @@ export default class App {
 
   clearUser() {
     this.status.querySelector('.user').innerHTML = ''
-
   }
   setUser(user) {
     const node = this.status.querySelector('.user')
@@ -436,7 +461,7 @@ export default class App {
   }
 
   /**
-   * @param node {HTMLElement} 
+   * @param node {HTMLElement}
    * @return Promise<App>
    */
   setContent(node) {
@@ -451,16 +476,16 @@ export default class App {
   }
 
   /**
-   * 
+   *
    * @param {string} name
-   * @param {Function} action 
+   * @param {Function} action
    */
   addMainAction(name, action) {
     const node = document.createElement('DIV')
     node.classList.add('main-action-item')
     node.innerHTML = name
     this.mainAction.appendChild(node)
-    node.addEventListener('click', event => action(event.currentTarget))
+    node.addEventListener('click', (event) => action(event.currentTarget))
   }
 
   /**
@@ -473,12 +498,12 @@ export default class App {
     node.classList.add('main-action-item', 'item-with-state')
     node.innerHTML = names[currentState]
     this.mainAction.appendChild(node)
-    node.addEventListener('click', event => {
+    node.addEventListener('click', (event) => {
       action(event.currentTarget)
-        .then(nextState => {
+        .then((nextState) => {
           node.innerHTML = names[nextState]
         })
-        .catch(e => {
+        .catch((e) => {
           console.log(e)
         })
     })
@@ -496,7 +521,9 @@ export default class App {
    * @param block {HTMLElement}
    */
   setBlockError(error, block) {
-    if (this.errorBoxes.has(block)) { return }
+    if (this.errorBoxes.has(block)) {
+      return
+    }
 
     block.classList.add('error')
     const node = document.createElement('DIV')
@@ -512,14 +539,14 @@ export default class App {
       minHeight: `${box.height}px`,
       maxWidth: `${box.width}px`,
       maxHeight: `${box.height}px`,
-      zIndex: 99999
+      zIndex: 99999,
     })
     this.errorBoxes.set(block, node)
     document.body.appendChild(node)
   }
 
   clearBlockError() {
-    this.errorBoxes.forEach(node => node.remove())
+    this.errorBoxes.forEach((node) => node.remove())
     this.errorBoxes.clear()
   }
 
