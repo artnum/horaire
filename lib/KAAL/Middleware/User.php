@@ -10,6 +10,7 @@ use Generator;
 use KAAL\Context;
 use KAAL\Service\Address;
 use KAAL\Utils\FinalException;
+use KAAL\Middleware\User\CivilStatus;
 use stdClass;
 use KAAL\Utils\MixedID;
 use KAAL\Utils\Normalizer;
@@ -34,6 +35,7 @@ const ORDER_STEP_SIZE = 100;
  */
 class User
 {
+    use CivilStatus;
     use ID;
     use MixedID;
     use PrefixedTable;
@@ -881,6 +883,7 @@ class User
             if ($this->context->pdo()->inTransaction()) {
                 $this->context->pdo()->rollBack();
             }
+            throw $e;
         }
     }
 

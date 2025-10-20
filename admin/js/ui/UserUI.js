@@ -370,6 +370,28 @@ export default class UserUI {
     return this.userAPI.setPricing(userid, Serial.getFormValue(pricingForm))
   }
 
+  #saveCivilStatus(userid) {
+    return new Promise((resolve) => {
+      this.app.access
+        .can(this.userAPI, 'setCivilStatuses')
+        .then((_) => {
+          this.userAPI
+            .setCivilStatuses(
+              userid,
+              Serial.getFormValue(
+                this.app
+                  .getContentNode()
+                  .querySelector('[data-name="civil-status"]'),
+              ),
+            )
+            .then((_) => resolve())
+        })
+        .catch((_) => {
+          resolve()
+        })
+    })
+  }
+
   putNodeInActiveZone(node) {
     node.classList.add('new-item')
     node.classList.remove('disabled')
@@ -404,24 +426,17 @@ export default class UserUI {
 
   saveUser() {
     return new Promise((resolve, reject) => {
-      Promise.all([this.#personnalAddress.validate()]).then((errors) => {})
-
       this.#saveUser()
         .then((user) => {
-          const addresses = this.#personnalAddress
-            .getValues()
-            .filter(
-              (address) => address._checksum != address._previous_checksum,
-            )
-          const deletedAddress = this.#personnalAddress.getDeleted()
           this.currentUser = user
           return Promise.all([
             Promise.resolve(user),
             this.pc.save(user.id),
-            this.#savePersonnalAddresses(user.id, addresses, deletedAddress),
+            this.#savePersonnalAddresses(user.id),
             this.#saveGoups(user.id),
             this.#saveAccessRight(user.id),
             this.#savePricing(user.id),
+            this.#saveCivilStatus(user.id),
           ])
         })
         .then(([user, pcuser, personnalAddresss, groups, access, pricing]) => {
@@ -433,11 +448,29 @@ export default class UserUI {
     })
   }
 
-  #savePersonnalAddresses(userid, addresses, deletedAddress) {
-    return Promise.all([
-      this.userAPI.setPersonnalAddresses(userid, addresses),
-      this.userAPI.deletePersonnalAddresses(userid, deletedAddress),
-    ])
+  #savePersonnalAddresses(userid) {
+    return new Promise((resolve) => {
+      this.app.access
+        .can(this.userAPI, 'setPersonnalAddresses')
+        .then((_) => {
+          const addresses = this.#personnalAddress
+            .getValues()
+            .filter(
+              (address) => address._checksum != address._previous_checksum,
+            )
+          const deletedAddress = this.#personnalAddress.getDeleted()
+
+          Promise.all([
+            this.userAPI.setPersonnalAddresses(userid, addresses),
+            this.userAPI.deletePersonnalAddresses(userid, deletedAddress),
+          ]).then((_) => {
+            resolve()
+          })
+        })
+        .catch((_) => {
+          resolve()
+        })
+    })
   }
 
   #renderQrInvitation(node, invitation) {
@@ -485,16 +518,25 @@ export default class UserUI {
 
   #homeAddressModule(user, translations, container) {
     return new Promise((resolve) => {
-      const msAddress = new Address(this.app)
-      const addressFormTitle = document.createElement('H3')
-      addressFormTitle.innerHTML = `${translations.personAddress} ${help.get('Address.general')}`
-      container.appendChild(addressFormTitle)
-      container.appendChild(msAddress.getDomNode())
-      this.#personnalAddress = msAddress
-      resolve()
-      this.userAPI.getPersonnalAddresses(user).then((addresses) => {
-        msAddress.popuplate(addresses)
-      })
+      this.app.access
+        .can(this.userAPI, 'getPersonnalAddresses')
+        .then((_) => {
+          const msAddress = new Address(this.app)
+          const addressFormTitle = document.createElement('H3')
+          addressFormTitle.innerHTML = `${translations.personAddress} ${help.get('Address.general')}`
+          container.appendChild(addressFormTitle)
+          container.appendChild(msAddress.getDomNode())
+          this.#personnalAddress = msAddress
+          resolve()
+          if (user.id !== '') {
+            this.userAPI.getPersonnalAddresses(user).then((addresses) => {
+              msAddress.popuplate(addresses)
+            })
+          }
+        })
+        .catch((e) => {
+          resolve()
+        })
     })
   }
 
@@ -506,34 +548,72 @@ export default class UserUI {
 
   #civilStatusModule(user, translations, container) {
     return new Promise((resolve) => {
-      const s = new Serial(
-        this.app,
-        {
-          status: 'État civil',
-          since: 'Depuis',
-          spouse: 'Conjoint',
-        },
-        {
-          types: {
-            since: {
-              type: 'date',
-            },
-            spouse: {
-              type: 'function',
-              options: {
-                callback: () => {
-                  const msAddress = new Address(this.app)
-                  return Promise.resolve(msAddress.getDomNode())
+      this.app.access
+        .can(this.userAPI, 'listCivilStatuses')
+        .then((_) => {
+          Promise.all([
+            l10n.load({
+              civilStatus: 'État civil',
+              UNKNOWN: 'Inconnu',
+              SINGLE: 'Célibataire',
+              MARRIED: 'Marié(e)',
+              WIDOWED: 'Veuve/veuf',
+              DIVORCED: 'Divorcé(e)',
+              SEPARATED: 'Séparé(e)',
+              REG_PARTNER: 'Parternariat enregistré',
+              DISS_PART_JUD: 'Parternariat dissous judiciairement',
+              DISS_PART_DEC: 'Parternariat dissous par décès',
+              PART_ABSENCE:
+                "Parternariat dissous ensuite de déclartion d'absence",
+            }),
+            (() => {
+              if (user.id === '') {
+                return Promise.resolve([])
+              }
+              return this.userAPI.listCivilStatuses(user)
+            })(),
+          ]).then(([tr, statuses]) => {
+            const s = new Serial(
+              this.app,
+              {
+                status: 'État civil',
+                since: 'Depuis',
+              },
+              {
+                types: {
+                  since: {
+                    type: 'date',
+                  },
+                  status: {
+                    type: 'select',
+                    options: {
+                      values: {
+                        UNKNOWN: tr.UNKNOWN,
+                        SINGLE: tr.SINGLE,
+                        MARRIED: tr.MARRIED,
+                        WIDOWED: tr.WIDOWED,
+                        DIVORCED: tr.DIVORCED,
+                        SEPARATED: tr.SEPARATED,
+                        REG_PARTNER: tr.REG_PARTNER,
+                        DISS_PART_JUD: tr.DISS_PART_JUD,
+                        DISS_PART_DEC: tr.DISS_PART_DEC,
+                        PART_ABSENCE: tr.PART_ABSENCE,
+                      },
+                    },
+                  },
                 },
               },
-            },
-          },
-        },
-      )
-      s.render().then((n) => {
-        container.addTab('civilStatus', 'État civil', n, 0)
-        resolve()
-      })
+            )
+            s.setData(statuses)
+            s.render().then((n) => {
+              container.addTab('civil-status', tr.civilStatus, n, 0)
+              resolve()
+            })
+          })
+        })
+        .catch((_) => {
+          resolve()
+        })
     })
   }
 

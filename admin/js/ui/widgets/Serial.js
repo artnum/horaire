@@ -102,10 +102,11 @@ export default class Serial {
     input.setValue = function (value) {
       this.value = value
     }.bind(input)
-    for (const value in values) {
+    for (const k in values) {
       const option = document.createElement('OPTION')
-      option.value = value.value
-      option.innerHTML = `${value.label}`
+      option.value = k
+      option.innerHTML = values[k]
+      input.appendChild(option)
     }
     return input
   }
@@ -369,6 +370,9 @@ export default class Serial {
             break
           case 'date':
             cell.innerHTML = format.date(row[key])
+            break
+          case 'select':
+            cell.innerHTML = this.#getKeyOptions(key).values[row[key]]
             break
         }
       }

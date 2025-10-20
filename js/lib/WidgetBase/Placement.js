@@ -143,8 +143,23 @@ export default class Placement {
     window.addEventListener(
       'mousedown',
       throttle((event) => {
+        const eventNode = event.target
+
         Placement.#nodesMap.forEach((entry) => {
           const node = entry.node
+
+          /* check if target node is child of our entry node. When using
+           * element like <SELECT>, the option list may appear outside the
+           * the node bounding rectangle, so don't kill the node in that
+           * case
+           */
+          let x = eventNode
+          while (x) {
+            if (x === node) {
+              return
+            }
+            x = x.parentNode
+          }
           const mousepos = {
             x: event.clientX,
             y: event.clientY,

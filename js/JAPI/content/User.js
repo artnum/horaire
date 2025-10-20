@@ -195,6 +195,16 @@ export class UserAPI extends JAPI {
     })
   }
 
+  setCivilStatuses(userid, statuses) {
+    return this.API.exec(UserAPI.NS, 'setCivilStatuses', {
+      userid,
+      statuses,
+    })
+  }
+  listCivilStatuses(userid) {
+    return this.API.exec(UserAPI.NS, 'listCivilStatuses', { userid })
+  }
+
   /**
    * @return DataAPI
    */

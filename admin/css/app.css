@@ -159,6 +159,7 @@ section.ka-status > div {
   gap: 1ch;
   border: 2px solid transparent;
   cursor: pointer;
+  padding: 5px;
 }
 
 .main-action-item:hover {
@@ -247,8 +248,18 @@ form.multiselect-form {
 }
 
 .multiselect {
+  padding: 6px;
+}
+
+.multiselect-group {
   display: flex;
   flex-flow: row wrap;
+}
+
+.multiselect-group-title {
+  font-weight: bold;
+  flex-basis: 100%;
+  padding: 8px 0px;
 }
 
 .multiselect-item {
