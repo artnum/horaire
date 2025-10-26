@@ -849,10 +849,10 @@ export default class UserUI {
 
             const node = document.createElement('DIV')
             node.classList.add('user-ui-content')
-            {
-              title.length > 0
-                ? (node.innerHTML = `<h2>${title}</h2>`)
-                : (node.innerHTML = `<h2>${user.name}</h2>`)
+            if (title.length > 0) {
+              node.innerHTML = `<h2>${title}</h2>`
+            } else {
+              node.innerHTML = `<h2>${user.name}</h2>`
             }
 
             node.appendChild(userForm)
