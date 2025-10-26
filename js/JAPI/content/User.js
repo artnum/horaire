@@ -205,6 +205,31 @@ export class UserAPI extends JAPI {
     return this.API.exec(UserAPI.NS, 'listCivilStatuses', { userid })
   }
 
+  listChildren(userid) {
+    return this.API.exec(UserAPI.NS, 'listChildren', { userid })
+  }
+
+  setChildren(userid, children) {
+    return this.API.exec(UserAPI.NS, 'setChildren', { userid, children })
+  }
+
+  listEmergencyPhones(user) {
+    return this.API.exec(UserAPI.NS, 'listEmergencyPhones', {
+      userid: user,
+    })
+  }
+
+  listPhones(user) {
+    return this.API.exec(UserAPI.NS, 'listPhones', { userid: user })
+  }
+
+  setPhones(user, phones) {
+    return this.API.exec(UserAPI.NS, 'setPhones', {
+      userid: user,
+      phones: phones,
+    })
+  }
+
   /**
    * @return DataAPI
    */

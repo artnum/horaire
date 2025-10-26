@@ -2,12 +2,13 @@
 
 namespace KAAL\Middleware;
 
-use Address as AddressAddress;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Exception;
 use Generator;
 use KAAL\Context;
+use KAAL\Middleware\User\Children;
+use KAAL\Middleware\User\Phone;
 use KAAL\Service\Address;
 use KAAL\Utils\FinalException;
 use KAAL\Middleware\User\CivilStatus;
@@ -35,7 +36,9 @@ const ORDER_STEP_SIZE = 100;
  */
 class User
 {
+    use Children;
     use CivilStatus;
+    use Phone;
     use ID;
     use MixedID;
     use PrefixedTable;
@@ -475,7 +478,9 @@ class User
         }
 
         $pdata->id = $pdata->person_id;
-        $pdata->_tenant_id = $pdata->tenant_id;
+        if (isset($pdata->tenant_id)) {
+            $pdata->_tenant_id = $pdata->tenant_id;
+        }
 
         unset($pdata->person_id);
         unset($pdata->tenant_id);

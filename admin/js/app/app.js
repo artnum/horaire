@@ -550,6 +550,14 @@ export default class App {
     this.errorBoxes.clear()
   }
 
+  showError(error) {
+    console.group('--- Error ${error.message} ---')
+    error.stack.split('\n').map((line) => {
+      console.log(line)
+    })
+    console.groupEnd()
+  }
+
   static getInstance() {
     return new App()
   }

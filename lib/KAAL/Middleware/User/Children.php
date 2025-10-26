@@ -2,6 +2,7 @@
 
 namespace KAAL\Middleware\User;
 
+use DateTime;
 use Exception;
 use Generator;
 use KAAL\Utils\MixedID;
@@ -16,8 +17,12 @@ trait Children
     use MixedID;
     use Normalizer;
     use ID;
-    protected function normalizeChild(stdClass $child)
+
+    protected function normalizeChild(stdClass $child): stdClass
     {
+        if (!empty($child->_id)) {
+            $child->id = $child->_id;
+        }
         if (empty($child->id)) {
             $child->id = self::get63($this->context->machine_id);
         } else {
@@ -27,9 +32,6 @@ trait Children
         if (empty($child->birthday)) {
             throw new VException('birthday');
         }
-        if (empty($child->deduction_start)) {
-            throw new VException('deductionStart');
-        }
         if (empty($child->firstname)) {
             throw new VException('firstname');
         }
@@ -38,7 +40,14 @@ trait Children
         }
 
         $child->birthday = self::normalizeDate($child->birthday);
-        $child->deduction_start = self::normalizeDate($child->deduction_start);
+        if (empty($child->deduction_start)) {
+            /* deduction starts the first day of the month after birthday */
+            $bday = new DateTime($child->birthday);
+            $bday->setDate(intval($bday->format('Y')), intval($bday->format('m')) + 1, 1);
+            $child->deduction_start = $bday->format('Y-m-d');
+        } else {
+            $child->deduction_start = self::normalizeDate($child->deduction_start);
+        }
         $child->firstname = self::normalizeString($child->firstname);
         $child->lastname = self::normalizeString($child->lastname);
         return $child;
@@ -49,7 +58,7 @@ trait Children
         $stmt = $this->context->pdo()->prepare('
             INSERT INTO children (id, person_id, tenant_id, firstname, lastname, birthday, deduction_start)
             VALUES (:id, :userid, :tenant_id, :firstname, :lastname, :birthday, :deduction_start)
-            ON DUPLICATE KEY UPDATE  firstname = VALUES(firstname), lastname = VALUES(lastname)
+            ON DUPLICATE KEY UPDATE  firstname = VALUES(firstname), lastname = VALUES(lastname),
                 birthday = VALUES(birthday), deduction_start = VALUES(deduction_start)
             ');
         $stmt->bindValue(':id', $child->id, PDO::PARAM_INT);
@@ -119,8 +128,25 @@ trait Children
             get_class($this),
             __FUNCTION__
         );
+        $userid = self::normalizeId($userid);
+        $tenant_id = $this->context->auth()->get_tenant_id();
+        $stmt = $this->context->pdo()->prepare('
+            SELECT id, firstname, lastname, birthday, deduction_start
+            FROM children
+            WHERE tenant_id = :tenant_id AND person_id = :userid
+            ORDER BY birthday ASC    
+        ');
+        $stmt->bindValue(':tenant_id', $tenant_id, PDO::PARAM_INT);
+        $stmt->bindValue(':userid', $userid, PDO::PARAM_INT);
+        $stmt->execute();
 
-
+        $i = 0;
+        while (($row = $stmt->fetch(PDO::FETCH_OBJ)) !== false) {
+            $child = $this->normalizeChild($row);
+            $child->_order = ++$i;
+            $child->_id = $child->id;
+            yield $child;
+        }
     }
 
 }

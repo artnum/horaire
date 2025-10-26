@@ -1,3 +1,4 @@
+import format from '../../../js/lib/format.js'
 import l10n from '../../../js/lib/l10n.js'
 import help from '../../../js/lib/help.js'
 import Multiselect from './widgets/Multiselect.js'
@@ -437,14 +438,12 @@ export default class UserUI {
             this.#saveAccessRight(user.id),
             this.#savePricing(user.id),
             this.#saveCivilStatus(user.id),
+            this.#saveChildren(user.id),
+            this.#savePhones(user.id),
           ])
         })
-        .then(([user, pcuser, personnalAddresss, groups, access, pricing]) => {
-          resolve(user)
-        })
-        .catch((e) => {
-          console.log(e)
-        })
+        .then(([user, _]) => resolve(user))
+        .catch((e) => this.app.showError(e))
     })
   }
 
@@ -470,6 +469,39 @@ export default class UserUI {
         .catch((_) => {
           resolve()
         })
+    })
+  }
+
+  #saveChildren(userid) {
+    return new Promise((resolve) => {
+      this.app.access.can(this.userAPI, 'setChildren')
+      this.userAPI
+        .setChildren(
+          userid,
+          Serial.getFormValue(
+            this.app.getContentNode().querySelector('[data-name="children"]'),
+          ),
+        )
+        .then((_) => resolve())
+    }).catch((_) => {
+      resolve()
+    })
+  }
+
+  #savePhones(userid) {
+    return new Promise((resolve) => {
+      this.app.access
+        .can(this.userAPI, 'setPhones')
+        .then((_) => {
+          return this.userAPI.setPhones(
+            userid,
+            Serial.getFormValue(
+              this.app.getContentNode().querySelector('[data-name="phones"]'),
+            ),
+          )
+        })
+        .then((_) => resolve())
+        .catch((_) => resolve())
     })
   }
 
@@ -540,78 +572,212 @@ export default class UserUI {
     })
   }
 
-  #childrenModule(user, translations, container) {
+  #childrenModule(user, translations, container, tabPos) {
     return new Promise((resolve) => {
-      resolve()
+      Promise.all([
+        this.app.access.can(this.userAPI, 'listChildren'),
+        l10n.load({
+          children: 'Enfants',
+          firstname: 'Prénom',
+          lastname: 'Nom',
+          birthday: 'Date de naissance',
+          deduction_start: 'Début droit à la déduction',
+        }),
+        (() => {
+          if (!user || !user.id) {
+            return Promise.resolve([])
+          }
+          return this.userAPI.listChildren(user)
+        })(),
+      ])
+        .then(([_, tr, children]) => {
+          const s = new Serial(
+            this.app,
+            {
+              firstname: tr.firstname,
+              lastname: tr.lastname,
+              birthday: tr.birthday,
+              deduction_start: tr.deduction_start,
+            },
+            {
+              types: {
+                birthday: { type: 'date' },
+                deduction_start: { type: 'date' },
+              },
+            },
+          )
+          s.setData(children)
+          s.render().then((n) => {
+            container.addTab('children', tr.children, n, tabPos)
+            resolve()
+          })
+        })
+        .catch((e) => {
+          console.log(e)
+          resolve()
+        })
     })
   }
 
-  #civilStatusModule(user, translations, container) {
+  #phoneModule(user, translations, container, tabPos) {
     return new Promise((resolve) => {
-      this.app.access
-        .can(this.userAPI, 'listCivilStatuses')
-        .then((_) => {
-          Promise.all([
-            l10n.load({
-              civilStatus: 'État civil',
-              UNKNOWN: 'Inconnu',
-              SINGLE: 'Célibataire',
-              MARRIED: 'Marié(e)',
-              WIDOWED: 'Veuve/veuf',
-              DIVORCED: 'Divorcé(e)',
-              SEPARATED: 'Séparé(e)',
-              REG_PARTNER: 'Parternariat enregistré',
-              DISS_PART_JUD: 'Parternariat dissous judiciairement',
-              DISS_PART_DEC: 'Parternariat dissous par décès',
-              PART_ABSENCE:
-                "Parternariat dissous ensuite de déclartion d'absence",
-            }),
-            (() => {
-              if (user.id === '') {
-                return Promise.resolve([])
-              }
-              return this.userAPI.listCivilStatuses(user)
-            })(),
-          ]).then(([tr, statuses]) => {
-            const s = new Serial(
-              this.app,
-              {
-                status: 'État civil',
-                since: 'Depuis',
-              },
-              {
-                types: {
-                  since: {
-                    type: 'date',
+      Promise.all([
+        this.app.access.can(this.userAPI, 'listPhones'),
+        l10n.load({
+          EMERGENCY: 'Urgence',
+          PRIVATE: 'Privé',
+          PRO: 'Professionnel',
+          FIX: 'Téléphone fixe',
+          MOBILE: 'Téléphone mobile',
+          OTHER: 'Autre',
+          phones: 'Téléphones',
+          type: 'Type',
+          usage: 'Utilisation',
+          number: 'Numéro',
+        }),
+        (() => {
+          if (!user || !user.id) {
+            return Promise.resolve([])
+          }
+          return this.userAPI.listPhones(user)
+        })(),
+      ])
+        .then(([_, tr, phones]) => {
+          const s = new Serial(
+            this.app,
+            {
+              number: tr.number,
+              kind: tr.type,
+              relation_kind: tr.usage,
+            },
+            {
+              types: {
+                relation_kind: {
+                  type: 'select',
+                  options: {
+                    values: {
+                      PRO: tr.PRO,
+                      PRIVATE: tr.PRIVATE,
+                      EMERGENCY: tr.EMERGENCY,
+                    },
                   },
-                  status: {
-                    type: 'select',
-                    options: {
-                      values: {
-                        UNKNOWN: tr.UNKNOWN,
-                        SINGLE: tr.SINGLE,
-                        MARRIED: tr.MARRIED,
-                        WIDOWED: tr.WIDOWED,
-                        DIVORCED: tr.DIVORCED,
-                        SEPARATED: tr.SEPARATED,
-                        REG_PARTNER: tr.REG_PARTNER,
-                        DISS_PART_JUD: tr.DISS_PART_JUD,
-                        DISS_PART_DEC: tr.DISS_PART_DEC,
-                        PART_ABSENCE: tr.PART_ABSENCE,
-                      },
+                },
+                kind: {
+                  type: 'select',
+                  options: {
+                    values: {
+                      MOBILE: tr.MOBILE,
+                      FIX: tr.FIX,
+                      OTHER: tr.OTHER,
                     },
                   },
                 },
               },
-            )
-            s.setData(statuses)
-            s.render().then((n) => {
-              container.addTab('civil-status', tr.civilStatus, n, 0)
-              resolve()
-            })
+            },
+          )
+          s.setData(phones)
+          s.render().then((n) => {
+            container.addTab('phones', tr.phones, n, tabPos)
+            resolve()
+          })
+        })
+        .catch((e) => {
+          console.log(e)
+          resolve()
+        })
+    })
+  }
+
+  #emergencyPhone(user, container) {
+    return new Promise((resolve) => {
+      Promise.all([
+        this.app.access.can(this.userAPI, 'listEmergencyPhones'),
+        l10n.load({ emergency: "Téléphone d'urgence" }),
+        this.userAPI.listEmergencyPhones(user),
+      ])
+        .then(([_, tr, phones]) => {
+          const node = document.createElement('LABEL')
+          node.innerHTML = `<span class="label">${format.escape(tr.emergency)}</span>`
+          phones.map((phone) => {
+            const n = document.createElement('SPAN')
+            n.classList.add('value')
+            n.innerHTML = `${format.escape(phone.extension)} ${format.escape(phone.number)}`
+            node.appendChild(n)
+          })
+          window.requestAnimationFrame((_) => {
+            resolve(node)
           })
         })
         .catch((_) => {
+          resolve(null)
+        })
+    })
+  }
+
+  #civilStatusModule(user, translations, container, tabPos) {
+    return new Promise((resolve) => {
+      Promise.all([
+        this.app.access.can(this.userAPI, 'listCivilStatuses'),
+        l10n.load({
+          civilStatus: 'État civil',
+          UNKNOWN: 'Inconnu',
+          SINGLE: 'Célibataire',
+          MARRIED: 'Marié(e)',
+          WIDOWED: 'Veuve/veuf',
+          DIVORCED: 'Divorcé(e)',
+          SEPARATED: 'Séparé(e)',
+          REG_PARTNER: 'Parternariat enregistré',
+          DISS_PART_JUD: 'Parternariat dissous judiciairement',
+          DISS_PART_DEC: 'Parternariat dissous par décès',
+          PART_ABSENCE: "Parternariat dissous ensuite de déclartion d'absence",
+        }),
+        (() => {
+          if (!user || !user.id) {
+            return Promise.resolve([])
+          }
+          return this.userAPI.listCivilStatuses(user)
+        })(),
+      ])
+        .then(([_, tr, statuses]) => {
+          const s = new Serial(
+            this.app,
+            {
+              status: 'État civil',
+              since: 'Depuis',
+            },
+            {
+              types: {
+                since: {
+                  type: 'date',
+                },
+                status: {
+                  type: 'select',
+                  options: {
+                    values: {
+                      UNKNOWN: tr.UNKNOWN,
+                      SINGLE: tr.SINGLE,
+                      MARRIED: tr.MARRIED,
+                      WIDOWED: tr.WIDOWED,
+                      DIVORCED: tr.DIVORCED,
+                      SEPARATED: tr.SEPARATED,
+                      REG_PARTNER: tr.REG_PARTNER,
+                      DISS_PART_JUD: tr.DISS_PART_JUD,
+                      DISS_PART_DEC: tr.DISS_PART_DEC,
+                      PART_ABSENCE: tr.PART_ABSENCE,
+                    },
+                  },
+                },
+              },
+            },
+          )
+          s.setData(statuses)
+          s.render().then((n) => {
+            container.addTab('civil-status', tr.civilStatus, n, tabPos)
+            resolve()
+          })
+        })
+        .catch((e) => {
+          console.log(e)
           resolve()
         })
     })
@@ -660,78 +826,92 @@ export default class UserUI {
           this.renderUserForm(user),
           this.pc.form(user),
           this.#renderInvitations(id),
-        ]).then(([tr, userForm, personnalDataForm, invitationForm]) => {
-          tabInterface.addPlaceholderTab('pricing', tr.priceTitle, 0)
-          tabInterface.addPlaceholderTab(
-            'groups',
-            `${tr.groups} ${help.get('User.groups')}`,
-            99,
-          )
-          tabInterface.addPlaceholderTab(
-            'rights',
-            `${tr.accessRight} ${help.get('User.accessRights')}`,
-            98,
-          )
+          this.#emergencyPhone(user),
+        ]).then(
+          ([
+            tr,
+            userForm,
+            personnalDataForm,
+            invitationForm,
+            emergencyPhone,
+          ]) => {
+            tabInterface.addPlaceholderTab('pricing', tr.priceTitle, 0)
+            tabInterface.addPlaceholderTab(
+              'groups',
+              `${tr.groups} ${help.get('User.groups')}`,
+              99,
+            )
+            tabInterface.addPlaceholderTab(
+              'rights',
+              `${tr.accessRight} ${help.get('User.accessRights')}`,
+              98,
+            )
 
-          const node = document.createElement('DIV')
-          node.classList.add('user-ui-content')
-          {
-            title.length > 0
-              ? (node.innerHTML = `<h2>${title}</h2>`)
-              : (node.innerHTML = `<h2>${user.name}</h2>`)
-          }
+            const node = document.createElement('DIV')
+            node.classList.add('user-ui-content')
+            {
+              title.length > 0
+                ? (node.innerHTML = `<h2>${title}</h2>`)
+                : (node.innerHTML = `<h2>${user.name}</h2>`)
+            }
 
-          node.appendChild(userForm)
-          if (personnalDataForm) {
-            this.pc.popuplate(personnalDataForm)
-            node.appendChild(personnalDataForm)
-          }
+            node.appendChild(userForm)
+            if (emergencyPhone) {
+              node.appendChild(emergencyPhone)
+            }
 
-          this.#homeAddressModule(user, tr, node)
-            .then((_) => this.#childrenModule(user, tr, node))
-            .then((_) => this.#civilStatusModule(user, tr, tabInterface))
-            .then((_) => {
-              node.appendChild(invitationForm)
-              this.renderPriceList(user).then((priceList) => {
-                tabInterface.addTab('pricing', tr.priceTitle, priceList)
-              })
-              tabInterface.addTab(
-                'childs',
-                tr.childs,
-                document.createElement('DIV'),
-                2,
+            if (personnalDataForm) {
+              this.pc.popuplate(personnalDataForm)
+              node.appendChild(personnalDataForm)
+            }
+
+            this.#homeAddressModule(user, tr, node)
+              .then(
+                (_) => Promise.resolve(),
+                Promise.all([
+                  this.#civilStatusModule(user, tr, tabInterface, 1),
+                  this.#childrenModule(user, tr, tabInterface, 2),
+                  this.#phoneModule(user, tr, tabInterface, 3),
+                ]),
               )
+              .then((x) => {
+                node.appendChild(invitationForm)
+                this.renderPriceList(user).then((priceList) => {
+                  tabInterface.addTab('pricing', tr.priceTitle, priceList)
+                })
+                Promise.all([
+                  msGroups.render(),
+                  user.id ? UserGroupAPI.forUser(user.id) : Promise.resolve([]),
+                ]).then(([groupMulti, forUserSelected]) => {
+                  msGroups.setSelected(forUserSelected)
+                  tabInterface.addTab(
+                    'groups',
+                    `${tr.groups} ${help.get('User.groups')}`,
+                    groupMulti,
+                    99,
+                  )
+                })
 
-              Promise.all([
-                msGroups.render(),
-                user.id ? UserGroupAPI.forUser(user.id) : Promise.resolve([]),
-              ]).then(([groupMulti, forUserSelected]) => {
-                msGroups.setSelected(forUserSelected)
-                tabInterface.addTab(
-                  'groups',
-                  `${tr.groups} ${help.get('User.groups')}`,
-                  groupMulti,
-                  99,
-                )
+                Promise.all([
+                  msAccess.render(),
+                  user.id
+                    ? AccessAPI.getUserRoles(user.id)
+                    : Promise.resolve([]),
+                ]).then(([accessMulti, userRoles]) => {
+                  tabInterface.addTab(
+                    'rights',
+                    `${tr.accessRight} ${help.get('User.accessRights')}`,
+                    accessMulti,
+                    98,
+                  )
+                  msAccess.setSelected(userRoles)
+                })
+                node.appendChild(tabInterface.container)
+                this.app.setContent(node)
+                resolve()
               })
-
-              Promise.all([
-                msAccess.render(),
-                user.id ? AccessAPI.getUserRoles(user.id) : Promise.resolve([]),
-              ]).then(([accessMulti, userRoles]) => {
-                tabInterface.addTab(
-                  'rights',
-                  `${tr.accessRight} ${help.get('User.accessRights')}`,
-                  accessMulti,
-                  98,
-                )
-                msAccess.setSelected(userRoles)
-              })
-              node.appendChild(tabInterface.container)
-              this.app.setContent(node)
-              resolve()
-            })
-        })
+          },
+        )
       })
     })
   }
@@ -782,7 +962,7 @@ export default class UserUI {
         node.draggable = true
         node.dataset.id = item.id
         node.classList.add('item', 'orderable')
-        node.innerHTML = `<span>${item.name}</span>`
+        node.innerHTML = `<span>${format.escape(item.name)}</span>`
         node.addEventListener('dragstart', (e) => {
           e.dataTransfer.setData('id', node.dataset.id)
           e.currentTarget.classList.add('dragged')

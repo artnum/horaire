@@ -54,4 +54,16 @@ trait Normalizer
             ? floatval($value)
             : 0.0;
     }
+
+    public static function normalizePhoneNumber(mixed $value): string
+    {
+        if ($value === null || empty($value)) {
+            return '';
+        }
+        $value = self::normalizeString($value);
+
+        /* TODO : fix phone number here */
+
+        return $value;
+    }
 }
