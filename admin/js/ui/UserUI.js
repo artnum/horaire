@@ -701,12 +701,13 @@ export default class UserUI {
         })(),
       ])
         .then(([_, tr, phones]) => {
-          const node = document.createElement('LABEL')
+          const node = document.createElement('DIV')
+          node.classList.add('emergency-details')
           node.innerHTML = `<span class="label">${format.escape(tr.emergency)}</span>`
           phones.map((phone) => {
             const n = document.createElement('SPAN')
             n.classList.add('value')
-            n.innerHTML = `${format.escape(phone.extension)} ${format.escape(phone.number)}`
+            n.innerHTML = `<a href="tel:${format.escape(phone.extension)}${format.escape(phone.number)}">${format.escape(phone.extension)} ${format.escape(phone.number)}</a>`
             node.appendChild(n)
           })
           window.requestAnimationFrame((_) => {

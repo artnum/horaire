@@ -364,3 +364,15 @@ form.multiselect-form {
   border-top: 1px solid black;
   overflow: auto;
 }
+
+div.emergency-details {
+  padding: 5px;
+
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  column-gap: 6px;
+  align-items: end;
+}
+div.emergency-details .label {
+  font-weight: bold;
+}
