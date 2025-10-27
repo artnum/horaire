@@ -693,7 +693,12 @@ export default class UserUI {
       Promise.all([
         this.app.access.can(this.userAPI, 'listEmergencyPhones'),
         l10n.load({ emergency: "Téléphone d'urgence" }),
-        this.userAPI.listEmergencyPhones(user),
+        (() => {
+          if (!user || !user.id) {
+            return Promise.resolve([])
+          }
+          return this.userAPI.listEmergencyPhones(user)
+        })(),
       ])
         .then(([_, tr, phones]) => {
           const node = document.createElement('LABEL')
