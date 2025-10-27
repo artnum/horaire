@@ -52,6 +52,36 @@ trait Children
         $child->lastname = self::normalizeString($child->lastname);
         return $child;
     }
+    protected function normalizeEgressChild(stdClass $child): stdClass
+    {
+        if (empty($child->id)) {
+            throw new Exception('Database error');
+        }
+        $child->id = strval(self::normalizeId($child->id));
+
+        if (empty($child->birthday)) {
+            throw new Exception('Database error');
+        }
+        if (empty($child->firstname)) {
+            throw new Exception('Database error');
+        }
+        if (empty($child->lastname)) {
+            throw new Exception('Database error');
+        }
+
+        $child->birthday = self::normalizeDate($child->birthday);
+        if (empty($child->deduction_start)) {
+            /* deduction starts the first day of the month after birthday */
+            $bday = new DateTime($child->birthday);
+            $bday->setDate(intval($bday->format('Y')), intval($bday->format('m')) + 1, 1);
+            $child->deduction_start = $bday->format('Y-m-d');
+        } else {
+            $child->deduction_start = self::normalizeDate($child->deduction_start);
+        }
+        $child->firstname = self::normalizeString($child->firstname);
+        $child->lastname = self::normalizeString($child->lastname);
+        return $child;
+    }
 
     private function _setChild(int $userid, int $tenant_id, stdClass $child): stdClass
     {
@@ -142,7 +172,7 @@ trait Children
 
         $i = 0;
         while (($row = $stmt->fetch(PDO::FETCH_OBJ)) !== false) {
-            $child = $this->normalizeChild($row);
+            $child = $this->normalizeEgressChild($row);
             $child->_order = ++$i;
             $child->_id = $child->id;
             yield $child;
