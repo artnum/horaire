@@ -5,7 +5,7 @@
  * @param {number} [days=4] Number of days to show
  * @name KAPlanningUI
  */
-function KAPlanningUI(userid, days = 4) {
+function KAPlanningUI(userid, days = 9) {
   this.userid = userid
   this.days = days
   this.domNode = document.createElement('DIV')
@@ -380,4 +380,3 @@ KAPlanningUI.prototype.load = function () {
       })
   })
 }
-
