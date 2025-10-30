@@ -22,69 +22,70 @@ export class AccessAPI extends JAPI {
   }
 
   setUserRoles(userid, roles) {
-    return this.API.exec(
-      AccessAPI.NS,
-      'setUserRoles',
-      { userid, roles }
-    )
+    return this.API.exec(AccessAPI.NS, 'setUserRoles', { userid, roles })
   }
 
   getUserRoles(userid) {
-    return this.API.exec(
-      AccessAPI.NS,
-      'getUserRoles',
-      { userid }
-    )
+    return this.API.exec(AccessAPI.NS, 'getUserRoles', { userid })
   }
   getRoles() {
-    return this.API.exec(
-      AccessAPI.NS,
-      'getRoles'
-    )
+    return this.API.exec(AccessAPI.NS, 'getRoles')
   }
-
 
   can(ns, fn) {
     return Promise.race([
-      this.API.exec(
-        AccessAPI.NS,
-        'can',
-        { ns: ns, function: fn }
-      ),
+      this.API.exec(AccessAPI.NS, 'can', { ns: ns, function: fn }),
       new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Access check timeout')), this.timeout)
-      })
-    ])
-      .then(r => {
-        if (!r.result) {
-          throw new AccessDeniedError()
-        }
-      })
+        setTimeout(
+          () => reject(new Error('Access check timeout')),
+          this.timeout,
+        )
+      }),
+    ]).then((r) => {
+      if (!r.result) {
+        throw new AccessDeniedError()
+      }
+    })
   }
 
   getDataAPI() {
     const api = this
-    return new class extends DataAPI {
+    return new (class extends DataAPI {
       list() {
         return new Promise((resolve, reject) => {
-          api.getRoles()
-            .then(roles => {
+          api
+            .getRoles()
+            .then((access) => {
+              const roles = access.roles
               const items = []
-              let i = 0;
               for (const key in roles) {
                 items.push({
                   name: roles[key].name,
                   id: key,
                   help: roles[key].help ? roles[key].help : '',
                   infer: roles[key].infer ? roles[key].infer : '',
-                  order: ++i
+                  group: roles[key].group ? roles[key].group : '',
+                  order: 0,
                 })
               }
-              resolve(items)
+              items
+                .sort((a, b) => {
+                  if (a.group !== '') {
+                    return a.group.localeCompare(b.group)
+                  } else if (a.infer !== '') {
+                    return a.infer[0].localeCompare(
+                      typeof b.infer === 'string' ? b.infer : b.infer[0],
+                    )
+                  } else {
+                    return a.name.localeCompare(b.name)
+                  }
+                })
+                .forEach((item, idx) => (item.order = idx + 1))
+              resolve({ items: items, groups: access.groups })
             })
-            .catch(e => reject(e))
+            .catch((e) => reject(e))
         })
       }
-    }
+    })()
   }
 }

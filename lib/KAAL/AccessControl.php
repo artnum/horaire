@@ -71,7 +71,7 @@ class AccessControl
         if (!isset($this->definition['roles'])) {
             return new stdClass();
         }
-        return (object) $this->definition['roles'];
+        return (object) ['roles' => $this->definition['roles'], 'groups' => $this->definition['groups']];
     }
 
     public function isExistingRole(string $role): bool

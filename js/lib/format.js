@@ -14,9 +14,15 @@ export default class format {
       }
       switch (fmt[i + 1]) {
         case 'c':
-        case 's': outString += `${vars[paramCount++]}`; break;
-        case 'd': outString += `${parseInt(vars[paramCount++])}`; break;
-        case 'f': outString += `${parseFloat(vars[paramCount++])}`; break;
+        case 's':
+          outString += `${vars[paramCount++]}`
+          break
+        case 'd':
+          outString += `${parseInt(vars[paramCount++])}`
+          break
+        case 'f':
+          outString += `${parseFloat(vars[paramCount++])}`
+          break
       }
 
       i++
@@ -33,15 +39,30 @@ export default class format {
     return false
   }
 
+  static #to_data(date) {
+    if (date instanceof Date) {
+      return date
+    }
+    return new Date(date)
+  }
   /**
    * @param date {Date}
    * @return {string}
    */
   static date(date) {
+    date = format.#to_data(date)
     const y = String(date.getFullYear())
     const m = String(date.getMonth() + 1).padStart(2, '0')
     const d = String(date.getDate()).padStart(2, '0')
     return `${d}.${m}.${y}`
+  }
+
+  static html_date(date) {
+    date = format.#to_data(date)
+    const y = String(date.getFullYear())
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
   }
 
   /**
@@ -50,5 +71,11 @@ export default class format {
    */
   static price(value) {
     return value.toFixed(2)
+  }
+
+  static escape(string) {
+    const div = document.createElement('DIV')
+    div.textContent = string
+    return div.innerHTML
   }
 }
