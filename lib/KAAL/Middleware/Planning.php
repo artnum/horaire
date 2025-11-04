@@ -96,7 +96,8 @@ class Planning
             SELECT reservation_id, travail_reference, travail_status, travail_description,
                 project_reference, project_name, project_manager,
                 p1.person_name AS person_name, reservation_status, reservation_dbegin, reservation_dend,
-                reservation_affaire, p2.person_name AS technician_name
+                reservation_affaire, p2.person_name AS technician_name,
+                travail_urlgps, reservation_comment
             FROM kairos.reservation
             LEFT JOIN kaal.travail ON reservation_affaire = kaal.travail.travail_id
             LEFT JOIN kaal.project ON travail_project = kaal.project.project_id
@@ -165,6 +166,8 @@ class Planning
             $out->id = $row->reservation_id;
             $out->affaire = self::normalizeInt($row->reservation_affaire);
             $out->reference = self::normalizeString($row->project_reference);
+            $out->gps = self::normalizeString($row->travail_urlgps);
+            $out->comment = self::normalizeString($row->reservation_comment);
             $out->managers = [];
             $p1 = self::normalizeString($row->person_name);
             $p2 = self::normalizeString($row->technician_name);
