@@ -12,6 +12,27 @@ use KAAL\Utils\Normalizer;
 use PDO;
 use stdClass;
 
+if (!function_exists('array_find')) {
+    /**
+     * Find the first element in an array that satisfies the given callback.
+     *
+     * @template TKey
+     * @template TValue
+     * @param array<TKey, TValue> $array   Input array
+     * @param callable(TValue, TKey): bool $callback
+     * @return TValue|null  The first matching value, or null if none found
+     */
+    function array_find(array $array, callable $callback): mixed
+    {
+        foreach ($array as $key => $value) {
+            if ($callback($value, $key)) {
+                return $value;
+            }
+        }
+        return null;
+    }
+}
+
 class Planning
 {
     use MixedID;
