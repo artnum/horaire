@@ -358,11 +358,22 @@ export default class UserUI {
   }
 
   #saveAccessRight(userid) {
-    const accessRightsForm = this.app
-      .getContentNode()
-      .querySelector('form[name="accessRights"]')
-    const selected = Multiselect.getSelectedFromForm(accessRightsForm)
-    return AccessAPI.setUserRoles(userid, selected)
+    return new Promise((resolve) => {
+      this.app.access
+        .can(this.userAPI, 'setUserRoles')
+        .then((_) => {
+          const accessRightsForm = this.app
+            .getContentNode()
+            .querySelector('form[name="accessRights"]')
+          const selected = Multiselect.getSelectedFromForm(accessRightsForm)
+          AccessAPI.setUserRoles(userid, selected).then((_) => {
+            resolve()
+          })
+        })
+        .catch((_) => {
+          resolve()
+        })
+    })
   }
 
   #savePricing(userid) {
