@@ -126,7 +126,8 @@ return [
             'forUser' => ['user'],
             'list' => ['user'],
             'addUser' => ['user'],
-            'set' => ['user']
+            'set' => ['user'],
+            'setUserGroups' => ['user']
         ],
         'Time' => [
             'getMyWritableDays' => [],

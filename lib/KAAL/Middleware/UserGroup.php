@@ -172,6 +172,12 @@ class UserGroup
      */
     public function setUserGroups(int|string|stdClass $userid, array $groups): stdClass
     {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
         $userid = self::normalizeId($userid);
         $tenand_id = $this->context->auth()->get_tenant_id();
         $groups = array_unique(

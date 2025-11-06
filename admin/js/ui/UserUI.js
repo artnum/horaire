@@ -349,7 +349,7 @@ export default class UserUI {
   #saveGoups(userid) {
     return new Promise((resolve) => {
       this.app.access
-        .can(this.userAPI, 'setUserRoles')
+        .can(UserGroupAPI, 'setUserGroups')
         .then((_) => {
           const groupForm = this.app
             .getContentNode()
@@ -371,7 +371,7 @@ export default class UserUI {
   #saveAccessRight(userid) {
     return new Promise((resolve) => {
       this.app.access
-        .can(this.userAPI, 'setUserRoles')
+        .can(AccessAPI, 'setUserRoles')
         .then((_) => {
           const accessRightsForm = this.app
             .getContentNode()

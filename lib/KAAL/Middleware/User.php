@@ -495,8 +495,12 @@ class User
         } else {
             $pdata->avs_number = 0;
         }
-        if (!isset($pdata->employee_number)) {
-            $pdata->employee_number = '';
+        if (!isset($pdata->employee_number) || empty($pdata->employee_number)) {
+            if (!empty($pdata->avs_number)) {
+                $pdata->employee_number = AVS::format($pdata->avs_number);
+            } else {
+                $pdata->employee_number = '';
+            }
         }
         if (!isset($pdata->birthday) || empty($pdata->birthday)) {
             $pdata->birthday = null;
