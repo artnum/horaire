@@ -97,7 +97,7 @@ class Planning
                 project_reference, project_name, project_manager,
                 p1.person_name AS person_name, reservation_status, reservation_dbegin, reservation_dend,
                 reservation_affaire, p2.person_name AS technician_name,
-                travail_urlgps, reservation_comment
+                travail_urlgps, reservation_comment, travail_title
             FROM kairos.reservation
             LEFT JOIN kaal.travail ON reservation_affaire = kaal.travail.travail_id
             LEFT JOIN kaal.project ON travail_project = kaal.project.project_id
@@ -179,6 +179,7 @@ class Planning
             }
             $out->managers = array_unique($out->managers);
             $out->name = self::normalizeString($row->project_name);
+            $out->title = self::normalizeString($row->travail_title);
             $out->description = self::normalizeString($row->travail_description);
             $out->status = Boolean::or(
                 array_find($status, fn ($s) => is_numeric($row->reservation_status) ? $s->id === self::normalizeId($row->reservation_status) : false),
