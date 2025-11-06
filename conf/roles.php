@@ -66,6 +66,7 @@ return [
             'get' => ['user', 'time'],
             'set' => ['user'],
             'list' => ['user'],
+            'delete' => ['user'],
             'reorder' => ['user'],
             'listPrice' => ['user'],
             'deletePrice' => ['user'],
