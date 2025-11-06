@@ -43,7 +43,7 @@ KAPlanningUI.prototype.render = function () {
           content.innerHTML = `
                 <span class="reference">${planDay.reference} [${planDay.status.name}]</span>
                 <span class="project">${planDay.name}</span>
-                ${planDay.title.length > 0 ? `<span class="description" style="grid-column-start: 1; grid-column-end: 3;">${planDay.description}</span>` : ''}
+                ${planDay.title.length > 0 ? `<span class="description" style="grid-column-start: 1; grid-column-end: 3;">${planDay.title}</span>` : ''}
                 <span class="description" style="grid-column-start: 1; grid-column-end: 3;">${planDay.description}</span>
                 ${planDay.comment.length > 0 ? `<span class="description" style="border: 1px solid ${kolor.foreground()}; font-size: 1.2em; grid-column-start: 1; grid-column-end: 3;">${planDay.comment} </span>` : ''}
                 ${planDay.gps.length > 0 ? `<span style="background-color: silver">📍</span><span style="background-color: silver"><a href="${planDay.gps}">Itinéraire</a></span> ` : ''}
