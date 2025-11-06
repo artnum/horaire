@@ -78,9 +78,10 @@ export default class UserUI {
   }
 
   new() {
-    return new Promise((_) => {
+    return new Promise((resolve) => {
       l10n.load({ newUser: 'Nouvel utilisateur' }).then((content) => {
-        return this.openUser(-1, content.newUser)
+        this.openUser(-1, content.newUser)
+        return resolve()
       })
     })
   }
@@ -1154,7 +1155,7 @@ export default class UserUI {
         l10n
           .T(
             `
-                <div data-action="new" class="item">$[Nouvel utilisateur]</div>
+                <div data-action="new" class="item selected">$[Nouvel utilisateur]</div>
                 <div data-action="order" class="item">$[Ordre des utilisateurs]</div>
             `,
           )
