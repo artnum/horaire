@@ -552,9 +552,13 @@ export default class App {
 
   showError(error) {
     console.group('--- Error ${error.message} ---')
-    error.stack.split('\n').map((line) => {
-      console.log(line)
-    })
+    try {
+      error.stack.split('\n').map((line) => {
+        console.log(line)
+      })
+    } catch (_) {
+      console.log(error)
+    }
     console.groupEnd()
   }
 
