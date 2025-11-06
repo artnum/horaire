@@ -301,36 +301,6 @@ export default class UserUI {
     })
   }
 
-  /*.then(pdata => {
-     const node = this._renderNavigationUser(user)
-     const previousNode = this.navigationNode.querySelector(`[data-id="${user.id}"]`)
-     if (previousNode) {
-       previousNode.parentNode.replaceChild(node, previousNode)
-     } else {
-       const nodes = this.navigationNode.querySelectorAll('[data-order]')
-       for (let i = 0; i < nodes.length; i++) {
-         if (parseInt(nodes[i].dataset.order) < parseInt(node.dataset.order)) {
-           this.navigationNode.insertBefore(node, nodes[i])
-           break
-         }
-       }
-       node.scrollIntoView()
-     }
-     this.navigateFromNode(node)
-       .then(_ => {
-         const personnalForm = this.app.getContentNode().querySelector('form[name="personnalData"]')
-         for (const key in pdata) {
-           const node = personnalForm.querySelector(`[name="${key}"]`)
-           if (node) {
-             node.value = pdata[key]
-           }
-         }
-       })
-   })
-   .catch(e => {
-     this.app.setBlockError(e, personnalForm)
-   })*/
-
   #saveUser() {
     const userForm = this.app
       .getContentNode()
