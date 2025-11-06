@@ -347,14 +347,25 @@ export default class UserUI {
   }
 
   #saveGoups(userid) {
-    const groupForm = this.app
-      .getContentNode()
-      .querySelector('form[name="groups"]')
-    const selected = Multiselect.getSelectedFromForm(groupForm)
-    if (selected.length <= 0) {
-      return Promise.resolve()
-    }
-    return UserGroupAPI.setGroups(userid, selected)
+    return new Promise((resolve) => {
+      this.app.access
+        .can(this.userAPI, 'setUserRoles')
+        .then((_) => {
+          const groupForm = this.app
+            .getContentNode()
+            .querySelector('form[name="groups"]')
+          const selected = Multiselect.getSelectedFromForm(groupForm)
+          if (selected.length <= 0) {
+            return Promise.resolve()
+          }
+          UserGroupAPI.setGroups(userid, selected).then((_) => {
+            resolve()
+          })
+        })
+        .catch((_) => {
+          resolve()
+        })
+    })
   }
 
   #saveAccessRight(userid) {
@@ -744,10 +755,10 @@ export default class UserUI {
           WIDOWED: 'Veuve/veuf',
           DIVORCED: 'Divorcé(e)',
           SEPARATED: 'Séparé(e)',
-          REG_PARTNER: 'Parternariat enregistré',
-          DISS_PART_JUD: 'Parternariat dissous judiciairement',
-          DISS_PART_DEC: 'Parternariat dissous par décès',
-          PART_ABSENCE: "Parternariat dissous ensuite de déclartion d'absence",
+          REG_PART: 'Parternariat enregistré',
+          DISS_JUD: 'Parternariat dissous judiciairement',
+          DISS_DEC: 'Parternariat dissous par décès',
+          PART_ABS: "Parternariat dissous ensuite de déclartion d'absence",
         }),
         (() => {
           if (!user || !user.id) {
@@ -778,10 +789,10 @@ export default class UserUI {
                       WIDOWED: tr.WIDOWED,
                       DIVORCED: tr.DIVORCED,
                       SEPARATED: tr.SEPARATED,
-                      REG_PARTNER: tr.REG_PARTNER,
-                      DISS_PART_JUD: tr.DISS_PART_JUD,
-                      DISS_PART_DEC: tr.DISS_PART_DEC,
-                      PART_ABSENCE: tr.PART_ABSENCE,
+                      REG_PART: tr.REG_PART,
+                      DISS_JUD: tr.DISS_JUD,
+                      DISS_DEC: tr.DISS_DEC,
+                      PART_ABS: tr.PART_ABS,
                     },
                   },
                 },

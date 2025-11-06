@@ -29,10 +29,10 @@ trait CivilStatus
             case 'WIDOWED':
             case 'DIVORCED':
             case 'SEPARATED':
-            case 'REG_PARTNER':
-            case 'DISS_PART_JUD':
-            case 'DISS_PART_DEC':
-            case 'PART_ABSENCE':
+            case 'REG_PART':
+            case 'DISS_JUD':
+            case 'DISS_DEC':
+            case 'PART_ABS':
                 break;
         }
         if (empty($status->since)) {
