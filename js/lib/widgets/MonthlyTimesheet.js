@@ -335,6 +335,7 @@ class SelectView {
 export default class MonthlyTimesheet {
   #loaded
   #parentNode
+  #currentTime
   constructor(attachTo, datasource = null) {
     this.datasource = datasource
     this.#parentNode = attachTo
@@ -446,7 +447,14 @@ export default class MonthlyTimesheet {
   displayDateTime() {
     const node = this.areas.bottom
     const now = new Date()
-
+    if (
+      this.#currentTime &&
+      Math.trunc(this.#currentTime.getTime() / 60000) ===
+        Math.trunc(now.getTime() / 60000)
+    ) {
+      return
+    }
+    this.#currentTime = new Date(now)
     const dateString = `${now.getDate()}.${now.getMonth()}.${now.getFullYear()}`
     const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
