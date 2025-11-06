@@ -66,6 +66,7 @@ return [
             'get' => ['user', 'time'],
             'set' => ['user'],
             'list' => ['user'],
+            'delete' => ['user'],
             'reorder' => ['user'],
             'listPrice' => ['user'],
             'deletePrice' => ['user'],
@@ -125,7 +126,8 @@ return [
             'forUser' => ['user'],
             'list' => ['user'],
             'addUser' => ['user'],
-            'set' => ['user']
+            'set' => ['user'],
+            'setUserGroups' => ['user']
         ],
         'Time' => [
             'getMyWritableDays' => [],

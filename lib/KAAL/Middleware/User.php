@@ -495,8 +495,12 @@ class User
         } else {
             $pdata->avs_number = 0;
         }
-        if (!isset($pdata->employee_number)) {
-            $pdata->employee_number = '';
+        if (!isset($pdata->employee_number) || empty($pdata->employee_number)) {
+            if (!empty($pdata->avs_number)) {
+                $pdata->employee_number = AVS::format($pdata->avs_number);
+            } else {
+                $pdata->employee_number = '';
+            }
         }
         if (!isset($pdata->birthday) || empty($pdata->birthday)) {
             $pdata->birthday = null;
@@ -524,6 +528,12 @@ class User
 
     public function delete(string|int|stdClass $id): stdClass
     {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
         $id = self::normalizeId($id);
         $tenant_id = $this->context->auth()->get_tenant_id();
 
@@ -561,7 +571,9 @@ class User
             $this->context->pdo()->exec('COMMIT');
             return (object)['success' => true];
         } catch (Exception $e) {
-            $this->context->pdo()->exec('ROLLBACK');
+            if ($this->context->pdo()->inTransaction()) {
+                $this->context->pdo()->rollBack();
+            }
             throw $e;
         }
     }

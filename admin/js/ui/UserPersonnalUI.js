@@ -1,5 +1,6 @@
 import l10n from '../../../js/lib/l10n.js'
 import AVSUtil from '../../../js/lib/AVSUtil.js'
+import help from '../../../js/lib/help.js'
 import { AccessDeniedError } from '../../../js/JAPI/content/Access.js'
 
 export default class UserPersonalUI {
@@ -55,8 +56,8 @@ export default class UserPersonalUI {
               form.classList.add('personnal-data-form', 'data-form')
               form.innerHTML = `
                 <h3>${t.personnalData}</h3>
-                <label>
-                  <span class="label">${t.employeeNumber}</span>
+                <label class="must">
+                  <span class="label">${t.employeeNumber} ${help.get('User.employeeNumber')}</span>
                   <input type="text" name="employee_number">
                 </label>
                 <label>

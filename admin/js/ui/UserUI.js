@@ -78,9 +78,10 @@ export default class UserUI {
   }
 
   new() {
-    return new Promise((_) => {
+    return new Promise((resolve) => {
       l10n.load({ newUser: 'Nouvel utilisateur' }).then((content) => {
-        return this.openUser(-1, content.newUser)
+        this.openUser(-1, content.newUser)
+        return resolve()
       })
     })
   }
@@ -300,36 +301,6 @@ export default class UserUI {
     })
   }
 
-  /*.then(pdata => {
-     const node = this._renderNavigationUser(user)
-     const previousNode = this.navigationNode.querySelector(`[data-id="${user.id}"]`)
-     if (previousNode) {
-       previousNode.parentNode.replaceChild(node, previousNode)
-     } else {
-       const nodes = this.navigationNode.querySelectorAll('[data-order]')
-       for (let i = 0; i < nodes.length; i++) {
-         if (parseInt(nodes[i].dataset.order) < parseInt(node.dataset.order)) {
-           this.navigationNode.insertBefore(node, nodes[i])
-           break
-         }
-       }
-       node.scrollIntoView()
-     }
-     this.navigateFromNode(node)
-       .then(_ => {
-         const personnalForm = this.app.getContentNode().querySelector('form[name="personnalData"]')
-         for (const key in pdata) {
-           const node = personnalForm.querySelector(`[name="${key}"]`)
-           if (node) {
-             node.value = pdata[key]
-           }
-         }
-       })
-   })
-   .catch(e => {
-     this.app.setBlockError(e, personnalForm)
-   })*/
-
   #saveUser() {
     const userForm = this.app
       .getContentNode()
@@ -346,22 +317,44 @@ export default class UserUI {
   }
 
   #saveGoups(userid) {
-    const groupForm = this.app
-      .getContentNode()
-      .querySelector('form[name="groups"]')
-    const selected = Multiselect.getSelectedFromForm(groupForm)
-    if (selected.length <= 0) {
-      return Promise.resolve()
-    }
-    return UserGroupAPI.setGroups(userid, selected)
+    return new Promise((resolve) => {
+      this.app.access
+        .can(UserGroupAPI, 'setUserGroups')
+        .then((_) => {
+          const groupForm = this.app
+            .getContentNode()
+            .querySelector('form[name="groups"]')
+          const selected = Multiselect.getSelectedFromForm(groupForm)
+          if (selected.length <= 0) {
+            return Promise.resolve()
+          }
+          UserGroupAPI.setGroups(userid, selected).then((_) => {
+            resolve()
+          })
+        })
+        .catch((_) => {
+          resolve()
+        })
+    })
   }
 
   #saveAccessRight(userid) {
-    const accessRightsForm = this.app
-      .getContentNode()
-      .querySelector('form[name="accessRights"]')
-    const selected = Multiselect.getSelectedFromForm(accessRightsForm)
-    return AccessAPI.setUserRoles(userid, selected)
+    return new Promise((resolve) => {
+      this.app.access
+        .can(AccessAPI, 'setUserRoles')
+        .then((_) => {
+          const accessRightsForm = this.app
+            .getContentNode()
+            .querySelector('form[name="accessRights"]')
+          const selected = Multiselect.getSelectedFromForm(accessRightsForm)
+          AccessAPI.setUserRoles(userid, selected).then((_) => {
+            resolve()
+          })
+        })
+        .catch((_) => {
+          resolve()
+        })
+    })
   }
 
   #savePricing(userid) {
@@ -732,10 +725,10 @@ export default class UserUI {
           WIDOWED: 'Veuve/veuf',
           DIVORCED: 'Divorcé(e)',
           SEPARATED: 'Séparé(e)',
-          REG_PARTNER: 'Parternariat enregistré',
-          DISS_PART_JUD: 'Parternariat dissous judiciairement',
-          DISS_PART_DEC: 'Parternariat dissous par décès',
-          PART_ABSENCE: "Parternariat dissous ensuite de déclartion d'absence",
+          REG_PART: 'Parternariat enregistré',
+          DISS_JUD: 'Parternariat dissous judiciairement',
+          DISS_DEC: 'Parternariat dissous par décès',
+          PART_ABS: "Parternariat dissous ensuite de déclartion d'absence",
         }),
         (() => {
           if (!user || !user.id) {
@@ -766,10 +759,10 @@ export default class UserUI {
                       WIDOWED: tr.WIDOWED,
                       DIVORCED: tr.DIVORCED,
                       SEPARATED: tr.SEPARATED,
-                      REG_PARTNER: tr.REG_PARTNER,
-                      DISS_PART_JUD: tr.DISS_PART_JUD,
-                      DISS_PART_DEC: tr.DISS_PART_DEC,
-                      PART_ABSENCE: tr.PART_ABSENCE,
+                      REG_PART: tr.REG_PART,
+                      DISS_JUD: tr.DISS_JUD,
+                      DISS_DEC: tr.DISS_DEC,
+                      PART_ABS: tr.PART_ABS,
                     },
                   },
                 },
@@ -1154,7 +1147,7 @@ export default class UserUI {
         l10n
           .T(
             `
-                <div data-action="new" class="item">$[Nouvel utilisateur]</div>
+                <div data-action="new" class="item selected">$[Nouvel utilisateur]</div>
                 <div data-action="order" class="item">$[Ordre des utilisateurs]</div>
             `,
           )
