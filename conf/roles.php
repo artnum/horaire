@@ -58,6 +58,9 @@ return [
             'deleteUserRoles' => ['user-access'],
             'setUserRoles' => ['user-access']
         ],
+        'Planning' => [
+            'myForecast' => ['time']
+        ],
         'User' => [
             'getSelf' => [],
             'get' => ['user', 'time'],
