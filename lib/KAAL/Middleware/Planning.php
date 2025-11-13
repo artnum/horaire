@@ -179,6 +179,7 @@ class Planning
             }
             $out->managers = array_unique($out->managers);
             $out->name = self::normalizeString($row->project_name);
+            $out->title = self::normalizeString($row->travail_reference);
             $out->description = self::normalizeString($row->travail_description);
             $out->status = Boolean::or(
                 array_find($status, fn ($s) => is_numeric($row->reservation_status) ? $s->id === self::normalizeId($row->reservation_status) : false),
