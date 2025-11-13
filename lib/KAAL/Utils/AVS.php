@@ -51,7 +51,7 @@ class AVS
             $d = (int)$avs[$i];
             $sum += $d * ($i % 2 === 0 ? 1 : 3);
         }
-        $check = (10 - $sum) % 10;
+        $check = 10 - ($sum % 10);
         return $check === (int)$avs[12];
     }
 }
