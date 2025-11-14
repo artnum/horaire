@@ -14,8 +14,8 @@ import {
 import Serial from './widgets/Serial.js'
 import SchemaModel from '../../../js/JAPI/SchemaModel.js'
 import Tab from './widgets/Tab.js'
-import { ConfigurationAPI } from '../../../js/JAPI/content/Configuration.js'
 import Address from '../../../js/lib/widgets/Address.js'
+import i18n from '../../../js/lib/i18n.js'
 
 const UserGroupAPI = UserGroupClass.getInstance()
 const AccessAPI = new AccessAPIClass()
@@ -65,14 +65,16 @@ export default class UserUI {
   }
 
   filterListOnKeypress(event) {
-    const searchTerm = event.target.value.toLowerCase()
+    const searchTerm = new i18n(event.target.value.toLowerCase()).ascii()
     document.querySelectorAll('[data-searchable]').forEach((item) => {
-      const searchValue = item.getAttribute('data-searchable').toLowerCase()
+      const searchValue = new i18n(
+        item.getAttribute('data-searchable').toLowerCase(),
+      ).ascii()
 
       if (searchValue.includes(searchTerm)) {
-        item.style.display = ''
+        window.requestAnimationFrame((_) => (item.style.display = ''))
       } else {
-        item.style.display = 'none'
+        window.requestAnimationFrame((_) => (item.style.display = 'none'))
       }
     })
   }
