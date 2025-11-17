@@ -2,7 +2,7 @@ export default class i18n {
   #string
 
   constructor(string) {
-    this.#string = new String(string)
+    this.#string = new String(string || '')
   }
 
   compare(str) {
@@ -38,7 +38,7 @@ export default class i18n {
       {
         base: 'C',
         letters:
-          /[\u0043\u24B8\uFF23\u0106\u0108\u010A\u010C\u00C7n\u1E08\u0187\u023B\uA73E]/g,
+          /[\u0043\u24B8\uFF23\u0106\u0108\u010A\u010C\u00C7\u1E08\u0187\u023B\uA73E]/g,
       },
       {
         base: 'D',
