@@ -10,6 +10,7 @@ use KAAL\Context;
 use KAAL\Utils\FinalException;
 use KAAL\Utils\MixedID;
 use KAAL\Utils\Normalizer;
+use MixedID as MixedIDMixedID;
 use PDO;
 use Snowflake53\ID;
 use stdClass;
@@ -220,6 +221,56 @@ class Time
 
         return (object) ['writable' => $this->_getWritableDay($this->context->auth()->get_current_userid())];
     }
+    /* SELECT project_id, project_reference, project_name, person_id, person_name,(CASE WHEN htime_id IS NULL THEN false ELSE true END) AS has_worked
+     * FROM project
+     * LEFT JOIN htime ON htime_project = project_id AND htime_person = 48 AND COALESCE(htime_deleted, 0) = 0
+     * LEFT JOIN person ON person_id = project_manager
+     * WHERE COALESCE(project_deleted, 0) = 0 AND project_closed IS NULL
+     * GROUP BY project_id
+     * ORDER BY htime_modified,project_modified ASC;
+     */
+    /* select * from project
+     * left join htime on htime_project = project_id and htime_person = 48 and COALESCE(htime_deleted,0) = 0
+     * where COALESCE(project_deleted,0) = 0
+     * group by project_id
+     * order by project_modified ASC;
+     */
+    public function getMyProjects(): Generator
+    {
+        $this->context->rbac()->can(
+            $this->context->auth(),
+            get_class($this),
+            __FUNCTION__
+        );
+
+        $stmt = $this->context->pdo()->prepare('
+            SELECT project_id, project_reference, project_name, project_manager,
+                (CASE WHEN htime_id IS NULL THEN false ELSE true END) AS has_worked
+            FROM project
+            LEFT JOIN htime ON htime_project = project_id AND htime_person = :uid 
+                AND COALESCE(htime_deleted, 0) = 0
+            WHERE COALESCE(project_deleted, 0) = 0 AND project_closed = NULL
+            GROUP BY project_id
+            ORDER BY htime_modified, project_modified DESC
+        ');
+
+        $stmt->bindValue(':uid', $this->context->auth()->get_current_userid(), PDO::PARAM_INT);
+        $stmt->execute();
+        while (($row = $stmt->fetch(PDO::FETCH_OBJ)) !== false) {
+            $out = new stdClass();
+
+            $out->id = strval(MixedID::normalizeId($row->project_id));
+            $out->reference = Normalizer::normalizeString($row->project_reference);
+            $out->name = Normalizer::normalizeString($row->project_name);
+            $out->manager = strval(MixedID::normalizeId($row->project_manager));
+            $out->worked = Normalizer::normalizeBool($row->has_worked);
+
+            yield($out);
+        }
+    }
+
+
+
 
     public function addToMyTime(stdClass $entry)
     {

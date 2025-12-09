@@ -2,7 +2,9 @@ import KaalEvents from '../Events.js'
 import Kolor from '../WidgetBase/Kolor.js'
 import FormatHour from '../FormatHour.js'
 import DateTime from '../DateTime.js'
-import Select from './Select.js'
+import html from '../WidgetBase/html.js'
+
+// import Placement from '../WidgetBase/Placement.js'
 
 class GlobalView {
   #structure
@@ -82,7 +84,6 @@ class GlobalView {
     return new Promise((resolve) => {
       this.parent.datasource.getMyWritableDays().then((days) => {
         const events = new KaalEvents()
-
         const dayMapping = ['6', '0', '1', '2', '3', '4', '5']
         const day0 = new Date(this.selectedDate)
         day0.setDate(1)
@@ -238,6 +239,9 @@ class GlobalView {
         next.classList.add('icon')
         previous.classList.add('icon')
 
+        next.innerHTML = '<i class="fas fa-chevron-right"></i>'
+        previous.innerHTML = '<i class="fas fa-chevron-left"></i>'
+
         const events = new KaalEvents()
         events.set(next, 'click', (_) => this.nextDate())
         events.set(previous, 'click', (_) => this.previousDate())
@@ -271,6 +275,7 @@ class DayView {
     this.parent.setContent(this.root)
 
     const close = document.createElement('DIV')
+    close.innerHTML = '<i class="fas fa-times"></i>'
     close.classList.add('icon')
 
     new KaalEvents().set(close, 'click', (_) =>
@@ -289,12 +294,26 @@ class DayView {
     const bgcolor = new Kolor(
       entry.travail.id ? entry.travail.status.color : entry.status.color,
     )
+    entryNode.dataset.id = entry.id
+    entryNode.dataset.date = entry.day
     entryNode.innerHTML = `
       <div style="background-color: ${bgcolor}; color: ${bgcolor.foreground()}; grid-column-end: span 1;">${entry.project.reference}</div>
       <div style="background-color: ${bgcolor}; color: ${bgcolor.foreground()}; grid-column-end: span 5;">${entry.project.name}</div>
       <div style="grid-column-end: span 5">${entry.travail.reference || ''}</div>
-      <div style="grid-column-end: span 1">${new FormatHour(entry.value)}</div>
+      <div class="time-value" style="grid-column-end: span 1">${new FormatHour(entry.value)}</div>
     `
+    if (this.writable) {
+      new KaalEvents().set(entryNode, 'click', (event) => {
+        if (event.target && event.target.dataset.id) {
+          this.parent.load(
+            'day-modify-view',
+            event.target.dataset.id,
+            event.target.dataset.date,
+          )
+        }
+      })
+    }
+
     return entryNode
   }
 
@@ -315,15 +334,33 @@ class DayView {
     const nodes = !dayData
       ? []
       : dayData.map((entry) => this.#renderEntry(entry))
-    if (this.writable) {
+    /*    if (this.writable) {
       nodes.push(this.#renderAddEntry())
-    }
+    }*/
     window.requestAnimationFrame((_) => this.root.replaceChildren(...nodes))
     this.parent.setSubtitle(new FormatHour(totalTime))
     return Promise.resolve()
   }
 }
-class DayModifyView {}
+class DayModifyView {
+  #parent
+  #node
+  #id
+  #date
+  constructor(parent, id, date) {
+    this.#parent = parent
+    this.#node = document.createElement('DIV')
+    this.#id = id
+    this.#date = new Date(date)
+  }
+
+  /**
+   * TODO : don't use deprecated time entry system
+   */
+  render() {
+    return window.KAALTimeUI.selectTimeEntry(this.#id)
+  }
+}
 
 class SelectView {
   /**
@@ -387,20 +424,39 @@ export default class MonthlyTimesheet {
         switch (what) {
           case 'global-view':
           default:
-            const globalview = new GlobalView(this, arguments[1] || new Date())
-            globalview.render().then((_) => {
-              this.currentLoaded = globalview
-              resolve()
-            })
+            {
+              const globalview = new GlobalView(
+                this,
+                arguments[1] || new Date(),
+              )
+              globalview.render().then((_) => {
+                this.currentLoaded = globalview
+                resolve()
+              })
+            }
             break
           case 'day-view':
-            const args = Array.from(arguments)
-            args.shift()
-            const dayview = new DayView(this, ...args)
-            dayview.render().then((_) => {
-              this.currentLoaded = dayview
+            {
+              const args = Array.from(arguments)
+              args.shift()
+              const dayview = new DayView(this, ...args)
+              dayview.render().then((_) => {
+                this.currentLoaded = dayview
+                resolve()
+              })
+            }
+            break
+          case 'day-modify-view':
+            {
+              const args = Array.from(arguments)
+              args.shift()
+              const dvm = new DayModifyView(this, ...args)
+              dvm.render().then((_) => {
+                this.currentLoaded = dvm
+                resolve()
+              })
               resolve()
-            })
+            }
             break
         }
         this.#loaded = what
@@ -416,7 +472,14 @@ export default class MonthlyTimesheet {
     }
     return new Promise((resolve) => {
       window.requestAnimationFrame(() => {
-        this.areas[what].replaceChildren(...nodes)
+        this.areas[what].replaceChildren()
+        nodes.forEach((node) => {
+          if (node instanceof HTMLElement) {
+            this.areas[what].appendChild(node)
+          } else {
+            this.areas[what].innerHTML += node
+          }
+        })
         resolve()
       })
     })

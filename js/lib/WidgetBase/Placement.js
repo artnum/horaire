@@ -183,8 +183,7 @@ export default class Placement {
     const nodes = document.querySelectorAll('[data-placement-id]')
     nodes.forEach((node) => {
       if (Placement.#nodesMap.has(node)) {
-        const relative = Placement.#nodesMap.get(node).relative
-        Placement.place(relative, node)
+        Placement.#setPosition(node)
       }
     })
   }
@@ -195,58 +194,170 @@ export default class Placement {
       Placement.#nodesMap.delete(node)
       delete entry.relative.dataset.placementParentId
       Placement.#observer.disconnect(node)
-      requestAnimationFrame((_) => node.remove())
+      requestAnimationFrame((_) => {
+        if (entry.position) {
+          node.parentNode.remove()
+        } else {
+          node.remove()
+        }
+      })
     }
   }
-  static place(relative, node) {
-    if (Placement.#ticking) return
 
+  static #preplace(relative, node) {
     Placement.#nodesMap.forEach((entry) => {
-      if (entry.relative === relative && entry.node !== node) {
+      if (entry.relative === document.body && entry.node !== node) {
         Placement.removeNode(entry.node)
       }
     })
-
-    if (!node.dataset.plResizeObserver) {
-      Placement.#resizeObserver.observe(node)
-      node.dataset.plResizeObserver = true
-    }
     Placement.#ticking = true
-    new Promise((resolve) => {
-      window.requestAnimationFrame(() => {
-        const box = relative.getBoundingClientRect()
-        const tbox = node.getBoundingClientRect()
-        resolve([box, tbox, window.innerHeight, window.innerWidth])
-      })
-    }).then(([box, tbox, windowHeight, windowWidth]) => {
-      // Check if there's enough space below the relative node
-      const spaceBelow = windowHeight - (box.y + box.height)
-      const placeAbove = spaceBelow < tbox.height && box.y > tbox.height
+  }
 
-      // Check if node overflows window's right edge
-      const rightEdge = box.x + tbox.width
-      const placeLeft = rightEdge > windowWidth && box.x >= tbox.width
+  static #setModalPosition(position, node) {
+    return new Promise((resolve) => {
+      new Promise((resolve) => {
+        window.requestAnimationFrame(() => {
+          resolve([window.innerHeight, window.innerWidth])
+        })
+      }).then(([windowHeight, windowWidth]) => {
+        if (node.dataset.plResizeObserver) {
+          requestAnimationFrame((_) => {
+            Object.assign(node.parentNode.style, {
+              minWidth: `${windowWidth}px`,
+              minHeight: `${windowHeight}px`,
+            })
+          })
+        } else {
+          const bg = document.createElement('DIV')
+          Object.assign(bg.style, {
+            position: 'fixed',
+            left: '0px',
+            top: '0px',
+            zIndex: ZMax.get(),
+            minWidth: `${windowWidth}px`,
+            minHeight: `${windowHeight}px`,
+            border: 'none',
+            backgroundColor: 'rgba(127,127,127,0.3)',
+            display: 'flex',
+            justifyContent: 'center',
+          })
 
-      const observer = new MutationObserver(Placement.observeParentNode)
-      observer.observe(relative, {
-        attributes: true,
+          const style = {
+            visibility: 'visible',
+            backgroundColor: 'white',
+            boxSizing: 'border-box',
+            transform: 'translateY(-2%)', // visual center, about 2% above the geometrical center
+          }
+
+          switch (String(position).toLowerCase()) {
+            default:
+            case 'bottom':
+              bg.style.alignItems = 'flex-end'
+              break
+            case 'middle':
+              bg.style.alignItems = 'center'
+              break
+            case 'top':
+              bg.style.alignItems = 'flex-start'
+              break
+          }
+
+          window.requestAnimationFrame(() => {
+            Object.assign(node.style, style)
+            bg.appendChild(node)
+            document.body.appendChild(bg)
+            resolve()
+          })
+        }
       })
-      Placement.#nodesMap.set(node, { relative, observer, node })
-      Placement.#placementId++
-      node.dataset.placementId = Placement.#placementId
-      relative.dataset.placementParentId = Placement.#placementId
-      window.requestAnimationFrame(() => {
-        Object.assign(node.style, {
+    })
+  }
+  static #setFloatPosition(relative, node) {
+    return new Promise((resolve) => {
+      new Promise((resolve) => {
+        window.requestAnimationFrame(() => {
+          const box = relative.getBoundingClientRect()
+          const tbox = node.getBoundingClientRect()
+          resolve([box, tbox, window.innerHeight, window.innerWidth])
+        })
+      }).then(([box, tbox, windowHeight, windowWidth]) => {
+        // Check if there's enough space below the relative node
+        const spaceBelow = windowHeight - (box.y + box.height)
+        const placeAbove = spaceBelow < tbox.height && box.y > tbox.height
+
+        // Check if node overflows window's right edge
+        const rightEdge = box.x + tbox.width
+        const placeLeft = rightEdge > windowWidth && box.x >= tbox.width
+
+        const style = {
           position: 'fixed',
-          zIndex: ZMax.get(),
           top: placeAbove
             ? `${box.y - tbox.height}px` // Place above
             : `${box.y + box.height}px`,
           left: placeLeft
             ? `${box.x - tbox.width}px` // Place to the left
             : `${box.x}px`, // Place aligned with left edge
+          zIndex: ZMax.get(),
           visibility: 'visible',
+        }
+
+        window.requestAnimationFrame(() => {
+          Object.assign(node.style, style)
+          resolve()
         })
+      })
+    })
+  }
+  static #setPosition(node) {
+    const entry = Placement.#nodesMap.get(node)
+    if (entry.position) {
+      return Placement.#setModalPosition(entry.position, entry.node)
+    }
+    return Placement.#setFloatPosition(entry.relative, entry.node)
+  }
+
+  static modal(position, node) {
+    if (Placement.#ticking) return
+    Placement.#preplace(document.body, node)
+
+    Placement.#setModalPosition(position, node).then((_) => {
+      if (!node.dataset.plResizeObserver) {
+        Placement.#resizeObserver.observe(node)
+        node.dataset.plResizeObserver = true
+      }
+
+      const observer = new MutationObserver(Placement.observeParentNode)
+      observer.observe(document.body, {
+        attributes: true,
+      })
+      Placement.#nodesMap.set(node, {
+        relative: document.body,
+        observer,
+        node,
+        position,
+      })
+      Placement.#placementId++
+      node.dataset.placementId = Placement.#placementId
+    })
+  }
+
+  static place(relative, node) {
+    if (Placement.#ticking) return
+    Placement.#preplace(relative, node)
+
+    new Promise((resolve) => {
+      Placement.#setFloatPosition(relative, node).then((_) => {
+        if (!node.dataset.plResizeObserver) {
+          Placement.#resizeObserver.observe(node)
+          node.dataset.plResizeObserver = true
+        }
+        const observer = new MutationObserver(Placement.observeParentNode)
+        observer.observe(relative, {
+          attributes: true,
+        })
+        Placement.#nodesMap.set(node, { relative, observer, node })
+        Placement.#placementId++
+        node.dataset.placementId = Placement.#placementId
         Placement.#ticking = false
       })
     })

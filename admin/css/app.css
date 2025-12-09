@@ -376,3 +376,48 @@ div.emergency-details {
 div.emergency-details .label {
   font-weight: bold;
 }
+
+.kaal-select {
+  min-width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 5px;
+  grid-template-rows: 1fr 5fr;
+}
+
+.kaal-select-item {
+  user-select: none;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3em;
+}
+
+.kaal-select-item.selected {
+  background-color: lightsteelblue;
+  border: 1px solid navy;
+}
+
+.kaal-select-items {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.kaal-select-scrollbar {
+  background-color: lightsteelblue;
+}
+
+.kaal-select-scrollbar div {
+  border-radius: 8px;
+  background-color: navy;
+  height: 20px;
+  width: 100%;
+}
+
+.kaal-select-searchbox input {
+  box-sizing: border-box;
+  max-height: 40px;
+  min-height: unset;
+  width: 100%;
+}
