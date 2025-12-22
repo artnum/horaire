@@ -64,12 +64,11 @@ class GlobalView {
             weeks_times[week] = time
           }
           const hour = new FormatHour(time)
-          window.requestAnimationFrame(
-            (_) =>
-              (this.#structure.querySelector(
-                `[data-date="${day}"] .time`,
-              ).innerHTML = hour),
-          )
+          window.requestAnimationFrame((_) => {
+            this.#structure.querySelector(
+              `[data-date="${day}"] .time`,
+            ).innerHTML = hour
+          })
         }
         for (const w in weeks_times) {
           const time = new FormatHour(weeks_times[w])
@@ -122,6 +121,7 @@ class GlobalView {
           const rnode = calStructure.querySelector(`.row-${row}`)
           const cell = rnode.querySelector(`.column-${j}`)
           window.requestAnimationFrame(() => {
+            cell.dataset.date = ''
             cell.classList.add('empty')
           })
         }
@@ -188,6 +188,7 @@ class GlobalView {
             `.column-${dayMapping[currentDay % 7]}`,
           )
           cell.classList.add('empty')
+          cell.dataset.date = ''
           if (currentDay % 7 == 0) {
             row++
             const n = calStructure.querySelector(`.week-${row}`)
