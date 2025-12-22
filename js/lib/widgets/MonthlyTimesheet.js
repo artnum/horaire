@@ -40,7 +40,7 @@ class GlobalView {
     })
   }
 
-  renderData() {
+  renderData(data) {
     return new Promise((resolve) => {
       /* queue an animation frame, so it will be after the frames of the
        * structure building calls ensuring that the whole structure is available */
@@ -49,8 +49,8 @@ class GlobalView {
       }).then((_) => {
         let month_time = 0
         const weeks_times = {}
-        for (const day in this.parent.currentMonth) {
-          const values = this.parent.currentMonth[day]
+        for (const day in data) {
+          const values = data[day]
           let time = 0
           for (let i = 0; i < values.length; i++) {
             time += values[i].value
@@ -337,8 +337,8 @@ class DayView {
     return entryNode
   }
 
-  renderData() {
-    const dayData = this.parent.currentMonth[this.date.getDate()]
+  renderData(data) {
+    const dayData = data[this.date.getDate()]
     if (!dayData && !this.writable) {
       return
     }
@@ -550,14 +550,15 @@ export default class MonthlyTimesheet {
    * @param {Array} values
    */
   setData(values = null) {
-    this.currentMonth = {}
+    const data = {}
     for (let i = 0; i < values.length; i++) {
       const date = new Date(values[i].day)
-      if (!this.currentMonth[date.getDate()]) {
-        this.currentMonth[date.getDate()] = []
+      if (!data[date.getDate()]) {
+        data[date.getDate()] = []
       }
-      this.currentMonth[date.getDate()].push(values[i])
+      data[date.getDate()].push(values[i])
     }
-    this.currentLoaded.renderData()
+    this.currentLoaded.renderData(data)
+    this.currentMonth = data
   }
 }
