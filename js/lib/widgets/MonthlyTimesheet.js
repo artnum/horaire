@@ -295,11 +295,11 @@ class DayView {
 
     new KaalEvents().set(close, 'click', (_) =>
       this.parent.load('global-view', this.date).then((parent) => {
-        parent.currentLoaded.renderData()
+        parent.currentLoaded.renderData(this.parent.currentMonth)
       }),
     )
     this.parent.setAction([], [close])
-    this.renderData()
+    this.renderData(this.parent.currentMonth)
     return Promise.resolve()
   }
 
