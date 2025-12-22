@@ -131,7 +131,8 @@
 .cell.holiday,
 .cell.column-6.holiday,
 .cell.column-5.holiday {
-  background-color: orange !important;
+  background-color: #205020 !important;
+  color: white !important;
 }
 .calendar .cell:active {
   border: pink 1px solid;
