@@ -86,7 +86,7 @@ class GlobalView {
     })
   }
 
-  #renderCalContent() {
+  #renderCalContent(calStructure) {
     return new Promise((resolve) => {
       this.parent.datasource.getMyWritableDays().then((days) => {
         const events = new KaalEvents()
@@ -119,13 +119,13 @@ class GlobalView {
           })
           .map((date) => date.getDate())
         for (let j = 0; j < parseInt(dayMapping[currentDay]); j++) {
-          const rnode = this.#structure.querySelector(`.row-${row}`)
+          const rnode = calStructure.querySelector(`.row-${row}`)
           const cell = rnode.querySelector(`.column-${j}`)
           window.requestAnimationFrame(() => {
             cell.classList.add('empty')
           })
         }
-        const n = this.#structure.querySelector(`.week-${row}`)
+        const n = calStructure.querySelector(`.week-${row}`)
         n.dataset.week = week
         if (n) {
           window.requestAnimationFrame(() => {
@@ -136,7 +136,7 @@ class GlobalView {
         let i = 0
         for (i = 1; i <= day30.getDate(); i++) {
           const day = i
-          const rnode = this.#structure.querySelector(`.row-${row}`)
+          const rnode = calStructure.querySelector(`.row-${row}`)
           const cell = rnode.querySelector(
             `.column-${dayMapping[currentDay % 7]}`,
           )
@@ -168,7 +168,7 @@ class GlobalView {
             const week = new DateTime(
               day0.getTime() + 86400000 * i,
             ).isoWeekNumber()
-            const n = this.#structure.querySelector(`.week-${row}`)
+            const n = calStructure.querySelector(`.week-${row}`)
             if (n) {
               n.dataset.week = week
               window.requestAnimationFrame(() => {
@@ -180,7 +180,7 @@ class GlobalView {
           currentDay++
         }
         for (;;) {
-          const rnode = this.#structure.querySelector(`.row-${row}`)
+          const rnode = calStructure.querySelector(`.row-${row}`)
           if (!rnode) {
             break
           }
@@ -190,7 +190,7 @@ class GlobalView {
           cell.classList.add('empty')
           if (currentDay % 7 == 0) {
             row++
-            const n = this.#structure.querySelector(`.week-${row}`)
+            const n = calStructure.querySelector(`.week-${row}`)
             if (n) {
               window.requestAnimationFrame(() => {
                 n.classList.add('empty')
@@ -236,12 +236,13 @@ class GlobalView {
   render() {
     return new Promise((resolve) => {
       const calStructure = this.#renderCalStructure()
-      this.#renderCalContent().then((_) => {
+      this.#renderCalContent(calStructure).then((_) => {
         const date = new Intl.DateTimeFormat(undefined, {
           month: 'long',
           year: 'numeric',
         }).format(this.selectedDate)
 
+        this.parent.setSubtitle('')
         const title = document.createElement('SPAN')
         title.innerHTML = date
         this.parent.setTitle(date)
