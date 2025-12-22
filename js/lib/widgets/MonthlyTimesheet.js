@@ -65,17 +65,23 @@ class GlobalView {
           }
           const hour = new FormatHour(time)
           window.requestAnimationFrame((_) => {
-            this.#structure.querySelector(
+            const n = this.#structure.querySelector(
               `[data-date="${day}"] .time`,
-            ).innerHTML = hour
+            )
+            if (n) {
+              n.innerHTML = hour
+            }
           })
         }
         for (const w in weeks_times) {
           const time = new FormatHour(weeks_times[w])
           window.requestAnimationFrame((_) => {
-            this.#structure.querySelector(
+            const n = this.#structure.querySelector(
               `[data-week="${w}"] .week-time`,
-            ).innerHTML = time
+            )
+            if (n) {
+              n.innerHTML = time
+            }
           })
         }
 
