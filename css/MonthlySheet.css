@@ -128,6 +128,11 @@
   background-color: lightgray !important;
 }
 
+.cell.holiday,
+.cell.column-6.holiday,
+.cell.column-5.holiday {
+  background-color: orange !important;
+}
 .calendar .cell:active {
   border: pink 1px solid;
 }

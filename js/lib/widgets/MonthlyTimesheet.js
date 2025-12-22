@@ -3,6 +3,7 @@ import Kolor from '../WidgetBase/Kolor.js'
 import FormatHour from '../FormatHour.js'
 import DateTime from '../DateTime.js'
 import html from '../WidgetBase/html.js'
+import Holidays from '../holidays.js'
 
 // import Placement from '../WidgetBase/Placement.js'
 
@@ -16,10 +17,12 @@ class GlobalView {
     this.selectedDate = date || new Date()
     this.parent = parent
     this.currentMonth = {}
+    this.holidays = new Holidays().getHolidays(this.selectedDate.getFullYear())
   }
 
   nextDate() {
     this.selectedDate.setMonth(this.selectedDate.getMonth() + 1)
+    this.holidays = new Holidays().getHolidays(this.selectedDate.getFullYear())
     this.render()
     new KaalEvents().exec(this.parent, 'request', {
       date: this.selectedDate.toString(),
@@ -28,6 +31,7 @@ class GlobalView {
 
   previousDate() {
     this.selectedDate.setMonth(this.selectedDate.getMonth() - 1)
+    this.holidays = new Holidays().getHolidays(this.selectedDate.getFullYear())
     this.render()
     new KaalEvents().exec(this.parent, 'request', {
       date: this.selectedDate.toString(),
@@ -86,6 +90,8 @@ class GlobalView {
         const events = new KaalEvents()
         const dayMapping = ['6', '0', '1', '2', '3', '4', '5']
         const day0 = new Date(this.selectedDate)
+
+        const holidays = this.holidays[day0.getMonth()]
         day0.setDate(1)
         const day30 = new Date(this.selectedDate)
         day30.setMonth(this.selectedDate.getMonth() + 1)
@@ -127,11 +133,16 @@ class GlobalView {
 
         let i = 0
         for (i = 1; i <= day30.getDate(); i++) {
+          const day = i
           const rnode = this.#structure.querySelector(`.row-${row}`)
           const cell = rnode.querySelector(
             `.column-${dayMapping[currentDay % 7]}`,
           )
-          const day = i
+          if (holidays.includes(day)) {
+            cell.classList.add('holiday')
+          } else {
+            cell.classList.remove('holiday')
+          }
           const is_writable = days.writable.includes(day)
           window.requestAnimationFrame(() => {
             cell.innerHTML = `<div class="day">${day}</div><div class="time"></div>`
