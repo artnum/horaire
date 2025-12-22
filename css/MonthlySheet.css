@@ -123,6 +123,11 @@
   text-align: center;
 }
 
+.cell.column-6,
+.cell.column-5 {
+  background-color: lightgray !important;
+}
+
 .calendar .cell:active {
   border: pink 1px solid;
 }
