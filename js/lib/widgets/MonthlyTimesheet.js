@@ -23,18 +23,20 @@ class GlobalView {
   nextDate() {
     this.selectedDate.setMonth(this.selectedDate.getMonth() + 1)
     this.holidays = new Holidays().getHolidays(this.selectedDate.getFullYear())
-    this.render()
-    new KaalEvents().exec(this.parent, 'request', {
-      date: this.selectedDate.toString(),
+    this.render().then((_) => {
+      new KaalEvents().exec(this.parent, 'request', {
+        date: this.selectedDate.toString(),
+      })
     })
   }
 
   previousDate() {
     this.selectedDate.setMonth(this.selectedDate.getMonth() - 1)
     this.holidays = new Holidays().getHolidays(this.selectedDate.getFullYear())
-    this.render()
-    new KaalEvents().exec(this.parent, 'request', {
-      date: this.selectedDate.toString(),
+    this.render().then((_) => {
+      new KaalEvents().exec(this.parent, 'request', {
+        date: this.selectedDate.toString(),
+      })
     })
   }
 
