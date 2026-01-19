@@ -721,6 +721,7 @@ TimeInteractUI.prototype.showHeader = function () {
         body: JSON.stringify({
           '#and': {
             deleted: '-',
+            closed: '-',
             '#or': {
               reference: `*${search[0]}*`,
               name: `*${search.join('*')}*`,
