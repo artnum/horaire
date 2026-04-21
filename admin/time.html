@@ -11,6 +11,33 @@
 <body>
   <main>
     <h1>Heure</h1>
+    <h2>Export MyBM</h2>
+    <form id="myBmExport">
+        <label>Mois 
+            <select id="myBmExport_month">
+                <option value="1">Janvier</option>
+                <option value="2">Février</option>
+                <option value="3">Mars</option>
+                <option value="4">Avril</option>
+                <option value="5">Mai</option>
+                <option value="6">Juin</option>
+                <option value="7">Juillet</option>
+                <option value="8">Août</option>
+                <option value="9">Septembre</option>
+                <option value="10">Octobre</option>
+                <option value="11">Novembre</option>
+                <option value="12">Décembre</option>
+            </select>
+        </label>
+        <label>Année 
+            <select id="myBmExport_year">
+                <option value="2020">2020</option>
+            </select>
+        </label>
+
+    </form>
+
+
     <h2>Ajouter</h2>
     <form onsubmit="addTime(event)" data-source="Htime">
       <label for="person">Personne : </label><select data-source="Person"
@@ -99,10 +126,46 @@
 <script src="$script/admin/stores.js"></script>
 <script src="$script/src/index.js"></script>
 <script>
-  console.log(Hour)
   const stProject = new STProject('Project', true)
   const stProcess = new STProcess()
+  
+  function init_mybm_export() {
+    const yearSelect = document.getElementById("myBmExport_year")
+    const initialYear = parseInt(yearSelect.firstElementChild.getAttribute("value"))
+    for(let i = 1; initialYear + i <= new Date().getFullYear(); i++) {
+      const option = document.createElement('option')
+      option.setAttribute("value", initialYear + i)
+      option.innerText = initialYear + i
+      if (initialYear + i == new Date().getFullYear()) {
+        option.setAttribute("selected", 1)
+      }
+      yearSelect.appendChild(option)
+    }
+    const monthSelect = document.getElementById("myBmExport_month")
+    const currentMonth = new Date().getMonth() + 1
+    for(let i = monthSelect.firstElementChild; i; i = i.nextElementSibling) {
+        if (parseInt(i.getAttribute("value")) === currentMonth) {
+          i.setAttribute("selected", 1)
+          break
+        }
+    }
+    const sendButton = document.createElement('BUTTON')
+    sendButton.innerText = "Télécharger"
+    sendButton.addEventListener("click", event => {
+      event.preventDefault()
+      const begin = new Date(parseInt(yearSelect.value), parseInt(monthSelect.value) - 1, 1, 12, 0, 0)
+      const end = new Date(parseInt(yearSelect.value), parseInt(monthSelect.value), 1, 12, 0, 0)
+      end.setTime(end.getTime() - 86400000)
+      const beginDate = begin.toISOString().split('T')[0]
+      const endDate = end.toISOString().split('T')[0]
+      Admin.getUrl('/kexport/export-mybm', {start: beginDate, end: endDate})
+      .then(url => {
+        window.open(url)
+      })
+    })
+    document.getElementById("myBmExport").appendChild(sendButton)
 
+  }
 
   function submitForm(event, doExport = false) {
     event.preventDefault()
@@ -612,6 +675,8 @@
 
     }
   }
+  
+  init_mybm_export()
 
   window.addEventListener('kcore-loaded', event => {
     var forms = document.getElementsByTagName('form')
