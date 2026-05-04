@@ -147,7 +147,7 @@
           uncount: data.get('uncount') === 'on' ? 1 : 0,
           ordering: data.get('ordering')
         }
-        KAFETch2(`${KAAL.getBase()}/Project/.nextReferences`)
+        kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
         .then(r => {
           project.reference = r[0][data.get('type')]
           return projectList.checkProjectData(project)
