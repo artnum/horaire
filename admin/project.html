@@ -75,47 +75,19 @@
     })
     .then(projectList => {
       const projectForm = document.getElementById('projectform')
-
-      /*const contactForm = new UIKAContactForm()
-      const projectForm = new UIKAProjectForm()*/
       const contactOld = new UIKAContactOld()
       const buttons = [
             new KAButton(`Projet`, {group: 'reference', selected: true}),
             new KAButton(`Régie`, {group: 'reference'}),
         ]
 
-      /*document.querySelector('input[name="at"]').value = new Date().toISOString().split('T')[0]
-      const allExportButton = document.body.querySelector('input[name="exportall"]')
-      allExportButton.addEventListener('click', event => {
-        let date = document.querySelector('input[name="at"]').value
-        if (!date) { date = new Date().toISOString().split('T')[0] }
-        const params = {state: 'open', 'at': date}
-        switch(projectList.selectedState) {
-          case 'open': break
-          case 'close': params.state = 'closed'; break
-          case 'any': params.state = 'alive'; break
-        }
-        console.log(params, projectList.selectedState, projectList.currentState)
-        Admin.getUrl('admin/exec/export/proj.php', params)
-        .then(url => {
-          window.open(url)
-        })
-      })*/
- 	        const yearExportButton = document.body.querySelector('input[name="exportyear"]')
-         yearExportButton.addEventListener('click', event => {
-/*          const params = {state: 'open', 'year': date}
-           switch(projecList.selectedState) {
-             case 'open': break
-             case 'close': params.state = 'closed'; break
-             case 'any': params.state = 'alive'; break
-          }*/
-	  const params = {}
-           //Admin.getUrl('admin/exec/export/proj.php', params)
-      Admin.getUrl('/kexport/export-all-projects', params)
-        .then(url => {
-          window.open(url)
-        })
-      })
+     const yearExportButton = document.body.querySelector('input[name="exportyear"]')
+     yearExportButton.addEventListener('click', event => {
+       Admin.getUrl('/kexport/export-all-projects')
+       .then(url => {
+         window.open(url)
+       })
+     })
 
       kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
       .then(r => {
