@@ -36,6 +36,7 @@
     </form>
     <h2>Projets existants</h2>
     <input type="button" name="exportyear" value="Exporter tous les projets"></input>
+    <input type="button" name="exportbill" value="Exporter pour facturation"></input>
     <div class="project-list-parent"></div>
   </main>
 </body>
@@ -84,6 +85,13 @@
      const yearExportButton = document.body.querySelector('input[name="exportyear"]')
      yearExportButton.addEventListener('click', event => {
        Admin.getUrl('/kexport/export-all-projects')
+       .then(url => {
+         window.open(url)
+       })
+     })
+    const billingExportButton = document.body.querySelector('input[name="exportbill"]')
+    billingExportButton.addEventListener('click', event => {
+    Admin.getUrl('/kexport/export-all-projects')
        .then(url => {
          window.open(url)
        })
@@ -139,7 +147,7 @@
           uncount: data.get('uncount') === 'on' ? 1 : 0,
           ordering: data.get('ordering')
         }
-        kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
+        KAFETch2(`${KAAL.getBase()}/Project/.nextReferences`)
         .then(r => {
           project.reference = r[0][data.get('type')]
           return projectList.checkProjectData(project)
