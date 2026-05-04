@@ -91,7 +91,7 @@
      })
     const billingExportButton = document.body.querySelector('input[name="exportbill"]')
     billingExportButton.addEventListener('click', event => {
-    Admin.getUrl('/kexport/export-all-projects')
+    Admin.getUrl('/kexport/export-project-state')
        .then(url => {
          window.open(url)
        })
