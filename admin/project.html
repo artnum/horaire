@@ -35,8 +35,7 @@
       </fieldset>
     </form>
     <h2>Projets existants</h2>
-    <input type="button" name="exportall" value="Tout exporter"></input> Jusqu'au : <input type="date" name="at" ></input>
-
+    <input type="button" name="exportyear" value="Exporter tous les projets"></input>
     <div class="project-list-parent"></div>
   </main>
 </body>
@@ -71,9 +70,12 @@
   function load() {
     checkBuildNumberAndReload('project')
     .then(() => {
+      const projectList = new UIKAProjectList()
+      return projectList.init()
+    })
+    .then(projectList => {
       const projectForm = document.getElementById('projectform')
 
-      const projecList = new UIKAProjectList()
       /*const contactForm = new UIKAContactForm()
       const projectForm = new UIKAProjectForm()*/
       const contactOld = new UIKAContactOld()
@@ -82,19 +84,34 @@
             new KAButton(`Régie`, {group: 'reference'}),
         ]
 
-      document.querySelector('input[name="at"]').value = new Date().toISOString().split('T')[0]
+      /*document.querySelector('input[name="at"]').value = new Date().toISOString().split('T')[0]
       const allExportButton = document.body.querySelector('input[name="exportall"]')
       allExportButton.addEventListener('click', event => {
         let date = document.querySelector('input[name="at"]').value
         if (!date) { date = new Date().toISOString().split('T')[0] }
         const params = {state: 'open', 'at': date}
-        switch(projecList.selectedState) {
+        switch(projectList.selectedState) {
           case 'open': break
           case 'close': params.state = 'closed'; break
           case 'any': params.state = 'alive'; break
         }
-        console.log(params, projecList.selectedState, projecList.currentState)
+        console.log(params, projectList.selectedState, projectList.currentState)
         Admin.getUrl('admin/exec/export/proj.php', params)
+        .then(url => {
+          window.open(url)
+        })
+      })*/
+ 	        const yearExportButton = document.body.querySelector('input[name="exportyear"]')
+         yearExportButton.addEventListener('click', event => {
+/*          const params = {state: 'open', 'year': date}
+           switch(projecList.selectedState) {
+             case 'open': break
+             case 'close': params.state = 'closed'; break
+             case 'any': params.state = 'alive'; break
+          }*/
+	  const params = {}
+           //Admin.getUrl('admin/exec/export/proj.php', params)
+      Admin.getUrl('/kexport/export-all-projects', params)
         .then(url => {
           window.open(url)
         })
@@ -127,8 +144,9 @@
         })
       })
 
-      window.requestAnimationFrame(() => document.body.querySelector('.project-list-parent').appendChild(projecList.domNode))
-      projecList.textSearch('*', true)
+      window.requestAnimationFrame(() =>
+      document.body.querySelector('.project-list-parent').appendChild(projectList.domNode))
+      projectList.textSearch('*', true)
 
       window.requestAnimationFrame(() => document.body.querySelector('span[name="clientContainer"]').appendChild(contactOld.domNode))
 
@@ -152,7 +170,7 @@
         kafetch2(`${KAAL.getBase()}/Project/.nextReferences`)
         .then(r => {
           project.reference = r[0][data.get('type')]
-          return projecList.checkProjectData(project)
+          return projectList.checkProjectData(project)
         })
         .then(project => {
           return kafetch2(`${KAAL.getBase()}/Project/`, {method: 'POST', body: project})
@@ -171,13 +189,13 @@
               //new MsgInteractUI('warning', 'Création du projet sur KED échouée')
             })
           })()
-          return projecList.associateProject(project[0])
+          return projectList.associateProject(project[0])
         })
         .then(project => {
-          return projecList.renderProject(project)
+          return projectList.renderProject(project)
         })
         .then(projectNode => {
-          return projecList.insertProjectNode(projectNode, true)
+          return projectList.insertProjectNode(projectNode, true)
         })
         .then(_ => {
           initForm(form, buttons[0])

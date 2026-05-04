@@ -11,7 +11,7 @@
 <body>
   <main>
     <h1>Heure</h1>
-    <h2>Export MyBM</h2>
+    <h2>Exportation des heures</h2>
     <form id="myBmExport">
         <label>Mois 
             <select id="myBmExport_month">
@@ -150,7 +150,7 @@
         }
     }
     const sendButton = document.createElement('BUTTON')
-    sendButton.innerText = "Télécharger"
+    sendButton.innerText = "MyBM"
     sendButton.addEventListener("click", event => {
       event.preventDefault()
       const begin = new Date(parseInt(yearSelect.value), parseInt(monthSelect.value) - 1, 1, 12, 0, 0)
@@ -164,6 +164,22 @@
       })
     })
     document.getElementById("myBmExport").appendChild(sendButton)
+  
+    const worksheetButton = document.createElement('BUTTON')
+    worksheetButton.innerText = "Feuille d'heures"
+    worksheetButton.addEventListener("click", event => {
+      event.preventDefault()
+      const begin = new Date(parseInt(yearSelect.value), parseInt(monthSelect.value) - 1, 1, 12, 0, 0)
+      const end = new Date(parseInt(yearSelect.value), parseInt(monthSelect.value), 1, 12, 0, 0)
+      end.setTime(end.getTime() - 86400000)
+      const beginDate = begin.toISOString().split('T')[0]
+      const endDate = end.toISOString().split('T')[0]
+      Admin.getUrl('/kexport-test/export-hours', {start: beginDate, end: endDate})
+      .then(url => {
+        window.open(url)
+      })
+    })
+    document.getElementById("myBmExport").appendChild(worksheetButton)
 
   }
 

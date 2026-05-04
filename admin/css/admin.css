@@ -694,6 +694,11 @@ fieldset.half {
   background-color: lightslategrey;
 }
 
+.ka-project:hover .ka-project-finance {
+  color: white;
+  background-color: lightslategrey;
+}
+
 .ka-project:hover > span > img {
   color: white;
   background-color: lightslategrey;
@@ -701,6 +706,25 @@ fieldset.half {
 
 .ka-project:nth-child(even) * {
   background-color: #eeeeee;
+}
+.ka-project:hover:nth-child(even) * {
+  background-color: lightslategrey;
+}
+
+.ka-project .ka-project-finance {
+    margin-top: 2ex;
+    padding: 0 2ex;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+    gap: 2ex;
+}
+.ka-project .ka-project-finance span {
+    font-size: 0.8em;
+}
+
+.ka-project .ka-project-finance span.value {
+    font-weight: bold;
+    text-align: right;
 }
 
 .ka-project[data-open="1"] > div.travail {

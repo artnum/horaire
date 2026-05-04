@@ -3,6 +3,7 @@ import Debounce from './$script/admin/lib/debounce.js'
 
 export default class UIKAProjectList {
   constructor(parentNode) {
+    this.projectPrices = []
     if (!parentNode) {
       this.parentNode = document.body
     } else {
@@ -173,6 +174,25 @@ export default class UIKAProjectList {
       })
     })
   }
+  
+  setPrices() {
+    this.projectPrices.forEach(entry => {
+      const node = document.getElementById(`project-${entry.id}`)
+      if (!node) { return }
+      const div = document.createElement('DIV')
+      div.classList.add('ka-project-finance')
+      div.innerHTML = `<span class="label">Vendu</span>
+                       <span class="value">${parseFloat(entry.sold).toFixed(2)}</span>
+                       <span class="label">Prix de revient</span>
+                       <span class="value">${parseFloat(entry.cost).toFixed(2)}</span>
+                       <span class="label">Débiteur</span>
+                       <span class="value">${parseFloat(entry.debitor).toFixed(2)}</span>`
+      if (node.firstElementChild && node.firstElementChild.nextElementSibling) {
+        node.firstElementChild.nextElementSibling.appendChild(div)
+      }
+    })
+  }
+  
   render(projects) {
     return new Promise((resolve) => {
       for (let node = this.projectList.firstElementChild; node; ) {
@@ -202,7 +222,10 @@ export default class UIKAProjectList {
             return this.insertProjectNode(domNode)
           })
         }),
-      ).then(() => resolve())
+      ).then(() => {
+          setTimeout(() => this.setPrices(), 250)
+          resolve()
+      })
     })
   }
 
@@ -256,10 +279,19 @@ export default class UIKAProjectList {
     observer.observe(this.parentNode)
   }
 
-  textSearch(text, onlyProject = false) {
+  setListLoading() {
     window.requestAnimationFrame(() => {
       this.projectList.classList.add('loading')
     })
+  }
+
+  unsetListLoading() {
+    window.requestAnimationFrame(() => {
+      this.projectList.classList.remove('loading')
+    })
+  }
+
+  textSearch(text, onlyProject = false) {
     if (
       this.currentSearchValue === text &&
       this.currentState === this.selectedState &&
@@ -267,6 +299,7 @@ export default class UIKAProjectList {
     ) {
       return
     }
+    this.setListLoading()
     this.currentSearchValue = text
     this.currentState = this.selectedState
     this.currentOffset = this.offset
@@ -335,9 +368,7 @@ export default class UIKAProjectList {
       })
       .then((projects) => this.render(projects))
       .then((_) =>
-        window.requestAnimationFrame(() =>
-          this.projectList.classList.remove('loading'),
-        ),
+        this.unsetListLoading()
       )
   }
   toggleProjectFolding(domNode, forceOpen = false) {
@@ -498,6 +529,7 @@ export default class UIKAProjectList {
           return domNode
         })
         .then((domNode) => {
+          setTimeout(() => this.setPrices(), 250)
           setTimeout(() => window.scroll(0, currentPos), 250)
           resolve(domNode)
         })
@@ -608,6 +640,22 @@ export default class UIKAProjectList {
         .catch((cause) => reject(cause))
     })
   }
+  
+  init() {
+    return new Promise((resolve, reject) => {
+      kafetch('/kexport/export-project-state?format=json&type=all')
+      .then(response => {
+        this.projectPrices = response
+        resolve(this)
+      })
+      .catch(r => {
+        /* not allowed to see this */
+        this.projectPrices = []
+        resolve(this)
+      })
+    })
+  }
+
   renderTravail(travail) {
     const domNode = document.createElement('DIV')
     domNode.style.setProperty('--status-color', travail.status.color)
