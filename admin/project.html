@@ -37,6 +37,11 @@
     <h2>Projets existants</h2>
     <input type="button" name="exportyear" value="Exporter tous les projets"></input>
     <input type="button" name="exportbill" value="Exporter pour facturation"></input>
+    <div class="inline-fieldset" name="export-param">
+        <input type="button" name="export-with-params" value="Exporter les projets entre"></input>
+        <label>le <input type="date" name="export-begin"></label>
+        <label>et le <input type="date" name="export-end"></label>
+    </div>
     <div class="project-list-parent"></div>
   </main>
 </body>
@@ -85,6 +90,25 @@
      const yearExportButton = document.body.querySelector('input[name="exportyear"]')
      yearExportButton.addEventListener('click', event => {
        Admin.getUrl('/kexport/export-all-projects')
+       .then(url => {
+         window.open(url)
+       })
+     })
+
+
+     const exportParams = document.body.querySelector('input[name="export-with-params"]')
+     exportParams.addEventListener('click', event => {
+       const params = {}
+
+       const begin = document.body.querySelector('input[name="export-begin"]')
+       const end = document.body.querySelector('input[name="export-end"]')
+       if (begin.value != '') {
+         params.begin = begin.value
+       }
+       if (end.value != '') {
+         end.begin = end.value
+       }
+       Admin.getUrl('/kexport/export-all-projects', params)
        .then(url => {
          window.open(url)
        })

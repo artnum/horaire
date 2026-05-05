@@ -642,6 +642,9 @@ export default class UIKAProjectList {
   }
   
   init() {
+    this.projectPrices = []
+    return Promise.resolve(this)
+     /* 
     return new Promise((resolve, reject) => {
       kafetch('/kexport/export-project-state?format=json&type=all')
       .then(response => {
@@ -649,11 +652,10 @@ export default class UIKAProjectList {
         resolve(this)
       })
       .catch(r => {
-        /* not allowed to see this */
         this.projectPrices = []
         resolve(this)
       })
-    })
+    })*/
   }
 
   renderTravail(travail) {

@@ -968,3 +968,7 @@ button.addMore:before {
 .ka-fieldset[data-state="open"] legend::before {
   content: "\25BE";
 }
+
+.inline-fieldset {
+    display: inline-block;
+}
