@@ -5,8 +5,6 @@ import DateTime from '../DateTime.js'
 import html from '../WidgetBase/html.js'
 import Holidays from '../holidays.js'
 
-// import Placement from '../WidgetBase/Placement.js'
-
 class GlobalView {
   #structure
   /**
@@ -68,7 +66,7 @@ class GlobalView {
             const n = this.#structure.querySelector(
               `[data-date="${day}"] .time`,
             )
-            if (n) {
+            if (n && hour > 0) {
               n.innerHTML = hour
             }
           })
@@ -321,7 +319,8 @@ class DayView {
       <div style="background-color: ${bgcolor}; color: ${bgcolor.foreground()}; grid-column-end: span 1;">${entry.project.reference}</div>
       <div style="background-color: ${bgcolor}; color: ${bgcolor.foreground()}; grid-column-end: span 5;">${entry.project.name}</div>
       <div style="grid-column-end: span 5">${entry.travail.reference || ''}</div>
-      <div class="time-value" style="grid-column-end: span 1">${new FormatHour(entry.value)}</div>
+      ${entry.value > 0 ? `<div class="time-value" style="grid-column-end: span 1">${new FormatHour(entry.value)}</div>` :
+                          '<div class="time-value" style="grid-column-end: span 1"></div>' }
     `
     if (this.writable) {
       new KaalEvents().set(entryNode, 'click', (event) => {
@@ -390,6 +389,9 @@ class SelectView {
   constructor(parent) {}
 }
 
+
+import styles from './MonthlyTimesheet.css' with { type: 'css' }
+
 export default class MonthlyTimesheet {
   #loaded
   #parentNode
@@ -397,6 +399,9 @@ export default class MonthlyTimesheet {
   constructor(attachTo, datasource = null) {
     this.datasource = datasource
     this.#parentNode = attachTo
+
+    document.adoptedStyleSheets = [ ...document.adoptedStyleSheets, styles ]
+
     this.areas = {
       title: document.createElement('div'),
       subtitle: document.createElement('div'),
