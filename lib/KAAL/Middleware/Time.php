@@ -113,14 +113,15 @@ class Time
              tstatus.status_id AS tstatus_id, tstatus.status_name 
              AS tstatus_name, tstatus.status_color AS tstatus_color,
              htime_id, htime_day, htime_value,
-             htime_comment, htime_dinner, htime_km, project_id,
-             project_reference, project_name, travail_id, travail_reference,
-             travail_description
+             htime_comment, htime_dinner, htime_km, prj.project_id,
+             prj.project_reference, prj.project_name, travail_id, travail_reference,
+             travail_description, COALESCE(tproject.project_uncount, prj.project_uncount,0) AS uncount
             FROM htime
-            LEFT JOIN project ON htime_project = project_id
+            LEFT JOIN project AS prj ON htime_project = prj.project_id
             LEFT JOIN travail ON htime_travail = travail_id
             LEFT JOIN kairos.status AS tstatus ON travail_status = tstatus.status_id
             LEFT JOIN kairos.status AS hstatus ON htime_process = hstatus.status_id
+            LEFT JOIN project AS tproject ON travail_project = tproject.project_id
             WHERE htime_day LIKE '%s-%s-%%'
                 AND htime_person = :person
                 AND COALESCE(htime_deleted, 0) = 0
@@ -138,6 +139,7 @@ class Time
         $stmt->execute();
 
         while (($timeEntry = $stmt->fetch(PDO::FETCH_ASSOC))) {
+            if (intval($timeEntry['uncount']) != 0)  { $timeEntry['htime_value'] = 0; }
             $timeEntryObj = new stdClass();
             $timeEntryObj->project = new stdClass();
             $timeEntryObj->travail = new stdClass();
