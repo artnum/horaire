@@ -52,8 +52,29 @@ export default class TimeUI {
         return new FormatHour(value * 3600)
     }
 
-    #buildPersonCard(item, beginDate, endDate) {
-        const overview = item.overview
+    #emptyPersonOverview() {
+        return {
+            days: 0,
+            pause: 0,
+            total_time: 0,
+            absence_time: 0,
+            accounted_time: 0,
+            private_km: 0,
+        }
+    }
+
+    #resolvePersonName(id, personData) {
+        if (personData?.name) { return personData.name }
+        const navItem = this.#navNode?.querySelector(`[data-action="person:${id}"]`)
+        return navItem?.textContent?.trim() ?? ''
+    }
+
+    #personHasWorktimeData(personData) {
+        return Boolean(personData?.entries?.length)
+    }
+
+    #buildPersonCard(item, beginDate, endDate, {showDownload = true} = {}) {
+        const overview = item.overview ?? this.#emptyPersonOverview()
         const card = document.createElement('DIV')
         card.classList.add('person-card')
         card.dataset.personId = item.id
@@ -86,9 +107,9 @@ export default class TimeUI {
                 <span class="label">KM Privé</span>
                 <span class="value">${overview.private_km}</span>
             </div>
-            <div data-action="download" class="download">
+            ${showDownload ? `<div data-action="download" class="download">
                 &#11015; Excel
-            </div>`
+            </div>` : ''}`
         return card
     }
 
@@ -364,12 +385,20 @@ export default class TimeUI {
         const wrapper = document.createElement('DIV')
         wrapper.classList.add('time-person-view')
 
-        if (personData?.overview) {
-            const summaryNode = this.#buildPersonCard(personData, beginDate, endDate)
+        const hasData = this.#personHasWorktimeData(personData)
+        const summaryItem = hasData
+            ? personData
+            : {
+                id,
+                name: this.#resolvePersonName(id, personData),
+                overview: this.#emptyPersonOverview(),
+            }
+        const summaryNode = this.#buildPersonCard(summaryItem, beginDate, endDate, {showDownload: hasData})
+        if (hasData) {
             summaryNode.addEventListener('click', this.#personCardEventHandler.bind(this),
                 {signal: this.#viewEventController.signal})
-            wrapper.appendChild(summaryNode)
         }
+        wrapper.appendChild(summaryNode)
 
         const searchBar = document.createElement('DIV')
         searchBar.classList.add('time-entry-search-bar')
