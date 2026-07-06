@@ -4,6 +4,7 @@ import FormatHour from '../lib/FormatHour.js'
 import FileExtension from '../lib/FileExtension.js'
 import Kolor from '../lib/Kolor.js'
 import STProcessTravail from '../stores/process-travail.js'
+import { STProject } from '../stores.js'
 import admin from '../admin.js'
 
 
@@ -258,11 +259,50 @@ export default class TimeUI {
     }
 
     #entryProcessTravailValue(entry) {
-        const travailId = entry.travail_id ?? entry.travail
-        const processId = entry.process_id ?? entry.process
+        const travailId = entry.travail_id ?? entry.travail ?? entry.htime_travail
+        const processId = entry.process_id ?? entry.process ?? entry.htime_process ?? entry.hstatus_id
         if (travailId) { return `tr:${travailId}` }
         if (processId) { return `pr:${processId}` }
         return ''
+    }
+
+    #resolveProjectId(entry) {
+        const direct = entry.project_id ?? entry.project ?? entry.projectId ?? entry.htime_project
+        if (direct) { return Promise.resolve(direct) }
+        if (!entry.reference) { return Promise.resolve(null) }
+        const store = new STProject('Project')
+        return store.query({name: entry.reference})
+            .then(results => {
+                const match = results.find(item =>
+                    String(item.reference) === String(entry.reference))
+                return match?.value ?? match?.id ?? null
+            })
+            .catch(() => null)
+    }
+
+    #attachProcessTravailSelect(form, entry, projectId) {
+        const processTravailInput = form.querySelector('input[name="process_travail"]')
+        const store = new STProcessTravail(projectId)
+        return new Promise(resolve => {
+            window.requestAnimationFrame(() => {
+                const select = new KSelectUI(processTravailInput, store, {
+                    realSelect: true,
+                    allowFreeText: false,
+                })
+                const initial = this.#entryProcessTravailValue(entry)
+                if (initial) {
+                    select.value = initial
+                } else if (entry.travail_ref) {
+                    processTravailInput.value = entry.travail_ref
+                } else if (entry.process_name) {
+                    processTravailInput.value = entry.process_name
+                    if (entry.process_color) {
+                        select.colorize(`#${String(entry.process_color).replace(/^#/, '')}`)
+                    }
+                }
+                resolve(select)
+            })
+        })
     }
 
     #patchFromProcessTravailSelection(value, lastEntry) {
@@ -323,14 +363,15 @@ export default class TimeUI {
         const entry = this.#currentPersonEntries.get(entryNodeId)
         if (!entry) { return }
 
-        this.#ensureKcore().then(() => {
-            this.#showEntryEditor(personId, entryNodeId, entry)
-        }).catch(() => {
-            KAAL.error('Impossible de charger le sélecteur processus / travail')
-        })
+        this.#ensureKcore()
+            .then(() => this.#resolveProjectId(entry))
+            .then(projectId => this.#showEntryEditor(personId, entryNodeId, entry, projectId))
+            .catch(() => {
+                KAAL.error('Impossible de charger le sélecteur processus / travail')
+            })
     }
 
-    #showEntryEditor(personId, entryNodeId, entry) {
+    #showEntryEditor(personId, entryNodeId, entry, projectId) {
         const previousSelected = document.querySelector('.time-entry-list .time-entry.selected')
         if (previousSelected) { previousSelected.classList.remove('selected') }
         const entryNode = document.getElementById(entryNodeId)
@@ -396,68 +437,53 @@ export default class TimeUI {
 
         const closePopup = () => popup.close()
 
-        const projectId = entry.project_id ?? entry.project
-        const processTravailInput = form.querySelector('input[name="process_travail"]')
-        const processTravailSelect = new KSelectUI(processTravailInput, new STProcessTravail(projectId), {
-            realSelect: true,
-            allowFreeText: false,
-        })
-        const initialProcessTravail = this.#entryProcessTravailValue(entry)
-        if (initialProcessTravail) {
-            processTravailSelect.value = initialProcessTravail
-        } else if (entry.travail_ref) {
-            processTravailInput.value = entry.travail_ref
-        } else if (entry.process_name) {
-            processTravailInput.value = entry.process_name
-            if (entry.process_color) {
-                processTravailSelect.colorize(`#${entry.process_color}`)
-            }
-        }
+        this.#attachProcessTravailSelect(form, entry, projectId)
+        .then(processTravailSelect => {
+            form.querySelector('button[name="cancel"]').addEventListener('click', closePopup)
 
-        form.querySelector('button[name="cancel"]').addEventListener('click', closePopup)
+            form.querySelector('button[name="delete"]').addEventListener('click', () => {
+                if (!window.confirm('Supprimer cette entrée de temps ?')) { return }
+                if (!this.#removeCachedEntry(personId, entry.id)) {
+                    KAAL.error("Impossible de supprimer l'entrée")
+                    return
+                }
+                this.#currentPersonEntries.delete(entryNodeId)
+                closePopup()
+                this.#refreshPersonViewFromCache()
+            })
 
-        form.querySelector('button[name="delete"]').addEventListener('click', () => {
-            if (!window.confirm('Supprimer cette entrée de temps ?')) { return }
-            if (!this.#removeCachedEntry(personId, entry.id)) {
-                KAAL.error("Impossible de supprimer l'entrée")
-                return
-            }
-            this.#currentPersonEntries.delete(entryNodeId)
-            closePopup()
-            this.#refreshPersonViewFromCache()
-        })
-
-        form.addEventListener('submit', (event) => {
-            event.preventDefault()
-            const formData = new FormData(form)
-            const time = DataUtils.strToDuration(formData.get('time'))
-            if (time <= 0) {
-                KAAL.error('Le temps est manquant ou erroné')
-                return
-            }
-            const km = parseInt(formData.get('private_km'), 10)
-            const remark = formData.get('remark') ?? ''
-            const processTravailValue = processTravailSelect.value
-            if (!processTravailValue?.startsWith('pr:') && !processTravailValue?.startsWith('tr:')) {
-                KAAL.error('Le processus ou le travail est manquant ou erroné')
-                return
-            }
-            const patch = {
-                time_written: time / 3600,
-                private_km: Number.isNaN(km) ? 0 : km,
-                remark,
-                ...this.#patchFromProcessTravailSelection(
-                    processTravailValue,
-                    processTravailSelect.lastEntry,
-                ),
-            }
-            if (!this.#patchCachedEntry(personId, entry.id, patch)) {
-                KAAL.error("Impossible de modifier l'entrée")
-                return
-            }
-            this.#indexWorktimeData(this.#worktimeData)
-            closePopup()
-            this.#refreshPersonViewFromCache()
+            form.addEventListener('submit', (event) => {
+                event.preventDefault()
+                const formData = new FormData(form)
+                const time = DataUtils.strToDuration(formData.get('time'))
+                if (time <= 0) {
+                    KAAL.error('Le temps est manquant ou erroné')
+                    return
+                }
+                const km = parseInt(formData.get('private_km'), 10)
+                const remark = formData.get('remark') ?? ''
+                const processTravailValue = processTravailSelect.value
+                if (!processTravailValue?.startsWith('pr:') && !processTravailValue?.startsWith('tr:')) {
+                    KAAL.error('Le processus ou le travail est manquant ou erroné')
+                    return
+                }
+                const patch = {
+                    time_written: time / 3600,
+                    private_km: Number.isNaN(km) ? 0 : km,
+                    remark,
+                    ...this.#patchFromProcessTravailSelection(
+                        processTravailValue,
+                        processTravailSelect.lastEntry,
+                    ),
+                }
+                if (!this.#patchCachedEntry(personId, entry.id, patch)) {
+                    KAAL.error("Impossible de modifier l'entrée")
+                    return
+                }
+                this.#indexWorktimeData(this.#worktimeData)
+                closePopup()
+                this.#refreshPersonViewFromCache()
+            })
         })
     }
 
