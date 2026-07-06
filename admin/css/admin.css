@@ -984,20 +984,24 @@ button.addMore:before {
     min-height: 24ex;
 }
 
-.time-card-container .label {
+.time-person-view .person-card {
+    min-height: auto;
+}
+
+.person-card .label {
     display: inline-block;
     min-width: 20ch; 
 }
-.time-card-container .value {
+.person-card .value {
     display: inline-block;
     min-width: 10ch;
     text-align: right;
 }
 
-.time-card-container .name {
+.person-card .name {
     font-weight: bold;
 }
-.time-card-container .download {
+.person-card .download {
     cursor: pointer;
     text-align: left;
     font-size: 0.9em;
@@ -1005,13 +1009,13 @@ button.addMore:before {
     color: black;
 }
 
-.time-card-container .accounted-time .label,
-.time-card-container .absence-time .label {
+.person-card .accounted-time .label,
+.person-card .absence-time .label {
     padding-left: 2ch;
     min-width: 18ch;
 }
 
-.time-card-container .download:hover {
+.person-card .download:hover {
     text-decoration: underline;
 }
 

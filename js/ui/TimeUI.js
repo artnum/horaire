@@ -47,6 +47,51 @@ export default class TimeUI {
                            beginDate, endDate, personId)
     }
 
+    #formatOverviewHours(value) {
+        if (value instanceof FormatHour) { return value }
+        return new FormatHour(value * 3600)
+    }
+
+    #buildPersonCard(item, beginDate, endDate) {
+        const overview = item.overview
+        const card = document.createElement('DIV')
+        card.classList.add('person-card')
+        card.dataset.personId = item.id
+        card.dataset.personName = item.name
+        card.dataset.beginDate = beginDate
+        card.dataset.endDate = endDate
+        card.innerHTML = `
+            <div class="name">${item.name}</div>
+            <div class="days">
+                <span class="label">Jours</span>
+                <span class="value">${overview.days}</span>
+            </div>
+            <div class="pauses">
+                <span class="label">Pauses</span>
+                <span class="value">${overview.pause}</span>
+            </div>
+            <div class="total-time">
+                <span class="label">Temps total</span>
+                <span class="value">${this.#formatOverviewHours(overview.total_time)}</span>
+            </div>
+            <div class="absence-time">
+                <span class="label">- absences</span>
+                <span class="value">${this.#formatOverviewHours(overview.absence_time)}</span>
+            </div>
+            <div class="accounted-time">
+                <span class="label">- comptabilisé</span>
+                <span class="value">${this.#formatOverviewHours(overview.accounted_time)}</span>
+            </div>
+            <div class="private-km">
+                <span class="label">KM Privé</span>
+                <span class="value">${overview.private_km}</span>
+            </div>
+            <div data-action="download" class="download">
+                &#11015; Excel
+            </div>`
+        return card
+    }
+
     #downloadFile(type, name, what, begin, end, id = null) {
         let url
         switch(what) {
@@ -315,8 +360,16 @@ export default class TimeUI {
 
     #buildPersonViewContainer(id, {preserveFilter = false} = {}) {
         const personData = this.#worktimeData?.find(item => item.id === id)
+        const {beginDate, endDate} = this.#getDateRange()
         const wrapper = document.createElement('DIV')
         wrapper.classList.add('time-person-view')
+
+        if (personData?.overview) {
+            const summaryNode = this.#buildPersonCard(personData, beginDate, endDate)
+            summaryNode.addEventListener('click', this.#personCardEventHandler.bind(this),
+                {signal: this.#viewEventController.signal})
+            wrapper.appendChild(summaryNode)
+        }
 
         const searchBar = document.createElement('DIV')
         searchBar.classList.add('time-entry-search-bar')
@@ -528,56 +581,8 @@ export default class TimeUI {
 
             this.#loadData()
             .then(data => {
-                   data.forEach(item => {
-                   item.entries.forEach(entry => {
-                        entry._person    = item.name
-                        entry._person_id = item.id
-                        if (this.#duplicate.has(entry.x_key)) {
-                            this.#duplicate.get(entry.x_key).push(entry)
-                        } else {
-                            this.#duplicate.set(entry.x_key, [entry])
-                        }
-                    })
-                    item.overview.total_time = new FormatHour(item.overview.total_time * 3600)
-                    item.overview.absence_time = new FormatHour(item.overview.absence_time * 3600)
-                    item.overview.accounted_time = new FormatHour(item.overview.accounted_time * 3600)
-                    const iNode = document.createElement('DIV')
-                    iNode.classList.add('person-card')
-                    iNode.dataset.personId = item.id
-                    iNode.dataset.personName = item.name
-                    iNode.dataset.beginDate = beginDate
-                    iNode.dataset.endDate = endDate
-                    iNode.innerHTML = `
-                    <div class="name">${item.name}</div>
-                    <div class="days">
-                        <span class="label">Jours</span>
-                        <span class="value">${item.overview.days}</span>
-                    </div>
-                    <div class="pauses">
-                        <span class="label">Pauses</span>
-                        <span class="value">${item.overview.pause}</span>
-                    </div>
-                    <div class="total-time">
-                        <span class="label">Temps total</span>
-                        <span class="value">${item.overview.total_time}</span>
-                    </div>
-                    <div class="absence-time">
-                        <span class="label">- absences</span>
-                        <span class="value">${item.overview.absence_time}</span>
-                    </div>
-                    <div class="accounted-time">
-                        <span class="label">- comptabilisé</span>
-                        <span class="value">${item.overview.accounted_time}</span>
-                    </div>
-                    <div class="private-km">
-                        <span class="label">KM Privé</span>
-                        <span class="value">${item.overview.private_km}</span>
-                    </div>
-                    <div data-action="download" class="download">
-                        &#11015; Excel
-                    </div>`
-
-                    container.appendChild(iNode);
+                data.forEach(item => {
+                    container.appendChild(this.#buildPersonCard(item, beginDate, endDate))
                 })
             })
             return resolve(container)
