@@ -298,7 +298,8 @@ try {
        'TVA' => '#0.00',
        'Montant TTC' => 'price',
        'Facture' => 'string',
-       'Paiement' => 'date'
+       'Paiement' => 'date',
+       'URL' => 'string'
     ];
     $invoices = [];
     $line = 1;
@@ -328,7 +329,7 @@ try {
             $facture_amount = floatval($invoice->total_net);
             $amount = floatval($invoice->total);
             $bxReferences[] = strval($reference);
-            $SheetFacture['content'][] = [$reference, $invoice->is_valid_from, $contact->name_1, $facture_amount, '', $amount , 'Débiteur',  ''];
+            $SheetFacture['content'][] = [$reference, $invoice->is_valid_from, $contact->name_1, $facture_amount, '', $amount , 'Débiteur',  '', '=HYPERLINK("https://office.bexio.com/index.php/kb_invoice/getPdf/id/'. $invoice->id.'/logopaper/1","Lien bexio")'];
             $amountByType[1] += abs($facture_amount);
             $line++;
         }
@@ -443,7 +444,8 @@ try {
                $tva,
                $ttc ? $facture_amount : '=D'.($line + 1). '+(D' . ($line + 1) . '*E' . ($line + 1) .'%)',
                $type,
-               $paydate ? $paydate->format('Y-m-d') : ''];
+                $paydate ? $paydate->format('Y-m-d') : '',
+            '=HYPERLINK("https://zenix/horaire/admin/bill.html?id=' . $repData['facture_id'] . '", "Lien facture")'];
             $line++;
 
             $splitvalue = floatval($repData['repartition_splitvalue']);

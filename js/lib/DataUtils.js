@@ -1,53 +1,62 @@
-const DataUtils = {
-    toId (uid) {
+export default class DataUtils  {
+    static toId (uid) {
         if (typeof uid === 'number') return String(uid)
         uid = String(uid)
         return uid.split('/').pop()
-    },
-    empty (value) {
+    }
+    
+    static empty (value) {
         if (value === undefined) { return true }
         if (value === null || value === '') { return true }
         return false
-    },
-    str (value) {
+    }
+
+    static str (value) {
         if (value === undefined) { return '' }
         if (value === null) { return '' }
         return String(value)
-    },
-    html (value) {
+    }
+
+    static html (value) {
         return value
             .replaceAll('<', '&lt;')
             .replaceAll('>', '&gt;')
             .replaceAll('/', '&#47;')
             .replaceAll(/(?:\r\n|\r|\n)/g, '<br>')
-    },
-    textualShortDate (date) {
+    }
+    
+    static textualShortDate (date) {
       if (typeof date === 'string') {
         date = new Date(date)
       }
       return `${Intl.DateTimeFormat(navigator.language, {weekday: 'long'}).format(date).capitalize()}, ${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}`
-    },
-    shortDate (date) {
+    }
+
+    static shortDate (date) {
         if (typeof date === 'string') {
             date = new Date(date)
         }
         return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}`
-    },
-    longDate (date) {
+    }
+    
+    static longDate (date) {
         if (typeof date === 'string') {
             date = new Date(date)
         }
         return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`
-    },
-    dbDate (date) {
+    }
+
+    static dbDate (date) {
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-    },
-    secToHour (value) {
+    }
+
+    static secToHour (value) {
         const hour = Math.floor(value / 3600)
         const minute = Math.round(((value / 3600) - hour) * 60)
         return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
-    },
-    strToDuration (value) {
+    }
+
+    static strToDuration (value) {
         const rExp = /\s*([0-9]*)\s*(?:(?:([m|M]|[h|H]){1}\s*([0-9]*))|(?:([.:,]{1})\s*([0-9]*))){0,1}\s*/
         let intValue
         if (rExp.test(value)) {
@@ -87,56 +96,17 @@ const DataUtils = {
         }
     
         return intValue * 60
-    },
-    durationToStr (value) {
+    }
+
+    static durationToStr (value) {
         const h = Math.trunc(value / 3600)
         const m = Math.trunc(Math.round(((value / 3600) - h) * 60))
         return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}min`
-    },
-    durationToStrTime (value) {
+    }
+
+    static durationToStrTime (value) {
         const h = Math.trunc(value / 3600)
         const m = Math.trunc(Math.round(((value / 3600) - h) * 60))
         return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
     }
-}
-
-const KAGenericProxy = {
-    get (target, symbol) {
-        if (symbol in target) { return target[symbol] }
-        if (symbol === 'id' || symbol === 'uid') { return target.uid }
-        const value = target.get(symbol)
-        return value
-    },
-    set (target, symbol, value) {
-        if (symbol in target) { return target[symbol] = value }
-        return target.set(symbol, value)
-    },
-    has (target, symbol) {
-        return target.has(symbol)
-    },
-    ownKeys (target) {
-        return target.data.keys()
-    }
-}
-
-/* sanitize for html */
-function $s(value) {
-    return DataUtils.html(DataUtils.str(value))
-}
-
-/* sanitize for input, textarea */
-function $i(value) {
-    return DataUtils.str(value)
-}
-
-Number.prototype.toId = function () {
-    return DataUtils.toId(this) 
-}
-
-String.prototype.toId = function () {
-    return DataUtils.toId(this)
-}
-
-String.prototype.capitalize = function () {
-  return this.charAt(0).toLocaleUpperCase() + this.slice(1)
 }

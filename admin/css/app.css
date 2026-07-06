@@ -63,8 +63,12 @@ section.ka-main-nav .item {
   padding: 4px;
 }
 
-.item.disabled {
+.item.disabled, .item.deleted {
   opacity: 0.5;
+}
+
+.item.deleted {
+  text-decoration: line-through;
 }
 
 section.ka-main-nav .item.selected,

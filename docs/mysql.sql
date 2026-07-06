@@ -250,7 +250,7 @@ CREATE TABLE IF NOT EXISTS "documents_contacts" (
 	FOREIGN KEY ("document_id") REFERENCES "documents"("id"),
 	FOREIGN KEY ("type_id") REFERENCES "contact_types"("id")
 );
-CREATE INDEX "idxDocumentsContacts_type" ON "documents_contacts"("type") USING HASH;
+CREATE INDEX "idxDocumentsContacts_type" ON "documents_contacts"("type_id") USING HASH;
 
 CREATE TABLE IF NOT EXISTS "documents" (
 	"id" BIGINT UNSIGNED PRIMARY KEY,
@@ -354,7 +354,6 @@ ALTER TABLE person MODIFY COLUMN person_created INT UNSIGNED NOT NULL DEFAULT 0;
 UPDATE person SET person_deleted = 0 WHERE person_deleted IS NULL;
 ALTER TABLE person MODIFY COLUMN person_deleted INT UNSIGNED NOT NULL DEFAULT 0;
 
-
 ALTER TABLE quantity MODIFY COLUMN quantity_person BIGINT UNSIGNED DEFAULT NULL;
 ALTER TABLE quantity ADD CONSTRAINT quantity_ibfk_4 FOREIGN KEY (quantity_person) REFERENCES person(person_id) ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -364,12 +363,12 @@ ALTER TABLE prixheure ADD CONSTRAINT prixheure_ibfk_1 FOREIGN KEY (prixheure_per
 ALTER TABLE htime MODIFY COLUMN htime_person BIGINT UNSIGNED NOT NULL;
 ALTER TABLE htime ADD CONSTRAINT htime_ibfk_1 FOREIGN KEY (htime_person) REFERENCES person(person_id) ON DELETE CASCADE ON UPDATE CASCADE;
 
-SET FOREIGN_KEY_CHECKS = 1;
-
 ALTER TABLE kaalauth MODIFY COLUMN userid BIGINT UNSIGNED NOT NULL; 
 ALTER TABLE kaalauth ADD COLUMN tenant_id INT UNSIGNED NOT NULL DEFAULT 1;
 CREATE INDEX idxUserId ON kaalauth (userid);
 CREATE INDEX idxTenantId ON kaalauth (tenant_id);
+
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- START IMPLENTING tenants.
 CREATE TABLE IF NOT EXISTS tenants (
@@ -418,17 +417,7 @@ CREATE TABLE IF NOT EXISTS person_documents (
   UNIQUE INDEX idxDocumentTenantHash (person_id,tenant_id,hash)
 );
 
-CREATE TABLE IF NOT EXISTS person_civilStatus (
-	id BIGINT UNSIGNED PRIMARY KEY,
-	person_id BIGINT UNSIGNED NOT NULL,
-	tenant_id INTEGER UNSIGNED NOT NULL DEFAULT 1,
-	status TINYINT DEFAULT 0,
-	valid DATE NOT NULL,
-	FOREIGN KEY (person_id) REFERENCES person(person_id) ON DELETE CASCADE ON UPDATE CASCADE,
-	INDEX idxTenantId (tenant_id),
-	INDEX idxTenantPersonValid (tenant_id, person_id, valid),
-	UNIQUE INDEX idxPersonValid (person_id, valid)
-);
+
 
 -- CREATE TABLES FOR ACLS
 CREATE TABLE IF NOT EXISTS acls (
@@ -457,7 +446,7 @@ ALTER TABLE `group` ADD CONSTRAINT fkGroupToTenant FOREIGN KEY (tenant_id) REFER
 
 ALTER TABLE `prixheure` MODIFY COLUMN `prixheure_id` BIGINT UNSIGNED NOT NULL;
 ALTER TABLE `prixheure` ADD COLUMN `tenant_id` INT UNSIGNED NOT NULL DEFAULT 1; 
-ALTER TABLE `prixheure` ADD CONSTRAINT fkTenantId FOREIGN KEY (`tenand_id`) REFERENCES `tenants`(id) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `prixheure` ADD CONSTRAINT fkTenantId FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 
 CREATE TABLE IF NOT EXISTS sequences (
@@ -505,4 +494,99 @@ CREATE TABLE IF NOT EXISTS filesystem (
   FOREIGN KEY (parent_id) REFERENCES filesystem(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS phones (
+  id BIGINT UNSIGNED PRIMARY KEY,
+  tenant_id INT UNSIGNED NOT NULL DEFAULT 1,
+  number VARCHAR(20),
+  extension VARCHAR(10) NULL,
+  kind ENUM('MOBILE', 'FIX', 'OTHER')
+);
 
+CREATE TABLE IF NOT EXISTS phone_to_entity (
+  tenant_id INT UNSIGNED NOT NULL DEFAULT 1,
+  phone_id BIGINT UNSIGNED,
+  entity_id BIGINT UNSIGNED,
+  kind VARCHAR(10) NOT NULL,
+  priority INT UNSIGNED DEFAULT 0, 
+  since VARCHAR(10) NOT NULL DEFAULT '',
+  PRIMARY KEY (tenant_id, phone_id, entity_id),
+  FOREIGN KEY (phone_id) REFERENCES phones(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idxKind (kind) USING HASH
+);
+
+
+-- Extensions 1 and 2 are for military address, c/o address an any real life addresses
+-- Swiss Post allows up to 6 address lines https://www.post.ch/-/media/portal-opp/pm/dokumente/briefe-spezifikation-gestaltung.pdf?vs=12&sc_lang=fr&hash=D298B7E8E1B706510FC57E116B307541
+-- Extensions 1 and 2 will go under the name as most addresses by swiss post are that way
+CREATE TABLE IF NOT EXISTS addresses (
+	id BIGINT UNSIGNED PRIMARY KEY,
+  tenant_id INT UNSIGNED NOT NULL DEFAULT 1,
+  type ENUM ('STRUCTURED', 'UNSTRUCTURED'),
+  name VARCHAR(70) NOT NULL,
+	str_or_line1 VARCHAR(70) DEFAULT '', -- QR std
+	num_or_line2 VARCHAR(70) DEFAULT '', -- QR std
+	postal_code VARCHAR(16) DEFAULT '', -- QR std
+	locality VARCHAR(35) DEFAULT '', -- QR std
+  country VARCHAR(2) NOT NULL, -- QR std
+  ext1 VARCHAR(70) DEFAULT '', -- extension 1
+  ext2 VARCHAR(70) DEFAULT '' -- extnsion 2
+);
+
+CREATE TABLE IF NOT EXISTS address_to_entity (
+  tenant_id INT UNSIGNED NOT NULL DEFAULT 1,
+  address_id BIGINT UNSIGNED,
+  entity_id BIGINT UNSIGNED,
+  kind VARCHAR(10) NOT NULL,
+  priority INT UNSIGNED DEFAULT 0, 
+  since DATE NOT NULL DEFAULT '0001-01-01',
+  PRIMARY KEY (tenant_id, address_id, entity_id),
+  FOREIGN KEY (address_id) REFERENCES addresses(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idxKind (kind) USING HASH,
+  INDEX idxSince (since) USING BTREE,
+  INDEX idxTenantEntitySince (tenant_id, entity_id, since)
+);
+
+CREATE TABLE IF NOT EXISTS banks (
+  id BIGINT UNSIGNED PRIMARY KEY,
+  tenant_id INT UNSIGNED NOT NULL DEFAULT 1,
+  name VARCHAR(70) NOT NULL,
+  bc_number VARCHAR(5) DEFAULT '',
+  swift_code VARCHAR(11) DEFAULT '',
+  ccp VARCHAR(30) DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS ibans (
+  id BIGINT UNSIGNED PRIMARY KEY,
+  tenant_id INT UNSIGNED NOT NULL DEFAULT 1,
+  bank_id BIGINT UNSIGNED NOT NULL,
+  address_id BIGINT UNSIGNED NOT NULL,
+  iban VARCHAR(21) NOT NULL,
+  FOREIGN KEY (bank_id) REFERENCES banks(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY (address_id) REFERENCES addresses(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS civil_status(
+  person_id BIGINT UNSIGNED,
+  tenant_id INT UNSIGNED NOT NULL DEFAULT 1,
+  since DATE NOT NULL DEFAULT '0001-01-01',
+  status CHAR(10),
+  PRIMARY KEY (tenant_id, person_id, since),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	FOREIGN KEY (person_id) REFERENCES person (person_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idxSince (since) USING BTREE
+);
+
+CREATE TABLE IF NOT EXISTS children (
+  id BIGINT UNSIGNED PRIMARY KEY,
+  tenant_id INT UNSIGNED NOT NULL DEFAULT 1,
+  person_id BIGINT UNSIGNED NOT NULL,
+  firstname VARCHAR(70) NOT NULL,
+  lastname VARCHAR(70) NOT NULL,
+  birthday DATE NOT NULL,
+  deduction_start DATE NOT NULL DEFAULT '0001-01-01',
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	FOREIGN KEY (person_id) REFERENCES person (person_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idxBirthday (birthday) USING BTREE
+);

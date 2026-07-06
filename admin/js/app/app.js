@@ -3,6 +3,7 @@ import RouterHandler from './$script/admin/app/router.js'
 import help from '../../../js/lib/help.js'
 import { AccessAPI } from '../../../js/JAPI/content/Access.js'
 import Privilege from '../../../js/JAPI/Privilege.js'
+import KAPerson from '../../../js/data/person.js'
 
 class AppEventSystem {
   constructor() {
@@ -47,6 +48,8 @@ class AppEventSystem {
 }
 
 export default class App {
+  #currentUiNode = null
+
   constructor(parentNode) {
     this.parentNode = parentNode
     this.events = new AppEventSystem()
@@ -54,6 +57,7 @@ export default class App {
     this.access = new Privilege(new AccessAPI())
     this.init()
     this.events.on('navigate', (_) => this.clearBlockError())
+    
   }
 
   setupRoute() {
@@ -62,6 +66,10 @@ export default class App {
       const object = parts.shift()
       const id = parts.shift()
       if (!object) return
+      if (this.#currentUiNode && this.#currentUiNode.destroy) {
+        this.#currentUiNode.destroy()
+      }
+      this.#currentUiNode = null
       this.main.classList.remove('with-navigation')
 
       this.events.emit('close')
@@ -75,12 +83,14 @@ export default class App {
         this.parentNode.classList.remove(this.currentObject)
         this.currentObject = object
         switch (object) {
+          case 'TimeUI':
           case 'UserUI':
           case 'QuoteUI':
             this.main.classList.add('with-navigation')
             import(`./$script/admin/ui/${object}.js`).then((module) => {
               const ui = new module['default'](this, this.main, this.navigation)
               ui.init().then((_) => {
+                this.#currentUiNode = ui
                 Promise.all([
                   ui.main().then((node) => {
                     if (node) {
@@ -237,7 +247,14 @@ export default class App {
     this.root.appendChild(this.status)
 
     this.parentNode.appendChild(this.root)
+    
+    window.addEventListener('start-fetch', e => {
+        this.startLoading()
+    })
 
+    window.addEventListener('stop-fetch', e => {
+        this.stopLoading()
+    })
     this.events.on('logout', (_) => this.logout())
   }
 
@@ -277,7 +294,16 @@ export default class App {
           label: 'Utilisateurs',
           nodeid: 'user',
         },
-        { level: 32, node: `open:time`, label: 'Temps', nodeid: 'time' },
+        //{ level: 32, node: `open:time`, label: 'Temps', nodeid: 'time' },
+        {
+            level: 32,
+            callback: () => {
+                RouterHandler.executeRoute('open:TimeUI')
+            },
+            node: 'open:time',
+            label: 'Temps',
+            nodeid: 'time', 
+        },
         { level: 32, node: `open:bill`, label: 'Facture', nodeid: 'bill' },
         { level: 32, node: 'open:debt', label: 'Débiteur', nodeid: 'debitor' },
         { level: 128, node: `open:item`, label: 'Matériels', nodeid: 'items' },
@@ -394,6 +420,14 @@ export default class App {
   clearModule() {
     this.module.innerHTML = ''
     return Promise.resolve(this)
+  }
+ 
+  startLoading() {
+    this.status.querySelector('.info').classList.add('loading_in_progress')
+  }
+
+  stopLoading() {
+    this.status.querySelector('.info').classList.remove('loading_in_progress')
   }
 
   clearStatus() {

@@ -19,8 +19,8 @@
     },
     "repositories": [
         {
-            "type": "vcs",
-            "url": "https://github.com/artnum/pjapi-php"
+            "type": "path",
+            "url": "../pjapi-php/"
         },
         {
             "type": "vcs",

@@ -1,29 +1,6 @@
 import dom from '../dom.js'
 import ZMax from './ZMax.js'
-
-function debounce(func, wait) {
-  let timeout
-
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout)
-      func(...args)
-    }
-
-    clearTimeout(timeout)
-    timeout = setTimeout(later, wait)
-  }
-}
-function throttle(func, wait) {
-  let lastCall = 0
-  return function (...args) {
-    const now = Date.now()
-    if (now - lastCall >= wait) {
-      lastCall = now
-      func(...args)
-    }
-  }
-}
+import Timing from '../Timing.js'
 
 export default class Placement {
   static #initialized = false
@@ -114,14 +91,14 @@ export default class Placement {
     })
     window.addEventListener(
       'resize',
-      debounce((_) => {
+      Timing.debounce((_) => {
         Placement.updatePlacement()
       }, 5),
       { capture: true },
     )
     window.addEventListener(
       'scroll',
-      throttle((_) => {
+      Timing.throttle((_) => {
         Placement.updatePlacement()
       }, 50),
       { capture: true },
@@ -142,7 +119,7 @@ export default class Placement {
 
     window.addEventListener(
       'mousedown',
-      throttle((event) => {
+      Timing.throttle((event) => {
         const eventNode = event.target
 
         Placement.#nodesMap.forEach((entry) => {

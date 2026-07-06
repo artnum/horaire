@@ -972,3 +972,109 @@ button.addMore:before {
 .inline-fieldset {
     display: inline-block;
 }
+
+
+.time-card-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2ch;
+}
+.person-card {
+    min-width: 32ch;
+    min-height: 24ex;
+}
+
+.time-card-container .label {
+    display: inline-block;
+    min-width: 20ch; 
+}
+.time-card-container .value {
+    display: inline-block;
+    min-width: 10ch;
+    text-align: right;
+}
+
+.time-card-container .name {
+    font-weight: bold;
+}
+.time-card-container .download {
+    cursor: pointer;
+    text-align: left;
+    font-size: 0.9em;
+    padding: 2ch;
+    color: black;
+}
+
+.time-card-container .accounted-time .label,
+.time-card-container .absence-time .label {
+    padding-left: 2ch;
+    min-width: 18ch;
+}
+
+.time-card-container .download:hover {
+    text-decoration: underline;
+}
+
+.time-entry-list {
+    display: grid;
+    gap: 0.5ex 1ch;
+    grid-template-columns: 2ch 1fr 1fr 6fr 1fr 1fr 1fr 2ch 2ch;
+}
+
+.time-entry-list .time-entry {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / 10;
+    cursor: pointer;
+}
+.time-entry-list .time-entry:hover {
+    background-color: lightblue;
+}
+.time-entry-list .time-entry .same {
+    font-weight: bold;
+    color: darkred;
+}
+
+.time-same-entries .title {
+    font-weight: bold;
+    padding: 2ex 1ch;
+}
+
+.time-same-entries .kv-pair .label, 
+.time-same-entries .kv-pair .value, 
+.time-entry-details .kv-pair .label, 
+.time-entry-details .kv-pair .value {
+    padding: 0 1ch;
+}
+
+.time-same-entries .kv-pair .label, 
+.time-entry-details .kv-pair .label {
+    display: flex;
+    align-items: flex-end;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.time-same-entries .kv-pair .value,
+.time-entry-details .kv-pair .value {
+    display: flex;
+    align-items: center;
+    background-color: #eee;
+    min-height: 4ex;
+}
+ 
+.time-entry-details .kv-pair.remark .value, 
+.time-entry-details .kv-pair.project-name .value {
+    align-items: flex-start;
+    min-height: 8ex;
+    max-height: 8ex;
+    overflow-y: scroll;
+}
+
+.loading_in_progress {
+  background: repeating-linear-gradient(-45deg,orange 0 15px, transparent 0 20px) left/200% 100%;
+  animation: l3 4s infinite linear;
+}
+@keyframes l3 {
+    100% {background-position:right}
+}

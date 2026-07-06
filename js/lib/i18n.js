@@ -2,7 +2,7 @@ export default class i18n {
   #string
 
   constructor(string) {
-    this.#string = new String(string || '')
+    this.#string = String(string || '')
   }
 
   compare(str) {

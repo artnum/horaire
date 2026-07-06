@@ -1,12 +1,14 @@
-function OldLoginInteface(UserUI) {
-  if (OldLoginInteface._instance) {
-    return OldLoginInteface._instance;
-  }
-  OldLoginInteface._instance = this;
-  this.UserUI = UserUI;
-}
+import KAPerson from '../data/person.js'
 
-OldLoginInteface.prototype = {
+class OldLoginInteface {
+  constructor(UserUI) {
+    if (OldLoginInteface._instance) {
+      return OldLoginInteface._instance;
+    }
+    OldLoginInteface._instance = this;
+    this.UserUI = UserUI;
+  }
+
   unrender() {
     const container = document.querySelector(".ka-main-top");
     const userboxes = container.querySelectorAll(".ka-userbox");
@@ -14,7 +16,7 @@ OldLoginInteface.prototype = {
       userbox.remove();
     });
     container.querySelector(".ka-login").remove();
-  },
+  } 
 
   requestPassword(uid) {
     return new Promise((resolve, reject) => {
@@ -62,7 +64,7 @@ OldLoginInteface.prototype = {
         container.appendChild(logForm);
       });
     });
-  },
+  }
 
   render() {
     return new Promise((resolve, reject) => {
@@ -82,21 +84,22 @@ OldLoginInteface.prototype = {
         }
       });
     });
-  },
-};
-
-function NewLoginInterface(UserUI) {
-  if (NewLoginInterface._instance) {
-    return NewLoginInterface._instance;
   }
-  NewLoginInterface._instance = this;
-  this.UserUI = UserUI;
 }
 
-NewLoginInterface.prototype = {
+class NewLoginInterface {
+  constructo(UserUI) {
+    if (NewLoginInterface._instance) {
+      return NewLoginInterface._instance;
+    }
+    NewLoginInterface._instance = this;
+    this.UserUI = UserUI;
+  }
+
   unrender() {
     document.querySelector(".ka-main-top").innerHTML = "";
-  },
+  }
+
   doLogin(uid, password) {
     return new Promise((resolve, reject) => {
       const klogin = new KLogin();
@@ -114,7 +117,7 @@ NewLoginInterface.prototype = {
           MsgInteractUI("error", "Erreur d'authentification");
         });
     });
-  },
+  }
   render(params) {
     const container = document.querySelector(".ka-main-top");
     const form = document.createElement("FORM");
@@ -139,10 +142,11 @@ NewLoginInterface.prototype = {
           MsgInteractUI("error", "Erreur d'authentification");
         });
     });
-  },
-};
+  }
+}
 
-function InvitationLoginInterface(UserUI) {
+class InvitationLoginInterface {
+constructor (UserUI) {
   if (InvitationLoginInterface._instance) {
     return InvitationLoginInterface._instance;
   }
@@ -150,10 +154,9 @@ function InvitationLoginInterface(UserUI) {
   this.UserUI = UserUI;
 }
 
-InvitationLoginInterface.prototype = {
   unrender() {
     document.querySelector(".ka-main-top").innerHTML = "";
-  },
+  }
   doLogin(uid, password) {
     return new Promise((resolve, reject) => {
       const klogin = new KLogin();
@@ -172,7 +175,7 @@ InvitationLoginInterface.prototype = {
           MsgInteractUI("error", "Erreur d'authentification");
         });
     });
-  },
+  }
   render(invitation) {
     const klogin = new KLogin();
     klogin
@@ -213,7 +216,7 @@ InvitationLoginInterface.prototype = {
       .catch((e) => {
         return MsgInteractUI("error", "Invitation inéxistante");
       });
-  },
+  }
   check_password(password) {
     password = String(password);
     const hasUppercase = /[A-Z]/.test(password);
@@ -243,70 +246,67 @@ InvitationLoginInterface.prototype = {
     }
 
     return false;
-  },
-};
-
-function UserInteractUI() {
-  this.eventTarget = new EventTarget();
-  this.loginSuccessResolve;
+  }
 }
 
-UserInteractUI.prototype.render = function () {
-  return new Promise((resolve) => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.has("invitation")) {
-      return new InvitationLoginInterface(this).render(
-        params.get("invitation"),
-      );
+export default class UserInteractUI {
+    constructor() {
+      this.eventTarget = new EventTarget();
+      this.loginSuccessResolve;
     }
-    if (!KAAL.login || !KAAL.login.new) {
-      return new OldLoginInteface(this).render(params);
-    }
-    return new NewLoginInterface(this).render(params);
-  });
-};
 
-UserInteractUI.prototype.loginSucceed = function (user) {
-  this.loginSuccessResolve(user);
-};
-
-UserInteractUI.prototype.run = function () {
-  return new Promise((resolve, reject) => {
-    this.loginSuccessResolve = resolve;
-
-    const klogin = new KLogin();
-    klogin
-      .getToken()
-      .then((token) => {
-        if (!token) {
-          throw new Error("Invalid token");
+    render() {
+      return new Promise((resolve) => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has("invitation")) {
+          return new InvitationLoginInterface(this).render(
+            params.get("invitation"),
+          );
         }
-        klogin
-          .check(token)
-          .then((login) => {
-            return klogin.getUser();
-          })
-          .then((userid) => {
-            return KAPerson.load(userid);
-          })
-          .then((user) => {
-            this.loginSucceed({ uid: user.uid, workday: user.workday });
-          })
-          .catch((e) => {
-            return this.render();
-          });
-      })
-      .catch((_) => {
-        this.render();
+        if (!KAAL.login || !KAAL.login.new) {
+          return new OldLoginInteface(this).render(params);
+        }
+        return new NewLoginInterface(this).render(params);
       });
-  });
-};
+    }
 
-UserInteractUI.prototype.addEventListener = function (
-  type,
-  listener,
-  options = {},
-) {
-  this.eventTarget.addEventListener(type, listener, options);
-};
+    loginSucceed(user) {
+      this.loginSuccessResolve(user);
+    }
 
+    run() {
+      return new Promise((resolve, reject) => {
+        this.loginSuccessResolve = resolve;
+
+        const klogin = new KLogin();
+        klogin
+          .getToken()
+          .then((token) => {
+            if (!token) {
+              throw new Error("Invalid token");
+            }
+            klogin
+              .check(token)
+              .then((login) => {
+                return klogin.getUser();
+              })
+              .then((userid) => {
+                return KAPerson.load(userid);
+              })
+              .then((user) => {
+                this.loginSucceed({ uid: user.uid, workday: user.workday });
+              })
+              .catch((e) => {
+                return this.render();
+              });
+          })
+          .catch((_) => {
+            this.render();
+          });
+      });
+    }
+
+    addEventListener(type, listener, options = {}) {
+      this.eventTarget.addEventListener(type, listener, options);
+    }
+}
