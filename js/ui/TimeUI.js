@@ -3,7 +3,6 @@ import Fetch from '../lib/Fetch.js'
 import FormatHour from '../lib/FormatHour.js'
 import FileExtension from '../lib/FileExtension.js'
 import Kolor from '../lib/Kolor.js'
-import KATemps from '../data/temps.js'
 import admin from '../admin.js'
 
 
@@ -18,6 +17,7 @@ export default class TimeUI {
     #currentViewState
     #currentPersonEntries
     #currentPersonId = null
+    #worktimeData = null
     #dateRange = [null, null]
     #app
     #duplicate = new Map()
@@ -124,6 +124,64 @@ export default class TimeUI {
             .replaceAll('"', '&quot;')
     }
 
+    #indexWorktimeData(data) {
+        this.#duplicate.clear()
+        data.forEach(item => {
+            item.entries.forEach(entry => {
+                entry._person = item.name
+                entry._person_id = item.id
+                if (this.#duplicate.has(entry.x_key)) {
+                    this.#duplicate.get(entry.x_key).push(entry)
+                } else {
+                    this.#duplicate.set(entry.x_key, [entry])
+                }
+            })
+        })
+    }
+
+    #findEntryInCache(personId, entryId) {
+        const person = this.#worktimeData?.find(item => item.id === personId)
+        if (!person?.entries) { return null }
+        return person.entries.find(entry => entry.id === entryId) ?? null
+    }
+
+    #patchCachedEntry(personId, entryId, patch) {
+        const entry = this.#findEntryInCache(personId, entryId)
+        if (!entry) { return false }
+        Object.assign(entry, patch)
+        return true
+    }
+
+    #removeCachedEntry(personId, entryId) {
+        const person = this.#worktimeData?.find(item => item.id === personId)
+        if (!person?.entries) { return false }
+        const index = person.entries.findIndex(entry => entry.id === entryId)
+        if (index === -1) { return false }
+        person.entries.splice(index, 1)
+        if (this.#worktimeData) {
+            this.#indexWorktimeData(this.#worktimeData)
+        }
+        return true
+    }
+
+    #persistEntry(entry, method, body = null) {
+        // TODO: use when /api/worktime/{id} is available on the backend
+        const url = `/api/worktime/${entry.id}`
+        if (method === 'DELETE') {
+            return F.delete(url)
+        }
+        return F.put(url, body)
+    }
+
+    #refreshPersonViewFromCache() {
+        if (!this.#currentPersonId || !this.#worktimeData) { return }
+        const container = this.#buildPersonViewContainer(this.#currentPersonId)
+        window.requestAnimationFrame(_ => {
+            Array.from(this.#mainNode.children).forEach(n => n.remove())
+            this.#mainNode.appendChild(container)
+        })
+    }
+
     #openEntryEditor(personId, entryNodeId) {
         const entry = this.#currentPersonEntries.get(entryNodeId)
         if (!entry) { return }
@@ -133,11 +191,9 @@ export default class TimeUI {
         const entryNode = document.getElementById(entryNodeId)
         if (entryNode) { entryNode.classList.add('selected') }
 
-        KATemps.load(entry.id)
-        .then((temps) => {
-            const form = document.createElement('FORM')
-            form.classList.add('time-entry-editor-form')
-            form.innerHTML = `
+        const form = document.createElement('FORM')
+        form.classList.add('time-entry-editor-form')
+        form.innerHTML = `
                 <div class="time-entry-editor-readonly">
                     <div class="kv-pair date">
                         <span class="label">Date</span>
@@ -193,103 +249,90 @@ export default class TimeUI {
                     <button type="button" name="cancel">Annuler</button>
                     <button type="button" name="delete" class="danger">Supprimer</button>
                 </div>
-            `
+        `
 
-            const popup = admin.popup(form, 'Entrée de temps', {
-                closable: true,
-                minWidth: '52ch',
-                supClasses: ['time-entry-editor'],
-            })
-
-            const closePopup = () => popup.close()
-
-            form.querySelector('button[name="cancel"]').addEventListener('click', closePopup)
-
-            form.querySelector('button[name="delete"]').addEventListener('click', () => {
-                if (!window.confirm('Supprimer cette entrée de temps ?')) { return }
-                KATemps.deleteById(temps.uid)
-                .then(() => {
-                    entryNode?.remove()
-                    this.#currentPersonEntries.delete(entryNodeId)
-                    closePopup()
-                    if (this.#currentPersonId) {
-                        this.navigate(`person:${this.#currentPersonId}`)
-                    }
-                })
-                .catch(() => {
-                    KAAL.error("Erreur lors de la suppression de l'entrée")
-                })
-            })
-
-            form.addEventListener('submit', (event) => {
-                event.preventDefault()
-                const formData = new FormData(form)
-                const time = DataUtils.strToDuration(formData.get('time'))
-                if (time <= 0) {
-                    KAAL.error('Le temps est manquant ou erroné')
-                    return
-                }
-                const km = parseInt(formData.get('private_km'), 10)
-                temps.set('value', time)
-                temps.set('comment', formData.get('remark') ?? '')
-                temps.set('km', Number.isNaN(km) ? 0 : km)
-                temps.save()
-                .then(() => {
-                    closePopup()
-                    if (this.#currentPersonId) {
-                        this.navigate(`person:${this.#currentPersonId}`)
-                    }
-                })
-                .catch(() => {
-                    KAAL.error("Erreur lors de l'enregistrement de l'entrée")
-                })
-            })
+        const popup = admin.popup(form, 'Entrée de temps', {
+            closable: true,
+            minWidth: '52ch',
+            supClasses: ['time-entry-editor'],
         })
-        .catch(() => {
-            KAAL.error("Impossible de charger l'entrée de temps")
+
+        const closePopup = () => popup.close()
+
+        form.querySelector('button[name="cancel"]').addEventListener('click', closePopup)
+
+        form.querySelector('button[name="delete"]').addEventListener('click', () => {
+            if (!window.confirm('Supprimer cette entrée de temps ?')) { return }
+            if (!this.#removeCachedEntry(personId, entry.id)) {
+                KAAL.error("Impossible de supprimer l'entrée")
+                return
+            }
+            this.#currentPersonEntries.delete(entryNodeId)
+            closePopup()
+            this.#refreshPersonViewFromCache()
+        })
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault()
+            const formData = new FormData(form)
+            const time = DataUtils.strToDuration(formData.get('time'))
+            if (time <= 0) {
+                KAAL.error('Le temps est manquant ou erroné')
+                return
+            }
+            const km = parseInt(formData.get('private_km'), 10)
+            const remark = formData.get('remark') ?? ''
+            const patch = {
+                time_written: time / 3600,
+                private_km: Number.isNaN(km) ? 0 : km,
+                remark,
+            }
+            if (!this.#patchCachedEntry(personId, entry.id, patch)) {
+                KAAL.error("Impossible de modifier l'entrée")
+                return
+            }
+            this.#indexWorktimeData(this.#worktimeData)
+            closePopup()
+            this.#refreshPersonViewFromCache()
         })
     }
 
-    personView(id) {
-        return new Promise((resolve, reject) => { 
-            const {begin, end, beginDate, endDate} = this.#getDateRange()
-            /* TODO : don't reload everything
-             * reload everything here, we need to check same days entries
-             * between people. Something should be done but I don't know what
-             * yet.
-             */
-            this.#loadData()
-            .then(data => {
-                const personData = data.find(item => item.id === id)
-                const container = document.createElement('DIV')
-                container.classList.add('time-entry-list')
+    #buildPersonViewContainer(id) {
+        const personData = this.#worktimeData?.find(item => item.id === id)
+        const container = document.createElement('DIV')
+        container.classList.add('time-entry-list')
 
-                if (!personData) { return resolve(container) }
-                if (!personData.entries) { return resolve(container) }
-                this.#currentPersonId = id
+        if (!personData?.entries) { return container }
 
-                container.addEventListener('click', event => {
-                    const entryNode = event.target.closest('.time-entry')
-                    if (!entryNode || !container.contains(entryNode)) { return }
-                    this.#openEntryEditor(id, entryNode.id)
-                }, {signal: this.#viewEventController.signal})
+        this.#currentPersonId = id
+        if (!this.#currentPersonEntries) {
+            this.#currentPersonEntries = new Map()
+        }
+        this.#currentPersonEntries.clear()
 
-                container.addEventListener('mouseleave', event => {
-                    window.requestAnimationFrame(_ => {
-                        Array.from(this.#app.mainAction.children).forEach(n => n.remove())
-                    })
-                }, {signal: this.#viewEventController.signal})
+        container.addEventListener('click', event => {
+            const entryNode = event.target.closest('.time-entry')
+            if (!entryNode || !container.contains(entryNode)) { return }
+            this.#openEntryEditor(id, entryNode.id)
+        }, {signal: this.#viewEventController.signal})
 
-                container.addEventListener('pointerover', event => {
-                    const node = event.target.closest('div')
-                    if (!node) { return }
-                    if (!node.id) { return }
-                    if (this.#app.mainAction.querySelector(`#form-${node.id}`)) { return }
-                    const form = document.createElement('DIV')
-                    const entry = this.#currentPersonEntries.get(node.id)
-                    form.id = `#form-${node.id}`
-                    form.classList.add('time-entry-details')
-                    form.innerHTML = `
+        container.addEventListener('mouseleave', event => {
+            window.requestAnimationFrame(_ => {
+                Array.from(this.#app.mainAction.children).forEach(n => n.remove())
+            })
+        }, {signal: this.#viewEventController.signal})
+
+        container.addEventListener('pointerover', event => {
+            const node = event.target.closest('div')
+            if (!node) { return }
+            if (!node.id) { return }
+            if (this.#app.mainAction.querySelector(`#form-${node.id}`)) { return }
+            const entry = this.#currentPersonEntries.get(node.id)
+            if (!entry) { return }
+            const form = document.createElement('DIV')
+            form.id = `#form-${node.id}`
+            form.classList.add('time-entry-details')
+            form.innerHTML = `
                         <div class="kv-pair date">
                             <span class="label">Date</span>
                             <span class="value">${DataUtils.longDate(entry.date)}</span>
@@ -335,82 +378,82 @@ export default class TimeUI {
                             <span class="label">Remarque</span>
                             <span class="value">${DataUtils.html(entry.remark)}</span>
                         </div>
+            `
+            let dupNode
+            const dups = this.#hasDuplicate(id, entry)
+            if (dups.length > 0) {
+                dupNode = document.createElement('DIV')
+                dupNode.classList.add('time-same-entries')
+                dupNode.innerHTML = `<div class="title">Mêmes inscriptions</div>`
+                dups.forEach(d => {
+                    const n = document.createElement('DIV')
+                    n.classList.add('kv-pair')
+                    n.innerHTML = `
+                        <span class="label">${d.name}</span>
+                        <span class="value">${new FormatHour(d.time_written * 3600)}</span>
                     `
-                    let dupNode
-                    const dups = this.#hasDuplicate(id, entry)
-                    if (dups.length > 0) {
-                        dupNode = document.createElement('DIV')
-                        dupNode.classList.add('time-same-entries')
-                        dupNode.innerHTML = `
-                            <div class="title">Mêmes inscriptions</div>
-                        `
-                        dups.forEach(d => {
-                            const n = document.createElement('DIV')
-                            n.classList.add('kv-pair')
-                            n.innerHTML = `
-                                <span class="label">${d.name}</span>
-                                <span class="value">${new FormatHour(d.time_written * 3600)}</span>
-                            `
-                            dupNode.appendChild(n)
-                        })
-                    }
-                    window.requestAnimationFrame(_ => {
-                        Array.from(this.#app.mainAction.children).forEach(n => n.remove())
-                        this.#app.mainAction.appendChild(form)
-                        if (dupNode) {
-                            this.#app.mainAction.appendChild(dupNode)
-                        }
-                    })
-                }, {signal: this.#viewEventController.signal})
-                personData.entries.forEach(entry => {
-                    const entryId = `${id}-${entry.id}`
-                    this.#currentPersonEntries.set(entryId, entry)
-                    const entryNode = document.createElement('DIV')
-                    entryNode.classList.add('entry', 'time-entry')
-                    entryNode.id = entryId
-                    entryNode.innerHTML = `
-                        <span class="same">${this.#hasDuplicate(id, entry).length > 1 ? '&#9888;' :''}</span>
-                        <span class="date">${DataUtils.longDate(entry.date)}</span>
-                        <span class="project-reference">${entry.reference}</span>
-                        <span class="project-name">${entry.project_name}</span>
-                        <span class="process-name" 
-                            style="color: ${new Kolor(entry.process_color).foreground()} !important;
-                            background-color: #${entry.process_color} !important">
-                            ${entry.process_name}
-                        </span>
-                        <span class="written-time">${new FormatHour(entry.time_written * 3600)}</span>
-                        <span class="accounted-time">${new FormatHour(entry.time_accounted * 3600)}</span>
-                        <span class="pause">${entry.pause}</span>
-                        <span class="private-km">${entry.private_km}</span>
-                    `
-                    container.appendChild(entryNode)
+                    dupNode.appendChild(n)
                 })
-                resolve(container)
+            }
+            window.requestAnimationFrame(_ => {
+                Array.from(this.#app.mainAction.children).forEach(n => n.remove())
+                this.#app.mainAction.appendChild(form)
+                if (dupNode) {
+                    this.#app.mainAction.appendChild(dupNode)
+                }
             })
+        }, {signal: this.#viewEventController.signal})
+
+        personData.entries.forEach(entry => {
+            const entryId = `${id}-${entry.id}`
+            this.#currentPersonEntries.set(entryId, entry)
+            const entryNode = document.createElement('DIV')
+            entryNode.classList.add('entry', 'time-entry')
+            entryNode.id = entryId
+            entryNode.innerHTML = `
+                <span class="same">${this.#hasDuplicate(id, entry).length > 1 ? '&#9888;' :''}</span>
+                <span class="date">${DataUtils.longDate(entry.date)}</span>
+                <span class="project-reference">${entry.reference}</span>
+                <span class="project-name">${entry.project_name}</span>
+                <span class="process-name" 
+                    style="color: ${new Kolor(entry.process_color).foreground()} !important;
+                    background-color: #${entry.process_color} !important">
+                    ${entry.process_name}
+                </span>
+                <span class="written-time">${new FormatHour(entry.time_written * 3600)}</span>
+                <span class="accounted-time">${new FormatHour(entry.time_accounted * 3600)}</span>
+                <span class="pause">${entry.pause}</span>
+                <span class="private-km">${entry.private_km}</span>
+            `
+            container.appendChild(entryNode)
+        })
+        return container
+    }
+
+    personView(id) {
+        return new Promise((resolve, reject) => {
+            const {begin, end, beginDate, endDate} = this.#getDateRange()
+            /* TODO : don't reload everything
+             * reload everything here, we need to check same days entries
+             * between people. Something should be done but I don't know what
+             * yet.
+             */
+            this.#loadData()
+            .then(_ => resolve(this.#buildPersonViewContainer(id)))
+            .catch(reject)
         })
     }
 
     #loadData() {
         return new Promise((resolve, reject) => {
-            
-
             const {begin, end, beginDate, endDate} = this.#getDateRange()
-            this.#duplicate.clear()
             F.get(`/api/worktime?start=${beginDate}&end=${endDate}`)
             .then(data => {
-                data.forEach(item => {
-                   item.entries.forEach(entry => {
-                        entry._person    = item.name
-                        entry._person_id = item.id
-                        if (this.#duplicate.has(entry.x_key)) {
-                            this.#duplicate.get(entry.x_key).push(entry)
-                        } else {
-                            this.#duplicate.set(entry.x_key, [entry])
-                        }
-                    })
-                })
+                this.#worktimeData = data
+                this.#indexWorktimeData(data)
                 resolve(data)
             })
+            .catch(reject)
         })
     }
 
