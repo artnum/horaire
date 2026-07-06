@@ -153,6 +153,4 @@ window.Conf = { workweek: 5, weekhours: 42 }
       })
     })
   }
-  window.addEventListener('kcore-loaded', load)
-
-</html>
+window.addEventListener('kcore-loaded', load)
