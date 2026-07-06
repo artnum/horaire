@@ -1,9 +1,9 @@
 import l10n from './$script/src/lib/l10n.js'
-import RouterHandler from './$script/admin/app/router.js'
-import help from '../../../js/lib/help.js'
-import { AccessAPI } from '../../../js/JAPI/content/Access.js'
-import Privilege from '../../../js/JAPI/Privilege.js'
-import KAPerson from '../../../js/data/person.js'
+import RouterHandler from './$script/src/app/router.js'
+import help from '../lib/help.js'
+import { AccessAPI } from '../JAPI/content/Access.js'
+import Privilege from '../JAPI/Privilege.js'
+import KAPerson from '../data/person.js'
 
 class AppEventSystem {
   constructor() {
@@ -87,7 +87,7 @@ export default class App {
           case 'UserUI':
           case 'QuoteUI':
             this.main.classList.add('with-navigation')
-            import(`./$script/admin/ui/${object}.js`).then((module) => {
+            import(`./$script/src/ui/${object}.js`).then((module) => {
               const ui = new module['default'](this, this.main, this.navigation)
               ui.init().then((_) => {
                 this.#currentUiNode = ui

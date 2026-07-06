@@ -1,6 +1,6 @@
 import { ProjectAPI } from './$script/src/JAPI/content/Project.js'
-import Debounce from './$script/admin/lib/debounce.js'
-import KATravail from '../../../js/data/travail.js'
+import Debounce from './$script/src/lib/debounce.js'
+import KATravail from '../data/travail.js'
 
 export default class UIKAProjectList {
   constructor(parentNode) {

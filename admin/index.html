@@ -10,12 +10,12 @@
 <body>
 </body>
 <script src="$script/conf/kaal.js"></script>
-<script src="$script/admin/lib/login.js"></script>
-<script src="$script/admin/lib/revision.js"></script>
-<script src="$script/admin/fetch.js"></script>
+<script src="$script/src/lib/login.js"></script>
+<script src="$script/src/lib/revision.js"></script>
+<script src="$script/src/fetch.js"></script>
 <script src="$script/src/data/utils.js"></script>
 <script type="module">
-  import App from './$script/admin/app/app.js'
+  import App from './$script/src/app/app.js'
   const KAALApp = new App(document.body)
   KAALApp.login()
   .then(user => {

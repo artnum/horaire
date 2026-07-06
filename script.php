@@ -41,7 +41,7 @@ $base = 'js';
 $origin = array_shift($parts);
 switch ($origin) {
     case 'admin':
-        $base = 'admin/js';
+        $base = 'js';
         break;
     case 'vendor':
         $base = '..';

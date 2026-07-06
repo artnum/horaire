@@ -1,4 +1,4 @@
-import Debounce from "./$script/admin/lib/debounce.js"
+import Debounce from "./$script/src/lib/debounce.js"
 import Popup from './$script/src/lib/popup.js'
 
 export default class List {

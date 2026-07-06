@@ -1,8 +1,8 @@
-import DataAPI from '../../../../js/JAPI/DataAPI.js'
-import SchemaModel from '../../../../js/JAPI/SchemaModel.js'
-import format from '../../../../js/lib/format.js'
-import help from '../../../../js/lib/help.js'
-import Placement from '../../../../js/lib/WidgetBase/Placement.js'
+import DataAPI from '../../JAPI/DataAPI.js'
+import SchemaModel from '../../JAPI/SchemaModel.js'
+import format from '../../lib/format.js'
+import help from '../../lib/help.js'
+import Placement from '../../lib/WidgetBase/Placement.js'
 
 export default class Multiselect {
   /**

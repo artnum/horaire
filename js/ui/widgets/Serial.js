@@ -1,7 +1,7 @@
-import SchemaModel from '../../../../js/JAPI/SchemaModel.js'
-import format from '../../../../js/lib/format.js'
-import l10n from '../../../../js/lib/l10n.js'
-import Placement from '../../../../js/lib/WidgetBase/Placement.js'
+import SchemaModel from '../../JAPI/SchemaModel.js'
+import format from '../../lib/format.js'
+import l10n from '../../lib/l10n.js'
+import Placement from '../../lib/WidgetBase/Placement.js'
 import EventHandler from '../../app/event.js'
 
 /**

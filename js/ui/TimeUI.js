@@ -1,8 +1,8 @@
-import DataUtils from '../../../js/lib/DataUtils.js'
-import Fetch from '../../../js/lib/Fetch.js'
-import FormatHour from '../../../js/lib/FormatHour.js'
-import FileExtension from '../../../js/lib/FileExtension.js'
-import Kolor from '../../../js/lib/Kolor.js'
+import DataUtils from '../lib/DataUtils.js'
+import Fetch from '../lib/Fetch.js'
+import FormatHour from '../lib/FormatHour.js'
+import FileExtension from '../lib/FileExtension.js'
+import Kolor from '../lib/Kolor.js'
 
 
 const F = new Fetch(`Bearer ${localStorage.getItem('klogin-token')}`)

@@ -1,21 +1,21 @@
-import format from '../../../js/lib/format.js'
-import l10n from '../../../js/lib/l10n.js'
-import help from '../../../js/lib/help.js'
+import format from '../lib/format.js'
+import l10n from '../lib/l10n.js'
+import help from '../lib/help.js'
 import Multiselect from './widgets/Multiselect.js'
-import { User as UserModelClass } from '../../../js/JAPI/content/User.js'
-import { UserAPI } from '../../../js/JAPI/content/User.js'
-import { UserGroupAPI as UserGroupClass } from '../../../js/JAPI/content/UserGroup.js'
+import { User as UserModelClass } from '../JAPI/content/User.js'
+import { UserAPI } from '../JAPI/content/User.js'
+import { UserGroupAPI as UserGroupClass } from '../JAPI/content/UserGroup.js'
 import App from '../app/app.js'
 import UserPersonnalUI from './UserPersonnalUI.js'
 import {
   AccessAPI as AccessAPIClass,
   AccessDeniedError,
-} from '../../../js/JAPI/content/Access.js'
+} from '../JAPI/content/Access.js'
 import Serial from './widgets/Serial.js'
-import SchemaModel from '../../../js/JAPI/SchemaModel.js'
+import SchemaModel from '../JAPI/SchemaModel.js'
 import Tab from './widgets/Tab.js'
-import Address from '../../../js/lib/widgets/Address.js'
-import i18n from '../../../js/lib/i18n.js'
+import Address from '../lib/widgets/Address.js'
+import i18n from '../lib/i18n.js'
 
 const UserGroupAPI = UserGroupClass.getInstance()
 const AccessAPI = new AccessAPIClass()

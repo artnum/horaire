@@ -1,7 +1,7 @@
 const imports = [
-    ['$script/admin/fetch.js', 'script'],
-    ['$script/admin/lib/login.js', 'script'],
-    ['$script/admin/lib/kapi.js', 'script'],
+    ['$script/src/fetch.js', 'script'],
+    ['$script/src/lib/login.js', 'script'],
+    ['$script/src/lib/kapi.js', 'script'],
     ['$script/src/data/utils.js', 'script'],
     ['$script/src/data/project.js', 'script'],
     ['$script/src/data/group.js', 'script'],

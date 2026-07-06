@@ -2,7 +2,7 @@
 /* global HClient */
 
 /* SADDR contact */
-import {createPopper} from '../../node_modules/@popperjs/core/dist/esm/popper.js'
+import {createPopper} from '../node_modules/@popperjs/core/dist/esm/popper.js'
 
 const ContactAttributes = {
   person: [

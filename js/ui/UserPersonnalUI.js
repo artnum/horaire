@@ -1,7 +1,7 @@
-import l10n from '../../../js/lib/l10n.js'
-import AVSUtil from '../../../js/lib/AVSUtil.js'
-import help from '../../../js/lib/help.js'
-import { AccessDeniedError } from '../../../js/JAPI/content/Access.js'
+import l10n from '../lib/l10n.js'
+import AVSUtil from '../lib/AVSUtil.js'
+import help from '../lib/help.js'
+import { AccessDeniedError } from '../JAPI/content/Access.js'
 
 export default class UserPersonalUI {
   constructor(app, userapi) {

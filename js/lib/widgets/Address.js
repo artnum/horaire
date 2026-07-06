@@ -1,6 +1,6 @@
 import help from '../help.js'
 import l10n from '../l10n.js'
-import Tab from '../../../admin/js/ui/widgets/Tab.js'
+import Tab from '../../ui/widgets/Tab.js'
 import format from '../format.js'
 import checksum from '../checksum.js'
 
