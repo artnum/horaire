@@ -1,3 +1,4 @@
+import { KAGenericProxy } from './utils.js'
 
 export default class KATravail {
     constructor () {

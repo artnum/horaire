@@ -1,3 +1,5 @@
+import { DataUtils, KAGenericProxy } from './utils.js'
+
 export default class KAPerson {
     data = new Map()
     constructor () {

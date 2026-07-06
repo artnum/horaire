@@ -1,3 +1,5 @@
+import { DataUtils, KAGenericProxy } from './utils.js'
+
 export default class KAProcess {
     constructor() {
         this.data = new Map()

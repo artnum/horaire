@@ -1,3 +1,5 @@
+import { DataUtils, KAGenericProxy } from './utils.js'
+
 function KAProject() {
     this.data = new Map()
     this.uid = ''
