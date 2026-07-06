@@ -341,20 +341,64 @@ export default class TimeUI {
         })
     }
 
-    #ensureKcore() {
-        if (window.KSelectUI) { return Promise.resolve() }
-        if (!this.#kcoreReady) {
-            this.#kcoreReady = new Promise((resolve, reject) => {
-                const script = document.createElement('SCRIPT')
-                script.src = new URL('../vendor/kcore/index.js', window.location)
-                script.addEventListener('load', () => {
-                    KCORELoad().then(_ => { resolve() })
-                })
-                script.addEventListener('error', () => {
-                    reject(new Error('Impossible de charger kcore'))
+    #loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const existing = document.querySelector(`script[src="${src}"]`)
+            if (existing) {
+                if (existing.dataset.loaded === '1') {
+                    resolve()
+                    return
+                }
+                existing.addEventListener('load', () => resolve(), {once: true})
+                existing.addEventListener('error', () => {
+                    reject(new Error(`Impossible de charger ${src}`))
                 }, {once: true})
-                document.head.appendChild(script)
-            })
+                return
+            }
+            const script = document.createElement('SCRIPT')
+            script.src = src
+            script.addEventListener('load', () => {
+                script.dataset.loaded = '1'
+                resolve()
+            }, {once: true})
+            script.addEventListener('error', () => {
+                reject(new Error(`Impossible de charger ${src}`))
+            }, {once: true})
+            document.head.appendChild(script)
+        })
+    }
+
+    #loadPopper() {
+        if (window.Popper?.createPopper) { return Promise.resolve() }
+        const sources = [
+            new URL('node_modules/@popperjs/core/dist/umd/popper.min.js', window.location).href,
+            'https://unpkg.com/@popperjs/core@2/dist/umd/popper.min.js',
+        ]
+        const tryNext = (index) => {
+            if (index >= sources.length) {
+                return Promise.reject(new Error('Popper indisponible'))
+            }
+            return this.#loadScript(sources[index])
+                .then(() => {
+                    if (!window.Popper?.createPopper) {
+                        return tryNext(index + 1)
+                    }
+                })
+                .catch(() => tryNext(index + 1))
+        }
+        return tryNext(0)
+    }
+
+    #ensureKcore() {
+        if (window.KSelectUI && window.Popper?.createPopper) { return Promise.resolve() }
+        if (!this.#kcoreReady) {
+            this.#kcoreReady = this.#loadPopper()
+                .then(() => {
+                    window.KCORE = {...(window.KCORE ?? {}), NoPopper: true}
+                    if (window.KSelectUI) { return }
+                    const kcoreUrl = new URL('../vendor/kcore/index.js', window.location).href
+                    return this.#loadScript(kcoreUrl).then(() => KCORELoad())
+                })
         }
         return this.#kcoreReady
     }
