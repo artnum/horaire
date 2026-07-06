@@ -3,6 +3,8 @@ import Fetch from '../lib/Fetch.js'
 import FormatHour from '../lib/FormatHour.js'
 import FileExtension from '../lib/FileExtension.js'
 import Kolor from '../lib/Kolor.js'
+import KATemps from '../data/temps.js'
+import admin from '../admin.js'
 
 
 const F = new Fetch(`Bearer ${localStorage.getItem('klogin-token')}`)
@@ -15,6 +17,7 @@ export default class TimeUI {
     #currentView
     #currentViewState
     #currentPersonEntries
+    #currentPersonId = null
     #dateRange = [null, null]
     #app
     #duplicate = new Map()
@@ -113,6 +116,140 @@ export default class TimeUI {
         return dups
     }
 
+    #escapeText(value) {
+        return DataUtils.str(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+    }
+
+    #openEntryEditor(personId, entryNodeId) {
+        const entry = this.#currentPersonEntries.get(entryNodeId)
+        if (!entry) { return }
+
+        const previousSelected = document.querySelector('.time-entry-list .time-entry.selected')
+        if (previousSelected) { previousSelected.classList.remove('selected') }
+        const entryNode = document.getElementById(entryNodeId)
+        if (entryNode) { entryNode.classList.add('selected') }
+
+        KATemps.load(entry.id)
+        .then((temps) => {
+            const form = document.createElement('FORM')
+            form.classList.add('time-entry-editor-form')
+            form.innerHTML = `
+                <div class="time-entry-editor-readonly">
+                    <div class="kv-pair date">
+                        <span class="label">Date</span>
+                        <span class="value">${this.#escapeText(DataUtils.longDate(entry.date))}</span>
+                    </div>
+                    <div class="kv-pair project-reference">
+                        <span class="label">Référence de projet</span>
+                        <span class="value">${this.#escapeText(entry.reference)}</span>
+                    </div>
+                    <div class="kv-pair project-name">
+                        <span class="label">Nom de projet</span>
+                        <span class="value">${this.#escapeText(entry.project_name)}</span>
+                    </div>
+                    <div class="kv-pair travail-ref">
+                        <span class="label">Référence travail</span>
+                        <span class="value">${this.#escapeText(entry.travail_ref)}</span>
+                    </div>
+                    <div class="kv-pair process-name">
+                        <span class="label">Processus</span>
+                        <span class="value"
+                            style="color: ${new Kolor(entry.process_color).foreground()} !important;
+                            background-color: #${entry.process_color} !important">
+                            ${this.#escapeText(entry.process_name)}
+                        </span>
+                    </div>
+                    <div class="kv-pair accounted-time">
+                        <span class="label">Temps comptabilisé</span>
+                        <span class="value">${new FormatHour(entry.time_accounted * 3600)}</span>
+                    </div>
+                    <div class="kv-pair pause">
+                        <span class="label">Pause</span>
+                        <span class="value">${this.#escapeText(entry.pause)}</span>
+                    </div>
+                </div>
+                <div class="time-entry-editor-fields">
+                    <label>
+                        <span>Temps inscrit</span>
+                        <input type="text" name="time" required
+                            value="${this.#escapeText(DataUtils.durationToStrTime(entry.time_written * 3600))}" />
+                    </label>
+                    <label>
+                        <span>KM privé</span>
+                        <input type="number" name="private_km" min="0" step="1"
+                            value="${this.#escapeText(entry.private_km)}" />
+                    </label>
+                    <label>
+                        <span>Remarque</span>
+                        <textarea name="remark" rows="4">${this.#escapeText(entry.remark)}</textarea>
+                    </label>
+                </div>
+                <div class="time-entry-editor-actions">
+                    <button type="submit">Enregistrer</button>
+                    <button type="button" name="cancel">Annuler</button>
+                    <button type="button" name="delete" class="danger">Supprimer</button>
+                </div>
+            `
+
+            const popup = admin.popup(form, 'Entrée de temps', {
+                closable: true,
+                minWidth: '52ch',
+                supClasses: ['time-entry-editor'],
+            })
+
+            const closePopup = () => popup.close()
+
+            form.querySelector('button[name="cancel"]').addEventListener('click', closePopup)
+
+            form.querySelector('button[name="delete"]').addEventListener('click', () => {
+                if (!window.confirm('Supprimer cette entrée de temps ?')) { return }
+                KATemps.deleteById(temps.uid)
+                .then(() => {
+                    entryNode?.remove()
+                    this.#currentPersonEntries.delete(entryNodeId)
+                    closePopup()
+                    if (this.#currentPersonId) {
+                        this.navigate(`person:${this.#currentPersonId}`)
+                    }
+                })
+                .catch(() => {
+                    KAAL.error("Erreur lors de la suppression de l'entrée")
+                })
+            })
+
+            form.addEventListener('submit', (event) => {
+                event.preventDefault()
+                const formData = new FormData(form)
+                const time = DataUtils.strToDuration(formData.get('time'))
+                if (time <= 0) {
+                    KAAL.error('Le temps est manquant ou erroné')
+                    return
+                }
+                const km = parseInt(formData.get('private_km'), 10)
+                temps.set('value', time)
+                temps.set('comment', formData.get('remark') ?? '')
+                temps.set('km', Number.isNaN(km) ? 0 : km)
+                temps.save()
+                .then(() => {
+                    closePopup()
+                    if (this.#currentPersonId) {
+                        this.navigate(`person:${this.#currentPersonId}`)
+                    }
+                })
+                .catch(() => {
+                    KAAL.error("Erreur lors de l'enregistrement de l'entrée")
+                })
+            })
+        })
+        .catch(() => {
+            KAAL.error("Impossible de charger l'entrée de temps")
+        })
+    }
+
     personView(id) {
         return new Promise((resolve, reject) => { 
             const {begin, end, beginDate, endDate} = this.#getDateRange()
@@ -129,6 +266,14 @@ export default class TimeUI {
 
                 if (!personData) { return resolve(container) }
                 if (!personData.entries) { return resolve(container) }
+                this.#currentPersonId = id
+
+                container.addEventListener('click', event => {
+                    const entryNode = event.target.closest('.time-entry')
+                    if (!entryNode || !container.contains(entryNode)) { return }
+                    this.#openEntryEditor(id, entryNode.id)
+                }, {signal: this.#viewEventController.signal})
+
                 container.addEventListener('mouseleave', event => {
                     window.requestAnimationFrame(_ => {
                         Array.from(this.#app.mainAction.children).forEach(n => n.remove())
@@ -396,6 +541,7 @@ export default class TimeUI {
             this.#downloadFile('csv', `MyBM`, 'mybm', beginDate, endDate)
         } break
         case 'person': {
+            this.#currentPersonId = id
             this.personView(id)
             .then(node => {
                window.requestAnimationFrame(_ => {

@@ -1030,6 +1030,10 @@ button.addMore:before {
 .time-entry-list .time-entry:hover {
     background-color: lightblue;
 }
+.time-entry-list .time-entry.selected {
+    background-color: #b8d4f0;
+    outline: 1px solid #4a7aa8;
+}
 .time-entry-list .time-entry .same {
     font-weight: bold;
     color: darkred;
@@ -1069,6 +1073,53 @@ button.addMore:before {
     min-height: 8ex;
     max-height: 8ex;
     overflow-y: scroll;
+}
+
+.popup.time-entry-editor .time-entry-editor-form {
+    display: grid;
+    gap: 1.5ex 1ch;
+    min-width: 52ch;
+}
+
+.popup.time-entry-editor .time-entry-editor-readonly {
+    display: grid;
+    gap: 0.5ex 1ch;
+}
+
+.popup.time-entry-editor .time-entry-editor-fields {
+    display: grid;
+    gap: 1ex 1ch;
+}
+
+.popup.time-entry-editor .time-entry-editor-fields label {
+    display: grid;
+    gap: 0.5ex;
+}
+
+.popup.time-entry-editor .time-entry-editor-fields label span {
+    font-size: 0.85em;
+    font-weight: bold;
+}
+
+.popup.time-entry-editor .time-entry-editor-fields input,
+.popup.time-entry-editor .time-entry-editor-fields textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.5ex 1ch;
+    border: 1px solid #ccc;
+    background: #fff;
+}
+
+.popup.time-entry-editor .time-entry-editor-actions {
+    display: flex;
+    gap: 1ch;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.popup.time-entry-editor .time-entry-editor-actions .danger {
+    margin-right: auto;
+    color: #8b0000;
 }
 
 .loading_in_progress {
