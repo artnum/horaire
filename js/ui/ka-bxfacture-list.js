@@ -203,7 +203,7 @@ UIKABXFactureList.prototype.render = function (query = { state: "INCOMING" }) {
         });
       })
       .then((openBills) => {
-        nodes = openBills.map((bill) => {
+        const nodes = openBills.map((bill) => {
           const div = document.createElement("DIV");
           div.dataset.id = bill.id;
           div.dataset.file = bill.file;
