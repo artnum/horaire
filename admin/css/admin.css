@@ -1015,6 +1015,27 @@ button.addMore:before {
     text-decoration: underline;
 }
 
+.time-person-view {
+    display: grid;
+    gap: 1.5ex;
+}
+
+.time-entry-search-bar input {
+    box-sizing: border-box;
+    width: 100%;
+    font-size: 1.25rem;
+    line-height: 1.4;
+    padding: 0.75em 1ch;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+}
+
+.time-entry-search-bar input:focus {
+    outline: none;
+    border-color: #4a7aa8;
+    box-shadow: 0 0 0 2px rgba(74, 122, 168, 0.2);
+}
+
 .time-entry-list {
     display: grid;
     gap: 0.5ex 1ch;

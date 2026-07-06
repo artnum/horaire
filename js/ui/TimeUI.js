@@ -18,6 +18,7 @@ export default class TimeUI {
     #currentPersonEntries
     #currentPersonId = null
     #worktimeData = null
+    #personViewFilter = ''
     #dateRange = [null, null]
     #app
     #duplicate = new Map()
@@ -173,9 +174,23 @@ export default class TimeUI {
         return F.put(url, body)
     }
 
+    #entryMatchesFilter(entry, query) {
+        const q = DataUtils.str(query).trim().toLowerCase()
+        if (!q) { return true }
+        const fields = [entry.reference, entry.project_name, entry.travail_ref]
+        return fields.some(value => DataUtils.str(value).toLowerCase().includes(q))
+    }
+
+    #applyPersonViewFilter(listContainer) {
+        listContainer.querySelectorAll('.time-entry').forEach(node => {
+            const entry = this.#currentPersonEntries.get(node.id)
+            node.hidden = entry ? !this.#entryMatchesFilter(entry, this.#personViewFilter) : true
+        })
+    }
+
     #refreshPersonViewFromCache() {
         if (!this.#currentPersonId || !this.#worktimeData) { return }
-        const container = this.#buildPersonViewContainer(this.#currentPersonId)
+        const container = this.#buildPersonViewContainer(this.#currentPersonId, {preserveFilter: true})
         window.requestAnimationFrame(_ => {
             Array.from(this.#mainNode.children).forEach(n => n.remove())
             this.#mainNode.appendChild(container)
@@ -297,12 +312,29 @@ export default class TimeUI {
         })
     }
 
-    #buildPersonViewContainer(id) {
+    #buildPersonViewContainer(id, {preserveFilter = false} = {}) {
         const personData = this.#worktimeData?.find(item => item.id === id)
-        const container = document.createElement('DIV')
-        container.classList.add('time-entry-list')
+        const wrapper = document.createElement('DIV')
+        wrapper.classList.add('time-person-view')
 
-        if (!personData?.entries) { return container }
+        const searchBar = document.createElement('DIV')
+        searchBar.classList.add('time-entry-search-bar')
+        const searchInput = document.createElement('INPUT')
+        searchInput.type = 'search'
+        searchInput.name = 'filter'
+        searchInput.placeholder = 'Rechercher par référence, projet ou travail…'
+        searchInput.setAttribute('aria-label', 'Filtrer les entrées')
+        searchBar.appendChild(searchInput)
+        wrapper.appendChild(searchBar)
+
+        const listContainer = document.createElement('DIV')
+        listContainer.classList.add('time-entry-list')
+        wrapper.appendChild(listContainer)
+
+        if (!preserveFilter) {
+            this.#personViewFilter = ''
+        }
+        searchInput.value = this.#personViewFilter
 
         this.#currentPersonId = id
         if (!this.#currentPersonEntries) {
@@ -310,19 +342,24 @@ export default class TimeUI {
         }
         this.#currentPersonEntries.clear()
 
-        container.addEventListener('click', event => {
+        searchInput.addEventListener('input', event => {
+            this.#personViewFilter = event.target.value
+            this.#applyPersonViewFilter(listContainer)
+        }, {signal: this.#viewEventController.signal})
+
+        listContainer.addEventListener('click', event => {
             const entryNode = event.target.closest('.time-entry')
-            if (!entryNode || !container.contains(entryNode)) { return }
+            if (!entryNode || !listContainer.contains(entryNode)) { return }
             this.#openEntryEditor(id, entryNode.id)
         }, {signal: this.#viewEventController.signal})
 
-        container.addEventListener('mouseleave', event => {
+        listContainer.addEventListener('mouseleave', event => {
             window.requestAnimationFrame(_ => {
                 Array.from(this.#app.mainAction.children).forEach(n => n.remove())
             })
         }, {signal: this.#viewEventController.signal})
 
-        container.addEventListener('pointerover', event => {
+        listContainer.addEventListener('pointerover', event => {
             const node = event.target.closest('div')
             if (!node) { return }
             if (!node.id) { return }
@@ -417,9 +454,10 @@ export default class TimeUI {
             <span class="pause">Pause</span>
             <span class="private-km">KM privé</span>
         `
-        container.appendChild(headerNode)
+        listContainer.appendChild(headerNode)
 
-        personData.entries.forEach(entry => {
+        const entries = personData?.entries ?? []
+        entries.forEach(entry => {
             const entryId = `${id}-${entry.id}`
             this.#currentPersonEntries.set(entryId, entry)
             const entryNode = document.createElement('DIV')
@@ -440,9 +478,11 @@ export default class TimeUI {
                 <span class="pause">${entry.pause}</span>
                 <span class="private-km">${entry.private_km}</span>
             `
-            container.appendChild(entryNode)
+            listContainer.appendChild(entryNode)
         })
-        return container
+
+        this.#applyPersonViewFilter(listContainer)
+        return wrapper
     }
 
     personView(id) {
