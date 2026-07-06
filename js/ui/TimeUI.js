@@ -266,8 +266,12 @@ export default class TimeUI {
         return ''
     }
 
+    #entryProjectId(entry, projectId = null) {
+        return projectId ?? entry.project_id ?? entry.project ?? entry.projectId ?? entry.htime_project ?? null
+    }
+
     #resolveProjectId(entry) {
-        const direct = entry.project_id ?? entry.project ?? entry.projectId ?? entry.htime_project
+        const direct = this.#entryProjectId(entry)
         if (direct) { return Promise.resolve(direct) }
         if (!entry.reference) { return Promise.resolve(null) }
         const store = new STProject('Project')
@@ -278,6 +282,43 @@ export default class TimeUI {
                 return match?.value ?? match?.id ?? null
             })
             .catch(() => null)
+    }
+
+    #attachProjectSelect(form, projectId) {
+        const projectInput = form.querySelector('input[name="project"]')
+        return new Promise(resolve => {
+            window.requestAnimationFrame(() => {
+                const select = new KSelectUI(projectInput, new STProject('Project'), {
+                    realSelect: true,
+                    allowFreeText: false,
+                })
+                if (projectId) {
+                    select.value = projectId
+                }
+                resolve(select)
+            })
+        })
+    }
+
+    #patchFromProjectSelection(value, lastEntry) {
+        if (!value || !lastEntry) { return {} }
+        return {
+            project_id: value,
+            project: value,
+            projectId: value,
+            htime_project: value,
+            reference: lastEntry.reference ?? '',
+            project_name: lastEntry.name ?? lastEntry.label ?? '',
+        }
+    }
+
+    #replaceProcessTravailSelect(form, projectId) {
+        const field = form.querySelector('.process-travail-field')
+        field.innerHTML = `
+            <span>Processus / Travail</span>
+            <input type="text" name="process_travail" autocomplete="off" />
+        `
+        return this.#attachProcessTravailSelect(form, {}, projectId)
     }
 
     #attachProcessTravailSelect(form, entry, projectId) {
@@ -429,14 +470,6 @@ export default class TimeUI {
                         <span class="label">Date</span>
                         <span class="value">${this.#escapeText(DataUtils.longDate(entry.date))}</span>
                     </div>
-                    <div class="kv-pair project-reference">
-                        <span class="label">Référence de projet</span>
-                        <span class="value">${this.#escapeText(entry.reference)}</span>
-                    </div>
-                    <div class="kv-pair project-name">
-                        <span class="label">Nom de projet</span>
-                        <span class="value">${this.#escapeText(entry.project_name)}</span>
-                    </div>
                     <div class="kv-pair accounted-time">
                         <span class="label">Temps comptabilisé</span>
                         <span class="value">${new FormatHour(entry.time_accounted * 3600)}</span>
@@ -447,7 +480,11 @@ export default class TimeUI {
                     </div>
                 </div>
                 <div class="time-entry-editor-fields">
-                    <label>
+                    <label class="project-field">
+                        <span>Projet</span>
+                        <input type="text" name="project" autocomplete="off" />
+                    </label>
+                    <label class="process-travail-field">
                         <span>Processus / Travail</span>
                         <input type="text" name="process_travail" autocomplete="off" />
                     </label>
@@ -481,8 +518,19 @@ export default class TimeUI {
 
         const closePopup = () => popup.close()
 
-        this.#attachProcessTravailSelect(form, entry, projectId)
-        .then(processTravailSelect => {
+        Promise.all([
+            this.#attachProjectSelect(form, projectId),
+            this.#attachProcessTravailSelect(form, entry, projectId),
+        ])
+        .then(([projectSelect, processTravailSelect]) => {
+            let currentProcessTravailSelect = processTravailSelect
+
+            form.querySelector('input[name="project"]').addEventListener('change', () => {
+                const newProjectId = projectSelect.value
+                this.#replaceProcessTravailSelect(form, newProjectId)
+                    .then(select => { currentProcessTravailSelect = select })
+            })
+
             form.querySelector('button[name="cancel"]').addEventListener('click', closePopup)
 
             form.querySelector('button[name="delete"]').addEventListener('click', () => {
@@ -506,7 +554,12 @@ export default class TimeUI {
                 }
                 const km = parseInt(formData.get('private_km'), 10)
                 const remark = formData.get('remark') ?? ''
-                const processTravailValue = processTravailSelect.value
+                const projectValue = projectSelect.value
+                if (!projectValue) {
+                    KAAL.error('Le projet est manquant ou erroné')
+                    return
+                }
+                const processTravailValue = currentProcessTravailSelect.value
                 if (!processTravailValue?.startsWith('pr:') && !processTravailValue?.startsWith('tr:')) {
                     KAAL.error('Le processus ou le travail est manquant ou erroné')
                     return
@@ -515,9 +568,10 @@ export default class TimeUI {
                     time_written: time / 3600,
                     private_km: Number.isNaN(km) ? 0 : km,
                     remark,
+                    ...this.#patchFromProjectSelection(projectValue, projectSelect.lastEntry),
                     ...this.#patchFromProcessTravailSelection(
                         processTravailValue,
-                        processTravailSelect.lastEntry,
+                        currentProcessTravailSelect.lastEntry,
                     ),
                 }
                 if (!this.#patchCachedEntry(personId, entry.id, patch)) {
