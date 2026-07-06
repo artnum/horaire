@@ -404,6 +404,21 @@ export default class TimeUI {
             })
         }, {signal: this.#viewEventController.signal})
 
+        const headerNode = document.createElement('DIV')
+        headerNode.classList.add('time-entry-header')
+        headerNode.innerHTML = `
+            <span class="same" aria-hidden="true"></span>
+            <span class="date">Date</span>
+            <span class="project-reference">Référence</span>
+            <span class="project-name">Projet</span>
+            <span class="process-name">Processus</span>
+            <span class="written-time">Temps inscrit</span>
+            <span class="accounted-time">Comptabilisé</span>
+            <span class="pause">Pause</span>
+            <span class="private-km">KM privé</span>
+        `
+        container.appendChild(headerNode)
+
         personData.entries.forEach(entry => {
             const entryId = `${id}-${entry.id}`
             this.#currentPersonEntries.set(entryId, entry)
