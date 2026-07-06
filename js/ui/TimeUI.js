@@ -306,10 +306,10 @@ export default class TimeUI {
         if (!this.#kcoreReady) {
             this.#kcoreReady = new Promise((resolve, reject) => {
                 const script = document.createElement('SCRIPT')
-                script.src = new URL('vendor/kcore/index.js', window.location).href
+                script.src = new URL('../vendor/kcore/index.js', window.location)
                 script.addEventListener('load', () => {
-                    window.addEventListener('kcore-loaded', () => resolve(), {once: true})
-                }, {once: true})
+                    KCORELoad().then(_ => { resolve() })
+                })
                 script.addEventListener('error', () => {
                     reject(new Error('Impossible de charger kcore'))
                 }, {once: true})
