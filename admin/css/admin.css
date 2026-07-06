@@ -1023,7 +1023,10 @@ button.addMore:before {
     display: grid;
     gap: 1.5ex;
 }
-
+.time-entry-search-bar {
+    display: flex;
+    justify-content: center;
+}
 .time-entry-search-bar input {
     box-sizing: border-box;
     width: 100%;
