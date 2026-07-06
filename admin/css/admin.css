@@ -1150,7 +1150,7 @@ button.addMore:before {
 
 .popup.time-entry-editor .time-entry-editor-fields input,
 .popup.time-entry-editor .time-entry-editor-fields textarea {
-    width: 100%;
+    width: calc(100% - 2ch);
     box-sizing: border-box;
     padding: 0.5ex 1ch;
     border: 1px solid #ccc;
