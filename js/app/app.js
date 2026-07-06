@@ -112,7 +112,7 @@ export default class App {
             ;(() => {
               const iframe = document.createElement('IFRAME')
               iframe.classList.add('ka-main-iframe')
-              iframe.src = `${new URL(window.location).toString()}/${object}.html`
+              iframe.src = new URL(`${object}.html`, window.location).href
               this.appendContent(iframe)
               iframe.focus()
             })()
@@ -135,11 +135,9 @@ export default class App {
 
           case 'offer':
             ;(() => {
-              const url = new URL(window.location)
-              url.hash = ''
               const iframe = document.createElement('IFRAME')
               iframe.classList.add('ka-main-iframe')
-              iframe.src = `${url.toString()}/offre.html?doc=${id}`
+              iframe.src = new URL(`offre.html?doc=${encodeURIComponent(id)}`, window.location).href
               this.appendContent(iframe)
               iframe.focus()
             })()

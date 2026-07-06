@@ -1,4 +1,4 @@
-import PJApi from '../../../pjAPI/src/pjapi.mjs'
+import PJApi from '../../vendor/pjAPI/src/pjapi.mjs'
 
 export class JAPI {
   constructor() {
