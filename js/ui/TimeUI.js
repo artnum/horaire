@@ -466,6 +466,7 @@ export default class TimeUI {
             const entryNode = document.createElement('DIV')
             entryNode.classList.add('entry', 'time-entry')
             entryNode.id = entryId
+            const travailRef = DataUtils.str(entry.travail_ref)
             entryNode.innerHTML = `
                 <span class="same">${this.#hasDuplicate(id, entry).length > 1 ? '&#9888;' :''}</span>
                 <span class="date">${DataUtils.longDate(entry.date)}</span>
@@ -480,6 +481,7 @@ export default class TimeUI {
                 <span class="accounted-time">${new FormatHour(entry.time_accounted * 3600)}</span>
                 <span class="pause">${entry.pause}</span>
                 <span class="private-km">${entry.private_km}</span>
+                <span class="travail-ref${travailRef ? '' : ' is-empty'}">${travailRef}</span>
             `
             listContainer.appendChild(entryNode)
         })

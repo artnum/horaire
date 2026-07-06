@@ -1049,6 +1049,11 @@ button.addMore:before {
     grid-column: 1 / 10;
 }
 
+.time-entry-list .time-entry {
+    grid-template-rows: auto auto;
+    row-gap: 0.25ex;
+}
+
 .time-entry-list .time-entry-header {
     position: sticky;
     top: 0;
@@ -1069,6 +1074,25 @@ button.addMore:before {
 
 .time-entry-list .time-entry {
     cursor: pointer;
+}
+
+.time-entry-list .time-entry > :not(.travail-ref) {
+    grid-row: 1;
+}
+
+.time-entry-list .time-entry > .travail-ref {
+    grid-column: 3 / 10;
+    grid-row: 2;
+    font-size: 0.85em;
+    color: #555;
+    padding: 0 0.5ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.time-entry-list .time-entry > .travail-ref.is-empty {
+    display: none;
 }
 
 .time-entry-list .time-entry.is-filtered-out {
