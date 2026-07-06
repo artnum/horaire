@@ -1176,6 +1176,12 @@ button.addMore:before {
     font-weight: bold;
 }
 
+.popup.time-entry-editor .kdropdown > div[data-value^="__hdr_"] {
+    font-weight: bold;
+    pointer-events: none;
+    opacity: 0.75;
+}
+
 .popup.time-entry-editor .time-entry-editor-fields input,
 .popup.time-entry-editor .time-entry-editor-fields textarea {
     width: calc(100% - 2ch);

@@ -3,6 +3,7 @@ import Fetch from '../lib/Fetch.js'
 import FormatHour from '../lib/FormatHour.js'
 import FileExtension from '../lib/FileExtension.js'
 import Kolor from '../lib/Kolor.js'
+import STProcessTravail from '../stores/process-travail.js'
 import admin from '../admin.js'
 
 
@@ -22,6 +23,7 @@ export default class TimeUI {
     #dateRange = [null, null]
     #app
     #duplicate = new Map()
+    #kcoreReady = null
 
     constructor(app, timeapi = null) {
         this.#app = app
@@ -255,6 +257,41 @@ export default class TimeUI {
         })
     }
 
+    #entryProcessTravailValue(entry) {
+        const travailId = entry.travail_id ?? entry.travail
+        const processId = entry.process_id ?? entry.process
+        if (travailId) { return `tr:${travailId}` }
+        if (processId) { return `pr:${processId}` }
+        return ''
+    }
+
+    #patchFromProcessTravailSelection(value, lastEntry) {
+        if (value.startsWith('pr:')) {
+            const color = String(lastEntry?.color ?? '').replace(/^#/, '')
+            return {
+                process_id: value.slice(3),
+                process: value.slice(3),
+                travail_id: null,
+                travail: null,
+                process_name: lastEntry?.label ?? '',
+                process_color: color,
+                travail_ref: '',
+            }
+        }
+        if (value.startsWith('tr:')) {
+            return {
+                travail_id: value.slice(3),
+                travail: value.slice(3),
+                process_id: null,
+                process: null,
+                process_name: '',
+                process_color: '',
+                travail_ref: lastEntry?.label ?? '',
+            }
+        }
+        return {}
+    }
+
     #refreshPersonViewFromCache() {
         if (!this.#currentPersonId || !this.#worktimeData) { return }
         const container = this.#buildPersonViewContainer(this.#currentPersonId, {preserveFilter: true})
@@ -264,10 +301,36 @@ export default class TimeUI {
         })
     }
 
+    #ensureKcore() {
+        if (window.KSelectUI) { return Promise.resolve() }
+        if (!this.#kcoreReady) {
+            this.#kcoreReady = new Promise((resolve, reject) => {
+                const script = document.createElement('SCRIPT')
+                script.src = new URL('vendor/kcore/index.js', window.location).href
+                script.addEventListener('load', () => {
+                    window.addEventListener('kcore-loaded', () => resolve(), {once: true})
+                }, {once: true})
+                script.addEventListener('error', () => {
+                    reject(new Error('Impossible de charger kcore'))
+                }, {once: true})
+                document.head.appendChild(script)
+            })
+        }
+        return this.#kcoreReady
+    }
+
     #openEntryEditor(personId, entryNodeId) {
         const entry = this.#currentPersonEntries.get(entryNodeId)
         if (!entry) { return }
 
+        this.#ensureKcore().then(() => {
+            this.#showEntryEditor(personId, entryNodeId, entry)
+        }).catch(() => {
+            KAAL.error('Impossible de charger le sélecteur processus / travail')
+        })
+    }
+
+    #showEntryEditor(personId, entryNodeId, entry) {
         const previousSelected = document.querySelector('.time-entry-list .time-entry.selected')
         if (previousSelected) { previousSelected.classList.remove('selected') }
         const entryNode = document.getElementById(entryNodeId)
@@ -289,18 +352,6 @@ export default class TimeUI {
                         <span class="label">Nom de projet</span>
                         <span class="value">${this.#escapeText(entry.project_name)}</span>
                     </div>
-                    <div class="kv-pair travail-ref">
-                        <span class="label">Référence travail</span>
-                        <span class="value">${this.#escapeText(entry.travail_ref)}</span>
-                    </div>
-                    <div class="kv-pair process-name">
-                        <span class="label">Processus</span>
-                        <span class="value"
-                            style="color: ${new Kolor(entry.process_color).foreground()} !important;
-                            background-color: #${entry.process_color} !important">
-                            ${this.#escapeText(entry.process_name)}
-                        </span>
-                    </div>
                     <div class="kv-pair accounted-time">
                         <span class="label">Temps comptabilisé</span>
                         <span class="value">${new FormatHour(entry.time_accounted * 3600)}</span>
@@ -311,6 +362,10 @@ export default class TimeUI {
                     </div>
                 </div>
                 <div class="time-entry-editor-fields">
+                    <label>
+                        <span>Processus / Travail</span>
+                        <input type="text" name="process_travail" autocomplete="off" />
+                    </label>
                     <label>
                         <span>Temps inscrit</span>
                         <input type="text" name="time" required
@@ -341,6 +396,24 @@ export default class TimeUI {
 
         const closePopup = () => popup.close()
 
+        const projectId = entry.project_id ?? entry.project
+        const processTravailInput = form.querySelector('input[name="process_travail"]')
+        const processTravailSelect = new KSelectUI(processTravailInput, new STProcessTravail(projectId), {
+            realSelect: true,
+            allowFreeText: false,
+        })
+        const initialProcessTravail = this.#entryProcessTravailValue(entry)
+        if (initialProcessTravail) {
+            processTravailSelect.value = initialProcessTravail
+        } else if (entry.travail_ref) {
+            processTravailInput.value = entry.travail_ref
+        } else if (entry.process_name) {
+            processTravailInput.value = entry.process_name
+            if (entry.process_color) {
+                processTravailSelect.colorize(`#${entry.process_color}`)
+            }
+        }
+
         form.querySelector('button[name="cancel"]').addEventListener('click', closePopup)
 
         form.querySelector('button[name="delete"]').addEventListener('click', () => {
@@ -364,10 +437,19 @@ export default class TimeUI {
             }
             const km = parseInt(formData.get('private_km'), 10)
             const remark = formData.get('remark') ?? ''
+            const processTravailValue = processTravailSelect.value
+            if (!processTravailValue?.startsWith('pr:') && !processTravailValue?.startsWith('tr:')) {
+                KAAL.error('Le processus ou le travail est manquant ou erroné')
+                return
+            }
             const patch = {
                 time_written: time / 3600,
                 private_km: Number.isNaN(km) ? 0 : km,
                 remark,
+                ...this.#patchFromProcessTravailSelection(
+                    processTravailValue,
+                    processTravailSelect.lastEntry,
+                ),
             }
             if (!this.#patchCachedEntry(personId, entry.id, patch)) {
                 KAAL.error("Impossible de modifier l'entrée")
