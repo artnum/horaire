@@ -1005,7 +1005,7 @@ button.addMore:before {
     cursor: pointer;
     text-align: left;
     font-size: 0.9em;
-    padding: 2ch;
+    margin: 2ch;
     color: black;
 }
 
@@ -1026,13 +1026,13 @@ button.addMore:before {
 .time-entry-search-bar {
     display: flex;
     justify-content: center;
+    padding: 5px;
 }
 .time-entry-search-bar input {
     box-sizing: border-box;
     width: 100%;
     font-size: 1.25rem;
     line-height: 1.4;
-    padding: 0.75em 1ch;
     border: 2px solid #ccc;
     border-radius: 4px;
 }
