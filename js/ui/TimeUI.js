@@ -274,7 +274,7 @@ export default class TimeUI {
         const direct = this.#entryProjectId(entry)
         if (direct) { return Promise.resolve(direct) }
         if (!entry.reference) { return Promise.resolve(null) }
-        const store = new STProject('Project')
+        const store = new STProject('Project', true)
         return store.query({name: entry.reference})
             .then(results => {
                 const match = results.find(item =>
