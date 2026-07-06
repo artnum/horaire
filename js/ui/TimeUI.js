@@ -175,16 +175,17 @@ export default class TimeUI {
     }
 
     #entryMatchesFilter(entry, query) {
-        const q = DataUtils.str(query).trim().toLowerCase()
-        if (!q) { return true }
+        const q = DataUtils.str(query).toLowerCase()
+        if (!q.trim()) { return true }
         const fields = [entry.reference, entry.project_name, entry.travail_ref]
         return fields.some(value => DataUtils.str(value).toLowerCase().includes(q))
     }
 
-    #applyPersonViewFilter(listContainer) {
+    #applyPersonViewFilter(listContainer, query = this.#personViewFilter) {
         listContainer.querySelectorAll('.time-entry').forEach(node => {
             const entry = this.#currentPersonEntries.get(node.id)
-            node.hidden = entry ? !this.#entryMatchesFilter(entry, this.#personViewFilter) : true
+            const visible = entry ? this.#entryMatchesFilter(entry, query) : false
+            node.classList.toggle('is-filtered-out', !visible)
         })
     }
 
@@ -320,8 +321,10 @@ export default class TimeUI {
         const searchBar = document.createElement('DIV')
         searchBar.classList.add('time-entry-search-bar')
         const searchInput = document.createElement('INPUT')
-        searchInput.type = 'search'
+        searchInput.type = 'text'
         searchInput.name = 'filter'
+        searchInput.autocomplete = 'off'
+        searchInput.spellcheck = false
         searchInput.placeholder = 'Rechercher par référence, projet ou travail…'
         searchInput.setAttribute('aria-label', 'Filtrer les entrées')
         searchBar.appendChild(searchInput)
@@ -342,9 +345,9 @@ export default class TimeUI {
         }
         this.#currentPersonEntries.clear()
 
-        searchInput.addEventListener('input', event => {
-            this.#personViewFilter = event.target.value
-            this.#applyPersonViewFilter(listContainer)
+        searchInput.addEventListener('input', () => {
+            this.#personViewFilter = searchInput.value
+            this.#applyPersonViewFilter(listContainer, searchInput.value)
         }, {signal: this.#viewEventController.signal})
 
         listContainer.addEventListener('click', event => {

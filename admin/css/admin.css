@@ -1070,6 +1070,10 @@ button.addMore:before {
 .time-entry-list .time-entry {
     cursor: pointer;
 }
+
+.time-entry-list .time-entry.is-filtered-out {
+    display: none !important;
+}
 .time-entry-list .time-entry:hover {
     background-color: lightblue;
 }
