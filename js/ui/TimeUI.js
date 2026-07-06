@@ -505,7 +505,7 @@ export default class TimeUI {
                 </div>
                 <div class="time-entry-editor-actions">
                     <button type="submit">Enregistrer</button>
-                    <button type="button" name="cancel">Annuler</button>
+                    <button type="reset" name="cancel">Annuler</button>
                     <button type="button" name="delete" class="danger">Supprimer</button>
                 </div>
         `
@@ -516,7 +516,26 @@ export default class TimeUI {
             supClasses: ['time-entry-editor'],
         })
 
-        const closePopup = () => popup.close()
+        const closePopup = () => {
+            if (entryNode) { entryNode.classList.remove('selected') }
+            popup.close()
+        }
+
+        form.addEventListener('reset', (event) => {
+            event.preventDefault()
+            closePopup()
+        })
+
+        form.querySelector('button[name="delete"]').addEventListener('click', () => {
+            if (!window.confirm('Supprimer cette entrée de temps ?')) { return }
+            if (!this.#removeCachedEntry(personId, entry.id)) {
+                KAAL.error("Impossible de supprimer l'entrée")
+                return
+            }
+            this.#currentPersonEntries.delete(entryNodeId)
+            closePopup()
+            this.#refreshPersonViewFromCache()
+        })
 
         Promise.all([
             this.#attachProjectSelect(form, projectId),
@@ -529,19 +548,6 @@ export default class TimeUI {
                 const newProjectId = projectSelect.value
                 this.#replaceProcessTravailSelect(form, newProjectId)
                     .then(select => { currentProcessTravailSelect = select })
-            })
-
-            form.querySelector('button[name="cancel"]').addEventListener('click', closePopup)
-
-            form.querySelector('button[name="delete"]').addEventListener('click', () => {
-                if (!window.confirm('Supprimer cette entrée de temps ?')) { return }
-                if (!this.#removeCachedEntry(personId, entry.id)) {
-                    KAAL.error("Impossible de supprimer l'entrée")
-                    return
-                }
-                this.#currentPersonEntries.delete(entryNodeId)
-                closePopup()
-                this.#refreshPersonViewFromCache()
             })
 
             form.addEventListener('submit', (event) => {
@@ -582,6 +588,10 @@ export default class TimeUI {
                 closePopup()
                 this.#refreshPersonViewFromCache()
             })
+        })
+        .catch(() => {
+            KAAL.error('Impossible d\'initialiser l\'éditeur')
+            closePopup()
         })
     }
 
