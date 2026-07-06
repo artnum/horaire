@@ -1,3 +1,10 @@
+import '../bootstrap/globals.js'
+import admin from '../admin.js'
+import { kafetch, kafetch2 } from '../fetch.js'
+
+const Admin = admin
+window.Admin = admin
+
 const base = window.location.pathname.split('/')
   while (!base[0]) { base.shift() }
   const KLoginInstance = (new KLogin(new URL(`${window.location.origin}/${base.shift()}/`)))
@@ -666,3 +673,5 @@ const base = window.location.pathname.split('/')
         .addEventListener('click', e => { editUser(null) })
     loadUsers()
   })
+
+export {}

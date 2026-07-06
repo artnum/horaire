@@ -217,4 +217,5 @@ KCarInteractUI.prototype = {
     });
   },
 };
-
+export default KCarInteractUI
+export { KCarInteractUI }

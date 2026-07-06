@@ -83,3 +83,5 @@ QRBill = {
 
 
 }
+export default QRBill
+export { QRBill }

@@ -102,3 +102,5 @@ Object.assign(String.prototype, {
       return str
     }
 })
+
+export {}

@@ -99,3 +99,5 @@ KABxBill.prototype.getReference = function () {
 KABxBill.prototype.getDate = function () {
     return this.data.bill_date
 }
+export default KABxBill
+export { KABxBill }

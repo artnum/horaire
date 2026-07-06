@@ -39,3 +39,5 @@ KAProject.prototype.get = function (key) {
 KAProject.prototype.has = function (key) {
     return this.data.has(key)
 }
+export default KAProject
+export { KAProject }

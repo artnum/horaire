@@ -34,3 +34,5 @@ function MsgInteractUI (type = 'error', message) {
         }.bind(timeout))
     })
 }
+export default MsgInteractUI
+export { MsgInteractUI }

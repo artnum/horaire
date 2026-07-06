@@ -37,3 +37,5 @@ Missing.prototype.isMissing = function(userid) {
     }
     return false
 }
+export default Missing
+export { Missing }

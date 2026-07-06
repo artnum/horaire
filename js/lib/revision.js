@@ -19,3 +19,5 @@ function checkBuildNumberAndReload(suffix = 'main') {
             })
     })
 }
+export default checkBuildNumberAndReload
+export { checkBuildNumberAndReload }

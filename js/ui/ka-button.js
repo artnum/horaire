@@ -233,4 +233,5 @@ KAButton.prototype.getValue = function () {
 KAButton.prototype.isset = function () {
   return this.domNode.dataset.open === "1";
 };
-
+export default KAButton
+export { KAButton }

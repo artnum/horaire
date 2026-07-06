@@ -93,3 +93,5 @@ KAAL.transaction = function (msg = 'Opération en cours') {
         }
     }
 }
+
+export {}

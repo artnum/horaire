@@ -20,3 +20,5 @@ function KAEntryForm (project, affaire, status, reservation = null) {
 
     return button
 }
+export default KAEntryForm
+export { KAEntryForm }

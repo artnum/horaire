@@ -10,11 +10,8 @@
 <body>
 </body>
 <script src="$script/conf/kaal.js"></script>
-<script src="$script/src/lib/login.js"></script>
-<script src="$script/src/lib/revision.js"></script>
-<script src="$script/src/fetch.js"></script>
-<script src="$script/src/data/utils.js"></script>
 <script type="module">
+  import '$script/src/entries/admin-bootstrap.js'
   import App from './$script/src/app/app.js'
   const KAALApp = new App(document.body)
   KAALApp.login()

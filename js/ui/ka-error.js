@@ -22,3 +22,5 @@ function KAErrorUI (msgOrError) {
         window.requestAnimationFrame(() => document.body.removeChild(div))
     })
 }
+export default KAErrorUI
+export { KAErrorUI }

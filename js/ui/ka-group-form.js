@@ -55,3 +55,5 @@ UIKAGroupForm.prototype.showError = function (name, text) {
 UIKAGroupForm.prototype.getGroups = function () {
 
 }
+export default UIKAGroupForm
+export { UIKAGroupForm }

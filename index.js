@@ -1,7 +1,8 @@
+import './js/bootstrap/globals.js'
+import Missing from './js/ui/missing.js'
 import UserInteractUI from './js/ui/user-interact.js'
 import TimeInteractUI from './js/ui/time-interact.js'
 
-/* workaround for browser caching ... don't think it's still useful */
 function checkBuildNumberAndReload() {
   return new Promise((resolve) => {
     const currentBuild = localStorage.getItem('kaal-build-number')
@@ -25,7 +26,7 @@ function checkBuildNumberAndReload() {
   })
 }
 
-window.addEventListener('load-scripts', (event) => {
+window.addEventListener('DOMContentLoaded', () => {
   checkBuildNumberAndReload()
     .then(() => {
       const missing = new Missing()
@@ -58,4 +59,3 @@ window.addEventListener('load-scripts', (event) => {
       })
     })
 })
-

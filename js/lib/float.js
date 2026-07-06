@@ -5,3 +5,5 @@ function KAFloat(value, precision = 4) {
     value = Math.round(value * precisionFactor) / precisionFactor
     return value
 }
+export default KAFloat
+export { KAFloat }

@@ -1352,4 +1352,5 @@ UIKABXFactureList.prototype.paySelected = function (bank) {
         });
     });
 };
-
+export default UIKABXFactureList
+export { UIKABXFactureList }

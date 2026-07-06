@@ -175,3 +175,5 @@ UIKAContactForm.prototype.load = function (contactId)
 
     })
 }
+export default UIKAContactForm
+export { UIKAContactForm }

@@ -56,29 +56,9 @@
   <body></body>
   <script src="../../../kcore/index.js"></script>
   <script src="../../conf/kaal.js"></script>
-  <script src="$script/src/lib/login.js"></script>
-  <script src="$script/src/kaal.js"></script>
-  <script src="$script/src/fetch.js"></script>
-  <script src="$script/src/lib/kapi.js"></script>
   <script src="../../node_modules/popper.js/dist/umd/popper.min.js"></script>
   <script src="../../node_modules/artnum/String.js"></script>
   <script src="../../node_modules/artnum/Date.js"></script>
   <script src="../../node_modules/artnum/Path.js"></script>
-  <script src="$script/src/admin.js"></script>
-  <script src="$script/src/stores.js"></script>
-  <script src="$script/src/ui/ka-bxfacture-list.js"></script>
-  <script src="$script/src/ui/ka-button.js"></script>
-  <script src="$script/src/ui/ka-contact.js"></script>
-  <script src="$script/src/admin-index.js"></script>
-
-  <script>
-    function load() {
-      const factureUI = new UIKABXFactureList();
-      factureUI.render().then((x) => {
-        document.body.appendChild(factureUI.domNode);
-      });
-    }
-
-    window.addEventListener("kcore-loaded", load);
-  </script>
+  <script type="module" src="$script/src/entries/bill.js"></script>
 </html>

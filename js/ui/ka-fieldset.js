@@ -16,3 +16,5 @@ function KAFieldsetUI (title, start = 'open') {
     })
     return domNode
 }
+export default KAFieldsetUI
+export { KAFieldsetUI }

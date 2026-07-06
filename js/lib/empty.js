@@ -23,3 +23,5 @@ function isFloatEmpty (float) {
 function arrayFirstNonEmptyString (array) {
     return array.find(item => typeof item === 'string' && !isStringEmpty(item))
 }
+export { isIntEmpty, isIdEmpty, isStringEmpty, isFloatEmpty, arrayFirstNonEmptyString }
+export default isIntEmpty

@@ -5,3 +5,5 @@ function UIKABXProjectList() {
         <input type="text" name="bxproject" />
     `
 }
+export default UIKABXProjectList
+export { UIKABXProjectList }

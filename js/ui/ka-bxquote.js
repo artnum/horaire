@@ -13,3 +13,5 @@ class KABxQuote {
     }
 
 }
+export default KABxQuote
+export { KABxQuote }

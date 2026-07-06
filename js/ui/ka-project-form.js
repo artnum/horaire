@@ -100,3 +100,5 @@ UIKAProjectForm.prototype.addProject = function () {
         console.log(body)
     })
 }
+export default UIKAProjectForm
+export { UIKAProjectForm }

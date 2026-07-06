@@ -90,3 +90,5 @@ KED.prototype.createProject = function (id, reference, related) {
             .catch(cause => { reject(cause) })
     })
 }
+export { KED, KEDPacket }
+export default KED

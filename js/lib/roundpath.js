@@ -166,3 +166,6 @@
     
     return resultCommands.reduce(function(str, c){ return str + c.join(" ") + " "; }, "");
   }
+
+export default roundPathCorners
+export { roundPathCorners }

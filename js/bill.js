@@ -858,7 +858,7 @@ export class Facture {
     }
 }
 
-window.onload = () => {
+export function initBillPage() {
     let RUI = new RepartitionUI()
     let F = new Facture(document.getElementById('bill'), RUI)
     window.Facture = F

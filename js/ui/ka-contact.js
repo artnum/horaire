@@ -110,3 +110,5 @@ UIKAContact.prototype.addEventListener = function (type, listener, options) {
         case 'submit': return this.eventTarget.addEventListener(type, listener, options)
     }
 }
+export default UIKAContact
+export { UIKAContact }

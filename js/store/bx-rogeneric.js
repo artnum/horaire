@@ -66,3 +66,5 @@ BXROGenericStore.prototype.getIdentity = function (object) {
     if (this.fieldMapping.idName) { idName = this.fieldMapping.idName }
     return object[idName]
 }
+export default BXROGenericStore
+export { BXROGenericStore }

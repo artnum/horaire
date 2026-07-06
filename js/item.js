@@ -152,10 +152,5 @@ Item.prototype.write = function (id, options) {
   })
 }
 
-window.onload = async function (event) {
-  window.Item = new Item('items')
-  var t = new Artnum.DTable({table: 'items', sortOnly: true})
-  window.Item.load().then((Item) => {
-    Item.display()
-  })
-}
+export default Item
+export { Item }

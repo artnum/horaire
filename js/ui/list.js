@@ -206,3 +206,5 @@ KAList.prototype.close = function () {
         document.body.removeChild(popper)
     })
 }
+export default KAList
+export { KAList }

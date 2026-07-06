@@ -266,3 +266,4 @@ STCategory.prototype.query = function (txt) {
 STCategory.prototype.getIdentity = function (object) {
   return object.uid ? object.uid : object.id
 }
+export { STProcess, STProject, STPerson, STCategory }

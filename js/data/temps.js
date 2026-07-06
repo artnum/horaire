@@ -116,3 +116,5 @@ KATemps.prototype.get = function (key) {
 KATemps.prototype.has = function (key) {
     return this.data.has(key)
 }
+export default KATemps
+export { KATemps }

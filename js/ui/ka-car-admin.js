@@ -213,3 +213,5 @@ KACarAdminUI.prototype = {
         })
     }
 }
+export default KACarAdminUI
+export { KACarAdminUI }

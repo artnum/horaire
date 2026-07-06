@@ -140,3 +140,4 @@ String.prototype.toId = function () {
 String.prototype.capitalize = function () {
   return this.charAt(0).toLocaleUpperCase() + this.slice(1)
 }
+export { DataUtils, $s, $i }

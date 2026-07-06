@@ -56,3 +56,5 @@ BXUserStore.prototype.query = function (txt) {
 BXUserStore.prototype.getIdentity = function (object) {
     return object.id
 }
+export default BXUserStore
+export { BXUserStore }

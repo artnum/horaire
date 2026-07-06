@@ -1,0 +1,240 @@
+import '../bootstrap/globals.js'
+var searchParams = {'search.deleted': '0'}
+
+function changeState (event) {
+  switch(event.target.id) {
+    case 'stateOpen': 
+      searchParams['search.deleted'] = '0'
+      break;
+    case 'stateClosed':
+      searchParams['search.deleted'] = '>0'
+      break;
+    case 'stateAny': 
+      delete searchParams['search.deleted']
+      break;
+  } 
+  load()
+}
+
+function addProject (event) {
+  event.preventDefault()
+  var form = event.target
+  for (; form.nodeName !== 'FORM'; form = form.parentNode);
+  var inputs = form.getElementsByTagName('INPUT')
+  var oform = {}
+  for (var i = 0; i < inputs.length; i++) {
+    if (!inputs[i].getAttribute('name')) { continue }
+    var value = null
+    switch(inputs[i].getAttribute('type')) {
+      default:
+      case 'text':
+        value = inputs[i].value
+        break
+    }
+    if (oform[inputs[i].getAttribute('name')]) {
+      if (Array.isArray(oform[inputs[i].getAttribute('name')])) {
+        oform[inputs[i].getAttribute('name')].push(value)
+      } else {
+        oform[inputs[i].getAttribute('name')] = [oform[inputs[i].getAttribute('name')]]
+        oform[inputs[i].getAttribute('name')].push(value)
+      }
+    } else {
+      oform[inputs[i].getAttribute('name')] = value
+    }
+  }
+
+  if (oform.name) {
+    Artnum.Query.exec(Artnum.Path.url('Process'), {method: 'POST', body: {name: oform.name }}).then(function (result) {
+      if (result.success && result.length === 1) {
+        Artnum.Query.exec(Artnum.Path.url('Process/' + result.data[0].id)).then(function (result) {
+          if (result.success && result.length === 1) {
+            replaceAddEntry(newEntry(Array.isArray(result.data) ? result.data[0] : result.data))
+          }
+        })
+      }
+    })
+ 
+  }
+}
+
+function evDeleteProcess (event) {
+  var line = event.target
+  for (; line.nodeName !== 'TR'; line = line.parentNode);
+  var id = line.getAttribute('data-id')
+  if (id) {
+    Admin.deleteEntry('Process', id).then(function (data) {
+      var entry = newEntry(data)
+      var table = line
+      for (; table && table.nodeName !== 'TABLE'; table = table.parentNode);
+      Admin.insertEntry(entry, table)
+    })
+  }
+}
+function evUndeleteProcess (event) {
+  var line = event.target
+  for (; line.nodeName !== 'TR'; line = line.parentNode);
+  var id = line.getAttribute('data-id')
+  if (id) {
+    Admin.deleteEntry('Process', id, true).then(function (data) {
+      var entry = newEntry(data)
+      var table = line
+      for (; table && table.nodeName !== 'TABLE'; table = table.parentNode);
+      Admin.insertEntry(entry, table)
+    })
+  }
+}
+
+async function evCancelEdit (event) {
+  if (event && event.target) {
+    for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
+    var tr = node
+    if (!tr.getAttribute('data-edit') || tr.getAttribute('data-edit') === '0') {
+      return
+    }
+    for (var td = node.firstChild; td; td = td.nextSibling) {
+      if (td.getAttribute('data-original-value')) {
+        td.innerHTML = td.getAttribute('data-original-value')
+      }
+    }
+    event.target.parentNode.removeChild(event.target)
+    tr.setAttribute('data-edit', '0')
+  }
+}
+
+async function evEditLine (event) {
+  if (event && event.target) {
+    for (var node = event.target; node.nodeName !== 'TR'; node = node.parentNode);
+    var tr = node
+    if (!tr.getAttribute('data-edit') || tr.getAttribute('data-edit') === '0') {
+      tr.setAttribute('data-edit', '1')
+      for (var td = node.firstChild; td; td = td.nextSibling) {
+        if (td.getAttribute('data-type')) {
+          switch (td.getAttribute('data-type').toLowerCase()) {
+            default:
+            case 'text':
+              if (td.getAttribute('data-name')) {
+                var input = document.createElement('INPUT')
+                input.setAttribute('name', td.getAttribute('data-name'))
+                if (td.getAttribute('data-value')) {
+                  input.value = td.getAttribute('data-value')
+                } else {
+                  input.value = td.innerHTML
+                }
+                td.setAttribute('data-original-value', input.value)
+              }
+              break
+            case 'color':
+              if (td.getAttribute('data-name')) {
+                  var input = document.createElement('INPUT')
+                  input.type = 'color'
+                  input.setAttribute('name', td.getAttribute('data-name'))
+                  if (td.getAttribute('data-value')) {
+                    input.value = td.getAttribute('data-value')
+                  } else {
+                    input.value = td.innerHTML
+                  }
+                  td.setAttribute('data-original-value', input.value)
+                }
+                break
+          }
+          td.innerHTML = ''
+          td.appendChild(input)
+        }
+      }
+      
+      var cancelButton = document.createElement('BUTTON')
+      cancelButton.setAttribute('type', 'button')
+      cancelButton.innerHTML = 'Annuler'
+      cancelButton.addEventListener('click', evCancelEdit)
+      event.target.parentNode.insertBefore(cancelButton, event.target.nextSibling)
+    } else {
+      var dataSource = null
+      for (var x = tr; x; x = x.parentNode) {
+        if (x.getAttribute('data-source')) {
+          dataSource = x.getAttribute('data-source')
+          break
+        }
+      }
+      if (dataSource) {
+        var inputs = tr.getElementsByTagName('INPUT')
+        tr.setAttribute('data-edit', '0')
+        var body = {id: tr.getAttribute('data-id')}
+        for (var i = 0; i < inputs.length; i++) {
+          body[inputs[i].getAttribute('name')] = inputs[i].value
+        }
+
+        var res = await Artnum.Query.exec(`${KAAL.kairos.endpoint}/Status/${body.id}`, {method: 'PATCH', body: body})
+        if (res.success && res.length === 1) {
+          res = await Artnum.Query.exec(`${KAAL.kairos.endpoint}/Status/${res.data[0].id}`)
+          if (res.success && res.length === 1) {
+            replaceAddEntry(newEntry(Array.isArray(res.data) ? res.data[0] : res.data))
+          }
+        }
+      }
+    }
+  }
+}
+
+function newEntry (entry, edit = false) {
+  var tr = null
+
+  if (entry.id) {
+    tr = document.createElement('TR')
+    tr.setAttribute('data-id', entry.id)
+
+    var closeButton = document.createElement('BUTTON')
+    closeButton.setAttribute('type', 'button')
+    closeButton.setAttribute('data-id', entry.id)
+
+    if (entry.deleted === '0') {
+      closeButton.innerHTML = 'Supprimer'
+      closeButton.addEventListener('click', evDeleteProcess)
+    } else {
+      tr.setAttribute('data-state', 'deleted')
+      closeButton.innerHTML = 'Rétablir'
+      closeButton.addEventListener('click', evUndeleteProcess)
+    }
+    
+    var editButton = document.createElement('BUTTON')
+    editButton.setAttribute('type', 'button')
+    editButton.innerHTML = 'Éditer'
+    editButton.addEventListener('click', evEditLine)
+
+    tr.innerHTML = `
+      <td data-name="name" data-type="text">${entry.name ? entry.name : ''}</td>
+      <td data-name="color" data-type="color" data-value="${entry.color ? entry.color : 'white'}" style="background-color: ${entry.color ? entry.color : 'white'}">   </td>
+    `
+    
+    var td = document.createElement('TD')
+    td.appendChild(editButton)
+    td.appendChild(closeButton)
+    tr.appendChild(td)
+  }
+
+  return tr
+}
+
+function replaceAddEntry (tr) {
+  var table = document.getElementById('projects')
+  Admin.insertEntry(tr, table)
+}
+
+ async function load () {
+   let res = await kafetch(`${KAAL.kairos.endpoint}/Status/_query`, {method: 'POST', body: JSON.stringify({type: 1})})
+   if (res.success) {
+     let  table = document.getElementById('projects')
+     res.data.forEach(function (entry) {
+       let tr = newEntry(entry)
+       if (tr) {
+         Admin.insertEntry(tr, table, entry.id)
+       }
+     })
+   }
+ }
+
+window.changeState = changeState
+window.addProject = addProject
+
+window.addEventListener('load', () => {
+  load()
+})

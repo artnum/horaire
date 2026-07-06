@@ -78,3 +78,5 @@ KAGroup.prototype.query = function (value) {
     })
     return Promise.resolve(results)
 }
+export default KAGroup
+export { KAGroup }

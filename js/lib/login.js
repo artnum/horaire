@@ -447,3 +447,5 @@ KLogin.prototype.getActive = function (userid) {
       })
   })
 }
+export default KLogin
+export { KLogin }

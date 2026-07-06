@@ -557,7 +557,5 @@ KGanttView.prototype.reheightProject = function (node, size) {
     }
 }
 
-window.onload = (event) => {
-    const gantt = new KGanttView()
-    gantt.run()
-}
+export default KGanttView
+export { KGanttView }

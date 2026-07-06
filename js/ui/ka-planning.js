@@ -82,3 +82,5 @@ KAPlanningUI.prototype.render = function () {
 KAPlanningUI.prototype.load = function () {
   return Promise.resolve()
 }
+export default KAPlanningUI
+export { KAPlanningUI }

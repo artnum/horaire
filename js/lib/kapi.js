@@ -163,3 +163,5 @@ KAPI.prototype.execute = function (functionName, params = {}) {
         })
     })
 }
+export default KAPI
+export { KAPI }

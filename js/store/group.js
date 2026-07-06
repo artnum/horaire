@@ -130,3 +130,5 @@ GroupStore.prototype.set = function (group) {
         })
     })
 }
+export default GroupStore
+export { GroupStore }

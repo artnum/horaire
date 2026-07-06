@@ -9,3 +9,5 @@ function getTVA(year = null) {
     }
     return tva
 }
+export default getTVA
+export { getTVA }

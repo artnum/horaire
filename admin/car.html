@@ -19,26 +19,7 @@
 </script>
 <script src="../../../kcore/index.js"></script>
 <script src="../../conf/kaal.js"></script>
-<script src="$script/src/lib/login.js"></script>
-<script src="$script/src/lib/revision.js"></script>
 <script src="../../node_modules/popper.js/dist/umd/popper.min.js"></script>
 <script src="../../node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
-<script src="$script/src/admin.js"></script>
-<script src="$script/src/string.js"></script>
-<script src="$script/src/stores.js"></script>
-<script src="$script/src/store/user.js"></script>
-<script src="$script/src/addr.js" type="module"></script>
-<script src="$script/src/ked.js"></script>
-<script src="$script/src/index.js"></script>
-<script src="$script/src/admin-index.js"></script>
-<script>
-  window.addEventListener('kcore-loaded', () => {
-    const carUI = new KACarAdminUI()
-    carUI.render()
-    .then(list => {
-        document.body.appendChild(list)
-    })
-  })
-</script>
-
+<script type="module" src="$script/src/entries/car.js"></script>
 </html>

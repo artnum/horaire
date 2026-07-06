@@ -47,3 +47,5 @@ UserStore.prototype.query = function(value) {
         }, _ => resolve(entries))
     })
 }
+export default UserStore
+export { UserStore }

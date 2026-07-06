@@ -1,8 +1,7 @@
+import KLogin from './lib/login.js'
 /* estlint-env browser */
 /* global Artnum */
-(function () {
-  var global = Function('return this')() // eslint-disable-line
-  var admin = {
+const admin = {
     formatMoney: function (value, currency = 'chf') {
       value = parseFloat(value).toFixed(2)
       return `${String(value)} ${currency.toUpperCase()}`
@@ -497,5 +496,5 @@
       })
     }
   }
-  global.Admin = admin
-})()
+export default admin
+export { admin }

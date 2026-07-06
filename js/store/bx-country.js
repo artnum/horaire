@@ -62,3 +62,5 @@ BXCountryStore.prototype.query = function (txt) {
 BXCountryStore.prototype.getIdentity = function (object) {
     return object.id
 }
+export default BXCountryStore
+export { BXCountryStore }

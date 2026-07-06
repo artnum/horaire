@@ -630,3 +630,5 @@ UIKAContactOld.prototype.deleteContact = function (contactId) {
 UIKAContactOld.prototype.getClientId = function () {
     return this.clientid
 }
+export default UIKAContactOld
+export { UIKAContactOld }

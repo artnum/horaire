@@ -1,3 +1,4 @@
+import KLogin from './lib/login.js'
 const __fetch_original = fetch
 fetch = function (url, params = {}) {
   if (fetch.first === undefined) { 
@@ -89,3 +90,4 @@ function kafetch2 (url, params = {}) {
 
   })
 }
+export { kafetch, kafetch2 }
