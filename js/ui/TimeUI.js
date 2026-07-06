@@ -371,7 +371,7 @@ export default class TimeUI {
     #loadPopper() {
         if (window.Popper?.createPopper) { return Promise.resolve() }
         const sources = [
-            new URL('node_modules/@popperjs/core/dist/umd/popper.min.js', window.location).href,
+            new URL('../node_modules/@popperjs/core/dist/umd/popper.min.js', window.location),
             'https://unpkg.com/@popperjs/core@2/dist/umd/popper.min.js',
         ]
         const tryNext = (index) => {
