@@ -1,5 +1,5 @@
-import format from '../../lib/format'
-import Placement from '../../lib/WidgetBase/Placement'
+import format from '../../lib/format.js'
+import Placement from '../../lib/WidgetBase/Placement.js'
 
 export default class Tab {
   #tabHeader

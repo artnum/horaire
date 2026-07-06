@@ -1,4 +1,4 @@
-import SchemaModel from "../SchemaModel";
+import SchemaModel from "../SchemaModel.js";
 
 
 export class UserPersonnalData extends SchemaModel {

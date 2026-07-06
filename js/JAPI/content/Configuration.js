@@ -1,4 +1,4 @@
-import { JAPI } from "../JAPI";
+import { JAPI } from "../JAPI.js";
 
 const NS = 'Configuration'
 export class ConfigurationAPI extends JAPI {

@@ -1,4 +1,4 @@
-import { AccessDeniedError } from "./content/Access"
+import { AccessDeniedError } from "./content/Access.js"
 
 export default class Privilege {
   constructor(accessAPI) {
