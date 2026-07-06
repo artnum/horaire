@@ -9,10 +9,10 @@
 
 <body>
 </body>
-<script src="$script/conf/kaal.js"></script>
-<script type="module" src="$script/src/entries/admin-bootstrap.js"></script>
+<script src="../conf/kaal.js"></script>
+<script type="module" src="../js/entries/admin-bootstrap.js"></script>
 <script type="module">
-  import App from './$script/src/app/app.js'
+  import App from '../js/app/app.js'
   const KAALApp = new App(document.body)
   KAALApp.login()
   .then(user => {

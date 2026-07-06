@@ -1,7 +1,7 @@
-import { UserAPI as UserAPIClass } from './$script/src/JAPI/content/User.js';
-import format from './$script/src/lib/format.js'
-import l10n from './$script/src/lib/l10n.js'
-import RouterHandler from './$script/src/app/router.js'
+import { UserAPI as UserAPIClass } from '../../JAPI/content/User.js';
+import format from '../../lib/format.js'
+import l10n from '../../lib/l10n.js'
+import RouterHandler from '../router.js'
 
 const UserAPI = UserAPIClass.getInstance()
 

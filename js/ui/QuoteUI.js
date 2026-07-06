@@ -1,7 +1,7 @@
-import QuoteList from './$script/src/app/quote/list.js'
-import ContactList from './$script/src/app/contact/list.js'
-import AccountingDocAPI from './$script/src/JAPI/AccountingDoc.js'
-import l10n from './$script/src/lib/l10n.js'
+import QuoteList from '../app/quote/list.js'
+import ContactList from '../app/contact/list.js'
+import AccountingDocAPI from '../JAPI/AccountingDoc.js'
+import l10n from '../lib/l10n.js'
 import help from '../lib/help.js'
 import App from '../app/app.js'
 

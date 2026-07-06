@@ -1,5 +1,5 @@
-import l10n from './$script/src/lib/l10n.js'
-import RouterHandler from './$script/src/app/router.js'
+import l10n from '../lib/l10n.js'
+import RouterHandler from './router.js'
 import help from '../lib/help.js'
 import { AccessAPI } from '../JAPI/content/Access.js'
 import Privilege from '../JAPI/Privilege.js'
@@ -87,7 +87,7 @@ export default class App {
           case 'UserUI':
           case 'QuoteUI':
             this.main.classList.add('with-navigation')
-            import(`./$script/src/ui/${object}.js`).then((module) => {
+            import(`../ui/${object}.js`).then((module) => {
               const ui = new module['default'](this, this.main, this.navigation)
               ui.init().then((_) => {
                 this.#currentUiNode = ui

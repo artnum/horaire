@@ -1,4 +1,4 @@
-import { JAPI, JAPIIterator } from './$script/src/JAPI/JAPI.js'
+import { JAPI, JAPIIterator } from '../JAPI.js'
 
 const NS = 'Project'
 const listSize = 20

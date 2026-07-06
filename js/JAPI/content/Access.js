@@ -1,5 +1,5 @@
 import DataAPI from '../DataAPI.js'
-import { JAPI } from './$script/src/JAPI/JAPI.js'
+import { JAPI } from '../JAPI.js'
 
 export class AccessDeniedError extends Error {
   constructor() {

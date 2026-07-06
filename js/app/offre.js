@@ -1,10 +1,10 @@
-import AccountingDocAPI from "./$script/src/JAPI/AccountingDoc.js";
-import { AccountingDocLineAPI } from "./$script/src/JAPI/AccountingDocLine.js";
-// import { ContactAPI } from './$script/src/JAPI/Contact.js'
-import { ProjectAPI as ProjectAPIClass } from "./$script/src/JAPI/content/Project.js";
-import { JFormData } from "./$script/vendor/js/formdata/src/formdata.js";
-import { Barrier } from "./$script/src/lib/barrier.js";
-import { AccountingConditionAPI } from "./$script/src/JAPI/AccountingCondition.js";
+import AccountingDocAPI from "../JAPI/AccountingDoc.js";
+import { AccountingDocLineAPI } from "../JAPI/AccountingDocLine.js";
+// import { ContactAPI } from '../JAPI/Contact.js'
+import { ProjectAPI as ProjectAPIClass } from "../JAPI/content/Project.js";
+import { JFormData } from "../../../js/formdata/src/formdata.js";
+import { Barrier } from "../lib/barrier.js";
+import { AccountingConditionAPI } from "../JAPI/AccountingCondition.js";
 import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
 
 const params = new URLSearchParams(window.location.search);

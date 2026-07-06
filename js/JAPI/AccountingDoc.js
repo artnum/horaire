@@ -1,7 +1,7 @@
-import { JAPI } from "./$script/src/JAPI/JAPI.js";
-import { AccountingDocLineAPI } from "./$script/src/JAPI/AccountingDocLine.js";
-import { base26 } from "./$script/src/lib/base26.js";
-import format from "./$script/src/lib/format.js";
+import { JAPI } from "./JAPI.js";
+import { AccountingDocLineAPI } from "./AccountingDocLine.js";
+import { base26 } from "../lib/base26.js";
+import format from "../lib/format.js";
 const NS = "AccountingDoc";
 
 class AccountingDoc {

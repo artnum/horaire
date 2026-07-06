@@ -1,7 +1,7 @@
-import { ProjectAPI as ProjectAPIClass } from './$script/src/JAPI/content/Project.js'
-import format from './$script/src/lib/format.js'
-import l10n from './$script/src/lib/l10n.js'
-import RouterHandler from './$script/src/app/router.js'
+import { ProjectAPI as ProjectAPIClass } from '../../JAPI/content/Project.js'
+import format from '../../lib/format.js'
+import l10n from '../../lib/l10n.js'
+import RouterHandler from '../router.js'
 
 const ProjectAPI = ProjectAPIClass.getInstance()
 

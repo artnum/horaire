@@ -1,4 +1,4 @@
-import l10n from './$script/src/lib/l10n.js'
+import l10n from '../lib/l10n.js'
 
 export default class ContactUI {
   constructor() {

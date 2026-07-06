@@ -1,5 +1,5 @@
-import MTModule from './$script/src/lib/widgets/MonthlyTimesheet.js'
-import TimeAPI from './$script/src/JAPI/Time.js'
+import MTModule from '../lib/widgets/MonthlyTimesheet.js'
+import TimeAPI from '../JAPI/Time.js'
 import KAPerson from '../data/person.js'
 import KAProcess from '../data/process.js'
 import KReservation from '../data/reservation.js'

@@ -1,4 +1,4 @@
-import { JAPI, JAPIIterator } from '../JAPI.js' //'./$script/src/JAPI/JAPI.js'
+import { JAPI, JAPIIterator } from '../JAPI.js' //'../JAPI.js'
 import SchemaModel from '../SchemaModel.js'
 import UserKeyOpt from './UserKeyOpt.js'
 import UserChildData from './UserChildData.js'

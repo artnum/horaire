@@ -1,5 +1,5 @@
-import { ProjectAPI } from './$script/src/JAPI/content/Project.js'
-import Debounce from './$script/src/lib/debounce.js'
+import { ProjectAPI } from '../JAPI/content/Project.js'
+import Debounce from '../lib/debounce.js'
 import KATravail from '../data/travail.js'
 
 export default class UIKAProjectList {

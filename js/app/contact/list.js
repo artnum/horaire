@@ -1,5 +1,5 @@
-import Debounce from "./$script/src/lib/debounce.js"
-import Popup from './$script/src/lib/popup.js'
+import Debounce from "../../lib/debounce.js"
+import Popup from '../../lib/popup.js'
 
 export default class List {
     constructor(attachNode) {
