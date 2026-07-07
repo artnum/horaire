@@ -312,7 +312,8 @@ export default class TimeUI {
         }
     }
 
-    #replaceProcessTravailSelect(form, projectId) {
+    #replaceProcessTravailSelect(form, projectId, processTravailSelect = null) {
+        processTravailSelect?.close?.()
         const field = form.querySelector('.process-travail-field')
         field.innerHTML = `
             <span>Processus / Travail</span>
@@ -543,10 +544,13 @@ export default class TimeUI {
         ])
         .then(([projectSelect, processTravailSelect]) => {
             let currentProcessTravailSelect = processTravailSelect
+            let currentProjectId = projectId || null
 
-            form.querySelector('input[name="project"]').addEventListener('change', () => {
-                const newProjectId = projectSelect.value
-                this.#replaceProcessTravailSelect(form, newProjectId)
+            projectSelect.domNode.addEventListener('change', () => {
+                const newProjectId = projectSelect.value || null
+                if (String(newProjectId) === String(currentProjectId)) { return }
+                currentProjectId = newProjectId
+                this.#replaceProcessTravailSelect(form, newProjectId, currentProcessTravailSelect)
                     .then(select => { currentProcessTravailSelect = select })
             })
 
