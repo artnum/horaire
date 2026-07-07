@@ -30,8 +30,11 @@ KAAL.message = function (msg, level = 'error') {
     return [msgBox, timeoutId]
 }
 
-KAAL.error = function (msg) {
+KAAL.error = function (msg, cause) {
     KAAL.message(msg, 'error')
+    if (cause) {
+        console.log(cause)
+    }
 }
 
 KAAL.info = function (msg) {

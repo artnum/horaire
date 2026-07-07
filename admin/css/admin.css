@@ -1179,13 +1179,20 @@ button.addMore:before {
     font-weight: bold;
 }
 
+.popup.time-entry-editor .kdropdown > div[data-value^="__hdr_"] {
+    font-weight: bold;
+    pointer-events: none;
+    opacity: 0.75;
+}
+
 .popup.time-entry-editor .time-entry-editor-fields input,
 .popup.time-entry-editor .time-entry-editor-fields textarea {
     width: calc(100% - 2ch);
     box-sizing: border-box;
     padding: 0.5ex 1ch;
-    border: 1px solid #ccc;
-    background: #fff;
+}
+.popup.time-entry-editor .time-entry-editor-fields .kselect {
+    width: calc(100% - 2ch);
 }
 
 .popup.time-entry-editor .time-entry-editor-actions {

@@ -3,6 +3,8 @@ import Fetch from '../lib/Fetch.js'
 import FormatHour from '../lib/FormatHour.js'
 import FileExtension from '../lib/FileExtension.js'
 import Kolor from '../lib/Kolor.js'
+import STProcessTravail from '../stores/process-travail.js'
+import { STProject } from '../stores.js'
 import admin from '../admin.js'
 
 
@@ -22,6 +24,7 @@ export default class TimeUI {
     #dateRange = [null, null]
     #app
     #duplicate = new Map()
+    #kcoreReady = null
 
     constructor(app, timeapi = null) {
         this.#app = app
@@ -237,7 +240,7 @@ export default class TimeUI {
         if (method === 'DELETE') {
             return F.delete(url)
         }
-        return F.put(url, body)
+        return F.post(url, entry)
     }
 
     #entryMatchesFilter(entry, query) {
@@ -255,6 +258,120 @@ export default class TimeUI {
         })
     }
 
+    #entryProcessTravailValue(entry) {
+        const travailId = entry.travail_id ?? entry.travail ?? entry.htime_travail
+        const processId = entry.process_id ?? entry.process ?? entry.htime_process ?? entry.hstatus_id
+        if (travailId) { return `tr:${travailId}` }
+        if (processId) { return `pr:${processId}` }
+        return ''
+    }
+
+    #entryProjectId(entry, projectId = null) {
+        return projectId ?? entry.project_id ?? entry.project ?? entry.projectId ?? entry.htime_project ?? null
+    }
+
+    #resolveProjectId(entry) {
+        const direct = this.#entryProjectId(entry)
+        if (direct) { return Promise.resolve(direct) }
+        if (!entry.reference) { return Promise.resolve(null) }
+        const store = new STProject('Project', true)
+        return store.query({name: entry.reference})
+            .then(results => {
+                const match = results.find(item =>
+                    String(item.reference) === String(entry.reference))
+                return match?.value ?? match?.id ?? null
+            })
+            .catch(() => null)
+    }
+
+    #attachProjectSelect(form, projectId) {
+        const projectInput = form.querySelector('input[name="project"]')
+        return new Promise(resolve => {
+            if (projectId) {
+                projectInput.value = projectId
+            }
+            const select = new KSelectUI(projectInput, new STProject('Project'), {
+                realSelect: true,
+                allowFreeText: false,
+            })
+            resolve(select)
+        })
+    }
+
+    #patchFromProjectSelection(value, lastEntry) {
+        if (!value || !lastEntry) { return {} }
+        return {
+            project_id: value,
+            project: value,
+            projectId: value,
+            htime_project: value,
+            reference: lastEntry.reference ?? '',
+            project_name: lastEntry.name ?? lastEntry.label ?? '',
+        }
+    }
+
+    #replaceProcessTravailSelect(form, projectId, processTravailSelect = null) {
+        processTravailSelect?.close?.()
+        const field = form.querySelector('.process-travail-field')
+        field.innerHTML = `
+            <span>Processus / Travail</span>
+            <input type="text" name="process_travail" autocomplete="off" />
+        `
+        return this.#attachProcessTravailSelect(form, {}, projectId)
+    }
+
+    #attachProcessTravailSelect(form, entry, projectId) {
+        const processTravailInput = form.querySelector('input[name="process_travail"]')
+        const store = new STProcessTravail(projectId)
+        return new Promise(resolve => {
+            window.requestAnimationFrame(() => {
+                const select = new KSelectUI(processTravailInput, store, {
+                    realSelect: true,
+                    allowFreeText: false,
+                })
+                const initial = this.#entryProcessTravailValue(entry)
+                if (initial) {
+                    select.value = initial
+                } else if (entry.travail_ref) {
+                    processTravailInput.value = entry.travail_ref
+                } else if (entry.process_name) {
+                    processTravailInput.value = entry.process_name
+                    if (entry.process_color) {
+                        select.colorize(`#${String(entry.process_color).replace(/^#/, '')}`)
+                    }
+                }
+                resolve(select)
+            })
+        })
+    }
+
+    #patchFromProcessTravailSelection(value, lastEntry) {
+        if (value.startsWith('pr:')) {
+            const color = String(lastEntry?.color ?? '').replace(/^#/, '')
+            return {
+                process_id: value.slice(3),
+                process: value.slice(3),
+                travail_id: null,
+                travail: null,
+                process_name: lastEntry?.label ?? '',
+                process_color: color,
+                travail_ref: '',
+            }
+        }
+        if (value.startsWith('tr:')) {
+            return {
+                travail_id: value.slice(3),
+                travail: value.slice(3),
+                process_id: null,
+                process: null,
+                process_name: '',
+                process_color: '',
+                travail_ref: lastEntry?.label ?? '',
+            }
+        }
+        return {}
+    }
+
     #refreshPersonViewFromCache() {
         if (!this.#currentPersonId || !this.#worktimeData) { return }
         const container = this.#buildPersonViewContainer(this.#currentPersonId, {preserveFilter: true})
@@ -264,10 +381,81 @@ export default class TimeUI {
         })
     }
 
+    #loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const existing = document.querySelector(`script[src="${src}"]`)
+            if (existing) {
+                if (existing.dataset.loaded === '1') {
+                    resolve()
+                    return
+                }
+                existing.addEventListener('load', () => resolve(), {once: true})
+                existing.addEventListener('error', () => {
+                    reject(new Error(`Impossible de charger ${src}`))
+                }, {once: true})
+                return
+            }
+            const script = document.createElement('SCRIPT')
+            script.src = src
+            script.addEventListener('load', () => {
+                script.dataset.loaded = '1'
+                resolve()
+            }, {once: true})
+            script.addEventListener('error', () => {
+                reject(new Error(`Impossible de charger ${src}`))
+            }, {once: true})
+            document.head.appendChild(script)
+        })
+    }
+
+    #loadPopper() {
+        if (window.Popper?.createPopper) { return Promise.resolve() }
+        const sources = [
+            new URL('../node_modules/@popperjs/core/dist/umd/popper.min.js', window.location),
+            'https://unpkg.com/@popperjs/core@2/dist/umd/popper.min.js',
+        ]
+        const tryNext = (index) => {
+            if (index >= sources.length) {
+                return Promise.reject(new Error('Popper indisponible'))
+            }
+            return this.#loadScript(sources[index])
+                .then(() => {
+                    if (!window.Popper?.createPopper) {
+                        return tryNext(index + 1)
+                    }
+                })
+                .catch(() => tryNext(index + 1))
+        }
+        return tryNext(0)
+    }
+
+    #ensureKcore() {
+        if (window.KSelectUI && window.Popper?.createPopper) { return Promise.resolve() }
+        if (!this.#kcoreReady) {
+            this.#kcoreReady = this.#loadPopper()
+                .then(() => {
+                    window.KCORE = {...(window.KCORE ?? {}), NoPopper: true}
+                    if (window.KSelectUI) { return }
+                    const kcoreUrl = new URL('../vendor/kcore/index.js', window.location).href
+                    return this.#loadScript(kcoreUrl).then(() => KCORELoad())
+                })
+        }
+        return this.#kcoreReady
+    }
+
     #openEntryEditor(personId, entryNodeId) {
         const entry = this.#currentPersonEntries.get(entryNodeId)
         if (!entry) { return }
 
+        this.#ensureKcore()
+            .then(() => this.#resolveProjectId(entry))
+            .then(projectId => this.#showEntryEditor(personId, entryNodeId, entry, projectId))
+            .catch(() => {
+                KAAL.error('Impossible de charger le sélecteur processus / travail')
+            })
+    }
+
+    #showEntryEditor(personId, entryNodeId, entry, projectId) {
         const previousSelected = document.querySelector('.time-entry-list .time-entry.selected')
         if (previousSelected) { previousSelected.classList.remove('selected') }
         const entryNode = document.getElementById(entryNodeId)
@@ -279,70 +467,64 @@ export default class TimeUI {
                 <div class="time-entry-editor-readonly">
                     <div class="kv-pair date">
                         <span class="label">Date</span>
-                        <span class="value">${this.#escapeText(DataUtils.longDate(entry.date))}</span>
+                        <input type="date" name="date" value="${entry.date}" />
                     </div>
-                    <div class="kv-pair project-reference">
-                        <span class="label">Référence de projet</span>
-                        <span class="value">${this.#escapeText(entry.reference)}</span>
-                    </div>
-                    <div class="kv-pair project-name">
-                        <span class="label">Nom de projet</span>
-                        <span class="value">${this.#escapeText(entry.project_name)}</span>
-                    </div>
-                    <div class="kv-pair travail-ref">
-                        <span class="label">Référence travail</span>
-                        <span class="value">${this.#escapeText(entry.travail_ref)}</span>
-                    </div>
-                    <div class="kv-pair process-name">
-                        <span class="label">Processus</span>
-                        <span class="value"
-                            style="color: ${new Kolor(entry.process_color).foreground()} !important;
-                            background-color: #${entry.process_color} !important">
-                            ${this.#escapeText(entry.process_name)}
-                        </span>
-                    </div>
+               </div>
+                <div class="time-entry-editor-fields">
+                    <label class="project-field">
+                        <span>Projet</span>
+                        <input type="text" name="project" autocomplete="off" />
+                    </label>
+                    <label class="process-travail-field">
+                        <span>Processus / Travail</span>
+                        <input type="text" name="process_travail" autocomplete="off" />
+                    </label>
                     <div class="kv-pair accounted-time">
                         <span class="label">Temps comptabilisé</span>
                         <span class="value">${new FormatHour(entry.time_accounted * 3600)}</span>
                     </div>
-                    <div class="kv-pair pause">
-                        <span class="label">Pause</span>
-                        <span class="value">${this.#escapeText(entry.pause)}</span>
-                    </div>
-                </div>
-                <div class="time-entry-editor-fields">
+
                     <label>
                         <span>Temps inscrit</span>
                         <input type="text" name="time" required
-                            value="${this.#escapeText(DataUtils.durationToStrTime(entry.time_written * 3600))}" />
+                            value="${DataUtils.durationToStrTime(entry.time_written * 3600)}" />
                     </label>
                     <label>
                         <span>KM privé</span>
                         <input type="number" name="private_km" min="0" step="1"
-                            value="${this.#escapeText(entry.private_km)}" />
+                            value="${entry.private_km}" />
                     </label>
                     <label>
                         <span>Remarque</span>
-                        <textarea name="remark" rows="4">${this.#escapeText(entry.remark)}</textarea>
+                        <textarea name="remark" rows="4">${DataUtils.html(entry.remark)}</textarea>
                     </label>
                 </div>
                 <div class="time-entry-editor-actions">
                     <button type="submit">Enregistrer</button>
-                    <button type="button" name="cancel">Annuler</button>
+                    <button type="reset" name="cancel">Annuler</button>
                     <button type="button" name="delete" class="danger">Supprimer</button>
                 </div>
         `
 
-        const popup = admin.popup(form, 'Entrée de temps', {
+        const popup = admin.popup(form, `Modifier entrée du ${DataUtils.longDate(entry.date)}`, {
             closable: true,
             minWidth: '52ch',
             supClasses: ['time-entry-editor'],
         })
 
-        const closePopup = () => popup.close()
+        const closePopup = () => {
+            if (entryNode) { entryNode.classList.remove('selected') }
+            popup.close()
+        }
 
-        form.querySelector('button[name="cancel"]').addEventListener('click', closePopup)
-
+        form.addEventListener('reset', (event) => {
+            event.preventDefault()
+            closePopup()
+        })
+        form.querySelector('input[name="time"]').addEventListener('change', event => {
+            const duration = DataUtils.strToDuration(event.currentTarget.value)
+            form.querySelector('.accounted-time .value').innerHTML = `${new FormatHour(duration)}`
+        })
         form.querySelector('button[name="delete"]').addEventListener('click', () => {
             if (!window.confirm('Supprimer cette entrée de temps ?')) { return }
             if (!this.#removeCachedEntry(personId, entry.id)) {
@@ -352,30 +534,74 @@ export default class TimeUI {
             this.#currentPersonEntries.delete(entryNodeId)
             closePopup()
             this.#refreshPersonViewFromCache()
+            this.#persistEntry(entry, 'DELETE')
         })
 
-        form.addEventListener('submit', (event) => {
-            event.preventDefault()
-            const formData = new FormData(form)
-            const time = DataUtils.strToDuration(formData.get('time'))
-            if (time <= 0) {
-                KAAL.error('Le temps est manquant ou erroné')
-                return
-            }
-            const km = parseInt(formData.get('private_km'), 10)
-            const remark = formData.get('remark') ?? ''
-            const patch = {
-                time_written: time / 3600,
-                private_km: Number.isNaN(km) ? 0 : km,
-                remark,
-            }
-            if (!this.#patchCachedEntry(personId, entry.id, patch)) {
-                KAAL.error("Impossible de modifier l'entrée")
-                return
-            }
-            this.#indexWorktimeData(this.#worktimeData)
+        Promise.all([
+            this.#attachProjectSelect(form, projectId),
+            this.#attachProcessTravailSelect(form, entry, projectId),
+        ])
+        .then(([projectSelect, processTravailSelect]) => {
+            let currentProcessTravailSelect = processTravailSelect
+            let currentProjectId = projectId || null
+
+            projectSelect.domNode.addEventListener('change', () => {
+                const newProjectId = projectSelect.value || null
+                if (String(newProjectId) === String(currentProjectId)) { return }
+                currentProjectId = newProjectId
+                this.#replaceProcessTravailSelect(form, newProjectId, currentProcessTravailSelect)
+                    .then(select => { currentProcessTravailSelect = select })
+            })
+
+            form.addEventListener('submit', (event) => {
+                event.preventDefault()
+                const formData = new FormData(form)
+                const date = formData.get('date')
+                if (isNaN(new Date(date).getTime())) {
+                    KAAL.error('La date est manquante ou erronée')
+                    return
+                }
+                const time = DataUtils.strToDuration(formData.get('time'))
+                if (time <= 0) {
+                    KAAL.error('Le temps est manquant ou erroné')
+                    return
+                }
+                const km = parseInt(formData.get('private_km'), 10)
+                const remark = formData.get('remark') ?? ''
+                const projectValue = projectSelect.value
+                if (!projectValue) {
+                    KAAL.error('Le projet est manquant ou erroné')
+                    return
+                }
+                const processTravailValue = currentProcessTravailSelect.value
+                if (!processTravailValue?.startsWith('pr:') && !processTravailValue?.startsWith('tr:')) {
+                    KAAL.error('Le processus ou le travail est manquant ou erroné')
+                    return
+                }
+                const patch = {
+                    date: date,
+                    time_written: time / 3600,
+                    private_km: Number.isNaN(km) ? 0 : km,
+                    remark,
+                    ...this.#patchFromProjectSelection(projectValue, projectSelect.lastEntry),
+                    ...this.#patchFromProcessTravailSelection(
+                        processTravailValue,
+                        currentProcessTravailSelect.lastEntry,
+                    ),
+                }
+                if (!this.#patchCachedEntry(personId, entry.id, patch)) {
+                    KAAL.error("Impossible de modifier l'entrée")
+                    return
+                }
+                this.#indexWorktimeData(this.#worktimeData)
+                closePopup()
+                this.#refreshPersonViewFromCache()
+                this.#persistEntry(entry, 'POST')
+            })
+        })
+        .catch(e => {
+            KAAL.error('Impossible d\'initialiser l\'éditeur',  e)
             closePopup()
-            this.#refreshPersonViewFromCache()
         })
     }
 
