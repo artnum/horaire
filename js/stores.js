@@ -31,9 +31,9 @@ STProcess.prototype.query = function (txt) {
   return new Promise((resolve, reject) => {
     if (typeof txt === 'object') { txt = Object.values(txt)[0] }
     const entries = []
-    const searchTerm = txt.toAscii().toLowerCase()
+    const searchTerm = String(txt ?? '').toAscii().toLowerCase().replace(/\*+/g, '').trim()
     const query = {
-      name: `*${searchTerm}`,
+      name: searchTerm ? `*${searchTerm}*` : '*',
       type: '1'
     }
 
