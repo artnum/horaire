@@ -1190,8 +1190,9 @@ button.addMore:before {
     width: calc(100% - 2ch);
     box-sizing: border-box;
     padding: 0.5ex 1ch;
-    border: 1px solid #ccc;
-    background: #fff;
+}
+.popup.time-entry-editor .time-entry-editor-fields .kselect {
+    width: calc(100% - 2ch);
 }
 
 .popup.time-entry-editor .time-entry-editor-actions {

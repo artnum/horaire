@@ -240,7 +240,7 @@ export default class TimeUI {
         if (method === 'DELETE') {
             return F.delete(url)
         }
-        return F.put(url, body)
+        return F.post(url, entry)
     }
 
     #entryMatchesFilter(entry, query) {
@@ -287,16 +287,14 @@ export default class TimeUI {
     #attachProjectSelect(form, projectId) {
         const projectInput = form.querySelector('input[name="project"]')
         return new Promise(resolve => {
-            window.requestAnimationFrame(() => {
-                const select = new KSelectUI(projectInput, new STProject('Project'), {
-                    realSelect: true,
-                    allowFreeText: false,
-                })
-                if (projectId) {
-                    select.value = projectId
-                }
-                resolve(select)
+            if (projectId) {
+                projectInput.value = projectId
+            }
+            const select = new KSelectUI(projectInput, new STProject('Project'), {
+                realSelect: true,
+                allowFreeText: false,
             })
+            resolve(select)
         })
     }
 
@@ -469,17 +467,9 @@ export default class TimeUI {
                 <div class="time-entry-editor-readonly">
                     <div class="kv-pair date">
                         <span class="label">Date</span>
-                        <span class="value">${this.#escapeText(DataUtils.longDate(entry.date))}</span>
+                        <input type="date" name="date" value="${entry.date}" />
                     </div>
-                    <div class="kv-pair accounted-time">
-                        <span class="label">Temps comptabilisé</span>
-                        <span class="value">${new FormatHour(entry.time_accounted * 3600)}</span>
-                    </div>
-                    <div class="kv-pair pause">
-                        <span class="label">Pause</span>
-                        <span class="value">${this.#escapeText(entry.pause)}</span>
-                    </div>
-                </div>
+               </div>
                 <div class="time-entry-editor-fields">
                     <label class="project-field">
                         <span>Projet</span>
@@ -489,19 +479,24 @@ export default class TimeUI {
                         <span>Processus / Travail</span>
                         <input type="text" name="process_travail" autocomplete="off" />
                     </label>
+                    <div class="kv-pair accounted-time">
+                        <span class="label">Temps comptabilisé</span>
+                        <span class="value">${new FormatHour(entry.time_accounted * 3600)}</span>
+                    </div>
+
                     <label>
                         <span>Temps inscrit</span>
                         <input type="text" name="time" required
-                            value="${this.#escapeText(DataUtils.durationToStrTime(entry.time_written * 3600))}" />
+                            value="${DataUtils.durationToStrTime(entry.time_written * 3600)}" />
                     </label>
                     <label>
                         <span>KM privé</span>
                         <input type="number" name="private_km" min="0" step="1"
-                            value="${this.#escapeText(entry.private_km)}" />
+                            value="${entry.private_km}" />
                     </label>
                     <label>
                         <span>Remarque</span>
-                        <textarea name="remark" rows="4">${this.#escapeText(entry.remark)}</textarea>
+                        <textarea name="remark" rows="4">${DataUtils.html(entry.remark)}</textarea>
                     </label>
                 </div>
                 <div class="time-entry-editor-actions">
@@ -511,7 +506,7 @@ export default class TimeUI {
                 </div>
         `
 
-        const popup = admin.popup(form, 'Entrée de temps', {
+        const popup = admin.popup(form, `Modifier entrée du ${DataUtils.longDate(entry.date)}`, {
             closable: true,
             minWidth: '52ch',
             supClasses: ['time-entry-editor'],
@@ -526,7 +521,10 @@ export default class TimeUI {
             event.preventDefault()
             closePopup()
         })
-
+        form.querySelector('input[name="time"]').addEventListener('change', event => {
+            const duration = DataUtils.strToDuration(event.currentTarget.value)
+            form.querySelector('.accounted-time .value').innerHTML = `${new FormatHour(duration)}`
+        })
         form.querySelector('button[name="delete"]').addEventListener('click', () => {
             if (!window.confirm('Supprimer cette entrée de temps ?')) { return }
             if (!this.#removeCachedEntry(personId, entry.id)) {
@@ -536,6 +534,7 @@ export default class TimeUI {
             this.#currentPersonEntries.delete(entryNodeId)
             closePopup()
             this.#refreshPersonViewFromCache()
+            this.#persistEntry(entry, 'DELETE')
         })
 
         Promise.all([
@@ -557,6 +556,11 @@ export default class TimeUI {
             form.addEventListener('submit', (event) => {
                 event.preventDefault()
                 const formData = new FormData(form)
+                const date = formData.get('date')
+                if (isNaN(new Date(date).getTime())) {
+                    KAAL.error('La date est manquante ou erronée')
+                    return
+                }
                 const time = DataUtils.strToDuration(formData.get('time'))
                 if (time <= 0) {
                     KAAL.error('Le temps est manquant ou erroné')
@@ -575,6 +579,7 @@ export default class TimeUI {
                     return
                 }
                 const patch = {
+                    date: date,
                     time_written: time / 3600,
                     private_km: Number.isNaN(km) ? 0 : km,
                     remark,
@@ -591,10 +596,11 @@ export default class TimeUI {
                 this.#indexWorktimeData(this.#worktimeData)
                 closePopup()
                 this.#refreshPersonViewFromCache()
+                this.#persistEntry(entry, 'POST')
             })
         })
-        .catch(() => {
-            KAAL.error('Impossible d\'initialiser l\'éditeur')
+        .catch(e => {
+            KAAL.error('Impossible d\'initialiser l\'éditeur',  e)
             closePopup()
         })
     }
