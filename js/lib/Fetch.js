@@ -55,6 +55,7 @@ export default class Fetch {
             if (body != null) {
                 if(body && typeof body === 'object') {
                     try {
+                        params.headers['Content-Type'] = 'application/json'
                         body = JSON.stringify(body)
                     } catch(e) {
                         return reject(e)
