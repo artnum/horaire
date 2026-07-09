@@ -250,12 +250,30 @@ export default class TimeUI {
     }
 
     #persistEntry(entry, method, body = null) {
-        // TODO: use when /api/worktime/{id} is available on the backend
-        const url = `/api/worktime/${entry.id}`
         if (method === 'DELETE') {
-            return F.delete(url)
+            return F.delete(`/api/worktime/${entry.id}`)
         }
+        // Create: POST /api/worktime ; update: POST /api/worktime/{id}
+        const url = entry.id != null && entry.id !== ''
+            ? `/api/worktime/${entry.id}`
+            : '/api/worktime'
         return F.post(url, entry)
+    }
+
+    #emptyTimeEntry() {
+        return {
+            date: DataUtils.dbDate(new Date()),
+            time_written: 0,
+            time_accounted: 0,
+            private_km: 0,
+            pause: 0,
+            remark: '',
+            reference: '',
+            project_name: '',
+            travail_ref: '',
+            process_name: '',
+            process_color: '',
+        }
     }
 
     #entryMatchesFilter(entry, query) {
@@ -455,6 +473,17 @@ export default class TimeUI {
     }
 
     #openEntryEditor(personId, entryNodeId) {
+        // null entryNodeId → create a new time entry
+        if (entryNodeId == null) {
+            const entry = this.#emptyTimeEntry()
+            this.#ensureKcore()
+                .then(() => this.#showEntryEditor(personId, null, entry, null))
+                .catch(() => {
+                    KAAL.error('Impossible de charger le sélecteur processus / travail')
+                })
+            return
+        }
+
         const entry = this.#currentPersonEntries.get(entryNodeId)
         if (!entry) { return }
 
@@ -467,9 +496,10 @@ export default class TimeUI {
     }
 
     #showEntryEditor(personId, entryNodeId, entry, projectId) {
+        const isNew = entryNodeId == null
         const previousSelected = document.querySelector('.time-entry-list .time-entry.selected')
         if (previousSelected) { previousSelected.classList.remove('selected') }
-        const entryNode = document.getElementById(entryNodeId)
+        const entryNode = entryNodeId ? document.getElementById(entryNodeId) : null
         if (entryNode) { entryNode.classList.add('selected') }
 
         const form = document.createElement('FORM')
@@ -513,11 +543,14 @@ export default class TimeUI {
                 <div class="time-entry-editor-actions">
                     <button type="submit">Enregistrer</button>
                     <button type="reset" name="cancel">Annuler</button>
-                    <button type="button" name="delete" class="danger">Supprimer</button>
+                    ${isNew ? '' : '<button type="button" name="delete" class="danger">Supprimer</button>'}
                 </div>
         `
 
-        const popup = admin.popup(form, `Modifier entrée du ${DataUtils.longDate(entry.date)}`, {
+        const popupTitle = isNew
+            ? 'Nouvelle entrée'
+            : `Modifier entrée du ${DataUtils.longDate(entry.date)}`
+        const popup = admin.popup(form, popupTitle, {
             minWidth: '52ch',
             supClasses: ['time-entry-editor'],
         })
@@ -535,17 +568,20 @@ export default class TimeUI {
             const duration = DataUtils.strToDuration(event.currentTarget.value)
             form.querySelector('.accounted-time .value').innerHTML = `${new FormatHour(duration)}`
         })
-        form.querySelector('button[name="delete"]').addEventListener('click', () => {
-            if (!window.confirm('Supprimer cette entrée de temps ?')) { return }
-            if (!this.#removeCachedEntry(personId, entry.id)) {
-                KAAL.error("Impossible de supprimer l'entrée")
-                return
-            }
-            this.#currentPersonEntries.delete(entryNodeId)
-            closePopup()
-            this.#refreshPersonViewFromCache()
-            this.#persistEntry(entry, 'DELETE')
-        })
+        const deleteButton = form.querySelector('button[name="delete"]')
+        if (deleteButton) {
+            deleteButton.addEventListener('click', () => {
+                if (!window.confirm('Supprimer cette entrée de temps ?')) { return }
+                if (!this.#removeCachedEntry(personId, entry.id)) {
+                    KAAL.error("Impossible de supprimer l'entrée")
+                    return
+                }
+                this.#currentPersonEntries.delete(entryNodeId)
+                closePopup()
+                this.#refreshPersonViewFromCache()
+                this.#persistEntry(entry, 'DELETE')
+            })
+        }
 
         Promise.all([
             this.#attachProjectSelect(form, projectId),
@@ -599,14 +635,32 @@ export default class TimeUI {
                         currentProcessTravailSelect.lastEntry,
                     ),
                 }
-                entry = this.#patchCachedEntry(personId, entry.id, patch)
-                console.log(personId)
-                entry['_person_id'] = personId
-                entry['person_id'] = personId
-                if (!entry) {
+
+                if (isNew) {
+                    const newEntry = {
+                        ...entry,
+                        ...patch,
+                        person_id: personId,
+                        _person_id: personId,
+                    }
+                    closePopup()
+                    this.#persistEntry(newEntry, 'POST')
+                        .then(() => this.#loadData())
+                        .then(() => this.#refreshPersonViewFromCache())
+                        .catch(() => {
+                            KAAL.error("Impossible de créer l'entrée")
+                        })
+                    return
+                }
+
+                const updated = this.#patchCachedEntry(personId, entry.id, patch)
+                if (!updated) {
                     KAAL.error("Impossible de modifier l'entrée")
                     return
                 }
+                updated._person_id = personId
+                updated.person_id = personId
+                entry = updated
                 this.#indexWorktimeData(this.#worktimeData)
                 closePopup()
                 this.#refreshPersonViewFromCache()
@@ -674,10 +728,10 @@ export default class TimeUI {
 
         listContainer.addEventListener('click', event => {
             const entryNode = event.target.closest('.time-entry')
+            if (!entryNode || !listContainer.contains(entryNode)) { return }
             if (entryNode.classList.contains('time-entry-new')) {
                 return this.#openEntryEditor(id, null)
             }
-            if (!entryNode || !listContainer.contains(entryNode)) { return }
             this.#openEntryEditor(id, entryNode.id)
         }, {signal: this.#viewEventController.signal})
 
