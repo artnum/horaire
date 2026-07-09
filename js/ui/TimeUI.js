@@ -3,6 +3,7 @@ import Fetch from '../lib/Fetch.js'
 import FormatHour from '../lib/FormatHour.js'
 import FileExtension from '../lib/FileExtension.js'
 import Kolor from '../lib/Kolor.js'
+import i18n from '../lib/i18n.js'
 import STProcessTravail from '../stores/process-travail.js'
 import { STProject } from '../stores.js'
 import admin from '../admin.js'
@@ -36,6 +37,21 @@ export default class TimeUI {
     destroy() {
         console.log('End of TimeUi')
         this.#myEventController.abort()
+    }
+
+    filterListOnKeypress(event) {
+        const searchTerm = new i18n(event.target.value.toLowerCase()).ascii()
+        document.querySelectorAll('[data-searchable]').forEach((item) => {
+            const searchValue = new i18n(
+                item.getAttribute('data-searchable').toLowerCase(),
+            ).ascii()
+
+            if (searchValue.includes(searchTerm)) {
+                window.requestAnimationFrame((_) => (item.style.display = ''))
+            } else {
+                window.requestAnimationFrame((_) => (item.style.display = 'none'))
+            }
+        })
     }
 
     #personCardEventHandler(event) {
@@ -925,6 +941,14 @@ export default class TimeUI {
                     <div data-action="export-mybm" data-nostate="true" class="item">&#11015; MyBM</div>
                     <div class="item separator" aria-role="none"> </div>
                 `
+                const searchNode = document.createElement('DIV')
+                searchNode.setAttribute('aria-role', 'searchbox')
+                searchNode.innerHTML = '<input placeholder="Recherche" />'
+                this.#navNode.appendChild(searchNode)
+                searchNode.addEventListener('keyup', (event) => {
+                    this.filterListOnKeypress(event)
+                }, {signal: this.#myEventController.signal})
+
                 this.#navNode.addEventListener('click', event => {
                     if (event.target.dataset.action) {
                         this.navigate(event.target.dataset.action)
@@ -961,6 +985,7 @@ export default class TimeUI {
                 data.forEach(p => {
                     const div = document.createElement('div')
                     div.dataset.action = `person:${p.id}`
+                    div.dataset.searchable = p.name.toLowerCase()
                     div.textContent = p.name
                     div.classList.add('item')
                     if (!p.active && p.deleted == 0) {
