@@ -261,8 +261,9 @@ export default class TimeUI {
     }
 
     #emptyTimeEntry() {
+        const {beginDate} = this.#getDateRange()
         return {
-            date: DataUtils.dbDate(new Date()),
+            date: beginDate,
             time_written: 0,
             time_accounted: 0,
             private_km: 0,
