@@ -234,7 +234,7 @@ export default class TimeUI {
         const entry = this.#findEntryInCache(personId, entryId)
         if (!entry) { return false }
         Object.assign(entry, patch)
-        return true
+        return entry 
     }
 
     #removeCachedEntry(personId, entryId) {
@@ -267,6 +267,7 @@ export default class TimeUI {
 
     #applyPersonViewFilter(listContainer, query = this.#personViewFilter) {
         listContainer.querySelectorAll('.time-entry').forEach(node => {
+            if (node.classList.contains('time-entry-new')) { return; }
             const entry = this.#currentPersonEntries.get(node.id)
             const visible = entry ? this.#entryMatchesFilter(entry, query) : false
             node.classList.toggle('is-filtered-out', !visible)
@@ -598,7 +599,11 @@ export default class TimeUI {
                         currentProcessTravailSelect.lastEntry,
                     ),
                 }
-                if (!this.#patchCachedEntry(personId, entry.id, patch)) {
+                entry = this.#patchCachedEntry(personId, entry.id, patch)
+                console.log(personId)
+                entry['_person_id'] = personId
+                entry['person_id'] = personId
+                if (!entry) {
                     KAAL.error("Impossible de modifier l'entrée")
                     return
                 }
@@ -669,6 +674,9 @@ export default class TimeUI {
 
         listContainer.addEventListener('click', event => {
             const entryNode = event.target.closest('.time-entry')
+            if (entryNode.classList.contains('time-entry-new')) {
+                return this.#openEntryEditor(id, null)
+            }
             if (!entryNode || !listContainer.contains(entryNode)) { return }
             this.#openEntryEditor(id, entryNode.id)
         }, {signal: this.#viewEventController.signal})
@@ -775,6 +783,11 @@ export default class TimeUI {
             <span class="private-km">KM privé</span>
         `
         listContainer.appendChild(headerNode)
+
+        const addNewNode = document.createElement('DIV')
+        addNewNode.classList.add('entry', 'time-entry', 'time-entry-new')
+        addNewNode.innerHTML = '<span style="grid-column: 1 / 10">Ajouter nouvelle entrée</span>'
+        listContainer.appendChild(addNewNode)
 
         const entries = personData?.entries ?? []
         entries.forEach(entry => {
