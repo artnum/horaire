@@ -324,24 +324,19 @@ export default class TimeUI {
         const processTravailInput = form.querySelector('input[name="process_travail"]')
         const store = new STProcessTravail(projectId)
         return new Promise(resolve => {
-            window.requestAnimationFrame(() => {
-                const select = new KSelectUI(processTravailInput, store, {
-                    realSelect: true,
-                    allowFreeText: false,
-                })
-                const initial = this.#entryProcessTravailValue(entry)
-                if (initial) {
-                    select.value = initial
-                } else if (entry.travail_ref) {
-                    processTravailInput.value = entry.travail_ref
-                } else if (entry.process_name) {
-                    processTravailInput.value = entry.process_name
-                    if (entry.process_color) {
-                        select.colorize(`#${String(entry.process_color).replace(/^#/, '')}`)
-                    }
-                }
-                resolve(select)
+            const initial = this.#entryProcessTravailValue(entry)
+            if (initial) {
+                select.value = initial
+            } else if (entry.travail_ref) {
+                processTravailInput.value = entry.travail_ref
+            } else if (entry.process_name) {
+                processTravailInput.value = entry.process_name
+            }
+            const select = new KSelectUI(processTravailInput, store, {
+                realSelect: true,
+                allowFreeText: false,
             })
+            resolve(select)
         })
     }
 
@@ -507,7 +502,6 @@ export default class TimeUI {
         `
 
         const popup = admin.popup(form, `Modifier entrée du ${DataUtils.longDate(entry.date)}`, {
-            closable: true,
             minWidth: '52ch',
             supClasses: ['time-entry-editor'],
         })
