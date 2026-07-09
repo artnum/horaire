@@ -30,12 +30,10 @@ export default class TimeUI {
     constructor(app, timeapi = null) {
         this.#app = app
         this.#currentViewState = new Map()
-        console.log(this.#app)
         this.#myEventController = new AbortController()
     }
 
     destroy() {
-        console.log('End of TimeUi')
         this.#myEventController.abort()
     }
 
@@ -169,15 +167,16 @@ export default class TimeUI {
     #getDateRange() {
         if (this.#dateRange[0] === null) {
             this.#dateRange[0] = new Date()
+            this.#dateRange[0].setHours(12)
             this.#dateRange[0].setDate(30)
             this.#dateRange[0].setMonth(6)
             this.#dateRange[0].setYear(2022)
             this.#dateRange[1] = new Date()
+            this.#dateRange[1].setHours(12)
             this.#dateRange[1].setDate(1)
             this.#dateRange[1].setMonth(6)
             this.#dateRange[1].setYear(2022)
         }
-        console.log(this.#dateRange)
         return {
             begin:     this.#dateRange[1],
             end:       this.#dateRange[0], 
@@ -191,7 +190,7 @@ export default class TimeUI {
         const dup = this.#duplicate.get(entry.x_key)
         if (dup && dup.length > 1) {
             const d = [...new Map(this.#duplicate.get(entry.x_key).map(e => [e._person_id, e])).values()]
-            if (d.length > 1) {
+            if (d.length > 0) {
                 d.forEach(e => {
                     if (e._person_id != person_id && e.time_written !== entry.time_written) {
                         dups.push({name: e._person, time_written: e.time_written})
@@ -275,15 +274,15 @@ export default class TimeUI {
     }
 
     #entryProcessTravailValue(entry) {
-        const travailId = entry.travail_id ?? entry.travail ?? entry.htime_travail
-        const processId = entry.process_id ?? entry.process ?? entry.htime_process ?? entry.hstatus_id
+        const travailId = entry._travail_id ?? entry.travail ?? entry.htime_travail
+        const processId = entry._process_id ?? entry.process ?? entry.htime_process ?? entry.hstatus_id
         if (travailId) { return `tr:${travailId}` }
         if (processId) { return `pr:${processId}` }
         return ''
     }
 
     #entryProjectId(entry, projectId = null) {
-        return projectId ?? entry.project_id ?? entry.project ?? entry.projectId ?? entry.htime_project ?? null
+        return projectId ?? entry._project_id ?? entry.project ?? entry.projectId ?? entry.htime_project ?? null
     }
 
     #resolveProjectId(entry) {
@@ -342,7 +341,7 @@ export default class TimeUI {
         return new Promise(resolve => {
             const initial = this.#entryProcessTravailValue(entry)
             if (initial) {
-                select.value = initial
+               processTravailInput.value = initial
             } else if (entry.travail_ref) {
                 processTravailInput.value = entry.travail_ref
             } else if (entry.process_name) {
@@ -786,7 +785,7 @@ export default class TimeUI {
             entryNode.id = entryId
             const travailRef = DataUtils.str(entry.travail_ref)
             entryNode.innerHTML = `
-                <span class="same">${this.#hasDuplicate(id, entry).length > 1 ? '&#9888;' :''}</span>
+                <span class="same">${this.#hasDuplicate(id, entry).length > 0 ? '&#9888;' :''}</span>
                 <span class="date">${DataUtils.longDate(entry.date)}</span>
                 <span class="project-reference">${entry.reference}</span>
                 <span class="project-name">${entry.project_name}</span>
@@ -954,8 +953,10 @@ export default class TimeUI {
                         this.navigate(event.target.dataset.action)
                     }
                 }, {signal: this.#myEventController.signal})
+
                 this.#navNode.addEventListener('change', event => {
                     const node = event.originalTarget
+                    if (node.getAttribute('name') !== 'start' && node.getAttribute('name') !== 'end') { return }
                     const {begin, end, beginDate, endDate} = this.#getDateRange()
                     const date = new Date(node.value)
                     date.setHours(12)
@@ -970,7 +971,6 @@ export default class TimeUI {
                         this.#dateRange[0] = date
                         if (this.#dateRange[0] < this.#dateRange[1]) {
                             this.#dateRange[1] = new Date(this.#dateRange[0].getFullYear(), this.#dateRange[0].getMonth(), 1, 12);
-                            console.log(this.#dateRange[1])
                             const {begin, end, beginDate, endDate} = this.#getDateRange()
                             this.#navNode.querySelector('input[name="start"]').value = beginDate
                         }
@@ -997,7 +997,6 @@ export default class TimeUI {
                 })
             })
             .catch(e => {
-                console.log(e)
                 reject(new Error('Erreur réseau', {cause:e}))
             })
             return resolve(this.#navNode)
