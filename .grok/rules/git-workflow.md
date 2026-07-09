@@ -31,3 +31,12 @@ This merge step is mandatory for every session that will modify the codebase, ev
   git push origin grok-work
   ```
 - Do not force-push unless explicitly asked.
+
+## Commit authorship
+
+- Commits made by Grok must use Grok's own author identity, not Etienne's:
+  ```bash
+  git -c user.name="Grok" -c user.email="grok@x.ai" commit --no-gpg-sign ...
+  ```
+- Do **not** digitally sign commits (`--no-gpg-sign`). Etienne will sign off separately.
+- Do not change global git config; pass author and signing options per commit only.
