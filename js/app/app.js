@@ -4,6 +4,12 @@ import help from '../lib/help.js'
 import { AccessAPI } from '../JAPI/content/Access.js'
 import Privilege from '../JAPI/Privilege.js'
 import KAPerson from '../data/person.js'
+import {
+  applyColorTheme,
+  getStoredColorTheme,
+  listColorThemes,
+  applyStoredColorTheme,
+} from '../lib/color-theme.js'
 
 class AppEventSystem {
   constructor() {
@@ -47,9 +53,6 @@ class AppEventSystem {
   }
 }
 
-const COLOR_THEME_STORAGE_KEY = 'kaal-color-theme'
-const COLOR_THEME_LINK_ID = 'ka-color-theme'
-
 export default class App {
   #currentUiNode = null
   #availableThemes = []
@@ -64,92 +67,39 @@ export default class App {
     
   }
 
-  /**
-   * Base URL for css/color-theme/ (resolved from the current page location).
-   * Admin lives under admin/, so themes are one level up at ../css/color-theme/.
-   */
-  #colorThemeBaseUrl() {
-    return new URL('../css/color-theme/', window.location.href)
-  }
-
-  #colorThemeListUrl() {
-    return new URL('list.php', this.#colorThemeBaseUrl())
-  }
-
-  #colorThemeStylesheetUrl(themeId) {
-    return new URL(`${encodeURIComponent(themeId)}.css`, this.#colorThemeBaseUrl())
-  }
-
-  getStoredColorTheme() {
-    try {
-      return localStorage.getItem(COLOR_THEME_STORAGE_KEY) || ''
-    } catch (_) {
-      return ''
-    }
-  }
-
-  /**
-   * Apply a color theme by injecting/updating a stylesheet link after existing CSS
-   * so CSS variables override the default color.css import/symlink.
-   */
   applyColorTheme(themeId) {
-    if (!themeId) { return }
-    let link = document.getElementById(COLOR_THEME_LINK_ID)
-    if (!link) {
-      link = document.createElement('link')
-      link.id = COLOR_THEME_LINK_ID
-      link.rel = 'stylesheet'
-      document.head.appendChild(link)
-    }
-    const href = this.#colorThemeStylesheetUrl(themeId).href
-    if (link.getAttribute('href') !== href) {
-      link.href = href
-    }
-    try {
-      localStorage.setItem(COLOR_THEME_STORAGE_KEY, themeId)
-    } catch (_) {
-      /* ignore quota / private mode */
-    }
+    applyColorTheme(themeId)
     const select = this.status?.querySelector('select[name="color-theme"]')
-    if (select && select.value !== themeId) {
+    if (select && themeId && select.value !== themeId) {
       select.value = themeId
     }
   }
 
-  /**
-   * Dynamically list themes from css/color-theme/ via list.php.
-   * @returns {Promise<Array<{id: string, label: string, file: string}>>}
-   */
+  getStoredColorTheme() {
+    return getStoredColorTheme()
+  }
+
   listColorThemes() {
-    return fetch(this.#colorThemeListUrl().href, {
-      headers: { Accept: 'application/json' },
-      cache: 'no-store',
+    return listColorThemes().then((themes) => {
+      this.#availableThemes = themes
+      return themes
     })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Impossible de lister les thèmes')
-        }
-        return response.json()
-      })
-      .then((payload) => {
-        const themes = Array.isArray(payload?.data)
-          ? payload.data
-          : Array.isArray(payload)
-            ? payload
-            : []
-        this.#availableThemes = themes.filter((t) => t?.id)
-        return this.#availableThemes
-      })
   }
 
   setupColorThemeSelector() {
-    const stored = this.getStoredColorTheme()
-    if (stored) {
-      this.applyColorTheme(stored)
-    }
+    applyStoredColorTheme()
 
     const container = this.status?.querySelector('.theme')
     if (!container) { return }
+
+    // Keep the selector in sync when theme is changed elsewhere (another tab).
+    document.addEventListener('kaal-color-theme-change', (event) => {
+      const id = event.detail?.id
+      const select = container.querySelector('select[name="color-theme"]')
+      if (id && select && select.value !== id) {
+        select.value = id
+      }
+    })
 
     this.listColorThemes()
       .then((themes) => {

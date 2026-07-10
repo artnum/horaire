@@ -38,6 +38,10 @@ import KGanttView from '../gantt.js'
 
 import '../kaal.js'
 import '../string.js'
+import { installColorThemeSync } from '../lib/color-theme.js'
+
+// Legacy admin/*.html modules and the app shell share the color theme preference.
+installColorThemeSync()
 
 window.Admin = admin
 window.KLogin = KLogin
