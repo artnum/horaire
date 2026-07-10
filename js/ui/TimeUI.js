@@ -380,6 +380,9 @@ export default class TimeUI {
         menu.classList.add('time-entry-context-menu')
         menu.setAttribute('role', 'menu')
         menu.innerHTML = `
+            <div class="menu-item" data-action="edit-entry" role="menuitem">
+                Modifier l'entrée
+            </div>
             <div class="menu-item" data-action="copy-to-person" role="menuitem">
                 Copier vers une autre personne
             </div>
@@ -404,8 +407,13 @@ export default class TimeUI {
             if (!item || !menu.contains(item)) { return }
             clickEvent.preventDefault()
             clickEvent.stopPropagation()
-            if (item.dataset.action === 'copy-to-person') {
-                this.#dismissContextMenu()
+            const action = item.dataset.action
+            this.#dismissContextMenu()
+            if (action === 'edit-entry') {
+                this.#openEntryEditor(personId, entryNodeId)
+                return
+            }
+            if (action === 'copy-to-person') {
                 this.#openCopyToPersonPicker(personId, entry)
             }
         })
