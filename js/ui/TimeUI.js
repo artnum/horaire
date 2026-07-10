@@ -1141,7 +1141,7 @@ export default class TimeUI {
 
         const addNewNode = document.createElement('DIV')
         addNewNode.classList.add('entry', 'time-entry', 'time-entry-new')
-        addNewNode.innerHTML = '<span style="grid-column: 1 / 10">Ajouter nouvelle entrée</span>'
+        addNewNode.innerHTML = '<span>&#xFF0B;</span><span class="text">Ajouter nouvelle entrée</span>'
         listContainer.appendChild(addNewNode)
 
         const entries = personData?.entries ?? []

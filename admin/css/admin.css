@@ -1083,6 +1083,13 @@ button.addMore:before {
     cursor: pointer;
 }
 
+.time-entry-new {
+    border-bottom: 1px solid lightblue;
+}
+
+.time-entry-new .text {
+    grid-column: 3 / 10;
+}
 .time-entry-list .time-entry > :not(.travail-ref) {
     grid-row: 1;
 }
