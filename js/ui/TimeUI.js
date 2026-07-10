@@ -625,7 +625,9 @@ export default class TimeUI {
                     KAAL.error('Le processus ou le travail est manquant ou erroné')
                     return
                 }
+                
                 const patch = {
+                    _project_id: projectValue,
                     date: date,
                     time_written: time / 3600,
                     private_km: Number.isNaN(km) ? 0 : km,
@@ -636,11 +638,21 @@ export default class TimeUI {
                         currentProcessTravailSelect.lastEntry,
                     ),
                 }
-
+                
+                const parts = processTravailValue.split(':')
+                if (parts[0] === 'tr') {
+                    patch['_travail_id'] = parts[1]
+                } else {
+                    patch['_process_id'] = parts[1]
+                }
                 if (isNew) {
                     const newEntry = {
                         ...entry,
                         ...patch,
+                        ...this.#patchFromProjectSelection(projectValue, {}),
+                        ...this.#patchFromProcessTravailSelection(
+                            processTravailValue,
+                            {}),
                         person_id: personId,
                         _person_id: personId,
                     }
