@@ -6,17 +6,18 @@
 }
 
 .cm-formatting {
-    color: gray !important;
+    color: var(--text-color) !important;
+    opacity: 0.7;
     font-weight: lighter !important;
 }
 account-lines {
     display: grid;
     grid-template-columns: 0.2fr 0.2fr 0.2fr 3.6fr 0.3fr 0.2fr 0.3fr 0.3fr 100px;
     gap: 3px 0px;
-    background-color: rgba(250, 250, 250, 1);
+    background-color: var(--background-color);
 }
 account-lines > div > * {
-    background-color: white;
+    background-color: var(--background-color);
     border-top: 4px solid transparent;
     border-bottom: 4px solid transparent;
 }
@@ -44,7 +45,7 @@ account-lines > [data-used="false"] > * {
 }
 
 account-lines > * > *[readonly] {
-    background-color: #f0f0f0;
+    background-color: var(--ka-input-readonly-bgcolor);
 }
 
 
@@ -61,12 +62,12 @@ account-lines > div.deleted .account-line__remove {
 }
 
 account-lines .account-line__head > * {
-    color: white;
-    background-color: black;
+    color: var(--title-text-color);
+    background-color: var(--title-background-color);
     font-family: monospace;
     font-size: 1.2em;
     min-height: 2em;
-    border: 1px solid white;
+    border: 1px solid var(--background-color);
 }
 
 account-lines > div.related > * {
@@ -78,7 +79,8 @@ account-lines .head-intermediate > * {
 }
 
 account-lines .relation {
-    color: gray;
+    color: var(--text-color);
+    opacity: 0.7;
 }
 
 .account-line__actions {
@@ -128,15 +130,15 @@ account-summary .total {
 }
 .action-line {
     z-index: 9999;
-    background-color: #007acc;
+    background-color: var(--ka-button-background-color);
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    color: white;
+    color: var(--title-text-color);
     height: fit-content;
     display: flex;
-    box-shadow: 0 0 1em black;
+    box-shadow: 0 0 1em var(--ka-tooltip-shadow-color);
 }
 
 .breadcrumbs {
@@ -161,15 +163,15 @@ account-summary .total {
 }
 
 .breadcrumbs > div.current {
-    background-color: #005f8b;
+    background-color: var(--company-color-dark);
 }
 
 .breadcrumbs > div.available:hover {
-    background-color: #00384f;
+    background-color: var(--company-color-dark);
 }
 
 .breadcrumbs > div.loading {
-    background-color: #00384f;
+    background-color: var(--company-color-dark);
 }
 
 .vspacer {
@@ -185,28 +187,32 @@ account-summary .total {
 
 .tools > button {
     min-height: 6ex !important;
-    background-color: #0c835d !important;
-    color: lightgray !important;
-    border: 1px solid lightgray;
-    border-right-color: gray;
-    border-bottom-color: gray;
+    background-color: var(--company-color) !important;
+    color: var(--company-text-color) !important;
+    border: 1px solid var(--input-border-color);
+    border-right-color: var(--text-color);
+    opacity: 0.7;
+    border-bottom-color: var(--text-color);
+    opacity: 0.7;
     padding: 0;
     margin-left: 1ch;
     cursor: pointer;
 }
 
 .tools > button:hover {
-    color: white !important;
-    border: 1px solid white !important;
+    color: var(--company-text-color) !important;
+    border: 1px solid var(--company-text-color) !important;
     border-right-color: darkgray !important;
     border-bottom-color: darkgray !important;
 }
 
 .tools > button:active {
-    background-color: #06422f !important;
-    border: 1px solid white !important;
-    border-left-color: gray !important;
-    border-top-color: gray !important;
+    background-color: var(--company-color-dark) !important;
+    border: 1px solid var(--company-text-color) !important;
+    border-left-color: var(--text-color) !important;
+    opacity: 0.7;
+    border-top-color: var(--text-color) !important;
+    opacity: 0.7;
 
 }
 
@@ -231,7 +237,7 @@ input, select {
 .ka-quote-list .row[data-related] {
     margin-left: 1ex;
     padding-left: 1ex;
-    border-left: 3px solid green;
+    border-left: 3px solid var(--company-color);
 }
 
 .ka-quote-list .row:hover {

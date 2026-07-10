@@ -40,8 +40,8 @@ tr[data-state="deleted"] {
 }
 
 thead {
-  background-color: black;
-  color: white;
+  background-color: var(--title-background-color);
+  color: var(--title-text-color);
   height: 40px;
   font-weight: bolder;
   text-align: center;
@@ -60,7 +60,7 @@ button {
 }
 
 input:read-only {
-  background-color: lightgray;
+  background-color: var(--ka-input-readonly-bgcolor);
   font-weight: bold;
   border-bottom: 2px solid darkgray;
 }
@@ -68,8 +68,8 @@ input:read-only {
 input[aria-invalid="true"],
 select[aria-invalid="true"],
 textarea[aria-invalid="true"] {
-  background-color: rgba(255, 0, 0, 0.2);
-  border-bottom: 2px solid red;
+  background-color: var(--input-background-color-error);
+  border-bottom: 2px solid var(--input-background-color-error);
 }
 
 input.modified,
@@ -83,7 +83,7 @@ textarea.modified {
 input:disabled,
 select:disabled,
 textarea:disabled {
-  color: white;
+  color: var(--title-text-color);
   border-bottom-color: var(--input-disabled-border);
   background-color: var(--input-disabled-background);
 }
@@ -96,7 +96,7 @@ textarea {
 input.error,
 select.error,
 textarea.error {
-  border: 2px solid red;
+  border: 2px solid var(--input-background-color-error);
   background-color: var(--input-background-color-error);
 }
 
@@ -106,7 +106,7 @@ input[type="reset"].danger,
 button.danger,
 .ka-button.danger {
   color: darkred !important;
-  border: 3px outset red !important;
+  border: 3px outset var(--input-background-color-error) !important;
 }
 
 input[type="submit"],
@@ -133,8 +133,8 @@ input[type="button"].danger:hover,
 input[type="reset"].danger:hover,
 button.danger:hover,
 .ka-button.danger:hover {
-  background-color: lightpink !important;
-  border-color: red !important;
+  background-color: var(--input-background-color-error) !important;
+  border-color: var(--input-background-color-error) !important;
 }
 
 input[type="submit"].danger:active,
@@ -150,8 +150,8 @@ input[type="button"]:hover,
 input[type="reset"]:hover,
 button:hover,
 .ka-button:hover {
-  background-color: rgba(200, 200, 200, 0.3) !important;
-  border-color: black !important;
+  background-color: var(--ka-input-readonly-bgcolor) !important;
+  border-color: var(--ka-border-button-color) !important;
 }
 
 input[type="submit"]:active,
@@ -160,7 +160,7 @@ input[type="reset"]:active,
 button:active,
 .ka-button:active {
   background-color: darkgray !important;
-  color: white !important;
+  color: var(--company-text-color) !important;
   border: 3px inset darkgray !important;
 }
 
@@ -196,7 +196,7 @@ input.over {
 }
 
 .bill-summary {
-  border-bottom: 1px dotted black;
+  border-bottom: 1px dotted var(--text-color);
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto;
@@ -216,12 +216,12 @@ div.login {
   width: 180px;
   min-height: 120px;
   max-height: 120px;
-  background-color: black;
+  background-color: var(--title-background-color);
   margin: 5px;
 }
 
 div.login {
-  color: white;
+  color: var(--title-text-color);
   width: 260px;
   height: 240px;
   min-height: 240px;
@@ -230,7 +230,7 @@ div.login {
 
 div.button a {
   display: inline-block;
-  color: white;
+  color: var(--title-text-color);
   font-weight: bold;
   font-family: sans-serif;
 }
@@ -250,7 +250,7 @@ main {
 }
 
 nav {
-  background-color: black;
+  background-color: var(--title-background-color);
   width: 100%;
   padding: 12px;
   margin: 0;
@@ -269,7 +269,7 @@ nav li {
 
 nav li a {
   font-weight: bold;
-  color: white;
+  color: var(--title-text-color);
 }
 
 table td {
@@ -277,7 +277,7 @@ table td {
 }
 
 table.sub {
-  border-left: 1px solid black;
+  border-left: 1px solid var(--text-color);
   margin-left: 32px;
   margin-bottom: 16px;
   border-collapse: collapse;
@@ -301,15 +301,15 @@ tr.sub[data-open="1"] {
 }
 
 .sub table tr:nth-child(even) {
-  background-color: hsla(246, 40%, 40%, 0.2);
+  background-color: var(--input-background-color);
 }
 
 .even {
-  background-color: hsla(246, 40%, 40%, 0.2) !important;
+  background-color: var(--input-background-color) !important;
 }
 
 .odd {
-  background-color: white !important;
+  background-color: var(--company-text-color) !important;
 }
 
 .subproject {
@@ -357,7 +357,7 @@ body.withUnderlayActive {
 }
 
 .ModalUnderlay {
-  background-color: rgba(255, 255, 255, 0.6) !important;
+  background-color: var(--background-color) !important;
   position: fixed;
   width: 100%;
   height: 100%;
@@ -407,7 +407,7 @@ div.popup {
   overflow-y: scroll;
   padding-left: 40px;
   padding-right: 40px;
-  border: 3px inset lightgray;
+  border: 3px inset var(--ka-input-readonly-bgcolor);
 }
 
 .ka-contact-container-old .ka-contact.empty {
@@ -463,8 +463,8 @@ div.popup {
 }
 
 .popup .title .close:active {
-  background-color: white;
-  color: black;
+  background-color: var(--title-text-color);
+  color: var(--text-color);
 }
 
 button[type="reset"] {
@@ -504,7 +504,7 @@ body.pageview main {
   left: 0;
   top: 0;
   width: 100%;
-  background-color: black;
+  background-color: var(--title-background-color);
   transition:
     0.6s,
     background-color 0s;
@@ -515,12 +515,12 @@ body .bexiodown {
 }
 
 body.bexio-down .bexiodown {
-  border: 2px solid black;
+  border: 2px solid var(--ka-border-button-color);
   font-weight: bold;
   padding: 5px;
   display: block;
   position: fixed;
-  background-color: red;
+  background-color: var(--input-background-color-error);
   color: yellow;
   font-size: 16px;
   z-index: 99999;
@@ -668,7 +668,7 @@ fieldset.half {
   color: var(--company-color);
 }
 .ka-navigation a.inactive {
-  color: lightgrey !important;
+  color: var(--ka-input-readonly-bgcolor) !important;
 }
 
 .ka-navigation > span {
@@ -686,26 +686,26 @@ fieldset.half {
 }
 
 .ka-project[data-open="1"] > span {
-  background-color: lightgray;
+  background-color: var(--ka-input-readonly-bgcolor);
 }
 
 .ka-project:hover > span {
-  color: white;
+  color: var(--title-text-color);
   background-color: lightslategrey;
 }
 
 .ka-project:hover .ka-project-finance {
-  color: white;
+  color: var(--title-text-color);
   background-color: lightslategrey;
 }
 
 .ka-project:hover > span > img {
-  color: white;
+  color: var(--title-text-color);
   background-color: lightslategrey;
 }
 
 .ka-project:nth-child(even) * {
-  background-color: #eeeeee;
+  background-color: var(--ka-input-readonly-bgcolor);
 }
 .ka-project:hover:nth-child(even) * {
   background-color: lightslategrey;
@@ -751,8 +751,8 @@ fieldset.half {
   align-items: center;
   min-height: 4ex;
   font-weight: bold;
-  background-color: black;
-  color: white;
+  background-color: var(--title-background-color);
+  color: var(--title-text-color);
 }
 
 .ka-project-header > span .sort {
@@ -766,7 +766,7 @@ fieldset.half {
   display: unset;
 }
 .ka-project-header:hover span {
-  background-color: black;
+  background-color: var(--title-background-color);
 }
 
 .ka-group {
@@ -786,7 +786,7 @@ fieldset.half {
 }
 
 .ka-group-header > span {
-  background-color: bisque !important;
+  background-color: var(--ka-button-blended-bg) !important;
   font-weight: bold;
   text-align: center;
   grid-column-start: start;
@@ -814,27 +814,27 @@ fieldset.half {
 }
 
 .ka-error {
-  border: 2px solid red;
-  background-color: lightpink;
-  color: black;
+  border: 2px solid var(--input-background-color-error);
+  background-color: var(--input-background-color-error);
+  color: var(--text-color);
 }
 
 .ka-warning,
 .ka-warn {
-  border: 2px solid orangered;
+  border: 2px solid var(--ka-border-button-active-color);
   background-color: lightsalmon;
-  color: black;
+  color: var(--text-color);
 }
 
 .ka-info {
-  border: 2px solid blue;
-  background-color: lightskyblue;
-  color: black;
+  border: 2px solid var(--company-color);
+  background-color: var(--input-background-color);
+  color: var(--text-color);
 }
 
 label.inerror {
   text-decoration: underline;
-  color: red;
+  color: var(--input-background-color-error);
   font-weight: bold;
 }
 
@@ -885,13 +885,13 @@ label.inerror {
 
 .kmultiselect > div.selected {
   background-color: var(--company-color);
-  color: white;
+  color: var(--title-text-color);
 }
 .kmultiselect > div.add-new {
-  background-color: lightgray;
-  color: black;
+  background-color: var(--ka-input-readonly-bgcolor);
+  color: var(--text-color);
   border: none;
-  border-bottom: 1px solid black;
+  border-bottom: 1px solid var(--ka-border-button-color);
 }
 
 button.addMore {
@@ -906,7 +906,7 @@ button.addMore {
 
 button.addMore:active {
   background-color: darkgray !important;
-  color: white !important;
+  color: var(--company-text-color) !important;
   border: none !important;
 }
 
@@ -940,7 +940,7 @@ button.addMore:before {
   display: block;
   text-align: center;
   min-width: 4ch;
-  border: 1px solid black;
+  border: 1px solid var(--ka-border-button-color);
   cursor: pointer;
   font-weight: bold;
 }
@@ -1006,7 +1006,7 @@ button.addMore:before {
     text-align: left;
     font-size: 0.9em;
     margin: 2ch;
-    color: black;
+    color: var(--text-color);
 }
 
 .person-card .accounted-time .label,
@@ -1033,13 +1033,13 @@ button.addMore:before {
     width: 100%;
     font-size: 1.25rem;
     line-height: 1.4;
-    border: 2px solid #ccc;
+    border: 2px solid var(--input-border-color);
     border-radius: 4px;
 }
 
 .time-entry-search-bar input:focus {
     outline: none;
-    border-color: #4a7aa8;
+    border-color: var(--company-color);
     box-shadow: 0 0 0 2px rgba(74, 122, 168, 0.2);
 }
 
@@ -1068,8 +1068,8 @@ button.addMore:before {
     font-size: 0.8em;
     font-weight: bold;
     padding-bottom: 0.5ex;
-    border-bottom: 1px solid #ccc;
-    background-color: #fff;
+    border-bottom: 1px solid var(--input-border-color);
+    background-color: var(--background-color);
 }
 
 .time-entry-list .time-entry-header span {
@@ -1084,7 +1084,7 @@ button.addMore:before {
 }
 
 .time-entry-new {
-    border-bottom: 1px solid lightblue;
+    border-bottom: 1px solid var(--company-color-light);
 }
 
 .time-entry-new .text {
@@ -1098,7 +1098,7 @@ button.addMore:before {
     grid-column: 3 / 10;
     grid-row: 2;
     font-size: 0.85em;
-    color: #555;
+    color: var(--text-color);
     padding: 0 0.5ch;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1113,11 +1113,11 @@ button.addMore:before {
     display: none !important;
 }
 .time-entry-list .time-entry:hover {
-    background-color: lightblue;
+    background-color: var(--company-color-light);
 }
 .time-entry-list .time-entry.selected {
-    background-color: #b8d4f0;
-    outline: 1px solid #4a7aa8;
+    background-color: var(--ka-button-blended-bg);
+    outline: 1px solid var(--company-color);
 }
 .time-entry-list .time-entry .same {
     font-weight: bold;
@@ -1128,8 +1128,8 @@ button.addMore:before {
     position: fixed;
     z-index: 10000;
     min-width: 28ch;
-    background-color: #fff;
-    border: 1px solid #333;
+    background-color: var(--background-color);
+    border: 1px solid var(--ka-border-button-color);
     box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.25);
     padding: 2px;
 }
@@ -1140,14 +1140,14 @@ button.addMore:before {
     align-items: center;
     padding: 0.5ex 1.5ch;
     cursor: pointer;
-    color: #111;
-    background-color: #e8e8e8;
+    color: var(--text-color);
+    background-color: var(--ka-input-readonly-bgcolor);
     box-sizing: border-box;
 }
 
 .time-entry-context-menu .menu-item:hover {
-    background-color: #111;
-    color: #fff;
+    background-color: var(--text-color);
+    color: var(--title-text-color);
 }
 
 .popup.time-entry-copy-person .time-entry-copy-person-picker {
@@ -1162,14 +1162,14 @@ button.addMore:before {
     width: 100%;
     font-size: 1.1rem;
     line-height: 1.4;
-    border: 2px solid #ccc;
+    border: 2px solid var(--input-border-color);
     border-radius: 4px;
     padding: 0.4ex 0.8ch;
 }
 
 .popup.time-entry-copy-person .time-entry-copy-person-picker input[name="filter"]:focus {
     outline: none;
-    border-color: #4a7aa8;
+    border-color: var(--company-color);
     box-shadow: 0 0 0 2px rgba(74, 122, 168, 0.2);
 }
 
@@ -1186,21 +1186,21 @@ button.addMore:before {
     align-items: center;
     padding: 0.4ex 1ch;
     cursor: pointer;
-    background-color: #eee;
+    background-color: var(--ka-input-readonly-bgcolor);
 }
 
 .popup.time-entry-copy-person .person-item:hover {
-    background-color: #b8d4f0;
+    background-color: var(--ka-button-blended-bg);
 }
 
 .popup.time-entry-copy-person .person-item.disabled {
-    color: #777;
+    color: var(--text-color);
     font-style: italic;
 }
 
 .popup.time-entry-copy-person .person-list-empty {
     padding: 2ex 1ch;
-    color: #666;
+    color: var(--text-color);
     text-align: center;
 }
 
@@ -1241,7 +1241,7 @@ button.addMore:before {
 .time-entry-details .kv-pair .value {
     display: flex;
     align-items: center;
-    background-color: #eee;
+    background-color: var(--ka-input-readonly-bgcolor);
     min-height: 4ex;
 }
  
@@ -1304,11 +1304,11 @@ button.addMore:before {
 
 .popup.time-entry-editor .time-entry-editor-actions .danger {
     margin-right: auto;
-    color: #8b0000;
+    color: var(--input-background-color-error);
 }
 
 .loading_in_progress {
-  background: repeating-linear-gradient(-45deg,orange 0 15px, transparent 0 20px) left/200% 100%;
+  background: repeating-linear-gradient(-45deg,var(--ka-background-button-active-color) 0 15px, transparent 0 20px) left/200% 100%;
   animation: l3 4s infinite linear;
 }
 @keyframes l3 {

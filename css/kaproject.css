@@ -27,7 +27,7 @@ body {
     max-width: 100%;
     min-height: 8ex;
     max-height: 8ex;
-    border: 2px solid black;
+    border: 2px solid var(--ka-border-button-color);
     overflow: hidden;
     text-overflow: clip;
     position: relative;
@@ -56,7 +56,7 @@ body {
 }
 
 .ka-login input {
-    border: 2px solid black;
+    border: 2px solid var(--ka-border-button-color);
     padding: 0;
     min-height: 6ex;
     min-width: calc(100% - 4px);
@@ -83,13 +83,13 @@ body {
 }
 
 .ka-userbox:active, .ka-date:active  {
-    color:black;
-    background-color: white;
+    color: var(--text-color);
+    background-color: var(--background-color);
 }
 
 .ka-open {
-    color:black;
-    background-color: white;
+    color: var(--text-color);
+    background-color: var(--background-color);
 }
 
 .ka-button, button, .ka-userbox {
@@ -110,7 +110,7 @@ body {
     font-size: 14pt;
     user-select: none;
     cursor: pointer;
-    box-shadow: 1px 1px 1px gray;
+    box-shadow: 1px 1px 1px var(--ka-tooltip-shadow-color);
 }
 .ka-button .time {
     font-size: 0.9em !important;
@@ -155,7 +155,7 @@ body {
 }
 
 .ka-button .ka-foldbottom {
-    background-color: white;
+    background-color: var(--background-color);
     display: none;
 }
 
@@ -185,7 +185,7 @@ body {
     background-color: var(--ka-background-button-active-color);
     border-color: var(--ka-border-button-active-color);
     border-style: inset;
-    box-shadow: 1px 1px 1px black;
+    box-shadow: 1px 1px 1px var(--ka-tooltip-shadow-color);
 }
 
 .ka-button2.stacked {
@@ -214,7 +214,7 @@ body {
 
 .ka-button2 {
     grid-template-columns: 4ch 1fr;
-    color: black;
+    color: var(--text-color);
 }
 
 .open-close-icon {
@@ -266,8 +266,8 @@ body {
 
 .ka-project .reference {
     font-weight: bold;
-    color: white;
-    background-color: darkblue;
+    color: var(--company-text-color);
+    background-color: var(--ka-button-background-color);
     overflow: hidden;
     margin:0;
 }
@@ -286,23 +286,23 @@ body {
 .ka-project-detail {
     padding: 0.2ex 0.2ch;
     clear:both;
-    background-color: white;
+    background-color: var(--background-color);
 }
 
 .ka-project > .name {
-    color: darkblue;
-    background-color: white;
+    color: var(--ka-button-background-color);
+    background-color: var(--background-color);
     transition: ease-in-out 0.3s;
 }
 
 .ka-project > .reference {
-    color: white;
+    color: var(--company-text-color);
     background-color: var(--ka-background-button-color);
     transition:ease-in-out 0.3s;
 }
 
 .ka-project[data-open="true"] {
-    color: white;
+    color: var(--company-text-color);
     background-color: var(--ka-background-button-color);
     transition: ease-in-out 0.3s;
 }
@@ -336,8 +336,8 @@ body {
 }
 
 .ka-button[data-open="true"] > .reference {
-    background-color: white;
-    color: black;
+    background-color: var(--background-color);
+    color: var(--text-color);
     transition: ease-in-out 0.3s;
 }
 
@@ -348,8 +348,8 @@ body {
 }
 
 .ka-project .ka-head {
-    background-color: darkslategray;
-    color: white;
+    background-color: var(--company-color-dark);
+    color: var(--company-text-color);
     min-height: 4ex;
     text-align: center;
     vertical-align: middle;
@@ -362,14 +362,14 @@ body {
 
 .ka-project-detail .reference {
     background-color: var(--ka-button-blended-bg);
-    color: black;
+    color: var(--text-color);
     max-height: 2ex;
     min-height: 2ex;
 }
 
 .ka-project-detail .ka-subhead {
     min-height: 5ex;
-    color: black;
+    color: var(--text-color);
     font-weight: bold;
     text-align: center;
 }
@@ -387,13 +387,13 @@ body {
     cursor: pointer;
     display: inline-block;
     padding: 1ex 0.8ch;
-    border: 2px solid darkblue;
+    border: 2px solid var(--ka-border-button-color);
     margin: 0.2ex 0.2ch;
 }
 
 .ka-timebox .ka-day.selected {
-    border: 2px solid darkblue;
-    background-color: lightblue;
+    border: 2px solid var(--ka-border-button-color);
+    background-color: var(--ka-background-button-active-color);
 }
 
 .ka-input label {
@@ -407,7 +407,7 @@ body {
 }
 
 .ka-previous-time .ka-head {
-    background-color: indianred;
+    background-color: var(--input-background-color-error);
 }
 
 .ka-total-day, .ka-time-entry {
@@ -437,8 +437,8 @@ body {
 
 .ka-total-day {
     font-weight: bold;
-    color: white;
-    background-color: darkgoldenrod;
+    color: var(--company-text-color);
+    background-color: var(--company-color-dark);
 }
 
 .ka-input button {
@@ -447,12 +447,12 @@ body {
 }
 
 .ka-time-entry.highlight {
-    background-color: darkblue;
-    color: white
+    background-color: var(--ka-button-background-color);
+    color: var(--company-text-color)
 }
 
 .ka-time-entry.ka-unmodifiable {
-    background-color: lightgray;
+    background-color: var(--ka-input-readonly-bgcolor);
     cursor: default;
 }
 
@@ -472,15 +472,15 @@ body {
 
 .ka-error {
 
-    border: 2px solid red;
-    background-color: lightpink;
-    color: black;
+    border: 2px solid var(--input-background-color-error);
+    background-color: var(--input-background-color-error);
+    color: var(--text-color);
 }
 
 .ka-info {
-    border: 2px solid blue;
-    background-color: lightskyblue;
-    color: black;
+    border: 2px solid var(--company-color);
+    background-color: var(--input-background-color);
+    color: var(--text-color);
 }
 
 .ka-project-entry {
@@ -540,11 +540,11 @@ body {
     grid-column-end: -1;
     min-width: 100%;
     grid-row-end: 2;
-    background-color: white;
-    border: 2px solid black;
+    background-color: var(--background-color);
+    border: 2px solid var(--ka-border-button-color);
     min-height: 16ex;
     display: none;
-    color: black;
+    color: var(--text-color);
 } */
 
 .ka-button.ka-open form {
@@ -591,8 +591,8 @@ input, select {
 
 .ka-forecast h1 {
     font-size: 14pt;
-    color: white;
-    background-color: black;
+    color: var(--company-text-color);
+    background-color: var(--title-background-color);
     padding: 6px 0px;
     text-align: center;
 }
@@ -617,13 +617,13 @@ input, select {
 }
 
 .ka-forecast-project .coworker {
-    background-color: white;
-    color: black;
+    background-color: var(--background-color);
+    color: var(--text-color);
 }
 
 .ka-forecast-project .manager {
-    background-color:bisque;
-    color: black;
+    background-color: var(--ka-button-blended-bg);
+    color: var(--text-color);
 }
 
 .ka-spacer-title {

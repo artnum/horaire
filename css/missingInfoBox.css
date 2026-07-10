@@ -2,6 +2,7 @@
     max-width: 90%;
     margin: auto;
     padding: 5px;
-    background-color: orange;
-    border: 1px solid orangered;
+    background-color: var(--ka-background-button-active-color, orange);
+    color: var(--text-color);
+    border: 1px solid var(--ka-border-button-active-color, orangered);
 }

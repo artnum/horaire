@@ -1,5 +1,5 @@
 .ka-defect span {
-    background-color: #fdf0f5;
+    background-color: var(--ka-button-blended-bg);
 }
 
 .ka-car-list {

@@ -104,8 +104,8 @@ div.link.results div {
 .paiementListe form, .repartition form {
     margin-top: 1em;
     padding-top: 1em;
-    background-color: rgb(245, 245, 245);
-    border-top: 1px solid lightgray;
+    background-color: var(--background-color);
+    border-top: 1px solid var(--input-border-color);
 
 }
 
@@ -119,12 +119,12 @@ div.link.results div {
 }
 
 tr.late {
-    color: hsla(0, 100%, 30%, 1);
-    background-color: hsla(0, 100%, 90%, 1);
+    color: var(--text-color);
+    background-color: var(--input-background-color-error);
 }
 
 ul.inprogress {
-    color: lightgray;
+    color: var(--ka-input-readonly-bgcolor);
 }
 
 div.popup.import {
@@ -172,16 +172,16 @@ div.popup.import li.more {
 }
 
 .paiement .ka-button[data-open="1"].level2 {
-    background-color: orange !important;
+    background-color: var(--ka-background-button-active-color) !important;
 }
 
 .paiement .ka-button[data-open="1"].level3 {
-    background-color: red !important;
+    background-color: var(--input-background-color-error) !important;
 }
 
 .billItem.selected {
-    background-color: lightgray;
-    border-bottom: 1px solid gray;
+    background-color: var(--ka-input-readonly-bgcolor);
+    border-bottom: 1px solid var(--input-border-color);
     font-weight: bold;
 }
 
@@ -197,15 +197,15 @@ div.popup.import li.more {
     min-height: 8ex;
     overflow-y: hidden;
     margin: 2px 0;
-    border-bottom: 1px solid lightgray;
+    border-bottom: 1px solid var(--input-border-color);
 }
 
 .billItem:hover {
-    background-color: lightblue;
+    background-color: var(--ka-button-blended-bg);
 }
 
 .billItem.selected:hover {
-    background-color: lightgray;
+    background-color: var(--ka-input-readonly-bgcolor);
 }
 
 .billItem .vendor {
@@ -235,8 +235,8 @@ div.popup.import li.more {
 }
 
 .billItem.header {
-    background-color: black;
-    color: white;
+    background-color: var(--title-background-color);
+    color: var(--title-text-color);
     font-weight: bold;
     order: 0;
 }
@@ -247,12 +247,12 @@ div.popup.import li.more {
 }
 .billItem.level2 {
     order: 2;
-    background-color: orange;
+    background-color: var(--ka-background-button-active-color);
 }
 .billItem.level3 {
     order: 1;
-    background-color: red;
-    color: white;
+    background-color: var(--input-background-color-error);
+    color: var(--title-text-color);
 }
 
 .billItem[data-search="false"]{
@@ -260,8 +260,8 @@ div.popup.import li.more {
 }
 
 .billItem span.highlight {
-    background-color: rgba(154, 205, 50, 0.5);
-    color: black;
+    background-color: var(--highlight-bgcolor);
+    color: var(--text-color);
 }
 
 .billItem.level1:hover {
@@ -274,8 +274,8 @@ div.popup.import li.more {
 }
 .billItem.level3:hover {
     order: 1;
-    background-color: lightpink;
-    color: black;
+    background-color: var(--input-background-color-error);
+    color: var(--text-color);
 }
 
 .billItem span.floating {
@@ -287,8 +287,8 @@ div.popup.import li.more {
 }
 
 .billItem.payment {
-    background-color: blue;
-    color: white;
+    background-color: var(--ka-button-background-color);
+    color: var(--title-text-color);
     font-weight: bold;
 }
 
@@ -297,7 +297,7 @@ div.popup.import li.more {
 }
 
 .condition.applied {
-    border-bottom: 2px solid green;
+    border-bottom: 2px solid var(--company-color);
     background-color: lightgreen;
 }
 

@@ -1,7 +1,7 @@
 .ka-contact-list {
     display: flex;
     padding: 2px;
-    border: 1px solid black;
+    border: 1px solid var(--ka-border-button-color);
     box-shadow: 5px 5px 5px 0px var(--ka-tooltip-shadow-color);
 }
 

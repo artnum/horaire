@@ -1,5 +1,5 @@
 .codebox {
-    border: 3px dashed black;
+    border: 3px dashed var(--ka-border-button-color);
     width: 100%;
     height: 90px;
     opacity: 0.3;
@@ -13,9 +13,9 @@
 }
 
 .codebox.bvr .bvr {
-    color: red;
+    color: var(--input-background-color-error);
 }
 
 .codebox.qrcode .qrcode {
-    color: red;
+    color: var(--input-background-color-error);
 }

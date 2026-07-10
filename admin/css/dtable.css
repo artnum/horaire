@@ -5,12 +5,12 @@
 }
 
 .dtable th, .dtable td {
-    border: 2px solid white;
+    border: 2px solid var(--background-color, white);
 }
 
 .dtable thead th {
-    color: white;
-    background-color: black;
+    color: var(--title-text-color, white);
+    background-color: var(--title-background-color, black);
     cursor: pointer;
     white-space: nowrap;
     padding: 4px 6px 4px 6px;
@@ -22,7 +22,7 @@
 
 .dtable tr td {
     border: none;
-    border-top: 1px solid black;
+    border-top: 1px solid var(--ka-border-button-color, black);
 }
 
 .dtable td {
@@ -50,8 +50,8 @@
 }
 
 .dtable thead th[data-sort-include] {
-    color: black;
-    background-color: hsl(75, 85%, 100%);
+    color: var(--text-color);
+    background-color: var(--background-color);
 }
 
 .dtable thead th[data-sort-include="0"] {
@@ -93,5 +93,5 @@
     display: block;
     margin: auto;
     padding: 1px;
-    border: 1px solid gray;
+    border: 1px solid var(--input-border-color, gray);
 }
