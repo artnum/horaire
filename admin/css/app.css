@@ -87,7 +87,7 @@ section.ka-status {
   display: grid;
   font-size: 8pt;
   font-family: monospace;
-  grid-template-columns: 4fr 2fr 1fr;
+  grid-template-columns: 3fr 2fr minmax(14ch, auto) 1fr;
   grid-area: status;
   gap: 3px;
   border-top: 3px outset var(--ka-border-button-color);
@@ -95,6 +95,31 @@ section.ka-status {
 section.ka-status > div {
   background-color: var(--ka-background-button-color-hover);
   color: var(--fg-color-on-dark);
+}
+
+section.ka-status > .theme {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6ch;
+  padding: 0 0.8ch;
+  min-width: 0;
+}
+
+section.ka-status > .theme .theme-label {
+  white-space: nowrap;
+  opacity: 0.9;
+}
+
+section.ka-status > .theme select {
+  max-width: 18ch;
+  font: inherit;
+  color: inherit;
+  background-color: var(--input-background-color, #15221b);
+  border: 1px solid var(--input-border-color, #2c4c3b);
+  border-radius: 2px;
+  padding: 0.1ex 0.4ch;
+  min-height: 2.4ex;
 }
 
 .ka-order-container {

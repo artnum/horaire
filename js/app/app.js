@@ -4,6 +4,12 @@ import help from '../lib/help.js'
 import { AccessAPI } from '../JAPI/content/Access.js'
 import Privilege from '../JAPI/Privilege.js'
 import KAPerson from '../data/person.js'
+import {
+  applyColorTheme,
+  getStoredColorTheme,
+  listColorThemes,
+  applyStoredColorTheme,
+} from '../lib/color-theme.js'
 
 class AppEventSystem {
   constructor() {
@@ -49,6 +55,7 @@ class AppEventSystem {
 
 export default class App {
   #currentUiNode = null
+  #availableThemes = []
 
   constructor(parentNode) {
     this.parentNode = parentNode
@@ -58,6 +65,89 @@ export default class App {
     this.init()
     this.events.on('navigate', (_) => this.clearBlockError())
     
+  }
+
+  applyColorTheme(themeId) {
+    applyColorTheme(themeId)
+    const select = this.status?.querySelector('select[name="color-theme"]')
+    if (select && themeId && select.value !== themeId) {
+      select.value = themeId
+    }
+  }
+
+  getStoredColorTheme() {
+    return getStoredColorTheme()
+  }
+
+  listColorThemes() {
+    return listColorThemes().then((themes) => {
+      this.#availableThemes = themes
+      return themes
+    })
+  }
+
+  setupColorThemeSelector() {
+    applyStoredColorTheme()
+
+    const container = this.status?.querySelector('.theme')
+    if (!container) { return }
+
+    // Keep the selector in sync when theme is changed elsewhere (another tab).
+    document.addEventListener('kaal-color-theme-change', (event) => {
+      const id = event.detail?.id
+      const select = container.querySelector('select[name="color-theme"]')
+      if (id && select && select.value !== id) {
+        select.value = id
+      }
+    })
+
+    this.listColorThemes()
+      .then((themes) => {
+        if (!themes.length) {
+          container.innerHTML = ''
+          return
+        }
+
+        let current = this.getStoredColorTheme()
+        if (current && !themes.some((t) => t.id === current)) {
+          current = themes[0].id
+          this.applyColorTheme(current)
+        }
+
+        const label = document.createElement('LABEL')
+        label.classList.add('theme-label')
+        label.htmlFor = 'ka-color-theme-select'
+        label.textContent = 'Thème'
+
+        const select = document.createElement('SELECT')
+        select.id = 'ka-color-theme-select'
+        select.name = 'color-theme'
+        select.setAttribute('aria-label', 'Thème de couleur')
+
+        themes.forEach((theme) => {
+          const option = document.createElement('OPTION')
+          option.value = theme.id
+          option.textContent = theme.label || theme.id
+          select.appendChild(option)
+        })
+
+        if (current) {
+          select.value = current
+        } else {
+          // No preference yet: leave server default (color.css symlink) until the
+          // user picks a theme; show first option as placeholder selection only.
+          select.value = themes[0].id
+        }
+
+        select.addEventListener('change', () => {
+          this.applyColorTheme(select.value)
+        })
+
+        container.replaceChildren(label, select)
+      })
+      .catch(() => {
+        container.innerHTML = ''
+      })
   }
 
   setupRoute() {
@@ -232,6 +322,7 @@ export default class App {
     this.status.innerHTML = `
             <div class="message"></div>
             <div class="user"></div>
+            <div class="theme"></div>
             <div class="info"></div>
         `
 
@@ -245,6 +336,8 @@ export default class App {
     this.root.appendChild(this.status)
 
     this.parentNode.appendChild(this.root)
+
+    this.setupColorThemeSelector()
     
     window.addEventListener('start-fetch', e => {
         this.startLoading()
