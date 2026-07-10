@@ -1,0 +1,66 @@
+:root {
+  /* xAI / Grok-inspired: deep space black + electric indigo */
+  --company-color: #7c8cff;
+  --company-color-dark: #3d4a9e;
+  --company-color-light: #a5b0ff;
+
+  --company-text-color: #ffffff;
+  --company-text-color-on-light: #0b0c10;
+
+  --ka-main-nav-separator-color: #2a2f3d;
+
+  --ka-tooltip-fg-color: #e8eaf0;
+  --ka-tooltip-bg-color: #12141a;
+  --ka-tooltip-shadow-color: rgba(0, 0, 0, 0.55);
+  --ka-tooltip-border-color: #7c8cff;
+
+  --ka-navigation-item-selected-fg-color: #ffffff;
+  --ka-navigation-item-selected-bg-color: #3d4a9e;
+  --ka-navigation-item-unselected-fg-color: #9aa3b5;
+  --ka-navigation-item-unselected-bg-color: transparent;
+  --ka-navigation-item-hover-fg-color: #ffffff;
+  --ka-navigation-item-hover-bg-color: #7c8cff;
+
+  --ka-button-background-color: #3d4a9e;
+  --ka-button-color: #ffffff;
+  --ka-button-blended-bg: #12141a;
+
+  --ka-background-button-color: #7c8cff;
+  --ka-background-button-color-hover: #a5b0ff;
+
+  --ka-input-readonly-bgcolor: #1c2030;
+
+  --ka-border-button-color: var(--company-color-dark);
+  --ka-text-button-color: #0b0c10;
+  --ka-text-alt-button-color: #a5b0ff;
+
+  --ka-background-button-active-color: rgba(124, 140, 255, 0.28);
+  --ka-border-button-active-color: #7c8cff;
+  --ka-text-button-active-color: #a5b0ff;
+
+  --ka-text-default-font: 'B612', 'sans-serif';
+  --ka-text-default-font: 'B612 Mono', 'monospace';
+  --ka-text-button-font: 'Archivo Narrow', 'sans-serif';
+
+  --background-color: #0b0c10;
+  --title-background-color: #07080b;
+  --text-color: #e8eaf0;
+  --title-text-color: #ffffff;
+  --fg-color-on-dark: #ffffff;
+  --input-background-color: #12141a;
+  --input-border-color: #2a2f3d;
+  --input-background-color-error: #4a1218;
+  --default-highlight-color-base: 124, 140, 255;
+  --highlight-bgcolor: rgba(124, 140, 255, 0.18);
+  --input-modified-background: rgba(245, 158, 11, 0.18);
+  --input-modified-border: #f59e0b;
+  --input-disabled-background: #16181f;
+  --input-disabled-border: #252a36;
+  --k-input-border-color: var(--input-border-color);
+  --k-input-bg-color: var(--input-background-color);
+  --k-input-highlight-color: rgba(124, 140, 255, 0.1);
+  --k-input-highlight-border-color: rgba(124, 140, 255, 0.32);
+  --k-input-highlight-match-color: rgba(124, 140, 255, 0.38);
+  --foreground-text-color: #e8eaf0;
+  --backgroun-input-color: #12141a;
+}
