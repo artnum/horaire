@@ -1403,6 +1403,10 @@ body.pageview .module-button {
   cursor: pointer;
 }
 
+div.module-button * {
+    text-decoration: none !important;
+}
+
 body.pageview .module-button:hover {
   background-color: var(--ka-background-button-active-color);
   transform: none;
