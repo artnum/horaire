@@ -588,7 +588,7 @@ UIKAContactOld.prototype.deleteContactUI = function (contactId) {
             const formNode = document.createElement('FORM')
             formNode.innerHTML = `
                 Voulez-vous réellement supprimer le contact ${[contact.firstname, contact.lastname].join(' ')} du carnet d'adresses ?<br>
-                <strong style="color: red">Cette opération est irréversible.</strong> <br>
+                <strong style="color: var(--input-background-color-error, red)">Cette opération est irréversible.</strong> <br>
                 <button type="submit" class="danger">Oui</button> <button type="reset">Non</button>
             `
             const popup = window.Admin.popup(formNode, `Confirmer la suppression de ${[contact.firstname, contact.lastname].join(' ')}`)

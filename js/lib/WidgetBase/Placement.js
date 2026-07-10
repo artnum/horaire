@@ -221,7 +221,8 @@ export default class Placement {
 
           const style = {
             visibility: 'visible',
-            backgroundColor: 'white',
+            backgroundColor: 'var(--background-color, white)',
+            color: 'var(--text-color, black)',
             boxSizing: 'border-box',
             transform: 'translateY(-2%)', // visual center, about 2% above the geometrical center
           }

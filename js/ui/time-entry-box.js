@@ -25,7 +25,7 @@ class StatusTravail {
                     resolve({
                         id: `pr:${pr.id}`,
                         filterValue: pr.name,
-                        displayName: `<span style="border: 1px solid white; background-color: ${pr.color}; width: 2ch; height: 2ex; display: inline-block; margin-right    : 1ch;">&nbsp;</span>${pr.name}`
+                        displayName: `<span style="border: 1px solid var(--input-border-color, white); background-color: ${pr.color}; width: 2ch; height: 2ex; display: inline-block; margin-right    : 1ch;">&nbsp;</span>${pr.name}`
                     })
                 })
                 .catch(e => reject(e))
@@ -51,7 +51,7 @@ class StatusTravail {
                         return {
                             id: `pr:${p.id}`,
                             filterValue: p.name,
-                            displayName: `<span style="border: 1px solid white; background-color: ${p.color}; width: 2ch; height: 2ex; display: inline-block; margin-right    : 1ch;">&nbsp;</span>${p.name}`
+                            displayName: `<span style="border: 1px solid var(--input-border-color, white); background-color: ${p.color}; width: 2ch; height: 2ex; display: inline-block; margin-right    : 1ch;">&nbsp;</span>${p.name}`
                         }
                     }),
                     {is_sep: true, displayName: 'Travail'},

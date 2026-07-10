@@ -296,7 +296,7 @@ KGanttView.prototype.showWeeks = function () {
         weekContainer.id = `k-gantt-weeks`
         weekContainer.style.minWidth = '100%'
         weekContainer.style.minHeight = '50px'
-        weekContainer.style.backgroundColor = 'black'
+        weekContainer.style.backgroundColor = 'var(--title-background-color, black)'
         window.requestAnimationFrame(() => {
             if (document.getElementById('k-gantt-weeks')) {
                 container.removeChild(document.getElementById('k-gantt-weeks'))
@@ -312,11 +312,12 @@ KGanttView.prototype.showWeeks = function () {
                 const w = document.createElement('DIV')
                 w.style.minWidth = `${(7 * 86400000 * this.secWidth) - 2}px`
                 w.style.maxWidth = w.style.minWidth
-                w.style.border = 'solid 1px gray'
+                w.style.border = 'solid 1px var(--input-border-color, gray)'
                 w.style.position = 'absolute'
                 w.style.left = `${(week - 1) * 7 * 86400000 * this.secWidth}px`
                 w.style.top = '0px'
-                w.style.backgroundColor = 'white'
+                w.style.backgroundColor = 'var(--background-color, white)';
+                w.style.color = 'var(--text-color, black)';
                 w.style.textAlign = 'center'
                 w.innerHTML = `${week}`
                 window.requestAnimationFrame(() => { weekContainer.appendChild(w) })
@@ -485,7 +486,7 @@ KGanttView.prototype.run = function () {
             overlay.style.position = 'fixed'
             overlay.style.left =  `${rects[0].left}px`
             overlay.style.bottom = '0px'
-            overlay.style.backgroundColor = 'lightgray'
+            overlay.style.backgroundColor = 'var(--ka-input-readonly-bgcolor, lightgray)'
 
             window.requestAnimationFrame(() => { 
                 const node = document.getElementById('k-gantt-container')

@@ -202,7 +202,7 @@ function newEntry (entry, edit = false) {
 
     tr.innerHTML = `
       <td data-name="name" data-type="text">${entry.name ? entry.name : ''}</td>
-      <td data-name="color" data-type="color" data-value="${entry.color ? entry.color : 'white'}" style="background-color: ${entry.color ? entry.color : 'white'}">   </td>
+      <td data-name="color" data-type="color" data-value="${entry.color ? entry.color : 'var(--background-color)'}" style="background-color: ${entry.color ? entry.color : 'var(--background-color)'}; color: var(--text-color);">   </td>
     `
     
     var td = document.createElement('TD')

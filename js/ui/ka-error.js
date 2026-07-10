@@ -13,9 +13,9 @@ function KAErrorUI (msgOrError) {
     div.style.right = '0px'
     div.style.maxHeight = '20px'
     div.style.minHeight = '20px'
-    div.style.border = '1px solid red'
-    div.style.backgroundColor = 'lightpink'
-    div.style.color = 'black'
+    div.style.border = '1px solid var(--input-background-color-error, red)'
+    div.style.backgroundColor = 'var(--input-background-color-error, lightpink)'
+    div.style.color = 'var(--text-color, black)'
     window.requestAnimationFrame(() => document.body.appendChild(div))
     setTimeout(() => window.requestAnimationFrame(() => document.body.removeChild(div)), 10000)
     div.addEventListener('click', _ => {
