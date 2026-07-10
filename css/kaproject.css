@@ -10,7 +10,49 @@ body {
     margin: 0;
     font-family: var(--ka-text-default-font);
     font-size: 10pt;
+    background-color: var(--background-color, white);
+    color: var(--text-color, black);
 }
+
+::selection {
+    background-color: var(--ka-background-button-active-color);
+    color: var(--text-color);
+}
+
+* {
+    scrollbar-color: var(--company-color-dark) var(--background-color);
+    scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: var(--background-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--company-color-dark);
+    border: 2px solid var(--background-color);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--company-color);
+}
+
+::placeholder {
+    color: var(--text-color);
+    opacity: 0.5;
+}
+
+*:focus-visible {
+    outline: 2px solid var(--company-color);
+    outline-offset: 1px;
+}
+
 
 .ka-head, .ka-foot, .ka-main-top, .ka-main-bottom {
     box-sizing: border-box;
