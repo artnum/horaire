@@ -303,7 +303,7 @@ export default class TimeUI {
                 controller.abort()
                 this.#pointerGestureSwallowController = null
             }
-        }, 50)
+        }, 350)
     }
 
     #armContextMenuDismiss() {
