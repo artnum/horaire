@@ -1350,7 +1350,7 @@ button.addMore:before {
 }
 
 .loading_in_progress {
-  background: repeating-linear-gradient(-45deg,var(--ka-background-button-active-color) 0 15px, transparent 0 20px) left/200% 100%;
+  background: repeating-linear-gradient(-45deg, var(--company-color) 0 15px, var(--company-color-dark) 15px 30px) left/200% 100%;
   animation: l3 4s infinite linear;
 }
 @keyframes l3 {
