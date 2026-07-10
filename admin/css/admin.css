@@ -1356,3 +1356,97 @@ button.addMore:before {
 @keyframes l3 {
     100% {background-position:right}
 }
+
+/* Custom Main Menu / Module Button Styling */
+div.module-button {
+  border-radius: 8px;
+  border: 1px solid var(--input-border-color);
+  background-color: var(--background-color);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+div.module-button:hover {
+  border-color: var(--company-color);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+div.module-button a {
+  color: var(--text-color);
+  font-family: var(--ka-text-button-font, sans-serif);
+  transition: color 0.2s ease;
+}
+
+div.module-button:hover a {
+  color: var(--company-color);
+}
+
+div.module-button.company {
+  background-color: var(--company-color);
+  border-color: var(--company-color-dark);
+}
+
+div.module-button.company a {
+  color: var(--company-text-color) !important;
+}
+
+/* Pageview Header Navigation Tabs */
+body.pageview .module-button {
+  background-color: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-color);
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+
+body.pageview .module-button:hover {
+  background-color: var(--ka-background-button-active-color);
+  transform: none;
+  box-shadow: none;
+}
+
+body.pageview .module-button a {
+  color: var(--text-color) !important;
+}
+
+body.pageview .module-button:hover a {
+  color: var(--company-color) !important;
+}
+
+body.pageview .module-button.company {
+  background-color: var(--company-color);
+  border: none;
+}
+
+body.pageview .module-button.company a {
+  color: var(--company-text-color) !important;
+}
+
+/* Active Page Highlight */
+body.TimeUI .module-button.time,
+body.UserUI .module-button.user,
+body.QuoteUI .module-button.quote,
+body.bill .module-button.bill,
+body.car .module-button.car,
+body.project .module-button.prj,
+body.item .module-button.items,
+body.kairos .module-button.plan,
+body.debitor .module-button.debitor {
+  background-color: var(--company-color) !important;
+  border-bottom: 2px solid var(--company-color-dark) !important;
+}
+
+body.TimeUI .module-button.time a,
+body.UserUI .module-button.user a,
+body.QuoteUI .module-button.quote a,
+body.bill .module-button.bill a,
+body.car .module-button.car a,
+body.project .module-button.prj a,
+body.item .module-button.items a,
+body.kairos .module-button.plan a,
+body.debitor .module-button.debitor a {
+  color: var(--company-text-color) !important;
+}
+

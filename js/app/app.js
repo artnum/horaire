@@ -320,14 +320,14 @@ export default class App {
       })
 
       const company = document.createElement('div')
-      company.classList.add('company', 'button')
+      company.classList.add('company', 'button', 'module-button')
       company.innerHTML = KAAL.title
       this.appendModule(company)
 
       buttons.forEach((e) => {
         if (parseInt(e.level) >= parseInt(this.loggedUser.level)) {
           let div = document.createElement('DIV')
-          div.classList.add('button')
+          div.classList.add('button', 'module-button', e.nodeid)
 
           if (e.callback) {
             div.addEventListener('click', e.callback)
