@@ -1117,6 +1117,86 @@ button.addMore:before {
     color: darkred;
 }
 
+.time-entry-context-menu {
+    position: fixed;
+    z-index: 10000;
+    min-width: 28ch;
+    background-color: #fff;
+    border: 1px solid #333;
+    box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.25);
+    padding: 2px;
+}
+
+.time-entry-context-menu .menu-item {
+    min-height: 4ex;
+    display: flex;
+    align-items: center;
+    padding: 0.5ex 1.5ch;
+    cursor: pointer;
+    color: #111;
+    background-color: #e8e8e8;
+    box-sizing: border-box;
+}
+
+.time-entry-context-menu .menu-item:hover {
+    background-color: #111;
+    color: #fff;
+}
+
+.popup.time-entry-copy-person .time-entry-copy-person-picker {
+    display: grid;
+    gap: 1ex;
+    min-width: 36ch;
+    max-width: 48ch;
+}
+
+.popup.time-entry-copy-person .time-entry-copy-person-picker input[name="filter"] {
+    box-sizing: border-box;
+    width: 100%;
+    font-size: 1.1rem;
+    line-height: 1.4;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    padding: 0.4ex 0.8ch;
+}
+
+.popup.time-entry-copy-person .time-entry-copy-person-picker input[name="filter"]:focus {
+    outline: none;
+    border-color: #4a7aa8;
+    box-shadow: 0 0 0 2px rgba(74, 122, 168, 0.2);
+}
+
+.popup.time-entry-copy-person .person-list {
+    display: grid;
+    gap: 0.25ex;
+    max-height: 40vh;
+    overflow-y: auto;
+}
+
+.popup.time-entry-copy-person .person-item {
+    min-height: 4ex;
+    display: flex;
+    align-items: center;
+    padding: 0.4ex 1ch;
+    cursor: pointer;
+    background-color: #eee;
+}
+
+.popup.time-entry-copy-person .person-item:hover {
+    background-color: #b8d4f0;
+}
+
+.popup.time-entry-copy-person .person-item.disabled {
+    color: #777;
+    font-style: italic;
+}
+
+.popup.time-entry-copy-person .person-list-empty {
+    padding: 2ex 1ch;
+    color: #666;
+    text-align: center;
+}
+
 .time-same-entries .title {
     font-weight: bold;
     padding: 2ex 1ch;

@@ -26,6 +26,8 @@ export default class TimeUI {
     #app
     #duplicate = new Map()
     #kcoreReady = null
+    #peopleList = []
+    #contextMenuNode = null
 
     constructor(app, timeapi = null) {
         this.#app = app
@@ -34,6 +36,7 @@ export default class TimeUI {
     }
 
     destroy() {
+        this.#dismissContextMenu()
         this.#myEventController.abort()
     }
 
@@ -258,6 +261,189 @@ export default class TimeUI {
             ? `/api/worktime/${entry.id}`
             : '/api/worktime'
         return F.post(url, entry)
+    }
+
+    #dismissContextMenu() {
+        if (!this.#contextMenuNode) { return }
+        this.#contextMenuNode.remove()
+        this.#contextMenuNode = null
+    }
+
+    #getPeopleList() {
+        if (this.#peopleList?.length) {
+            return Promise.resolve(this.#peopleList)
+        }
+        return F.get('/api/people')
+            .then(data => {
+                this.#peopleList = data ?? []
+                return this.#peopleList
+            })
+    }
+
+    #showEntryContextMenu(event, personId, entryNodeId) {
+        event.preventDefault()
+        event.stopPropagation()
+        this.#dismissContextMenu()
+
+        const entry = this.#currentPersonEntries.get(entryNodeId)
+        if (!entry) { return }
+
+        const entryNode = document.getElementById(entryNodeId)
+        const previousSelected = document.querySelector('.time-entry-list .time-entry.selected')
+        if (previousSelected && previousSelected !== entryNode) {
+            previousSelected.classList.remove('selected')
+        }
+        if (entryNode) { entryNode.classList.add('selected') }
+
+        const menu = document.createElement('DIV')
+        menu.classList.add('time-entry-context-menu')
+        menu.setAttribute('role', 'menu')
+        menu.innerHTML = `
+            <div class="menu-item" data-action="copy-to-person" role="menuitem">
+                Copier vers une autre personne
+            </div>
+        `
+
+        const placeMenu = () => {
+            const rect = menu.getBoundingClientRect()
+            let left = event.clientX
+            let top = event.clientY
+            if (left + rect.width > window.innerWidth) {
+                left = Math.max(0, window.innerWidth - rect.width - 8)
+            }
+            if (top + rect.height > window.innerHeight) {
+                top = Math.max(0, window.innerHeight - rect.height - 8)
+            }
+            menu.style.left = `${left}px`
+            menu.style.top = `${top}px`
+        }
+
+        menu.addEventListener('click', (clickEvent) => {
+            const item = clickEvent.target.closest('[data-action]')
+            if (!item || !menu.contains(item)) { return }
+            clickEvent.preventDefault()
+            clickEvent.stopPropagation()
+            if (item.dataset.action === 'copy-to-person') {
+                this.#dismissContextMenu()
+                this.#openCopyToPersonPicker(personId, entry)
+            }
+        })
+
+        document.body.appendChild(menu)
+        this.#contextMenuNode = menu
+        placeMenu()
+
+        const closeHandler = (outsideEvent) => {
+            if (this.#contextMenuNode?.contains(outsideEvent.target)) { return }
+            this.#dismissContextMenu()
+            document.removeEventListener('pointerdown', closeHandler, true)
+            document.removeEventListener('keydown', keyHandler, true)
+        }
+        const keyHandler = (keyEvent) => {
+            if (keyEvent.key !== 'Escape') { return }
+            this.#dismissContextMenu()
+            document.removeEventListener('pointerdown', closeHandler, true)
+            document.removeEventListener('keydown', keyHandler, true)
+        }
+        window.requestAnimationFrame(() => {
+            document.addEventListener('pointerdown', closeHandler, true)
+            document.addEventListener('keydown', keyHandler, true)
+        })
+    }
+
+    #openCopyToPersonPicker(sourcePersonId, entry) {
+        this.#getPeopleList()
+            .then(people => {
+                const form = document.createElement('DIV')
+                form.classList.add('time-entry-copy-person-picker')
+                form.innerHTML = `
+                    <input type="search" name="filter"
+                        placeholder="Rechercher une personne…"
+                        autocomplete="off" spellcheck="false"
+                        aria-label="Filtrer les personnes" />
+                    <div class="person-list" role="listbox"
+                        aria-label="Personnes disponibles"></div>
+                `
+                const list = form.querySelector('.person-list')
+                const candidates = (people ?? []).filter(person =>
+                    String(person.id) !== String(sourcePersonId)
+                    && !(Number(person.deleted) > 0)
+                )
+
+                if (candidates.length === 0) {
+                    list.innerHTML = '<div class="person-list-empty">Aucune personne disponible</div>'
+                } else {
+                    candidates.forEach(person => {
+                        const item = document.createElement('DIV')
+                        item.classList.add('person-item')
+                        item.dataset.personId = person.id
+                        item.dataset.searchable = String(person.name ?? '').toLowerCase()
+                        item.textContent = person.name
+                        item.setAttribute('role', 'option')
+                        if (!person.active) {
+                            item.classList.add('disabled')
+                        }
+                        list.appendChild(item)
+                    })
+                }
+
+                const popup = admin.popup(form, 'Copier vers une autre personne', {
+                    minWidth: '36ch',
+                    supClasses: ['time-entry-copy-person'],
+                })
+
+                form.querySelector('input[name="filter"]').addEventListener('input', (event) => {
+                    const term = new i18n(event.target.value.toLowerCase()).ascii()
+                    list.querySelectorAll('[data-searchable]').forEach(item => {
+                        const value = new i18n(item.dataset.searchable).ascii()
+                        item.style.display = value.includes(term) ? '' : 'none'
+                    })
+                })
+
+                list.addEventListener('click', (event) => {
+                    const item = event.target.closest('.person-item')
+                    if (!item || !list.contains(item)) { return }
+                    const targetPersonId = item.dataset.personId
+                    if (!targetPersonId) { return }
+                    const targetPersonName = item.textContent?.trim() ?? ''
+                    popup.close()
+                    this.#copyEntryToPerson(entry, targetPersonId, targetPersonName)
+                })
+
+                window.requestAnimationFrame(() => {
+                    form.querySelector('input[name="filter"]')?.focus()
+                })
+            })
+            .catch(() => {
+                KAAL.error('Impossible de charger la liste des personnes')
+            })
+    }
+
+    #copyEntryToPerson(entry, targetPersonId, targetPersonName = '') {
+        // Clone fields but force create: no id, target person.
+        const newEntry = {
+            ...entry,
+            id: null,
+            person_id: targetPersonId,
+            _person_id: targetPersonId,
+        }
+        delete newEntry.id
+        delete newEntry.x_key
+        delete newEntry._person
+
+        return this.#persistEntry(newEntry, 'POST')
+            .then(() => this.#loadData())
+            .then(() => {
+                this.#refreshPersonViewFromCache()
+                KAAL.info(
+                    targetPersonName
+                        ? `Entrée copiée vers ${targetPersonName}`
+                        : 'Entrée copiée',
+                )
+            })
+            .catch(() => {
+                KAAL.error("Impossible de copier l'entrée")
+            })
     }
 
     #emptyTimeEntry() {
@@ -740,12 +926,20 @@ export default class TimeUI {
         }, {signal: this.#viewEventController.signal})
 
         listContainer.addEventListener('click', event => {
+            this.#dismissContextMenu()
             const entryNode = event.target.closest('.time-entry')
             if (!entryNode || !listContainer.contains(entryNode)) { return }
             if (entryNode.classList.contains('time-entry-new')) {
                 return this.#openEntryEditor(id, null)
             }
             this.#openEntryEditor(id, entryNode.id)
+        }, {signal: this.#viewEventController.signal})
+
+        listContainer.addEventListener('contextmenu', event => {
+            const entryNode = event.target.closest('.time-entry')
+            if (!entryNode || !listContainer.contains(entryNode)) { return }
+            if (entryNode.classList.contains('time-entry-new')) { return }
+            this.#showEntryContextMenu(event, id, entryNode.id)
         }, {signal: this.#viewEventController.signal})
 
         listContainer.addEventListener('mouseleave', event => {
@@ -1062,6 +1256,7 @@ export default class TimeUI {
 
             F.get(`/api/people`)
             .then(data => {
+                this.#peopleList = data ?? []
                 data.forEach(p => {
                     const div = document.createElement('div')
                     div.dataset.action = `person:${p.id}`
