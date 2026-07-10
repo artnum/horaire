@@ -124,11 +124,12 @@ section.ka-status > div {
 
 .UserUI .item.orderable:nth-child(odd) {
   background-color: var(--ka-input-readonly-bgcolor);
+  color: var(--text-color);
 }
 
 .UserUI .item.orderable:nth-child(even) {
-  background-color: darkgrey;
-  color: var(--fg-color-on-dark);
+  background-color: var(--background-color);
+  color: var(--text-color);
 }
 
 .item.broken {
