@@ -28,6 +28,8 @@ export default class TimeUI {
     #kcoreReady = null
     #peopleList = []
     #contextMenuNode = null
+    #contextMenuDismissController = null
+    #pointerGestureSwallowController = null
 
     constructor(app, timeapi = null) {
         this.#app = app
@@ -264,9 +266,78 @@ export default class TimeUI {
     }
 
     #dismissContextMenu() {
+        if (this.#contextMenuDismissController) {
+            this.#contextMenuDismissController.abort()
+            this.#contextMenuDismissController = null
+        }
         if (!this.#contextMenuNode) { return }
         this.#contextMenuNode.remove()
         this.#contextMenuNode = null
+    }
+
+    /**
+     * After dismissing the context menu with a primary (left) outside click,
+     * absorb the rest of that gesture (mouseup/click) so handlers under the
+     * cursor do not run. Standard menu UX: first outside click only closes.
+     * Right-clicks are not swallowed so a new context menu can open immediately.
+     */
+    #swallowNextPointerGesture() {
+        if (this.#pointerGestureSwallowController) {
+            this.#pointerGestureSwallowController.abort()
+        }
+        const controller = new AbortController()
+        this.#pointerGestureSwallowController = controller
+        const {signal} = controller
+        const swallow = (event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            event.stopImmediatePropagation()
+        }
+        for (const type of ['click', 'mouseup', 'auxclick']) {
+            document.addEventListener(type, swallow, {capture: true, signal})
+        }
+        // Long enough to cover the click synthesized after mouseup; short enough
+        // not to block the next intentional interaction.
+        window.setTimeout(() => {
+            if (this.#pointerGestureSwallowController === controller) {
+                controller.abort()
+                this.#pointerGestureSwallowController = null
+            }
+        }, 50)
+    }
+
+    #armContextMenuDismiss() {
+        if (this.#contextMenuDismissController) {
+            this.#contextMenuDismissController.abort()
+        }
+        const controller = new AbortController()
+        this.#contextMenuDismissController = controller
+        const {signal} = controller
+
+        // Attach on next frame so the opening right-click does not immediately
+        // dismiss the menu it just opened.
+        window.requestAnimationFrame(() => {
+            if (signal.aborted) { return }
+            document.addEventListener('pointerdown', (event) => {
+                if (this.#contextMenuNode?.contains(event.target)) { return }
+                // Capture + stop: primary click only closes the menu.
+                event.preventDefault()
+                event.stopPropagation()
+                event.stopImmediatePropagation()
+                this.#dismissContextMenu()
+                // Left-click: swallow follow-up so list/nav handlers do not fire.
+                // Right-click: allow contextmenu to proceed (e.g. another entry).
+                if (event.button === 0) {
+                    this.#swallowNextPointerGesture()
+                }
+            }, {capture: true, signal})
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key !== 'Escape') { return }
+                event.preventDefault()
+                this.#dismissContextMenu()
+            }, {capture: true, signal})
+        })
     }
 
     #getPeopleList() {
@@ -332,23 +403,7 @@ export default class TimeUI {
         document.body.appendChild(menu)
         this.#contextMenuNode = menu
         placeMenu()
-
-        const closeHandler = (outsideEvent) => {
-            if (this.#contextMenuNode?.contains(outsideEvent.target)) { return }
-            this.#dismissContextMenu()
-            document.removeEventListener('pointerdown', closeHandler, true)
-            document.removeEventListener('keydown', keyHandler, true)
-        }
-        const keyHandler = (keyEvent) => {
-            if (keyEvent.key !== 'Escape') { return }
-            this.#dismissContextMenu()
-            document.removeEventListener('pointerdown', closeHandler, true)
-            document.removeEventListener('keydown', keyHandler, true)
-        }
-        window.requestAnimationFrame(() => {
-            document.addEventListener('pointerdown', closeHandler, true)
-            document.addEventListener('keydown', keyHandler, true)
-        })
+        this.#armContextMenuDismiss()
     }
 
     #openCopyToPersonPicker(sourcePersonId, entry) {
