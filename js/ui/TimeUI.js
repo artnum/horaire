@@ -265,14 +265,23 @@ export default class TimeUI {
         return F.post(url, entry)
     }
 
-    #dismissContextMenu() {
+    #clearEntrySelection() {
+        document.querySelectorAll('.time-entry-list .time-entry.selected')
+            .forEach(node => node.classList.remove('selected'))
+    }
+
+    #dismissContextMenu({clearSelection = false} = {}) {
         if (this.#contextMenuDismissController) {
             this.#contextMenuDismissController.abort()
             this.#contextMenuDismissController = null
         }
-        if (!this.#contextMenuNode) { return }
-        this.#contextMenuNode.remove()
-        this.#contextMenuNode = null
+        if (this.#contextMenuNode) {
+            this.#contextMenuNode.remove()
+            this.#contextMenuNode = null
+        }
+        if (clearSelection) {
+            this.#clearEntrySelection()
+        }
     }
 
     /**
@@ -324,7 +333,8 @@ export default class TimeUI {
                 event.preventDefault()
                 event.stopPropagation()
                 event.stopImmediatePropagation()
-                this.#dismissContextMenu()
+                // Right-click on another entry will re-select via contextmenu.
+                this.#dismissContextMenu({clearSelection: event.button === 0})
                 // Left-click: swallow follow-up so list/nav handlers do not fire.
                 // Right-click: allow contextmenu to proceed (e.g. another entry).
                 if (event.button === 0) {
@@ -335,7 +345,7 @@ export default class TimeUI {
             document.addEventListener('keydown', (event) => {
                 if (event.key !== 'Escape') { return }
                 event.preventDefault()
-                this.#dismissContextMenu()
+                this.#dismissContextMenu({clearSelection: true})
             }, {capture: true, signal})
         })
     }
@@ -451,11 +461,22 @@ export default class TimeUI {
                     supClasses: ['time-entry-copy-person'],
                 })
 
-                const closePicker = () => popup.close()
+                let proceeded = false
+                const cancelPicker = () => {
+                    if (!proceeded) {
+                        this.#clearEntrySelection()
+                    }
+                }
 
                 form.querySelector('button[name="cancel"]').addEventListener('click', () => {
-                    closePicker()
+                    cancelPicker()
+                    popup.close()
                 })
+
+                // X close button on the popup title dispatches 'close' on the popup.
+                form.closest('.popup')?.addEventListener('close', () => {
+                    cancelPicker()
+                }, {once: true})
 
                 form.querySelector('input[name="filter"]').addEventListener('input', (event) => {
                     const term = new i18n(event.target.value.toLowerCase()).ascii()
@@ -471,7 +492,8 @@ export default class TimeUI {
                     const targetPersonId = item.dataset.personId
                     if (!targetPersonId) { return }
                     const targetPersonName = item.textContent?.trim() ?? ''
-                    closePicker()
+                    proceeded = true
+                    popup.close()
                     this.#openCopiedEntryEditor(entry, targetPersonId, targetPersonName)
                 })
 
