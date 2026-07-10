@@ -400,6 +400,7 @@ body.withUnderlayActive {
 
 .ModalUnderlay {
   background-color: var(--background-color) !important;
+  opacity: 40%;
   position: fixed;
   width: 100%;
   height: 100%;
@@ -1456,3 +1457,6 @@ body.debitor .module-button.debitor a {
   color: var(--company-text-color) !important;
 }
 
+#KAALGeneralMessageBox {
+    z-index: calc(infinity);
+}

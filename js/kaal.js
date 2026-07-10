@@ -1,7 +1,7 @@
 KAAL.message = function (msg, level = 'error') {
     let messageBox = document.getElementById('KAALGeneralMessageBox')
     let addInDom = false
-    let timeout = 1200
+    let timeout = 2400
     if (!messageBox) {
         messageBox = document.createElement('DIV')
         messageBox.id = 'KAALGeneralMessageBox'
