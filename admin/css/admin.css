@@ -1364,6 +1364,7 @@ div.module-button {
   background-color: var(--background-color);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 div.module-button:hover {
@@ -1399,6 +1400,7 @@ body.pageview .module-button {
   color: var(--text-color);
   box-shadow: none;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 body.pageview .module-button:hover {
