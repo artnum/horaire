@@ -415,8 +415,9 @@ export default class TimeUI {
                     if (!item || !list.contains(item)) { return }
                     const targetPersonId = item.dataset.personId
                     if (!targetPersonId) { return }
+                    const targetPersonName = item.textContent?.trim() ?? ''
                     closePicker()
-                    this.#openCopiedEntryEditor(entry, targetPersonId)
+                    this.#openCopiedEntryEditor(entry, targetPersonId, targetPersonName)
                 })
 
                 window.requestAnimationFrame(() => {
@@ -428,7 +429,7 @@ export default class TimeUI {
             })
     }
 
-    #openCopiedEntryEditor(entry, targetPersonId) {
+    #openCopiedEntryEditor(entry, targetPersonId, targetPersonName = '') {
         // Prefill editor as a new entry for the target person (id cleared → create).
         const newEntry = {
             ...entry,
@@ -439,9 +440,15 @@ export default class TimeUI {
         delete newEntry.x_key
         delete newEntry._person
 
+        const title = targetPersonName
+            ? `Copie vers ${this.#escapeText(targetPersonName)}`
+            : 'Copie vers une autre personne'
+
         this.#ensureKcore()
             .then(() => this.#resolveProjectId(newEntry))
-            .then(projectId => this.#showEntryEditor(targetPersonId, null, newEntry, projectId))
+            .then(projectId => this.#showEntryEditor(
+                targetPersonId, null, newEntry, projectId, {title},
+            ))
             .catch(() => {
                 KAAL.error('Impossible de charger le sélecteur processus / travail')
             })
@@ -683,7 +690,7 @@ export default class TimeUI {
             })
     }
 
-    #showEntryEditor(personId, entryNodeId, entry, projectId) {
+    #showEntryEditor(personId, entryNodeId, entry, projectId, options = {}) {
         const isNew = entryNodeId == null
         const previousSelected = document.querySelector('.time-entry-list .time-entry.selected')
         if (previousSelected) { previousSelected.classList.remove('selected') }
@@ -735,9 +742,10 @@ export default class TimeUI {
                 </div>
         `
 
-        const popupTitle = isNew
-            ? 'Nouvelle entrée'
-            : `Modifier entrée du ${DataUtils.longDate(entry.date)}`
+        const popupTitle = options.title
+            ?? (isNew
+                ? 'Nouvelle entrée'
+                : `Modifier entrée du ${DataUtils.longDate(entry.date)}`)
         const popup = admin.popup(form, popupTitle, {
             minWidth: '52ch',
             supClasses: ['time-entry-editor'],
