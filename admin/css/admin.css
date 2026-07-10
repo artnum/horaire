@@ -1197,6 +1197,19 @@ button.addMore:before {
     text-align: center;
 }
 
+.popup.time-entry-copy-person .picker-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1ch;
+    padding-top: 0.5ex;
+}
+
+.popup.time-entry-copy-person .picker-actions button {
+    min-height: 4ex;
+    padding: 0.4ex 1.5ch;
+    cursor: pointer;
+}
+
 .time-same-entries .title {
     font-weight: bold;
     padding: 2ex 1ch;

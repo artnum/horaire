@@ -363,6 +363,9 @@ export default class TimeUI {
                         aria-label="Filtrer les personnes" />
                     <div class="person-list" role="listbox"
                         aria-label="Personnes disponibles"></div>
+                    <div class="picker-actions">
+                        <button type="button" name="cancel">Annuler</button>
+                    </div>
                 `
                 const list = form.querySelector('.person-list')
                 const candidates = (people ?? []).filter(person =>
@@ -389,7 +392,14 @@ export default class TimeUI {
 
                 const popup = admin.popup(form, 'Copier vers une autre personne', {
                     minWidth: '36ch',
+                    closable: true,
                     supClasses: ['time-entry-copy-person'],
+                })
+
+                const closePicker = () => popup.close()
+
+                form.querySelector('button[name="cancel"]').addEventListener('click', () => {
+                    closePicker()
                 })
 
                 form.querySelector('input[name="filter"]').addEventListener('input', (event) => {
@@ -405,9 +415,8 @@ export default class TimeUI {
                     if (!item || !list.contains(item)) { return }
                     const targetPersonId = item.dataset.personId
                     if (!targetPersonId) { return }
-                    const targetPersonName = item.textContent?.trim() ?? ''
-                    popup.close()
-                    this.#copyEntryToPerson(entry, targetPersonId, targetPersonName)
+                    closePicker()
+                    this.#openCopiedEntryEditor(entry, targetPersonId)
                 })
 
                 window.requestAnimationFrame(() => {
@@ -419,11 +428,10 @@ export default class TimeUI {
             })
     }
 
-    #copyEntryToPerson(entry, targetPersonId, targetPersonName = '') {
-        // Clone fields but force create: no id, target person.
+    #openCopiedEntryEditor(entry, targetPersonId) {
+        // Prefill editor as a new entry for the target person (id cleared → create).
         const newEntry = {
             ...entry,
-            id: null,
             person_id: targetPersonId,
             _person_id: targetPersonId,
         }
@@ -431,18 +439,11 @@ export default class TimeUI {
         delete newEntry.x_key
         delete newEntry._person
 
-        return this.#persistEntry(newEntry, 'POST')
-            .then(() => this.#loadData())
-            .then(() => {
-                this.#refreshPersonViewFromCache()
-                KAAL.info(
-                    targetPersonName
-                        ? `Entrée copiée vers ${targetPersonName}`
-                        : 'Entrée copiée',
-                )
-            })
+        this.#ensureKcore()
+            .then(() => this.#resolveProjectId(newEntry))
+            .then(projectId => this.#showEntryEditor(targetPersonId, null, newEntry, projectId))
             .catch(() => {
-                KAAL.error("Impossible de copier l'entrée")
+                KAAL.error('Impossible de charger le sélecteur processus / travail')
             })
     }
 
