@@ -1198,7 +1198,6 @@ button.addMore:before {
     display: flex;
     flex-direction: column;
     gap: 2ex;
-    max-width: 96ch;
 }
 
 .time-planned-view-title {
