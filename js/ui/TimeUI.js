@@ -741,10 +741,10 @@ export default class TimeUI {
                 <span class="count">(${idle.length})</span>
             </span>
         `
-        const list = document.createElement('UL')
+        const list = document.createElement('DIV')
         list.classList.add('planned-day-idle-list')
         idle.forEach(p => {
-            const li = document.createElement('LI')
+            const li = document.createElement('DIV')
             li.dataset.personId = p.id
             li.textContent = p.name
             list.appendChild(li)

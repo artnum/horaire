@@ -1222,8 +1222,7 @@ button.addMore:before {
 
 .planned-day-header {
     margin: 0;
-    font-size: 1.05em;
-    font-weight: bold;
+    font-size: 2em;
     padding: 0.4ex 0;
     border-bottom: 2px solid var(--company-color);
 }
@@ -1254,9 +1253,11 @@ button.addMore:before {
     padding-left: 2ch;
     columns: 3;
     column-gap: 2ch;
+    display: flex;
+    flex-wrap: wrap;
 }
 
-.planned-day-idle-list li {
+.planned-day-idle-list div {
     break-inside: avoid;
 }
 
