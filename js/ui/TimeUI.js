@@ -667,9 +667,8 @@ export default class TimeUI {
             <span class="date">${DataUtils.longDate(day)}</span>
             <span class="project-reference">Planifié</span>
             <span class="project-name">${this.#escapeText(title)}</span>
-            <span class="process-name" style="${processStyle}">
-                ${this.#escapeText(reservation.process_name)}
-            </span>
+            <span class="process-name" style="${processStyle}"
+                title="${this.#escapeText(reservation.process_name)}"></span>
             <span class="written-time"></span>
             <span class="accounted-time"></span>
             <span class="pause"></span>

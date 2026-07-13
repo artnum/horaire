@@ -1184,6 +1184,13 @@ button.addMore:before {
     font-style: normal;
 }
 
+/* Color swatch only — process name is repeated heavily and omitted for planned rows */
+.time-entry-list .time-entry.time-entry-reservation .process-name {
+    min-width: 2ch;
+    min-height: 1.6ex;
+    border-radius: 2px;
+}
+
 .time-entry-context-menu {
     position: fixed;
     z-index: 10000;
