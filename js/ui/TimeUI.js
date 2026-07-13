@@ -1461,25 +1461,50 @@ export default class TimeUI {
 
     /**
      * Aggregate worktime entries that share an x_key into one row per person
-     * (sum of written / accounted hours).
+     * (sum of written / accounted hours). Planned people with no hours are
+     * included at 00h00.
      */
-    #workersForXKey(xKey) {
+    #workersForXKey(xKey, reservations = []) {
         const key = DataUtils.str(xKey)
-        if (!key) { return [] }
-        const entries = this.#duplicate.get(key) ?? []
         const byPerson = new Map()
+        const aliases = new Map() // alternate id string → primary map key
+
+        const resolveRowKey = (...ids) => {
+            for (const id of ids) {
+                const s = DataUtils.str(id)
+                if (!s) { continue }
+                if (byPerson.has(s)) { return s }
+                if (aliases.has(s)) { return aliases.get(s) }
+            }
+            return null
+        }
+
+        const registerAliases = (primaryKey, ...ids) => {
+            ids.forEach(id => {
+                const s = DataUtils.str(id)
+                if (s) { aliases.set(s, primaryKey) }
+            })
+        }
+
+        const entries = key ? (this.#duplicate.get(key) ?? []) : []
         entries.forEach(entry => {
-            const personKey = String(entry._person_id ?? entry.person_id ?? entry._person ?? '')
+            const encoded = entry.person_id
+            const numeric = entry._person_id
+            let personKey = resolveRowKey(numeric, encoded)
+            if (!personKey) {
+                personKey = String(numeric ?? encoded ?? '')
+            }
             if (!personKey) { return }
             if (!byPerson.has(personKey)) {
                 byPerson.set(personKey, {
-                    person_id: entry._person_id ?? entry.person_id,
-                    name: entry._person || this.#personNameById(entry._person_id ?? entry.person_id),
+                    person_id: encoded ?? numeric,
+                    name: entry._person || this.#personNameById(encoded) || this.#personNameById(numeric),
                     time_written: 0,
                     time_accounted: 0,
                     count: 0,
                 })
             }
+            registerAliases(personKey, numeric, encoded)
             const row = byPerson.get(personKey)
             row.time_written += Number(entry.time_written) || 0
             row.time_accounted += Number(entry.time_accounted) || 0
@@ -1488,6 +1513,25 @@ export default class TimeUI {
                 row.name = entry._person
             }
         })
+
+        // Planned people with no matching hours appear as 00h00
+        ;(reservations ?? []).forEach(r => {
+            const encoded = r.person_id
+            const numeric = r._person_id
+            let personKey = resolveRowKey(numeric, encoded)
+            if (personKey) { return }
+            personKey = String(numeric ?? encoded ?? '')
+            if (!personKey) { return }
+            byPerson.set(personKey, {
+                person_id: encoded ?? numeric,
+                name: this.#personNameById(encoded) || this.#personNameById(numeric) || `Personne ${personKey}`,
+                time_written: 0,
+                time_accounted: 0,
+                count: 0,
+            })
+            registerAliases(personKey, numeric, encoded)
+        })
+
         return [...byPerson.values()].sort((a, b) =>
             DataUtils.str(a.name).localeCompare(DataUtils.str(b.name), 'fr'))
     }
@@ -1503,22 +1547,7 @@ export default class TimeUI {
             ? `color: ${new Kolor(color).foreground()} !important; background-color: #${color} !important`
             : ''
 
-        const plannedPeople = []
-        const seenPlanned = new Set()
-        reservations.forEach(r => {
-            const pid = r.person_id ?? r._person_id
-            const key = String(pid ?? '')
-            if (!key || seenPlanned.has(key)) { return }
-            seenPlanned.add(key)
-            plannedPeople.push({
-                person_id: pid,
-                name: this.#personNameById(pid) || `Personne ${key}`,
-            })
-        })
-        plannedPeople.sort((a, b) =>
-            DataUtils.str(a.name).localeCompare(DataUtils.str(b.name), 'fr'))
-
-        const workers = this.#workersForXKey(xKey)
+        const workers = this.#workersForXKey(xKey, reservations)
         const totalWritten = workers.reduce((s, w) => s + w.time_written, 0)
         const totalAccounted = workers.reduce((s, w) => s + w.time_accounted, 0)
 
@@ -1545,50 +1574,32 @@ export default class TimeUI {
         `
         block.appendChild(head)
 
-        if (plannedPeople.length > 0) {
-            const plannedList = document.createElement('DIV')
-            plannedList.classList.add('planned-people')
-            plannedList.innerHTML = `<span class="section-label">Planifié</span>`
-            const ul = document.createElement('UL')
-            plannedPeople.forEach(p => {
-                const li = document.createElement('LI')
-                li.textContent = p.name
-                ul.appendChild(li)
-            })
-            plannedList.appendChild(ul)
-            block.appendChild(plannedList)
-        }
-
         const workerList = document.createElement('DIV')
         workerList.classList.add('planned-workers')
-        if (workers.length === 0) {
-            workerList.innerHTML = `
-                <span class="section-label">Heures inscrites</span>
-                <div class="planned-workers-empty">Aucune inscription pour ce créneau</div>
+        workerList.innerHTML = `<span class="section-label">Personnes</span>`
+        const table = document.createElement('DIV')
+        table.classList.add('planned-workers-table')
+        table.innerHTML = `
+            <div class="planned-workers-header">
+                <span class="name">Personne</span>
+                <span class="written-time">Temps inscrit</span>
+                <span class="accounted-time">Comptabilisé</span>
+            </div>
+        `
+        workers.forEach(w => {
+            const row = document.createElement('DIV')
+            row.classList.add('planned-worker-row')
+            if ((Number(w.time_written) || 0) === 0 && (Number(w.time_accounted) || 0) === 0) {
+                row.classList.add('is-zero-hours')
+            }
+            row.innerHTML = `
+                <span class="name">${this.#escapeText(w.name || '—')}</span>
+                <span class="written-time">${new FormatHour(w.time_written * 3600)}</span>
+                <span class="accounted-time">${new FormatHour(w.time_accounted * 3600)}</span>
             `
-        } else {
-            workerList.innerHTML = `<span class="section-label">Heures inscrites</span>`
-            const table = document.createElement('DIV')
-            table.classList.add('planned-workers-table')
-            table.innerHTML = `
-                <div class="planned-workers-header">
-                    <span class="name">Personne</span>
-                    <span class="written-time">Temps inscrit</span>
-                    <span class="accounted-time">Comptabilisé</span>
-                </div>
-            `
-            workers.forEach(w => {
-                const row = document.createElement('DIV')
-                row.classList.add('planned-worker-row')
-                row.innerHTML = `
-                    <span class="name">${this.#escapeText(w.name || '—')}</span>
-                    <span class="written-time">${new FormatHour(w.time_written * 3600)}</span>
-                    <span class="accounted-time">${new FormatHour(w.time_accounted * 3600)}</span>
-                `
-                table.appendChild(row)
-            })
-            workerList.appendChild(table)
-        }
+            table.appendChild(row)
+        })
+        workerList.appendChild(table)
         block.appendChild(workerList)
         return block
     }
