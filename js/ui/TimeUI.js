@@ -753,25 +753,6 @@ export default class TimeUI {
         return block
     }
 
-    #clearXKeyMatchHighlight(listContainer) {
-        listContainer?.querySelectorAll('.time-entry.is-xkey-match').forEach(node => {
-            node.classList.remove('is-xkey-match')
-        })
-    }
-
-    #highlightWorktimeMatchingXKey(listContainer, xKey) {
-        this.#clearXKeyMatchHighlight(listContainer)
-        const key = DataUtils.str(xKey)
-        if (!key || !listContainer) { return }
-        listContainer.querySelectorAll('.time-entry[data-x-key]').forEach(node => {
-            if (node.classList.contains('time-entry-reservation')) { return }
-            if (node.classList.contains('time-entry-new')) { return }
-            if (node.dataset.xKey === key) {
-                node.classList.add('is-xkey-match')
-            }
-        })
-    }
-
     #buildReservationNode(personId, day, reservation, index, {showDayMeta = true} = {}) {
         const nodeId = `res-${personId}-${day}-${reservation.id ?? index}`
         const reference = DataUtils.str(reservation.reference)
@@ -1318,7 +1299,6 @@ export default class TimeUI {
         }, {signal: this.#viewEventController.signal})
 
         listContainer.addEventListener('mouseleave', event => {
-            this.#clearXKeyMatchHighlight(listContainer)
             window.requestAnimationFrame(_ => {
                 Array.from(this.#app.mainAction.children).forEach(n => n.remove())
             })
@@ -1326,61 +1306,15 @@ export default class TimeUI {
 
         listContainer.addEventListener('pointerover', event => {
             const node = event.target.closest('.time-entry')
-            if (!node || !listContainer.contains(node)) {
-                this.#clearXKeyMatchHighlight(listContainer)
-                return
-            }
+            if (!node) { return }
             if (!node.id) { return }
             if (this.#app.mainAction.querySelector(`#form-${node.id}`)) { return }
             const entry = this.#currentPersonEntries.get(node.id)
             if (!entry) { return }
-            if (entry.is_reservation) {
-                this.#highlightWorktimeMatchingXKey(listContainer, entry.x_key)
-            } else {
-                this.#clearXKeyMatchHighlight(listContainer)
-            }
+            
             const form = document.createElement('DIV')
             form.id = `#form-${node.id}`
             form.classList.add('time-entry-details')
-            if (entry.is_reservation) {
-                const color = DataUtils.str(entry.process_color).replace(/^#/, '')
-                const processStyle = color
-                    ? `color: ${new Kolor(color).foreground()} !important; background-color: #${color} !important`
-                    : ''
-                form.innerHTML = `
-                        <div class="kv-pair date">
-                            <span class="label">Date planifiée</span>
-                            <span class="value">${DataUtils.longDate(entry.date)}</span>
-                        </div>
-                        <div class="kv-pair project-reference">
-                            <span class="label">Référence de projet</span>
-                            <span class="value">${this.#escapeText(entry.reference)}</span>
-                        </div>
-                        <div class="kv-pair project-name">
-                            <span class="label">Nom de projet</span>
-                            <span class="value">${this.#escapeText(entry.project_name)}</span>
-                        </div>
-                        <div class="kv-pair project-name">
-                            <span class="label">Référence travail</span>
-                            <span class="value">${this.#escapeText(entry.travail_ref)}</span>
-                        </div>
-                        <div class="kv-pair process-name">
-                            <span class="label">Processus</span>
-                            <span class="value" style="${processStyle}">
-                                ${this.#escapeText(entry.process_name)}
-                            </span>
-                        </div>
-                        <div class="kv-pair remark">
-                            <span class="label">Remarque</span>
-                            <span class="value">${DataUtils.html(DataUtils.str(entry.remark))}</span>
-                        </div>
-                `
-                window.requestAnimationFrame(_ => {
-                    Array.from(this.#app.mainAction.children).forEach(n => n.remove())
-                    this.#app.mainAction.appendChild(form)
-                })
-                return
-            }
             form.innerHTML = `
                         <div class="kv-pair date">
                             <span class="label">Date</span>
@@ -1475,25 +1409,11 @@ export default class TimeUI {
 
         const entries = personData?.entries ?? []
         const entriesByDay = this.#groupEntriesByDay(entries)
-        const reservationsByDay = this.#groupReservationsByDay(
-            this.#currentPersonReservations,
-            beginDate,
-            endDate,
-        )
         const days = [...new Set([
-            ...entriesByDay.keys(),
-            ...reservationsByDay.keys(),
+            ...entriesByDay.keys()
         ])].sort()
 
         days.forEach(day => {
-            const dayReservations = reservationsByDay.get(day) ?? []
-            dayReservations.forEach((reservation, index) => {
-                listContainer.appendChild(
-                    this.#buildReservationNode(id, day, reservation, index, {
-                        showDayMeta: index === 0,
-                    }),
-                )
-            })
             const dayEntries = entriesByDay.get(day) ?? []
             dayEntries.forEach(entry => {
                 listContainer.appendChild(this.#buildWorktimeEntryNode(id, entry))
@@ -1511,10 +1431,7 @@ export default class TimeUI {
              * between people. Something should be done but I don't know what
              * yet.
              */
-            Promise.all([
-                this.#loadData(),
-                this.#loadReservations(id),
-            ])
+             this.#loadData()
             .then(_ => resolve(this.#buildPersonViewContainer(id)))
             .catch(reject)
         })
