@@ -1536,6 +1536,25 @@ export default class TimeUI {
             DataUtils.str(a.name).localeCompare(DataUtils.str(b.name), 'fr'))
     }
 
+    /**
+     * Status class for a planned slot based on people/hours consistency.
+     * - planned-slot-aligned: everyone listed has hours and the same time_written
+     * - planned-slot-misaligned: someone missing hours or times differ
+     */
+    #plannedSlotStatusClass(workers) {
+        if (!workers?.length) {
+            return 'planned-slot-misaligned'
+        }
+        const times = workers.map(w => Number(w.time_written) || 0)
+        const allWorked = times.every(t => t > 0)
+        const first = times[0]
+        const allSameTime = times.every(t => Math.abs(t - first) < 1e-9)
+        if (allWorked && allSameTime) {
+            return 'planned-slot-aligned'
+        }
+        return 'planned-slot-misaligned'
+    }
+
     #buildPlannedSlotBlock(day, xKey, reservations, index) {
         const sample = reservations[0] ?? {}
         const reference = DataUtils.str(sample.reference)
@@ -1550,9 +1569,10 @@ export default class TimeUI {
         const workers = this.#workersForXKey(xKey, reservations)
         const totalWritten = workers.reduce((s, w) => s + w.time_written, 0)
         const totalAccounted = workers.reduce((s, w) => s + w.time_accounted, 0)
+        const statusClass = this.#plannedSlotStatusClass(workers)
 
         const block = document.createElement('DIV')
-        block.classList.add('planned-slot')
+        block.classList.add('planned-slot', statusClass)
         block.dataset.xKey = DataUtils.str(xKey)
         block.dataset.day = day
 
