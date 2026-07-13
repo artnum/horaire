@@ -677,6 +677,8 @@ export default class TimeUI {
         node.classList.add('entry', 'time-entry', 'time-entry-reservation')
         if (!showDayMeta) {
             node.classList.add('time-entry-reservation-continued')
+        } else {
+            node.classList.add('time-entry-reservation-first')
         }
         node.id = nodeId
         node.dataset.day = day

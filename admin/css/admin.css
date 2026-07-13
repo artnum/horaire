@@ -1172,12 +1172,16 @@ button.addMore:before {
     color: darkred;
 }
 
+.time-entry-list .time-entry.time-entry-reservation-first {
+    border-top: 3px solid var(--company-color);
+}
+
 .time-entry-list .time-entry.time-entry-reservation {
+    font-size: 0.9em;
     cursor: default;
     opacity: 0.92;
     font-style: italic;
     background-color: color-mix(in srgb, var(--company-color-light) 55%, transparent);
-    border-left: 3px solid var(--company-color);
 }
 
 .time-entry-list .time-entry.time-entry-reservation:hover {
