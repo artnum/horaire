@@ -98,3 +98,16 @@
         margin-bottom: 20px;
     }
 }
+
+.add-time-view .ka-button {
+    color: var(--foreground-text-color) !important; 
+}
+
+.add-time-view .ka-head,
+.add-time-view .ka-button .time {
+    color: var(--company-color-dark);
+}
+
+
+
+

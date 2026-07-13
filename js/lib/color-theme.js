@@ -50,6 +50,10 @@ export function applyColorTheme(themeId, options = {}) {
   let link = document.getElementById(COLOR_THEME_LINK_ID)
   if (!link) {
     link = document.createElement('link')
+    link.onerror = _ => {
+      link.href = new URL('css/color.css', window.location.href)
+    }
+
     link.id = COLOR_THEME_LINK_ID
     link.rel = 'stylesheet'
     document.head.appendChild(link)
