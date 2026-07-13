@@ -591,6 +591,23 @@ export default class TimeUI {
         return day
     }
 
+    #dayKeysInclusive(start, end) {
+        const keys = []
+        const from = this.#normalizeDayKey(start)
+        const to = this.#normalizeDayKey(end)
+        if (!from || !to || from > to) { return keys }
+        const cursor = new Date(`${from}T12:00:00`)
+        const last = new Date(`${to}T12:00:00`)
+        if (Number.isNaN(cursor.getTime()) || Number.isNaN(last.getTime())) {
+            return keys
+        }
+        while (cursor <= last) {
+            keys.push(DataUtils.dbDate(cursor))
+            cursor.setDate(cursor.getDate() + 1)
+        }
+        return keys
+    }
+
     #groupReservationsByDay(reservations, beginDate, endDate) {
         const byDay = new Map()
         const rangeStart = this.#normalizeDayKey(beginDate)
@@ -637,6 +654,103 @@ export default class TimeUI {
             byDay.get(day).push(entry)
         }
         return byDay
+    }
+
+    #reservationCoversDay(reservation, day) {
+        const dbegin = this.#normalizeDayKey(reservation.dbegin)
+        const dend = this.#normalizeDayKey(reservation.dend) || dbegin
+        if (!dbegin || !day) { return false }
+        return dbegin <= day && day <= dend
+    }
+
+    #activePeople() {
+        return (this.#peopleList ?? []).filter(p =>
+            p.active && !(Number(p.deleted) > 0))
+    }
+
+    #ensurePeopleList() {
+        if (Array.isArray(this.#peopleList) && this.#peopleList.length > 0) {
+            return Promise.resolve(this.#peopleList)
+        }
+        return F.get('/api/people')
+            .then(data => {
+                this.#peopleList = data ?? []
+                return this.#peopleList
+            })
+            .catch(error => {
+                console.warn('Impossible de charger la liste des personnes', error)
+                this.#peopleList = this.#peopleList ?? []
+                return this.#peopleList
+            })
+    }
+
+    /**
+     * Active people with no worktime on `day` and no reservation covering `day`.
+     */
+    #idlePeopleForDay(day, reservations) {
+        const dayKey = this.#normalizeDayKey(day)
+        if (!dayKey) { return [] }
+
+        const busyKeys = new Set()
+        const markBusy = (...ids) => {
+            ids.forEach(id => {
+                const s = DataUtils.str(id)
+                if (s) { busyKeys.add(s) }
+            })
+        }
+
+        ;(this.#worktimeData ?? []).forEach(person => {
+            const wrote = (person.entries ?? []).some(entry =>
+                this.#normalizeDayKey(entry.date) === dayKey)
+            if (wrote) {
+                markBusy(person.id, person._person_id)
+            }
+        })
+
+        ;(reservations ?? []).forEach(r => {
+            if (this.#reservationCoversDay(r, dayKey)) {
+                markBusy(r.person_id, r._person_id)
+            }
+        })
+
+        const isBusy = (person) => {
+            const ids = [person.id, person._person_id].map(DataUtils.str).filter(Boolean)
+            return ids.some(id => busyKeys.has(id))
+        }
+
+        return this.#activePeople()
+            .filter(p => !isBusy(p))
+            .sort((a, b) =>
+                DataUtils.str(a.name).localeCompare(DataUtils.str(b.name), 'fr'))
+    }
+
+    #buildIdlePeopleBlock(day, reservations) {
+        const idle = this.#idlePeopleForDay(day, reservations)
+        const block = document.createElement('DIV')
+        block.classList.add('planned-day-idle')
+        if (idle.length === 0) {
+            block.classList.add('is-empty')
+            block.innerHTML = `
+                <span class="section-label">Sans inscription ni planification</span>
+                <div class="planned-day-idle-empty">Tout le monde est planifié ou a des heures</div>
+            `
+            return block
+        }
+        block.innerHTML = `
+            <span class="section-label">Sans inscription ni planification
+                <span class="count">(${idle.length})</span>
+            </span>
+        `
+        const list = document.createElement('UL')
+        list.classList.add('planned-day-idle-list')
+        idle.forEach(p => {
+            const li = document.createElement('LI')
+            li.dataset.personId = p.id
+            li.textContent = p.name
+            list.appendChild(li)
+        })
+        block.appendChild(list)
+        return block
     }
 
     #clearXKeyMatchHighlight(listContainer) {
@@ -1635,17 +1749,26 @@ export default class TimeUI {
         wrapper.appendChild(title)
 
         const byDay = this.#groupReservationsByDay(reservations, beginDate, endDate)
-        const days = [...byDay.keys()].sort()
+        // Every day in the selected range so idle people appear even without plans
+        const days = this.#dayKeysInclusive(beginDate, endDate)
 
         if (days.length === 0) {
             const empty = document.createElement('DIV')
             empty.classList.add('time-planned-empty')
-            empty.textContent = 'Aucune planification sur cette période'
+            empty.textContent = 'Aucune période sélectionnée'
             wrapper.appendChild(empty)
             return wrapper
         }
 
+        let anyContent = false
         days.forEach(day => {
+            const dayReservations = byDay.get(day) ?? []
+            const idle = this.#idlePeopleForDay(day, reservations)
+            if (dayReservations.length === 0 && idle.length === 0) {
+                return
+            }
+            anyContent = true
+
             const daySection = document.createElement('SECTION')
             daySection.classList.add('planned-day')
             daySection.dataset.day = day
@@ -1655,10 +1778,12 @@ export default class TimeUI {
             dayHeader.textContent = DataUtils.longDate(day)
             daySection.appendChild(dayHeader)
 
+            daySection.appendChild(this.#buildIdlePeopleBlock(day, reservations))
+
             // Group same-slot reservations (shared x_key) into one planned block
             const byXKey = new Map()
             const noKey = []
-            ;(byDay.get(day) ?? []).forEach(r => {
+            dayReservations.forEach(r => {
                 const key = DataUtils.str(r.x_key)
                 if (!key) {
                     noKey.push(r)
@@ -1688,6 +1813,13 @@ export default class TimeUI {
             wrapper.appendChild(daySection)
         })
 
+        if (!anyContent) {
+            const empty = document.createElement('DIV')
+            empty.classList.add('time-planned-empty')
+            empty.textContent = 'Aucune planification ni personne inactive sur cette période'
+            wrapper.appendChild(empty)
+        }
+
         return wrapper
     }
 
@@ -1696,6 +1828,7 @@ export default class TimeUI {
             Promise.all([
                 this.#loadData(),
                 this.#loadAllReservations(),
+                this.#ensurePeopleList(),
             ])
             .then(([, reservations]) => {
                 resolve(this.#buildPlannedViewContainer(reservations))
