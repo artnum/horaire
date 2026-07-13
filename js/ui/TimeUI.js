@@ -659,12 +659,14 @@ export default class TimeUI {
 
     #buildReservationNode(personId, day, reservation, index, {showDayMeta = true} = {}) {
         const nodeId = `res-${personId}-${day}-${reservation.id ?? index}`
+        const reference = DataUtils.str(reservation.reference)
+        const projectName = DataUtils.str(reservation.project_name)
         this.#currentPersonEntries.set(nodeId, {
             ...reservation,
             date: day,
-            // Map shared names so the filter treats them like hours rows
-            reference: reservation.title ?? '',
-            project_name: reservation.title ?? '',
+            // Same field names as hours rows for filter / details
+            reference,
+            project_name: projectName,
             travail_ref: reservation.travail_ref ?? '',
             process_name: reservation.process_name ?? '',
             process_color: reservation.process_color ?? '',
@@ -686,7 +688,6 @@ export default class TimeUI {
             ? `color: ${new Kolor(color).foreground()} !important; background-color: #${color} !important`
             : ''
         const travailRef = DataUtils.str(reservation.travail_ref)
-        const title = DataUtils.str(reservation.title)
         const sameHtml = showDayMeta
             ? '<span class="same" title="Planifié">&#128197;</span>'
             : '<span class="same" aria-hidden="true"></span>'
@@ -696,8 +697,8 @@ export default class TimeUI {
         node.innerHTML = `
             ${sameHtml}
             ${dateHtml}
-            <span class="project-reference">Planifié</span>
-            <span class="project-name">${this.#escapeText(title)}</span>
+            <span class="project-reference">${this.#escapeText(reference)}</span>
+            <span class="project-name">${this.#escapeText(projectName)}</span>
             <span class="process-name" style="${processStyle}"
                 title="${this.#escapeText(reservation.process_name)}"></span>
             <span class="written-time"></span>
@@ -1239,9 +1240,13 @@ export default class TimeUI {
                             <span class="label">Date planifiée</span>
                             <span class="value">${DataUtils.longDate(entry.date)}</span>
                         </div>
+                        <div class="kv-pair project-reference">
+                            <span class="label">Référence de projet</span>
+                            <span class="value">${this.#escapeText(entry.reference)}</span>
+                        </div>
                         <div class="kv-pair project-name">
-                            <span class="label">Titre</span>
-                            <span class="value">${this.#escapeText(entry.title)}</span>
+                            <span class="label">Nom de projet</span>
+                            <span class="value">${this.#escapeText(entry.project_name)}</span>
                         </div>
                         <div class="kv-pair project-name">
                             <span class="label">Référence travail</span>
