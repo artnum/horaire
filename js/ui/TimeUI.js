@@ -21,7 +21,6 @@ export default class TimeUI {
     #currentPersonEntries
     #currentPersonId = null
     #worktimeData = null
-    #currentPersonReservations = []
     #allReservations = []
     #personViewFilter = ''
     #dateRange = [null, null]
@@ -753,56 +752,6 @@ export default class TimeUI {
         return block
     }
 
-    #buildReservationNode(personId, day, reservation, index, {showDayMeta = true} = {}) {
-        const nodeId = `res-${personId}-${day}-${reservation.id ?? index}`
-        const reference = DataUtils.str(reservation.reference)
-        const projectName = DataUtils.str(reservation.project_name)
-        this.#currentPersonEntries.set(nodeId, {
-            ...reservation,
-            date: day,
-            // Same field names as hours rows for filter / details
-            reference,
-            project_name: projectName,
-            travail_ref: reservation.travail_ref ?? '',
-            process_name: reservation.process_name ?? '',
-            process_color: reservation.process_color ?? '',
-            remark: reservation.remark ?? '',
-            is_reservation: true,
-        })
-        const node = document.createElement('DIV')
-        node.classList.add('entry', 'time-entry', 'time-entry-reservation')
-        if (!showDayMeta) {
-            node.classList.add('time-entry-reservation-continued')
-        } else {
-            node.classList.add('time-entry-reservation-first')
-        }
-        node.id = nodeId
-        node.dataset.day = day
-        if (reservation.x_key) {
-            node.dataset.xKey = reservation.x_key
-        }
-        const travailRef = DataUtils.str(reservation.travail_ref)
-        const sameHtml = showDayMeta
-            ? '<span class="same" title="Planifié">&#128197;</span>'
-            : '<span class="same" aria-hidden="true"></span>'
-        const dateHtml = showDayMeta
-            ? `<span class="date">${DataUtils.longDate(day)}</span>`
-            : '<span class="date" aria-hidden="true"></span>'
-        node.innerHTML = `
-            ${sameHtml}
-            ${dateHtml}
-            <span class="project-reference">${this.#escapeText(reference)}</span>
-            <span class="project-name">${this.#escapeText(projectName)}</span>
-            <span class="process-name" aria-hidden="true"></span>
-            <span class="written-time"></span>
-            <span class="accounted-time"></span>
-            <span class="pause"></span>
-            <span class="private-km"></span>
-            <span class="travail-ref${travailRef ? '' : ' is-empty'}">${this.#escapeText(travailRef)}</span>
-        `
-        return node
-    }
-
     #buildWorktimeEntryNode(personId, entry) {
         const entryId = `${personId}-${entry.id}`
         this.#currentPersonEntries.set(entryId, entry)
@@ -1283,7 +1232,6 @@ export default class TimeUI {
             this.#dismissContextMenu()
             const entryNode = event.target.closest('.time-entry')
             if (!entryNode || !listContainer.contains(entryNode)) { return }
-            if (entryNode.classList.contains('time-entry-reservation')) { return }
             if (entryNode.classList.contains('time-entry-new')) {
                 return this.#openEntryEditor(id, null)
             }
@@ -1294,7 +1242,6 @@ export default class TimeUI {
             const entryNode = event.target.closest('.time-entry')
             if (!entryNode || !listContainer.contains(entryNode)) { return }
             if (entryNode.classList.contains('time-entry-new')) { return }
-            if (entryNode.classList.contains('time-entry-reservation')) { return }
             this.#showEntryContextMenu(event, id, entryNode.id)
         }, {signal: this.#viewEventController.signal})
 
@@ -1431,25 +1378,10 @@ export default class TimeUI {
              * between people. Something should be done but I don't know what
              * yet.
              */
-             this.#loadData()
+            this.#loadData()
             .then(_ => resolve(this.#buildPersonViewContainer(id)))
             .catch(reject)
         })
-    }
-
-    #loadReservations(personId) {
-        const {beginDate, endDate} = this.#getDateRange()
-        return F.get(`/api/reservation?person=${encodeURIComponent(personId)}&start=${beginDate}&end=${endDate}`)
-            .then(data => {
-                this.#currentPersonReservations = Array.isArray(data) ? data : []
-                return this.#currentPersonReservations
-            })
-            .catch(error => {
-                // Reservations are complementary context; keep the person view usable
-                console.warn('Impossible de charger les réservations', error)
-                this.#currentPersonReservations = []
-                return []
-            })
     }
 
     #loadAllReservations() {

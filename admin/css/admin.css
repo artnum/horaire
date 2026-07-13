@@ -1163,34 +1163,9 @@ button.addMore:before {
     outline: 1px solid var(--company-color);
 }
 
-.time-entry-list .time-entry.is-xkey-match {
-    background-color: color-mix(in srgb, var(--company-color) 18%, var(--background-color));
-    outline: 1px dashed color-mix(in srgb, var(--company-color) 55%, transparent);
-}
 .time-entry-list .time-entry .same {
     font-weight: bold;
     color: darkred;
-}
-
-.time-entry-list .time-entry.time-entry-reservation-first {
-    border-top: 3px solid var(--company-color);
-}
-
-.time-entry-list .time-entry.time-entry-reservation {
-    font-size: 0.9em;
-    cursor: default;
-    opacity: 0.92;
-    font-style: italic;
-    background-color: color-mix(in srgb, var(--company-color-light) 55%, transparent);
-}
-
-.time-entry-list .time-entry.time-entry-reservation:hover {
-    background-color: color-mix(in srgb, var(--company-color-light) 80%, transparent);
-}
-
-.time-entry-list .time-entry.time-entry-reservation .same {
-    color: var(--company-color);
-    font-style: normal;
 }
 
 /* ---- Planned work overview (all people) ---- */
