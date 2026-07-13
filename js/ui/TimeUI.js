@@ -1372,7 +1372,9 @@ export default class TimeUI {
             const dayReservations = reservationsByDay.get(day) ?? []
             dayReservations.forEach((reservation, index) => {
                 listContainer.appendChild(
-                    this.#buildReservationNode(id, day, reservation, index),
+                    this.#buildReservationNode(id, day, reservation, index, {
+                        showDayMeta: index === 0,
+                    }),
                 )
             })
             const dayEntries = entriesByDay.get(day) ?? []
