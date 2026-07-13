@@ -1669,7 +1669,37 @@ export default class TimeUI {
         return 'planned-slot-misaligned'
     }
 
-    #buildPlannedSlotBlock(day, xKey, reservations, index) {
+    /**
+     * Worktime entries for a calendar day, grouped by x_key.
+     * Entries without x_key are skipped (cannot be matched to a slot).
+     * @returns {Map<string, object[]>}
+     */
+    #worktimeByXKeyForDay(day) {
+        const dayKey = this.#normalizeDayKey(day)
+        const byKey = new Map()
+        if (!dayKey) { return byKey }
+        ;(this.#worktimeData ?? []).forEach(person => {
+            ;(person.entries ?? []).forEach(entry => {
+                if (this.#normalizeDayKey(entry.date) !== dayKey) { return }
+                const key = DataUtils.str(entry.x_key)
+                if (!key) { return }
+                if (!byKey.has(key)) {
+                    byKey.set(key, [])
+                }
+                // Ensure person name is available for worker aggregation
+                if (!entry._person) {
+                    entry._person = person.name
+                }
+                if (entry._person_id == null) {
+                    entry._person_id = person.id
+                }
+                byKey.get(key).push(entry)
+            })
+        })
+        return byKey
+    }
+
+    #buildPlannedSlotBlock(day, xKey, reservations, index, {unplanned = false} = {}) {
         const sample = reservations[0] ?? {}
         const reference = DataUtils.str(sample.reference)
         const projectName = DataUtils.str(sample.project_name)
@@ -1680,20 +1710,28 @@ export default class TimeUI {
             ? `color: ${new Kolor(color).foreground()} !important; background-color: #${color} !important`
             : ''
 
-        const workers = this.#workersForXKey(xKey, reservations)
+        const workers = this.#workersForXKey(xKey, unplanned ? [] : reservations)
         const totalWritten = workers.reduce((s, w) => s + w.time_written, 0)
         const totalAccounted = workers.reduce((s, w) => s + w.time_accounted, 0)
-        const statusClass = this.#plannedSlotStatusClass(workers)
+        // Unplanned slots only list people who already wrote hours
+        const statusClass = unplanned
+            ? 'planned-slot-unplanned'
+            : this.#plannedSlotStatusClass(workers)
 
         const block = document.createElement('DIV')
         block.classList.add('planned-slot', statusClass)
         block.dataset.xKey = DataUtils.str(xKey)
         block.dataset.day = day
+        if (unplanned) {
+            block.dataset.unplanned = '1'
+        }
 
         const head = document.createElement('DIV')
         head.classList.add('planned-slot-head')
+        const markTitle = unplanned ? 'Non planifié' : 'Planifié'
+        const markIcon = unplanned ? '&#9888;' : '&#128197;'
         head.innerHTML = `
-            <span class="planned-mark" title="Planifié">&#128197;</span>
+            <span class="planned-mark" title="${markTitle}">${markIcon}</span>
             <span class="project-reference">${this.#escapeText(reference)}</span>
             <span class="project-name">${this.#escapeText(projectName)}</span>
             <span class="process-name"${processStyle ? ` style="${processStyle}"` : ''}>
@@ -1763,8 +1801,15 @@ export default class TimeUI {
         let anyContent = false
         days.forEach(day => {
             const dayReservations = byDay.get(day) ?? []
+            const workByXKey = this.#worktimeByXKeyForDay(day)
+            const plannedXKeys = new Set(
+                dayReservations.map(r => DataUtils.str(r.x_key)).filter(Boolean),
+            )
+            // Hours on this day with no matching planned slot (same x_key)
+            const unplannedKeys = [...workByXKey.keys()].filter(k => !plannedXKeys.has(k))
+
             const idle = this.#idlePeopleForDay(day, reservations)
-            if (dayReservations.length === 0 && idle.length === 0) {
+            if (dayReservations.length === 0 && unplannedKeys.length === 0 && idle.length === 0) {
                 return
             }
             anyContent = true
@@ -1810,13 +1855,34 @@ export default class TimeUI {
                 index += 1
             })
 
+            // Worktime with no reservation for this x_key / day
+            unplannedKeys.sort().forEach(xKey => {
+                const entries = workByXKey.get(xKey) ?? []
+                const sample = entries[0] ?? {}
+                // Fake a reservation-shaped sample for the head fields
+                const pseudo = [{
+                    reference: sample.reference,
+                    project_name: sample.project_name,
+                    travail_ref: sample.travail_ref,
+                    process_name: sample.process_name,
+                    process_color: sample.process_color,
+                    x_key: xKey,
+                }]
+                daySection.appendChild(
+                    this.#buildPlannedSlotBlock(day, xKey, pseudo, index, {
+                        unplanned: true,
+                    }),
+                )
+                index += 1
+            })
+
             wrapper.appendChild(daySection)
         })
 
         if (!anyContent) {
             const empty = document.createElement('DIV')
             empty.classList.add('time-planned-empty')
-            empty.textContent = 'Aucune planification ni personne inactive sur cette période'
+            empty.textContent = 'Aucune planification, heure ni personne inactive sur cette période'
             wrapper.appendChild(empty)
         }
 
