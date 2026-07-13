@@ -7,7 +7,7 @@ import i18n from '../lib/i18n.js'
 import STProcessTravail from '../stores/process-travail.js'
 import { STProject } from '../stores.js'
 import admin from '../admin.js'
-
+import { UserAPI } from '../JAPI/content/User.js'
 
 const F = new Fetch(`Bearer ${localStorage.getItem('klogin-token')}`)
 
@@ -31,9 +31,11 @@ export default class TimeUI {
     #contextMenuNode = null
     #contextMenuDismissController = null
     #pointerGestureSwallowController = null
-
+    #userAPI = null
+    
     constructor(app, timeapi = null) {
         this.#app = app
+        this.#userAPI = UserAPI.getInstance()
         this.#currentViewState = new Map()
         this.#myEventController = new AbortController()
     }
@@ -153,7 +155,7 @@ export default class TimeUI {
         if (id) {
             params += `&person=${id}`
         }
-        
+       
         F.get(`/api/${url}?${params}`, type)
         .then(theFile => {
             const ext = FileExtension.fromMimetype(theFile.type)
@@ -962,26 +964,33 @@ export default class TimeUI {
     }
 
     #openEntryEditor(personId, entryNodeId) {
-        // null entryNodeId → create a new time entry
-        if (entryNodeId == null) {
-            const entry = this.#emptyTimeEntry()
+        console.log(personId)
+        this.#app.access.can('Time', 'setTime')
+        .then(_ => {
+            // null entryNodeId → create a new time entry
+            if (entryNodeId == null) {
+                const entry = this.#emptyTimeEntry()
+                this.#ensureKcore()
+                    .then(() => this.#showEntryEditor(personId, null, entry, null))
+                    .catch(() => {
+                        KAAL.error('Impossible de charger le sélecteur processus / travail')
+                    })
+                return
+            }
+
+            const entry = this.#currentPersonEntries.get(entryNodeId)
+            if (!entry) { return }
+
             this.#ensureKcore()
-                .then(() => this.#showEntryEditor(personId, null, entry, null))
+                .then(() => this.#resolveProjectId(entry))
+                .then(projectId => this.#showEntryEditor(personId, entryNodeId, entry, projectId))
                 .catch(() => {
                     KAAL.error('Impossible de charger le sélecteur processus / travail')
                 })
-            return
-        }
-
-        const entry = this.#currentPersonEntries.get(entryNodeId)
-        if (!entry) { return }
-
-        this.#ensureKcore()
-            .then(() => this.#resolveProjectId(entry))
-            .then(projectId => this.#showEntryEditor(personId, entryNodeId, entry, projectId))
-            .catch(() => {
-                KAAL.error('Impossible de charger le sélecteur processus / travail')
-            })
+        })
+        .catch(e => {
+            KAAL.info('Permission refusée')
+        })
     }
 
     #showEntryEditor(personId, entryNodeId, entry, projectId, options = {}) {
@@ -1242,7 +1251,11 @@ export default class TimeUI {
             const entryNode = event.target.closest('.time-entry')
             if (!entryNode || !listContainer.contains(entryNode)) { return }
             if (entryNode.classList.contains('time-entry-new')) { return }
-            this.#showEntryContextMenu(event, id, entryNode.id)
+            this.#app.access.can('Time', 'setTime')
+            .then(_ => {
+                this.#showEntryContextMenu(event, id, entryNode.id)
+            }).catch(_ => {}) // silence, it will show the default browser context
+
         }, {signal: this.#viewEventController.signal})
 
         listContainer.addEventListener('mouseleave', event => {
