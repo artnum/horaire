@@ -1193,6 +1193,161 @@ button.addMore:before {
     font-style: normal;
 }
 
+/* ---- Planned work overview (all people) ---- */
+.time-planned-view {
+    display: flex;
+    flex-direction: column;
+    gap: 2ex;
+    max-width: 96ch;
+}
+
+.time-planned-view-title {
+    font-size: 1.15em;
+    font-weight: bold;
+    padding-bottom: 0.5ex;
+    border-bottom: 1px solid var(--input-border-color);
+}
+
+.time-planned-empty {
+    padding: 2ex 1ch;
+    font-style: italic;
+    color: var(--text-color);
+    opacity: 0.75;
+}
+
+.planned-day {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2ex;
+}
+
+.planned-day-header {
+    margin: 0;
+    font-size: 1.05em;
+    font-weight: bold;
+    padding: 0.4ex 0;
+    border-bottom: 2px solid var(--company-color);
+}
+
+.planned-slot {
+    border: 1px solid var(--input-border-color);
+    border-left: 3px solid var(--company-color);
+    background-color: color-mix(in srgb, var(--company-color-light) 35%, var(--background-color));
+    padding: 1ex 1.2ch;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8ex;
+}
+
+.planned-slot-head {
+    display: grid;
+    grid-template-columns: 2ch 1fr 3fr 1fr auto;
+    gap: 0.5ex 1ch;
+    align-items: baseline;
+    font-weight: 600;
+}
+
+.planned-slot-head .planned-mark {
+    color: var(--company-color);
+}
+
+.planned-slot-head .travail-ref {
+    grid-column: 2 / 5;
+    font-size: 0.9em;
+    font-weight: normal;
+    opacity: 0.9;
+}
+
+.planned-slot-head .travail-ref.is-empty {
+    display: none;
+}
+
+.planned-slot-head .totals {
+    grid-column: 5;
+    grid-row: 1 / 3;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 0.9em;
+    font-weight: normal;
+}
+
+.planned-slot-head .totals .label {
+    font-size: 0.8em;
+    opacity: 0.75;
+}
+
+.planned-slot-head .totals .muted {
+    opacity: 0.7;
+    font-size: 0.9em;
+}
+
+.planned-people,
+.planned-workers {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4ex;
+    padding-left: 2ch;
+}
+
+.planned-people .section-label,
+.planned-workers .section-label {
+    font-size: 0.8em;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+}
+
+.planned-people ul {
+    margin: 0;
+    padding-left: 2ch;
+    columns: 2;
+    column-gap: 2ch;
+}
+
+.planned-people li {
+    break-inside: avoid;
+}
+
+.planned-workers-empty {
+    font-style: italic;
+    opacity: 0.7;
+    font-size: 0.95em;
+}
+
+.planned-workers-table {
+    display: grid;
+    gap: 0.25ex 1ch;
+}
+
+.planned-workers-header,
+.planned-worker-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 0.5ch 1ch;
+    align-items: baseline;
+}
+
+.planned-workers-header {
+    font-size: 0.8em;
+    font-weight: bold;
+    opacity: 0.75;
+    border-bottom: 1px solid var(--input-border-color);
+    padding-bottom: 0.25ex;
+}
+
+.planned-worker-row .written-time,
+.planned-worker-row .accounted-time,
+.planned-workers-header .written-time,
+.planned-workers-header .accounted-time {
+    text-align: right;
+}
+
+.planned-worker-row:hover {
+    background-color: color-mix(in srgb, var(--company-color-light) 60%, transparent);
+}
+
 .time-entry-context-menu {
     position: fixed;
     z-index: 10000;

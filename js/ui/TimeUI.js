@@ -22,6 +22,7 @@ export default class TimeUI {
     #currentPersonId = null
     #worktimeData = null
     #currentPersonReservations = []
+    #allReservations = []
     #personViewFilter = ''
     #dateRange = [null, null]
     #app
@@ -1420,6 +1421,20 @@ export default class TimeUI {
             })
     }
 
+    #loadAllReservations() {
+        const {beginDate, endDate} = this.#getDateRange()
+        return F.get(`/api/reservation?start=${beginDate}&end=${endDate}`)
+            .then(data => {
+                this.#allReservations = Array.isArray(data) ? data : []
+                return this.#allReservations
+            })
+            .catch(error => {
+                console.warn('Impossible de charger les réservations', error)
+                this.#allReservations = []
+                return []
+            })
+    }
+
     #loadData() {
         return new Promise((resolve, reject) => {
             const {begin, end, beginDate, endDate} = this.#getDateRange()
@@ -1428,6 +1443,231 @@ export default class TimeUI {
                 this.#worktimeData = data
                 this.#indexWorktimeData(data)
                 resolve(data)
+            })
+            .catch(reject)
+        })
+    }
+
+    #personNameById(personId) {
+        const id = DataUtils.str(personId)
+        if (!id) { return '' }
+        const fromPeople = (this.#peopleList ?? []).find(p =>
+            String(p.id) === id || String(p._person_id) === id)
+        if (fromPeople?.name) { return fromPeople.name }
+        const fromWorktime = (this.#worktimeData ?? []).find(p =>
+            String(p.id) === id)
+        return fromWorktime?.name ?? ''
+    }
+
+    /**
+     * Aggregate worktime entries that share an x_key into one row per person
+     * (sum of written / accounted hours).
+     */
+    #workersForXKey(xKey) {
+        const key = DataUtils.str(xKey)
+        if (!key) { return [] }
+        const entries = this.#duplicate.get(key) ?? []
+        const byPerson = new Map()
+        entries.forEach(entry => {
+            const personKey = String(entry._person_id ?? entry.person_id ?? entry._person ?? '')
+            if (!personKey) { return }
+            if (!byPerson.has(personKey)) {
+                byPerson.set(personKey, {
+                    person_id: entry._person_id ?? entry.person_id,
+                    name: entry._person || this.#personNameById(entry._person_id ?? entry.person_id),
+                    time_written: 0,
+                    time_accounted: 0,
+                    count: 0,
+                })
+            }
+            const row = byPerson.get(personKey)
+            row.time_written += Number(entry.time_written) || 0
+            row.time_accounted += Number(entry.time_accounted) || 0
+            row.count += 1
+            if (!row.name && entry._person) {
+                row.name = entry._person
+            }
+        })
+        return [...byPerson.values()].sort((a, b) =>
+            DataUtils.str(a.name).localeCompare(DataUtils.str(b.name), 'fr'))
+    }
+
+    #buildPlannedSlotBlock(day, xKey, reservations, index) {
+        const sample = reservations[0] ?? {}
+        const reference = DataUtils.str(sample.reference)
+        const projectName = DataUtils.str(sample.project_name)
+        const travailRef = DataUtils.str(sample.travail_ref)
+        const processName = DataUtils.str(sample.process_name)
+        const color = DataUtils.str(sample.process_color).replace(/^#/, '')
+        const processStyle = color
+            ? `color: ${new Kolor(color).foreground()} !important; background-color: #${color} !important`
+            : ''
+
+        const plannedPeople = []
+        const seenPlanned = new Set()
+        reservations.forEach(r => {
+            const pid = r.person_id ?? r._person_id
+            const key = String(pid ?? '')
+            if (!key || seenPlanned.has(key)) { return }
+            seenPlanned.add(key)
+            plannedPeople.push({
+                person_id: pid,
+                name: this.#personNameById(pid) || `Personne ${key}`,
+            })
+        })
+        plannedPeople.sort((a, b) =>
+            DataUtils.str(a.name).localeCompare(DataUtils.str(b.name), 'fr'))
+
+        const workers = this.#workersForXKey(xKey)
+        const totalWritten = workers.reduce((s, w) => s + w.time_written, 0)
+        const totalAccounted = workers.reduce((s, w) => s + w.time_accounted, 0)
+
+        const block = document.createElement('DIV')
+        block.classList.add('planned-slot')
+        block.dataset.xKey = DataUtils.str(xKey)
+        block.dataset.day = day
+
+        const head = document.createElement('DIV')
+        head.classList.add('planned-slot-head')
+        head.innerHTML = `
+            <span class="planned-mark" title="Planifié">&#128197;</span>
+            <span class="project-reference">${this.#escapeText(reference)}</span>
+            <span class="project-name">${this.#escapeText(projectName)}</span>
+            <span class="process-name"${processStyle ? ` style="${processStyle}"` : ''}>
+                ${this.#escapeText(processName)}
+            </span>
+            <span class="travail-ref${travailRef ? '' : ' is-empty'}">${this.#escapeText(travailRef)}</span>
+            <span class="totals">
+                <span class="label">Total</span>
+                <span class="value">${new FormatHour(totalWritten * 3600)}</span>
+                <span class="value muted">${new FormatHour(totalAccounted * 3600)}</span>
+            </span>
+        `
+        block.appendChild(head)
+
+        if (plannedPeople.length > 0) {
+            const plannedList = document.createElement('DIV')
+            plannedList.classList.add('planned-people')
+            plannedList.innerHTML = `<span class="section-label">Planifié</span>`
+            const ul = document.createElement('UL')
+            plannedPeople.forEach(p => {
+                const li = document.createElement('LI')
+                li.textContent = p.name
+                ul.appendChild(li)
+            })
+            plannedList.appendChild(ul)
+            block.appendChild(plannedList)
+        }
+
+        const workerList = document.createElement('DIV')
+        workerList.classList.add('planned-workers')
+        if (workers.length === 0) {
+            workerList.innerHTML = `
+                <span class="section-label">Heures inscrites</span>
+                <div class="planned-workers-empty">Aucune inscription pour ce créneau</div>
+            `
+        } else {
+            workerList.innerHTML = `<span class="section-label">Heures inscrites</span>`
+            const table = document.createElement('DIV')
+            table.classList.add('planned-workers-table')
+            table.innerHTML = `
+                <div class="planned-workers-header">
+                    <span class="name">Personne</span>
+                    <span class="written-time">Temps inscrit</span>
+                    <span class="accounted-time">Comptabilisé</span>
+                </div>
+            `
+            workers.forEach(w => {
+                const row = document.createElement('DIV')
+                row.classList.add('planned-worker-row')
+                row.innerHTML = `
+                    <span class="name">${this.#escapeText(w.name || '—')}</span>
+                    <span class="written-time">${new FormatHour(w.time_written * 3600)}</span>
+                    <span class="accounted-time">${new FormatHour(w.time_accounted * 3600)}</span>
+                `
+                table.appendChild(row)
+            })
+            workerList.appendChild(table)
+        }
+        block.appendChild(workerList)
+        return block
+    }
+
+    #buildPlannedViewContainer(reservations) {
+        const {beginDate, endDate} = this.#getDateRange()
+        const wrapper = document.createElement('DIV')
+        wrapper.classList.add('time-planned-view')
+
+        const title = document.createElement('DIV')
+        title.classList.add('time-planned-view-title')
+        title.textContent = 'Travaux planifiés'
+        wrapper.appendChild(title)
+
+        const byDay = this.#groupReservationsByDay(reservations, beginDate, endDate)
+        const days = [...byDay.keys()].sort()
+
+        if (days.length === 0) {
+            const empty = document.createElement('DIV')
+            empty.classList.add('time-planned-empty')
+            empty.textContent = 'Aucune planification sur cette période'
+            wrapper.appendChild(empty)
+            return wrapper
+        }
+
+        days.forEach(day => {
+            const daySection = document.createElement('SECTION')
+            daySection.classList.add('planned-day')
+            daySection.dataset.day = day
+
+            const dayHeader = document.createElement('H2')
+            dayHeader.classList.add('planned-day-header')
+            dayHeader.textContent = DataUtils.longDate(day)
+            daySection.appendChild(dayHeader)
+
+            // Group same-slot reservations (shared x_key) into one planned block
+            const byXKey = new Map()
+            const noKey = []
+            ;(byDay.get(day) ?? []).forEach(r => {
+                const key = DataUtils.str(r.x_key)
+                if (!key) {
+                    noKey.push(r)
+                    return
+                }
+                if (!byXKey.has(key)) {
+                    byXKey.set(key, [])
+                }
+                byXKey.get(key).push(r)
+            })
+
+            let index = 0
+            byXKey.forEach((group, xKey) => {
+                daySection.appendChild(
+                    this.#buildPlannedSlotBlock(day, xKey, group, index),
+                )
+                index += 1
+            })
+            // Reservations without x_key: one block each, no worker match
+            noKey.forEach(r => {
+                daySection.appendChild(
+                    this.#buildPlannedSlotBlock(day, '', [r], index),
+                )
+                index += 1
+            })
+
+            wrapper.appendChild(daySection)
+        })
+
+        return wrapper
+    }
+
+    plannedView() {
+        return new Promise((resolve, reject) => {
+            Promise.all([
+                this.#loadData(),
+                this.#loadAllReservations(),
+            ])
+            .then(([, reservations]) => {
+                resolve(this.#buildPlannedViewContainer(reservations))
             })
             .catch(reject)
         })
@@ -1503,6 +1743,19 @@ export default class TimeUI {
                 })
             })
             break
+        case 'planned':
+            this.plannedView()
+            .then(node => {
+                window.requestAnimationFrame(_ => {
+                    Array.from(this.#mainNode.children).forEach(n => n.remove())
+                    this.#mainNode.appendChild(node)
+                })
+            })
+            .catch(e => {
+                console.error(e)
+                KAAL.error('Impossible de charger les travaux planifiés')
+            })
+            break
         case 'export-all': {
             const {begin, end, beginDate, endDate} = this.#getDateRange()
             this.#downloadFile('xlsx', `Feuille d'heures`, 'worktime', beginDate, endDate)
@@ -1534,6 +1787,7 @@ export default class TimeUI {
                     <div>Du <input value="${beginDate}"  name="start" type="date"> au <input value="${endDate}" name="end" type="date"></div>
                     <div class="item separator" aria-role="none"> </div>
                     <div data-action="overview" class="item">Aperçu</div>
+                    <div data-action="planned" class="item">Planifié</div>
                     <div class="item separator" aria-role="none"> </div>
                     <div data-action="export-all" data-nostate="true" class="item">&#11015; Feuille d'heures</div>
                     <div data-action="export-mybm" data-nostate="true" class="item">&#11015; MyBM</div>
