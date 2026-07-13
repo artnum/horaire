@@ -1196,18 +1196,27 @@ export default class TimeUI {
         }, {signal: this.#viewEventController.signal})
 
         listContainer.addEventListener('mouseleave', event => {
+            this.#clearXKeyMatchHighlight(listContainer)
             window.requestAnimationFrame(_ => {
                 Array.from(this.#app.mainAction.children).forEach(n => n.remove())
             })
         }, {signal: this.#viewEventController.signal})
 
         listContainer.addEventListener('pointerover', event => {
-            const node = event.target.closest('div')
-            if (!node) { return }
+            const node = event.target.closest('.time-entry')
+            if (!node || !listContainer.contains(node)) {
+                this.#clearXKeyMatchHighlight(listContainer)
+                return
+            }
             if (!node.id) { return }
             if (this.#app.mainAction.querySelector(`#form-${node.id}`)) { return }
             const entry = this.#currentPersonEntries.get(node.id)
             if (!entry) { return }
+            if (entry.is_reservation) {
+                this.#highlightWorktimeMatchingXKey(listContainer, entry.x_key)
+            } else {
+                this.#clearXKeyMatchHighlight(listContainer)
+            }
             const form = document.createElement('DIV')
             form.id = `#form-${node.id}`
             form.classList.add('time-entry-details')
