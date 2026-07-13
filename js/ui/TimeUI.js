@@ -660,7 +660,6 @@ export default class TimeUI {
         const processStyle = color
             ? `color: ${new Kolor(color).foreground()} !important; background-color: #${color} !important`
             : ''
-        const timeHours = Number(reservation.time) || 0
         const travailRef = DataUtils.str(reservation.travail_ref)
         const title = DataUtils.str(reservation.title)
         node.innerHTML = `
@@ -671,7 +670,7 @@ export default class TimeUI {
             <span class="process-name" style="${processStyle}">
                 ${this.#escapeText(reservation.process_name)}
             </span>
-            <span class="written-time">${new FormatHour(timeHours * 3600)}</span>
+            <span class="written-time"></span>
             <span class="accounted-time"></span>
             <span class="pause"></span>
             <span class="private-km"></span>
@@ -1193,7 +1192,6 @@ export default class TimeUI {
                 const processStyle = color
                     ? `color: ${new Kolor(color).foreground()} !important; background-color: #${color} !important`
                     : ''
-                const timeHours = Number(entry.time) || 0
                 form.innerHTML = `
                         <div class="kv-pair date">
                             <span class="label">Date planifiée</span>
@@ -1212,10 +1210,6 @@ export default class TimeUI {
                             <span class="value" style="${processStyle}">
                                 ${this.#escapeText(entry.process_name)}
                             </span>
-                        </div>
-                        <div class="kv-pair written-time">
-                            <span class="label">Temps planifié</span>
-                            <span class="value">${new FormatHour(timeHours * 3600)}</span>
                         </div>
                         <div class="kv-pair remark">
                             <span class="label">Remarque</span>

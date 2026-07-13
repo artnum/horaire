@@ -1184,10 +1184,6 @@ button.addMore:before {
     font-style: normal;
 }
 
-.time-entry-list .time-entry.time-entry-reservation .written-time {
-    font-weight: 600;
-}
-
 .time-entry-context-menu {
     position: fixed;
     z-index: 10000;
