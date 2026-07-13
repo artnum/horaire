@@ -1296,7 +1296,7 @@ button.addMore:before {
 }
 
 .planned-slot.planned-slot-aligned {
-  background-color: white;
+  background-color: var(--background-color);
   font-size: 0.8em;
 }
 
@@ -1644,4 +1644,17 @@ body.debitor .module-button.debitor a {
 
 #KAALGeneralMessageBox {
     z-index: calc(infinity);
+}
+
+.login-form label {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.login-form label .label {
+    width: 20ch;
+}
+.login-form label input {
+    width: 40ch;
 }

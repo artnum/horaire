@@ -66,7 +66,7 @@ class GlobalView {
             const n = this.#structure.querySelector(
               `[data-date="${day}"] .time`,
             )
-            if (n && hour > 0) {
+            if (n && time > 0) {
               n.innerHTML = hour
             }
           })
@@ -390,7 +390,7 @@ class SelectView {
 }
 
 
-import styles from './MonthlyTimesheet.css' with { type: 'css' }
+// import styles from './MonthlyTimesheet.css' with { type: 'css' }
 
 export default class MonthlyTimesheet {
   #loaded
@@ -400,7 +400,7 @@ export default class MonthlyTimesheet {
     this.datasource = datasource
     this.#parentNode = attachTo
 
-    document.adoptedStyleSheets = [ ...document.adoptedStyleSheets, styles ]
+//    document.adoptedStyleSheets = [ ...document.adoptedStyleSheets, styles ]
 
     this.areas = {
       title: document.createElement('div'),

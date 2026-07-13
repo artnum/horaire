@@ -9,7 +9,7 @@ header('Cache-Control: no-cache, no-store, must-revalidate');
 $dir = __DIR__;
 $themes = [];
 
-foreach (glob($dir . '/*.css') ?: [] as $path) {
+foreach ([$dir . '/color.css', $dir . '/color-dark.css'] as $path) {
     if (!is_readable($path)) {
         continue;
     }

@@ -468,9 +468,10 @@ export default class App {
         }
 
         const loginForm = document.createElement('FORM')
+        loginForm.classList.add('login-form')
         loginForm.innerHTML = `
-                    <label for="username">Utilisateur : <input type="text" name="username" class="darkbg"></label><br>
-                    <label for="password">Mot de passe : <input type="password" name="password" class="darkbg"></label><br>
+                    <label for="username"><span class="label">Utilisateur</span><input type="text" name="username" ></label><br>
+                    <label for="password"><span class="label">Mot de passe</span><input type="password" name="password" ></label><br>
                     <button type="submit">Authentifier</button>
                 `
         this.appendContent(loginForm)
