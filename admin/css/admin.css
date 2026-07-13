@@ -1281,6 +1281,11 @@ button.addMore:before {
     font-size: 0.9em;
 }
 
+.planned-slot.planned-slot-aligned {
+  background-color: white;
+  font-size: 0.8em;
+}
+
 .planned-workers {
     display: flex;
     flex-direction: column;
