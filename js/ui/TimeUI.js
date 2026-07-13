@@ -657,7 +657,7 @@ export default class TimeUI {
         })
     }
 
-    #buildReservationNode(personId, day, reservation, index) {
+    #buildReservationNode(personId, day, reservation, index, {showDayMeta = true} = {}) {
         const nodeId = `res-${personId}-${day}-${reservation.id ?? index}`
         this.#currentPersonEntries.set(nodeId, {
             ...reservation,
@@ -673,6 +673,9 @@ export default class TimeUI {
         })
         const node = document.createElement('DIV')
         node.classList.add('entry', 'time-entry', 'time-entry-reservation')
+        if (!showDayMeta) {
+            node.classList.add('time-entry-reservation-continued')
+        }
         node.id = nodeId
         node.dataset.day = day
         if (reservation.x_key) {
@@ -684,9 +687,15 @@ export default class TimeUI {
             : ''
         const travailRef = DataUtils.str(reservation.travail_ref)
         const title = DataUtils.str(reservation.title)
+        const sameHtml = showDayMeta
+            ? '<span class="same" title="Planifié">&#128197;</span>'
+            : '<span class="same" aria-hidden="true"></span>'
+        const dateHtml = showDayMeta
+            ? `<span class="date">${DataUtils.longDate(day)}</span>`
+            : '<span class="date" aria-hidden="true"></span>'
         node.innerHTML = `
-            <span class="same" title="Planifié">&#128197;</span>
-            <span class="date">${DataUtils.longDate(day)}</span>
+            ${sameHtml}
+            ${dateHtml}
             <span class="project-reference">Planifié</span>
             <span class="project-name">${this.#escapeText(title)}</span>
             <span class="process-name" style="${processStyle}"
