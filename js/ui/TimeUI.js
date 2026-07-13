@@ -638,6 +638,25 @@ export default class TimeUI {
         return byDay
     }
 
+    #clearXKeyMatchHighlight(listContainer) {
+        listContainer?.querySelectorAll('.time-entry.is-xkey-match').forEach(node => {
+            node.classList.remove('is-xkey-match')
+        })
+    }
+
+    #highlightWorktimeMatchingXKey(listContainer, xKey) {
+        this.#clearXKeyMatchHighlight(listContainer)
+        const key = DataUtils.str(xKey)
+        if (!key || !listContainer) { return }
+        listContainer.querySelectorAll('.time-entry[data-x-key]').forEach(node => {
+            if (node.classList.contains('time-entry-reservation')) { return }
+            if (node.classList.contains('time-entry-new')) { return }
+            if (node.dataset.xKey === key) {
+                node.classList.add('is-xkey-match')
+            }
+        })
+    }
+
     #buildReservationNode(personId, day, reservation, index) {
         const nodeId = `res-${personId}-${day}-${reservation.id ?? index}`
         this.#currentPersonEntries.set(nodeId, {
@@ -656,6 +675,9 @@ export default class TimeUI {
         node.classList.add('entry', 'time-entry', 'time-entry-reservation')
         node.id = nodeId
         node.dataset.day = day
+        if (reservation.x_key) {
+            node.dataset.xKey = reservation.x_key
+        }
         const color = DataUtils.str(reservation.process_color).replace(/^#/, '')
         const processStyle = color
             ? `color: ${new Kolor(color).foreground()} !important; background-color: #${color} !important`
@@ -684,6 +706,9 @@ export default class TimeUI {
         const entryNode = document.createElement('DIV')
         entryNode.classList.add('entry', 'time-entry')
         entryNode.id = entryId
+        if (entry.x_key) {
+            entryNode.dataset.xKey = entry.x_key
+        }
         const travailRef = DataUtils.str(entry.travail_ref)
         entryNode.innerHTML = `
             <span class="same">${this.#hasDuplicate(personId, entry).length > 0 ? '&#9888;' :''}</span>

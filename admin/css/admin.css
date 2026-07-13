@@ -1162,6 +1162,11 @@ button.addMore:before {
     background-color: var(--ka-button-blended-bg);
     outline: 1px solid var(--company-color);
 }
+
+.time-entry-list .time-entry.is-xkey-match {
+    background-color: color-mix(in srgb, var(--company-color) 18%, var(--background-color));
+    outline: 1px dashed color-mix(in srgb, var(--company-color) 55%, transparent);
+}
 .time-entry-list .time-entry .same {
     font-weight: bold;
     color: darkred;
