@@ -581,46 +581,46 @@ export default class TimeUI {
     }
 
     #normalizeDayKey(value) {
-        const raw = DataUtils.str(value)
+        const raw = DataUtils.str(value).trim()
         if (!raw) { return '' }
-        // Accept YYYY-MM-DD or ISO datetime
-        return raw.length >= 10 ? raw.slice(0, 10) : raw
-    }
-
-    #dayKeysInclusive(start, end) {
-        const keys = []
-        const from = this.#normalizeDayKey(start)
-        const to = this.#normalizeDayKey(end)
-        if (!from || !to) { return keys }
-        const cursor = new Date(`${from}T12:00:00`)
-        const last = new Date(`${to}T12:00:00`)
-        if (Number.isNaN(cursor.getTime()) || Number.isNaN(last.getTime())) {
-            return keys
-        }
-        while (cursor <= last) {
-            keys.push(DataUtils.dbDate(cursor))
-            cursor.setDate(cursor.getDate() + 1)
-        }
-        return keys
+        // Accept YYYY-MM-DD or ISO datetime; reject placeholder / invalid days
+        const day = raw.length >= 10 ? raw.slice(0, 10) : raw
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) { return '' }
+        if (day.startsWith('0000-')) { return '' }
+        return day
     }
 
     #groupReservationsByDay(reservations, beginDate, endDate) {
         const byDay = new Map()
         const rangeStart = this.#normalizeDayKey(beginDate)
         const rangeEnd = this.#normalizeDayKey(endDate)
+        if (!rangeStart || !rangeEnd) { return byDay }
+
         for (const reservation of reservations ?? []) {
-            const dbegin = this.#normalizeDayKey(reservation.dbegin ?? reservation.begin)
-            const dend = this.#normalizeDayKey(reservation.dend ?? reservation.end ?? dbegin)
+            // Calendar day fields only — never fall back to begin/end timestamps.
+            // Place each booking once, on its start day (dbegin). Expanding the
+            // full dbegin–dend span made earlier plans reappear on every later
+            // day of the range ("accumulation"). x_key is also based on dbegin.
+            const dbegin = this.#normalizeDayKey(reservation.dbegin)
+            const dend = this.#normalizeDayKey(reservation.dend) || dbegin
             if (!dbegin) { continue }
-            const start = dbegin < rangeStart ? rangeStart : dbegin
-            const end = (dend || dbegin) > rangeEnd ? rangeEnd : (dend || dbegin)
-            if (start > end) { continue }
-            for (const day of this.#dayKeysInclusive(start, end)) {
-                if (!byDay.has(day)) {
-                    byDay.set(day, [])
-                }
-                byDay.get(day).push(reservation)
+
+            // Still in range if the booking overlaps the visible window, but
+            // show the line only on the first visible day of that booking.
+            if (dend && dend < rangeStart) { continue }
+            if (dbegin > rangeEnd) { continue }
+
+            const day = dbegin < rangeStart ? rangeStart : dbegin
+            if (day > rangeEnd) { continue }
+
+            if (!byDay.has(day)) {
+                byDay.set(day, [])
             }
+            const list = byDay.get(day)
+            if (list.some(r => String(r.id) === String(reservation.id))) {
+                continue
+            }
+            list.push(reservation)
         }
         return byDay
     }
