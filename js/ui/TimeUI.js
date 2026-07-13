@@ -683,10 +683,6 @@ export default class TimeUI {
         if (reservation.x_key) {
             node.dataset.xKey = reservation.x_key
         }
-        const color = DataUtils.str(reservation.process_color).replace(/^#/, '')
-        const processStyle = color
-            ? `color: ${new Kolor(color).foreground()} !important; background-color: #${color} !important`
-            : ''
         const travailRef = DataUtils.str(reservation.travail_ref)
         const sameHtml = showDayMeta
             ? '<span class="same" title="Planifié">&#128197;</span>'
@@ -699,8 +695,7 @@ export default class TimeUI {
             ${dateHtml}
             <span class="project-reference">${this.#escapeText(reference)}</span>
             <span class="project-name">${this.#escapeText(projectName)}</span>
-            <span class="process-name" style="${processStyle}"
-                title="${this.#escapeText(reservation.process_name)}"></span>
+            <span class="process-name" aria-hidden="true"></span>
             <span class="written-time"></span>
             <span class="accounted-time"></span>
             <span class="pause"></span>
