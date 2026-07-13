@@ -21,6 +21,7 @@ export default class TimeUI {
     #currentPersonEntries
     #currentPersonId = null
     #worktimeData = null
+    #currentPersonReservations = []
     #personViewFilter = ''
     #dateRange = [null, null]
     #app
@@ -559,7 +560,14 @@ export default class TimeUI {
     #entryMatchesFilter(entry, query) {
         const q = DataUtils.str(query).toLowerCase()
         if (!q.trim()) { return true }
-        const fields = [entry.reference, entry.project_name, entry.travail_ref]
+        const fields = [
+            entry.reference,
+            entry.project_name,
+            entry.travail_ref,
+            entry.title,
+            entry.process_name,
+            entry.remark,
+        ]
         return fields.some(value => DataUtils.str(value).toLowerCase().includes(q))
     }
 
@@ -570,6 +578,132 @@ export default class TimeUI {
             const visible = entry ? this.#entryMatchesFilter(entry, query) : false
             node.classList.toggle('is-filtered-out', !visible)
         })
+    }
+
+    #normalizeDayKey(value) {
+        const raw = DataUtils.str(value)
+        if (!raw) { return '' }
+        // Accept YYYY-MM-DD or ISO datetime
+        return raw.length >= 10 ? raw.slice(0, 10) : raw
+    }
+
+    #dayKeysInclusive(start, end) {
+        const keys = []
+        const from = this.#normalizeDayKey(start)
+        const to = this.#normalizeDayKey(end)
+        if (!from || !to) { return keys }
+        const cursor = new Date(`${from}T12:00:00`)
+        const last = new Date(`${to}T12:00:00`)
+        if (Number.isNaN(cursor.getTime()) || Number.isNaN(last.getTime())) {
+            return keys
+        }
+        while (cursor <= last) {
+            keys.push(DataUtils.dbDate(cursor))
+            cursor.setDate(cursor.getDate() + 1)
+        }
+        return keys
+    }
+
+    #groupReservationsByDay(reservations, beginDate, endDate) {
+        const byDay = new Map()
+        const rangeStart = this.#normalizeDayKey(beginDate)
+        const rangeEnd = this.#normalizeDayKey(endDate)
+        for (const reservation of reservations ?? []) {
+            const dbegin = this.#normalizeDayKey(reservation.dbegin ?? reservation.begin)
+            const dend = this.#normalizeDayKey(reservation.dend ?? reservation.end ?? dbegin)
+            if (!dbegin) { continue }
+            const start = dbegin < rangeStart ? rangeStart : dbegin
+            const end = (dend || dbegin) > rangeEnd ? rangeEnd : (dend || dbegin)
+            if (start > end) { continue }
+            for (const day of this.#dayKeysInclusive(start, end)) {
+                if (!byDay.has(day)) {
+                    byDay.set(day, [])
+                }
+                byDay.get(day).push(reservation)
+            }
+        }
+        return byDay
+    }
+
+    #groupEntriesByDay(entries) {
+        const byDay = new Map()
+        for (const entry of entries ?? []) {
+            const day = this.#normalizeDayKey(entry.date)
+            if (!day) { continue }
+            if (!byDay.has(day)) {
+                byDay.set(day, [])
+            }
+            byDay.get(day).push(entry)
+        }
+        return byDay
+    }
+
+    #buildReservationNode(personId, day, reservation, index) {
+        const nodeId = `res-${personId}-${day}-${reservation.id ?? index}`
+        this.#currentPersonEntries.set(nodeId, {
+            ...reservation,
+            date: day,
+            // Map shared names so the filter treats them like hours rows
+            reference: reservation.title ?? '',
+            project_name: reservation.title ?? '',
+            travail_ref: reservation.travail_ref ?? '',
+            process_name: reservation.process_name ?? '',
+            process_color: reservation.process_color ?? '',
+            remark: reservation.remark ?? '',
+            is_reservation: true,
+        })
+        const node = document.createElement('DIV')
+        node.classList.add('entry', 'time-entry', 'time-entry-reservation')
+        node.id = nodeId
+        node.dataset.day = day
+        const color = DataUtils.str(reservation.process_color).replace(/^#/, '')
+        const processStyle = color
+            ? `color: ${new Kolor(color).foreground()} !important; background-color: #${color} !important`
+            : ''
+        const timeHours = Number(reservation.time) || 0
+        const travailRef = DataUtils.str(reservation.travail_ref)
+        const title = DataUtils.str(reservation.title)
+        node.innerHTML = `
+            <span class="same" title="Planifié">&#128197;</span>
+            <span class="date">${DataUtils.longDate(day)}</span>
+            <span class="project-reference">Planifié</span>
+            <span class="project-name">${this.#escapeText(title)}</span>
+            <span class="process-name" style="${processStyle}">
+                ${this.#escapeText(reservation.process_name)}
+            </span>
+            <span class="written-time">${new FormatHour(timeHours * 3600)}</span>
+            <span class="accounted-time"></span>
+            <span class="pause"></span>
+            <span class="private-km"></span>
+            <span class="travail-ref${travailRef ? '' : ' is-empty'}">${this.#escapeText(travailRef)}</span>
+        `
+        return node
+    }
+
+    #buildWorktimeEntryNode(personId, entry) {
+        const entryId = `${personId}-${entry.id}`
+        this.#currentPersonEntries.set(entryId, entry)
+        const entryNode = document.createElement('DIV')
+        entryNode.classList.add('entry', 'time-entry')
+        entryNode.id = entryId
+        const travailRef = DataUtils.str(entry.travail_ref)
+        entryNode.innerHTML = `
+            <span class="same">${this.#hasDuplicate(personId, entry).length > 0 ? '&#9888;' :''}</span>
+            <span class="date">${DataUtils.longDate(entry.date)}</span>
+            <span class="project-reference">${entry.reference}</span>
+            <span class="project-name">${entry.project_name}</span>
+            <span class="process-name" 
+                style="color: ${new Kolor(entry.process_color).foreground()} !important;
+                background-color: #${entry.process_color} !important">
+                ${entry.process_name}
+            </span>
+            <span class="written-time">${new FormatHour(entry.time_written * 3600)}</span>
+            <span class="accounted-time">${new FormatHour(entry.time_accounted * 3600)}</span>
+            <span class="pause">${entry.pause}</span>
+            <span class="private-km">${entry.private_km}</span>
+            <span class="travail-ref${travailRef ? '' : ' is-empty'}">${travailRef}</span>
+        `
+        return entryNode
     }
 
     #entryProcessTravailValue(entry) {
@@ -1023,6 +1157,7 @@ export default class TimeUI {
             this.#dismissContextMenu()
             const entryNode = event.target.closest('.time-entry')
             if (!entryNode || !listContainer.contains(entryNode)) { return }
+            if (entryNode.classList.contains('time-entry-reservation')) { return }
             if (entryNode.classList.contains('time-entry-new')) {
                 return this.#openEntryEditor(id, null)
             }
@@ -1033,6 +1168,7 @@ export default class TimeUI {
             const entryNode = event.target.closest('.time-entry')
             if (!entryNode || !listContainer.contains(entryNode)) { return }
             if (entryNode.classList.contains('time-entry-new')) { return }
+            if (entryNode.classList.contains('time-entry-reservation')) { return }
             this.#showEntryContextMenu(event, id, entryNode.id)
         }, {signal: this.#viewEventController.signal})
 
@@ -1052,6 +1188,46 @@ export default class TimeUI {
             const form = document.createElement('DIV')
             form.id = `#form-${node.id}`
             form.classList.add('time-entry-details')
+            if (entry.is_reservation) {
+                const color = DataUtils.str(entry.process_color).replace(/^#/, '')
+                const processStyle = color
+                    ? `color: ${new Kolor(color).foreground()} !important; background-color: #${color} !important`
+                    : ''
+                const timeHours = Number(entry.time) || 0
+                form.innerHTML = `
+                        <div class="kv-pair date">
+                            <span class="label">Date planifiée</span>
+                            <span class="value">${DataUtils.longDate(entry.date)}</span>
+                        </div>
+                        <div class="kv-pair project-name">
+                            <span class="label">Titre</span>
+                            <span class="value">${this.#escapeText(entry.title)}</span>
+                        </div>
+                        <div class="kv-pair project-name">
+                            <span class="label">Référence travail</span>
+                            <span class="value">${this.#escapeText(entry.travail_ref)}</span>
+                        </div>
+                        <div class="kv-pair process-name">
+                            <span class="label">Processus</span>
+                            <span class="value" style="${processStyle}">
+                                ${this.#escapeText(entry.process_name)}
+                            </span>
+                        </div>
+                        <div class="kv-pair written-time">
+                            <span class="label">Temps planifié</span>
+                            <span class="value">${new FormatHour(timeHours * 3600)}</span>
+                        </div>
+                        <div class="kv-pair remark">
+                            <span class="label">Remarque</span>
+                            <span class="value">${DataUtils.html(DataUtils.str(entry.remark))}</span>
+                        </div>
+                `
+                window.requestAnimationFrame(_ => {
+                    Array.from(this.#app.mainAction.children).forEach(n => n.remove())
+                    this.#app.mainAction.appendChild(form)
+                })
+                return
+            }
             form.innerHTML = `
                         <div class="kv-pair date">
                             <span class="label">Date</span>
@@ -1145,30 +1321,28 @@ export default class TimeUI {
         listContainer.appendChild(addNewNode)
 
         const entries = personData?.entries ?? []
-        entries.forEach(entry => {
-            const entryId = `${id}-${entry.id}`
-            this.#currentPersonEntries.set(entryId, entry)
-            const entryNode = document.createElement('DIV')
-            entryNode.classList.add('entry', 'time-entry')
-            entryNode.id = entryId
-            const travailRef = DataUtils.str(entry.travail_ref)
-            entryNode.innerHTML = `
-                <span class="same">${this.#hasDuplicate(id, entry).length > 0 ? '&#9888;' :''}</span>
-                <span class="date">${DataUtils.longDate(entry.date)}</span>
-                <span class="project-reference">${entry.reference}</span>
-                <span class="project-name">${entry.project_name}</span>
-                <span class="process-name" 
-                    style="color: ${new Kolor(entry.process_color).foreground()} !important;
-                    background-color: #${entry.process_color} !important">
-                    ${entry.process_name}
-                </span>
-                <span class="written-time">${new FormatHour(entry.time_written * 3600)}</span>
-                <span class="accounted-time">${new FormatHour(entry.time_accounted * 3600)}</span>
-                <span class="pause">${entry.pause}</span>
-                <span class="private-km">${entry.private_km}</span>
-                <span class="travail-ref${travailRef ? '' : ' is-empty'}">${travailRef}</span>
-            `
-            listContainer.appendChild(entryNode)
+        const entriesByDay = this.#groupEntriesByDay(entries)
+        const reservationsByDay = this.#groupReservationsByDay(
+            this.#currentPersonReservations,
+            beginDate,
+            endDate,
+        )
+        const days = [...new Set([
+            ...entriesByDay.keys(),
+            ...reservationsByDay.keys(),
+        ])].sort()
+
+        days.forEach(day => {
+            const dayReservations = reservationsByDay.get(day) ?? []
+            dayReservations.forEach((reservation, index) => {
+                listContainer.appendChild(
+                    this.#buildReservationNode(id, day, reservation, index),
+                )
+            })
+            const dayEntries = entriesByDay.get(day) ?? []
+            dayEntries.forEach(entry => {
+                listContainer.appendChild(this.#buildWorktimeEntryNode(id, entry))
+            })
         })
 
         this.#applyPersonViewFilter(listContainer)
@@ -1177,16 +1351,33 @@ export default class TimeUI {
 
     personView(id) {
         return new Promise((resolve, reject) => {
-            const {begin, end, beginDate, endDate} = this.#getDateRange()
             /* TODO : don't reload everything
              * reload everything here, we need to check same days entries
              * between people. Something should be done but I don't know what
              * yet.
              */
-            this.#loadData()
+            Promise.all([
+                this.#loadData(),
+                this.#loadReservations(id),
+            ])
             .then(_ => resolve(this.#buildPersonViewContainer(id)))
             .catch(reject)
         })
+    }
+
+    #loadReservations(personId) {
+        const {beginDate, endDate} = this.#getDateRange()
+        return F.get(`/api/reservation?person=${encodeURIComponent(personId)}&start=${beginDate}&end=${endDate}`)
+            .then(data => {
+                this.#currentPersonReservations = Array.isArray(data) ? data : []
+                return this.#currentPersonReservations
+            })
+            .catch(error => {
+                // Reservations are complementary context; keep the person view usable
+                console.warn('Impossible de charger les réservations', error)
+                this.#currentPersonReservations = []
+                return []
+            })
     }
 
     #loadData() {
