@@ -590,18 +590,52 @@ export default class TimeUI {
         return day
     }
 
-    /**
-     * Index reservations by x_key for pairing with worktime rows.
-     * Only the first reservation for a given x_key is kept (stable API order).
-     */
-    #indexReservationsByXKey(reservations) {
-        const byKey = new Map()
+    #groupReservationsByDay(reservations, beginDate, endDate) {
+        const byDay = new Map()
+        const rangeStart = this.#normalizeDayKey(beginDate)
+        const rangeEnd = this.#normalizeDayKey(endDate)
+        if (!rangeStart || !rangeEnd) { return byDay }
+
         for (const reservation of reservations ?? []) {
-            const key = DataUtils.str(reservation.x_key)
-            if (!key || byKey.has(key)) { continue }
-            byKey.set(key, reservation)
+            // Calendar day fields only — never fall back to begin/end timestamps.
+            // Place each booking once, on its start day (dbegin). Expanding the
+            // full dbegin–dend span made earlier plans reappear on every later
+            // day of the range ("accumulation"). x_key is also based on dbegin.
+            const dbegin = this.#normalizeDayKey(reservation.dbegin)
+            const dend = this.#normalizeDayKey(reservation.dend) || dbegin
+            if (!dbegin) { continue }
+
+            // Still in range if the booking overlaps the visible window, but
+            // show the line only on the first visible day of that booking.
+            if (dend && dend < rangeStart) { continue }
+            if (dbegin > rangeEnd) { continue }
+
+            const day = dbegin < rangeStart ? rangeStart : dbegin
+            if (day > rangeEnd) { continue }
+
+            if (!byDay.has(day)) {
+                byDay.set(day, [])
+            }
+            const list = byDay.get(day)
+            if (list.some(r => String(r.id) === String(reservation.id))) {
+                continue
+            }
+            list.push(reservation)
         }
-        return byKey
+        return byDay
+    }
+
+    #groupEntriesByDay(entries) {
+        const byDay = new Map()
+        for (const entry of entries ?? []) {
+            const day = this.#normalizeDayKey(entry.date)
+            if (!day) { continue }
+            if (!byDay.has(day)) {
+                byDay.set(day, [])
+            }
+            byDay.get(day).push(entry)
+        }
+        return byDay
     }
 
     #clearXKeyMatchHighlight(listContainer) {
@@ -1325,31 +1359,30 @@ export default class TimeUI {
         listContainer.appendChild(addNewNode)
 
         const entries = personData?.entries ?? []
-        const reservationsByXKey = this.#indexReservationsByXKey(
+        const entriesByDay = this.#groupEntriesByDay(entries)
+        const reservationsByDay = this.#groupReservationsByDay(
             this.#currentPersonReservations,
+            beginDate,
+            endDate,
         )
-        const usedReservationKeys = new Set()
-        let lastPlannedDay = null
-        let plannedIndex = 0
+        const days = [...new Set([
+            ...entriesByDay.keys(),
+            ...reservationsByDay.keys(),
+        ])].sort()
 
-        // Walk worktime in API order. Insert a planned row only when x_key matches
-        // an entry; unmatched plans are omitted; order follows the time list.
-        entries.forEach(entry => {
-            const day = this.#normalizeDayKey(entry.date)
-            const key = DataUtils.str(entry.x_key)
-            if (key && reservationsByXKey.has(key) && !usedReservationKeys.has(key)) {
-                usedReservationKeys.add(key)
-                const reservation = reservationsByXKey.get(key)
-                const showDayMeta = day !== lastPlannedDay
-                lastPlannedDay = day
+        days.forEach(day => {
+            const dayReservations = reservationsByDay.get(day) ?? []
+            dayReservations.forEach((reservation, index) => {
                 listContainer.appendChild(
-                    this.#buildReservationNode(id, day, reservation, plannedIndex, {
-                        showDayMeta,
+                    this.#buildReservationNode(id, day, reservation, index, {
+                        showDayMeta: index === 0,
                     }),
                 )
-                plannedIndex += 1
-            }
-            listContainer.appendChild(this.#buildWorktimeEntryNode(id, entry))
+            })
+            const dayEntries = entriesByDay.get(day) ?? []
+            dayEntries.forEach(entry => {
+                listContainer.appendChild(this.#buildWorktimeEntryNode(id, entry))
+            })
         })
 
         this.#applyPersonViewFilter(listContainer)
