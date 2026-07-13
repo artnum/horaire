@@ -175,7 +175,7 @@ export default class TimeUI {
     #getDateRange() {
         if (this.#dateRange[0] === null) {
             this.#dateRange[1] = new Date()
-            this.#dateRange[0].setMonth(this.#dateRange[1].getMonth())
+            this.#dateRange[0].setDate(1)
             this.#dateRange[0] = new Date()
             this.#dateRange[0].setMonth(this.#dateRange[1].getMonth() + 1)
             this.#dateRange[0].setDate(0)
