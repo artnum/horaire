@@ -35,6 +35,10 @@ import KABxBill from '../lib/bxbill.js'
 import checkBuildNumberAndReload from '../lib/revision.js'
 import Item from '../item.js'
 import KGanttView from '../gantt.js'
+import { BXROGenericStore } from '../store/bx-rogeneric.js'
+import { BXCountryStore } from '../store/bx-country.js'
+import { BXUserStore } from '../store/bx-user.js'
+import { GroupStore } from '../store/group.js'
 
 import '../kaal.js'
 import '../string.js'
@@ -90,8 +94,14 @@ window.KABxBill = KABxBill
 window.checkBuildNumberAndReload = checkBuildNumberAndReload
 window.Item = Item
 window.KGanttView = KGanttView
+// Bexio / store helpers used as bare globals by legacy admin UI modules
+window.BXROGenericStore = BXROGenericStore
+window.BXCountryStore = BXCountryStore
+window.BXUserStore = BXUserStore
+window.GroupStore = GroupStore
 
 export {
   admin, KLogin, kafetch, kafetch2, KAPI, Missing, KAButton,
   STProcess, STProject, STPerson, STCategory, DataUtils,
+  BXROGenericStore, BXCountryStore, BXUserStore, GroupStore,
 }

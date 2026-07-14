@@ -1,6 +1,7 @@
 import { ProjectAPI } from '../JAPI/content/Project.js'
 import Debounce from '../lib/debounce.js'
 import KATravail from '../data/travail.js'
+import { BXROGenericStore } from '../store/bx-rogeneric.js'
 
 export default class UIKAProjectList {
   constructor(parentNode) {
