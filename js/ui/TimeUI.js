@@ -554,6 +554,104 @@ export default class TimeUI {
         }
     }
 
+    /** Parse YYYY-MM-DD as a local calendar date (avoids UTC day-shift). */
+    #parseLocalDate(isoDate) {
+        if (typeof isoDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+            return null
+        }
+        const [y, m, d] = isoDate.split('-').map(Number)
+        const date = new Date(y, m - 1, d)
+        if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) {
+            return null
+        }
+        return date
+    }
+
+    /**
+     * Dates from start through end (inclusive) whose weekday is in `weekdays`
+     * (JS getDay values: 0=Sun … 6=Sat).
+     */
+    #repeatDatesBetween(startIso, endIso, weekdays) {
+        const start = this.#parseLocalDate(startIso)
+        const end = this.#parseLocalDate(endIso)
+        if (!start || !end || end < start) { return [] }
+        const wanted = new Set(weekdays.map(Number))
+        if (wanted.size === 0) { return [] }
+        const dates = []
+        for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+            if (wanted.has(cursor.getDay())) {
+                dates.push(DataUtils.dbDate(cursor))
+            }
+        }
+        return dates
+    }
+
+    #repeatSectionHtml(startIso) {
+        const start = this.#parseLocalDate(startIso)
+        const defaultDow = start ? start.getDay() : null
+        // Display order: Monday → Sunday (French calendar convention).
+        const days = [
+            {value: 1, label: 'Lun'},
+            {value: 2, label: 'Mar'},
+            {value: 3, label: 'Mer'},
+            {value: 4, label: 'Jeu'},
+            {value: 5, label: 'Ven'},
+            {value: 6, label: 'Sam'},
+            {value: 0, label: 'Dim'},
+        ]
+        const dayChecks = days.map(({value, label}) => {
+            const checked = value === defaultDow ? 'checked' : ''
+            return `<label class="repeat-dow">
+                <input type="checkbox" name="repeat_dow" value="${value}" ${checked} />
+                <span>${label}</span>
+            </label>`
+        }).join('')
+        return `
+            <fieldset class="time-entry-repeat">
+                <label class="repeat-enable">
+                    <input type="checkbox" name="repeat_enabled" />
+                    <span>Répéter jusqu'à une date</span>
+                </label>
+                <div class="repeat-options" hidden>
+                    <div class="repeat-weekdays" role="group" aria-label="Jours de la semaine">
+                        ${dayChecks}
+                    </div>
+                    <label class="repeat-until-field">
+                        <span>Jusqu'au</span>
+                        <input type="date" name="repeat_until" min="${startIso || ''}" />
+                    </label>
+                </div>
+            </fieldset>
+        `
+    }
+
+    #wireRepeatSection(form) {
+        const enabled = form.querySelector('input[name="repeat_enabled"]')
+        const options = form.querySelector('.repeat-options')
+        const until = form.querySelector('input[name="repeat_until"]')
+        const dateInput = form.querySelector('input[name="date"]')
+        if (!enabled || !options || !until || !dateInput) { return }
+
+        const syncVisibility = () => {
+            options.hidden = !enabled.checked
+            if (enabled.checked && !until.value && dateInput.value) {
+                until.min = dateInput.value
+            }
+        }
+        const syncMinUntil = () => {
+            if (dateInput.value) {
+                until.min = dateInput.value
+                if (until.value && until.value < dateInput.value) {
+                    until.value = dateInput.value
+                }
+            }
+        }
+        enabled.addEventListener('change', syncVisibility)
+        dateInput.addEventListener('change', syncMinUntil)
+        syncVisibility()
+        syncMinUntil()
+    }
+
     #entryMatchesFilter(entry, query) {
         const q = DataUtils.str(query).toLowerCase()
         if (!q.trim()) { return true }
@@ -1032,6 +1130,7 @@ export default class TimeUI {
                         <span>Remarque</span>
                         <textarea name="remark" rows="4">${DataUtils.html(entry.remark)}</textarea>
                     </label>
+                    ${isNew ? this.#repeatSectionHtml(entry.date) : ''}
                 </div>
                 <div class="time-entry-editor-actions">
                     <button type="submit">Enregistrer</button>
@@ -1039,6 +1138,9 @@ export default class TimeUI {
                     ${isNew ? '' : '<button type="button" name="delete" class="danger">Supprimer</button>'}
                 </div>
         `
+        if (isNew) {
+            this.#wireRepeatSection(form)
+        }
 
         const popupTitle = options.title
             ?? (isNew
@@ -1139,7 +1241,7 @@ export default class TimeUI {
                     patch['_process_id'] = parts[1]
                 }
                 if (isNew) {
-                    const newEntry = {
+                    const baseEntry = {
                         ...entry,
                         ...patch,
                         ...this.#patchFromProjectSelection(projectValue, {}),
@@ -1149,12 +1251,57 @@ export default class TimeUI {
                         person_id: personId,
                         _person_id: personId,
                     }
+
+                    const repeatEnabled = form.querySelector('input[name="repeat_enabled"]')?.checked
+                    let dates = [date]
+                    if (repeatEnabled) {
+                        const weekdays = Array.from(
+                            form.querySelectorAll('input[name="repeat_dow"]:checked'),
+                        ).map(node => Number(node.value))
+                        const until = formData.get('repeat_until')
+                        if (weekdays.length === 0) {
+                            KAAL.error('Sélectionnez au moins un jour de la semaine')
+                            return
+                        }
+                        if (!until || isNaN(new Date(until).getTime())) {
+                            KAAL.error('La date de fin de répétition est manquante ou erronée')
+                            return
+                        }
+                        if (until < date) {
+                            KAAL.error('La date de fin doit être postérieure ou égale à la date de début')
+                            return
+                        }
+                        dates = this.#repeatDatesBetween(date, until, weekdays)
+                        if (dates.length === 0) {
+                            KAAL.error('Aucune date ne correspond aux jours sélectionnés')
+                            return
+                        }
+                        if (dates.length > 100
+                            && !window.confirm(
+                                `Cela créera ${dates.length} entrées. Continuer ?`,
+                            )) {
+                            return
+                        }
+                    }
+
                     closePopup()
-                    this.#persistEntry(newEntry, 'POST')
+                    // One POST per day (repeat or single), sequential to keep load predictable.
+                    ; (async () => {
+                        for (const day of dates) {
+                            await this.#persistEntry({...baseEntry, date: day}, 'POST')
+                        }
+                    })()
                         .then(() => this.#loadData())
                         .then(() => this.#refreshPersonViewFromCache())
                         .catch(() => {
-                            KAAL.error("Impossible de créer l'entrée")
+                            KAAL.error(
+                                dates.length > 1
+                                    ? 'Impossible de créer toutes les entrées (création partielle possible)'
+                                    : "Impossible de créer l'entrée",
+                            )
+                            return this.#loadData()
+                                .then(() => this.#refreshPersonViewFromCache())
+                                .catch(() => {})
                         })
                     return
                 }

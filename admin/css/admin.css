@@ -1535,6 +1535,57 @@ button.addMore:before {
     color: var(--input-background-color-error);
 }
 
+.popup.time-entry-editor .time-entry-repeat {
+    border: 1px solid var(--input-border-color);
+    border-radius: 6px;
+    padding: 1ex 1ch;
+    margin: 0;
+    display: grid;
+    gap: 1ex;
+}
+
+.popup.time-entry-editor .time-entry-repeat .repeat-enable {
+    display: flex;
+    align-items: center;
+    gap: 1ch;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.popup.time-entry-editor .time-entry-repeat .repeat-options {
+    display: grid;
+    gap: 1ex;
+}
+
+.popup.time-entry-editor .time-entry-repeat .repeat-options[hidden] {
+    display: none;
+}
+
+.popup.time-entry-editor .time-entry-repeat .repeat-weekdays {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5ex 1ch;
+}
+
+.popup.time-entry-editor .time-entry-repeat .repeat-dow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4ch;
+    font-size: 0.85em;
+    font-weight: normal;
+}
+
+.popup.time-entry-editor .time-entry-repeat .repeat-until-field {
+    display: grid;
+    gap: 0.5ex;
+    max-width: 28ch;
+}
+
+.popup.time-entry-editor .time-entry-repeat .repeat-until-field span {
+    font-size: 0.85em;
+    font-weight: bold;
+}
+
 .loading_in_progress {
   background: repeating-linear-gradient(-45deg, var(--company-color) 0 15px, var(--company-color-dark) 15px 30px) left/200% 100%;
   animation: l3 4s infinite linear;
