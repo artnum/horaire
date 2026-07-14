@@ -1544,21 +1544,10 @@ button.addMore:before {
     gap: 1ex;
 }
 
-.popup.time-entry-editor .time-entry-repeat .repeat-enable {
-    display: flex;
-    align-items: center;
-    gap: 1ch;
-    font-weight: bold;
+.popup.time-entry-editor .time-entry-repeat legend {
     font-size: 0.9em;
-}
-
-.popup.time-entry-editor .time-entry-repeat .repeat-options {
-    display: grid;
-    gap: 1ex;
-}
-
-.popup.time-entry-editor .time-entry-repeat .repeat-options[hidden] {
-    display: none;
+    font-weight: bold;
+    padding: 0 0.5ch;
 }
 
 .popup.time-entry-editor .time-entry-repeat .repeat-weekdays {

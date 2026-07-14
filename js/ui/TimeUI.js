@@ -587,9 +587,7 @@ export default class TimeUI {
     }
 
     #repeatSectionHtml(startIso) {
-        const start = this.#parseLocalDate(startIso)
-        const defaultDow = start ? start.getDay() : null
-        // Display order: Monday → Sunday (French calendar convention).
+        // Display order: Monday → Sunday (French calendar convention). No day pre-selected.
         const days = [
             {value: 1, label: 'Lun'},
             {value: 2, label: 'Mar'},
@@ -599,45 +597,31 @@ export default class TimeUI {
             {value: 6, label: 'Sam'},
             {value: 0, label: 'Dim'},
         ]
-        const dayChecks = days.map(({value, label}) => {
-            const checked = value === defaultDow ? 'checked' : ''
-            return `<label class="repeat-dow">
-                <input type="checkbox" name="repeat_dow" value="${value}" ${checked} />
+        const dayChecks = days.map(({value, label}) => `
+            <label class="repeat-dow">
+                <input type="checkbox" name="repeat_dow" value="${value}" />
                 <span>${label}</span>
-            </label>`
-        }).join('')
+            </label>
+        `).join('')
         return `
             <fieldset class="time-entry-repeat">
-                <label class="repeat-enable">
-                    <input type="checkbox" name="repeat_enabled" />
-                    <span>Répéter jusqu'à une date</span>
-                </label>
-                <div class="repeat-options" hidden>
-                    <div class="repeat-weekdays" role="group" aria-label="Jours de la semaine">
-                        ${dayChecks}
-                    </div>
-                    <label class="repeat-until-field">
-                        <span>Jusqu'au</span>
-                        <input type="date" name="repeat_until" min="${startIso || ''}" />
-                    </label>
+                <legend>Répéter jusqu'à une date</legend>
+                <div class="repeat-weekdays" role="group" aria-label="Jours de la semaine">
+                    ${dayChecks}
                 </div>
+                <label class="repeat-until-field">
+                    <span>Jusqu'au</span>
+                    <input type="date" name="repeat_until" min="${startIso || ''}" />
+                </label>
             </fieldset>
         `
     }
 
     #wireRepeatSection(form) {
-        const enabled = form.querySelector('input[name="repeat_enabled"]')
-        const options = form.querySelector('.repeat-options')
         const until = form.querySelector('input[name="repeat_until"]')
         const dateInput = form.querySelector('input[name="date"]')
-        if (!enabled || !options || !until || !dateInput) { return }
+        if (!until || !dateInput) { return }
 
-        const syncVisibility = () => {
-            options.hidden = !enabled.checked
-            if (enabled.checked && !until.value && dateInput.value) {
-                until.min = dateInput.value
-            }
-        }
         const syncMinUntil = () => {
             if (dateInput.value) {
                 until.min = dateInput.value
@@ -646,9 +630,7 @@ export default class TimeUI {
                 }
             }
         }
-        enabled.addEventListener('change', syncVisibility)
         dateInput.addEventListener('change', syncMinUntil)
-        syncVisibility()
         syncMinUntil()
     }
 
@@ -1252,23 +1234,16 @@ export default class TimeUI {
                         _person_id: personId,
                     }
 
-                    const repeatEnabled = form.querySelector('input[name="repeat_enabled"]')?.checked
+                    // Repeat only when at least one weekday is selected; then end date must be valid.
+                    const weekdays = Array.from(
+                        form.querySelectorAll('input[name="repeat_dow"]:checked'),
+                    ).map(node => Number(node.value))
                     let dates = [date]
-                    if (repeatEnabled) {
-                        const weekdays = Array.from(
-                            form.querySelectorAll('input[name="repeat_dow"]:checked'),
-                        ).map(node => Number(node.value))
+                    if (weekdays.length > 0) {
                         const until = formData.get('repeat_until')
-                        if (weekdays.length === 0) {
-                            KAAL.error('Sélectionnez au moins un jour de la semaine')
-                            return
-                        }
-                        if (!until || isNaN(new Date(until).getTime())) {
+                        const untilDate = this.#parseLocalDate(until)
+                        if (!untilDate || until < date) {
                             KAAL.error('La date de fin de répétition est manquante ou erronée')
-                            return
-                        }
-                        if (until < date) {
-                            KAAL.error('La date de fin doit être postérieure ou égale à la date de début')
                             return
                         }
                         dates = this.#repeatDatesBetween(date, until, weekdays)
