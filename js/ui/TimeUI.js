@@ -1895,7 +1895,7 @@ export default class TimeUI {
                 }, {signal: this.#myEventController.signal})
 
                 this.#navNode.addEventListener('change', event => {
-                    const node = event.originalTarget
+                    const node = event.target
                     if (node.getAttribute('name') !== 'start' && node.getAttribute('name') !== 'end') { return }
                     const {begin, end, beginDate, endDate} = this.#getDateRange()
                     const date = new Date(node.value)
