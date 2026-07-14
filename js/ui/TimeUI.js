@@ -1242,8 +1242,12 @@ export default class TimeUI {
                 const parts = processTravailValue.split(':')
                 if (parts[0] === 'tr') {
                     patch['_travail_id'] = parts[1]
+                    patch['_process_id'] = null 
+                    patch['process_id'] = null 
                 } else {
                     patch['_process_id'] = parts[1]
+                    patch['_travail_id'] = null
+                    patch['travail_id'] = null
                 }
                 if (isNew) {
                     const baseEntry = {
