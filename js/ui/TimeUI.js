@@ -568,6 +568,25 @@ export default class TimeUI {
     }
 
     /**
+     * Chrome fires `change` on incomplete date typing (empty `.value`, often
+     * `validity.badInput`). Firefox only fires once a full date is committed.
+     * Return the YYYY-MM-DD value only when the control holds a complete valid day.
+     * @param {HTMLInputElement|string|null|undefined} inputOrValue
+     * @returns {string|null}
+     */
+    #completeDateValue(inputOrValue) {
+        if (inputOrValue instanceof HTMLInputElement) {
+            // Half-typed / invalid intermediate state in Chrome.
+            if (inputOrValue.validity?.badInput) { return null }
+            return this.#parseLocalDate(inputOrValue.value) ? inputOrValue.value : null
+        }
+        if (typeof inputOrValue === 'string') {
+            return this.#parseLocalDate(inputOrValue) ? inputOrValue : null
+        }
+        return null
+    }
+
+    /**
      * Dates from start through end (inclusive) whose weekday is in `weekdays`
      * (JS getDay values: 0=Sun … 6=Sat).
      */
@@ -623,11 +642,13 @@ export default class TimeUI {
         if (!until || !dateInput) { return }
 
         const syncMinUntil = () => {
-            if (dateInput.value) {
-                until.min = dateInput.value
-                if (until.value && until.value < dateInput.value) {
-                    until.value = dateInput.value
-                }
+            // Ignore Chrome half-written date change events.
+            const start = this.#completeDateValue(dateInput)
+            if (!start) { return }
+            until.min = start
+            const untilValue = this.#completeDateValue(until)
+            if (untilValue && untilValue < start) {
+                until.value = start
             }
         }
         dateInput.addEventListener('change', syncMinUntil)
@@ -1180,8 +1201,10 @@ export default class TimeUI {
             form.addEventListener('submit', (event) => {
                 event.preventDefault()
                 const formData = new FormData(form)
-                const date = formData.get('date')
-                if (isNaN(new Date(date).getTime())) {
+                // Prefer the input node so Chrome badInput/half-typed is rejected.
+                const date = this.#completeDateValue(form.querySelector('input[name="date"]'))
+                    ?? this.#completeDateValue(formData.get('date'))
+                if (!date) {
                     KAAL.error('La date est manquante ou erronée')
                     return
                 }
@@ -1240,9 +1263,10 @@ export default class TimeUI {
                     ).map(node => Number(node.value))
                     let dates = [date]
                     if (weekdays.length > 0) {
-                        const until = formData.get('repeat_until')
-                        const untilDate = this.#parseLocalDate(until)
-                        if (!untilDate || until < date) {
+                        const until = this.#completeDateValue(
+                            form.querySelector('input[name="repeat_until"]'),
+                        ) ?? this.#completeDateValue(formData.get('repeat_until'))
+                        if (!until || until < date) {
                             KAAL.error('La date de fin de répétition est manquante ou erronée')
                             return
                         }
@@ -2019,8 +2043,10 @@ export default class TimeUI {
                 this.#navNode.addEventListener('change', event => {
                     const node = event.target
                     if (node.getAttribute('name') !== 'start' && node.getAttribute('name') !== 'end') { return }
-                    const {begin, end, beginDate, endDate} = this.#getDateRange()
-                    const date = new Date(node.value)
+                    // Chrome fires change while the date is still half-typed; ignore those.
+                    const complete = this.#completeDateValue(node)
+                    if (!complete) { return }
+                    const date = this.#parseLocalDate(complete)
                     date.setHours(12)
                     if (node.name == 'start') {
                         this.#dateRange[1] = date
