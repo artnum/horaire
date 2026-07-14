@@ -1289,23 +1289,19 @@ export default class TimeUI {
 
                     closePopup()
                     // One POST per day (repeat or single), sequential to keep load predictable.
-                    ; (async () => {
-                        for (const day of dates) {
-                            await this.#persistEntry({...baseEntry, date: day}, 'POST')
-                        }
-                    })()
-                        .then(() => this.#loadData())
-                        .then(() => this.#refreshPersonViewFromCache())
-                        .catch(() => {
-                            KAAL.error(
-                                dates.length > 1
-                                    ? 'Impossible de créer toutes les entrées (création partielle possible)'
-                                    : "Impossible de créer l'entrée",
-                            )
-                            return this.#loadData()
-                                .then(() => this.#refreshPersonViewFromCache())
-                                .catch(() => {})
-                        })
+                    Promise.all(dates.map(day => this.#persistEntry({...baseEntry, date: day}, 'POST')))
+                    .then(() => this.#loadData())
+                    .then(() => this.#refreshPersonViewFromCache())
+                    .catch(() => {
+                        KAAL.error(
+                            dates.length > 1
+                                ? 'Impossible de créer toutes les entrées (création partielle possible)'
+                                : "Impossible de créer l'entrée",
+                        )
+                        return this.#loadData()
+                            .then(() => this.#refreshPersonViewFromCache())
+                            .catch(() => {})
+                    })
                     return
                 }
 
@@ -1317,10 +1313,10 @@ export default class TimeUI {
                 updated._person_id = personId
                 updated.person_id = personId
                 entry = updated
-                this.#indexWorktimeData(this.#worktimeData)
                 closePopup()
-                this.#refreshPersonViewFromCache()
                 this.#persistEntry(entry, 'POST')
+                .then(() => this.#loadData())
+                .then(() => this.#refreshPersonViewFromCache())
             })
         })
         .catch(e => {
